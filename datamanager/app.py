@@ -9,6 +9,7 @@ from jinja2 import filters
 from flask_restful import Resource, Api
 from .api.auths import AuthoritiesList, Authority
 from .api.bibs import BibsList, Bib
+from .api import Root
 import json, bson
 
 app = Flask(__name__)
@@ -18,13 +19,6 @@ config = DevelopmentConfig
 collections = config.collections
 formats = config.formats
 rpp = config.RPP
-
-class Root(Resource):
-    def get(self):
-        return_collections = []
-        for c in collections:
-            return_collections.append(c)
-        return return_collections
 
 api.add_resource(Root, '/')
 api.add_resource(AuthoritiesList, '/api/auths')
