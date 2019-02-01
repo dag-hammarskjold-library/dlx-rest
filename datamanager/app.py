@@ -1,25 +1,33 @@
 from flask import Flask, render_template, jsonify, request, redirect, abort, Response
-from .config import DB
+from .config import DevelopmentConfig
 from bson.objectid import ObjectId
-from bson.json_util import dumps
+from bson.json_util import dumps, loads
+from jsonpath_ng import jsonpath, parse
+from pymarc import JSONReader, Record
+from marctools.pymarcer import make_json
+from jinja2 import filters
+from flask_restful import Resource, Api
+from .api.auths import AuthoritiesList, Authority
+from .api.bibs import BibsList, Bib
 import json, bson
 
 app = Flask(__name__)
+api = Api(app)
 
-@app.route('/')
-def index():
-    collection = DB.bibRecords
-    records = collection.find({}).limit(10)
-    return_records = []
-    for record in records:
-        return_records.append(str(record['_id']))
-    return render_template('index.html', records=return_records)
+config = DevelopmentConfig
+collections = config.collections
+formats = config.formats
+rpp = config.RPP
 
-@app.route('/bib/<id>')
-def get_by_id(id):
-    collection = DB.bibRecords
-    try:
-        record = collection.find_one({'_id': ObjectId(id)})
-        return Response(dumps(record), mimetype='application/json')
-    except bson.errors.InvalidId:
-        abort(404)
+class Root(Resource):
+    def get(self):
+        return_collections = []
+        for c in collections:
+            return_collections.append(c)
+        return return_collections
+
+api.add_resource(Root, '/')
+api.add_resource(AuthoritiesList, '/api/auths')
+api.add_resource(Authority, '/api/auths/<int:identifier>')
+api.add_resource(BibsList, '/api/bibs')
+api.add_resource(Bib, '/api/bibs/<int:identifier>')

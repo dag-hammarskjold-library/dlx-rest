@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for('get_by_id', collection=coll, id=record['001'].data, format='html' ) }}">{{ coll }} / {{ record['001'].data }}</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav mr-auto">
+                {% for format in formats %}
+                <li class="nav-item">
+                    {% if format == fmt %}
+                    <a class="nav-link disabled" href="#">{{ formats[format] }}</a>
+                    {% else %}
+                    <a class="nav-link" href="{{ url_for('get_by_id', collection=coll, id=record['001'].data, format=format) }}">{{ formats[format] }}</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        {% for field in record %}
+            {% set this_auth = field|makeauth %}
+            {% if this_auth %}
+                {{field.tag}}
+                {% if field.indicators %}
+                    {% for ind in field.indicators %}
+                        {{ind}}
+                    {% endfor %}
+                {% endif %}
+                {% if field.subfields %}
+                    {% for sf in field.subfields %}
+                        {% set c = loop.cycle('even','odd') %}
+                        {% if c == 'even' %}
+                            ${{sf}}
+                        {% else %}
+                            {{sf}}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {{ field.data }}
+                {% endif %}
+                [<a href="{{url_for('get_by_id', collection='auth', id=this_auth[0], format='html')}}">link</a>]<br>
+            {% else %}
+                {{field.tag}}
+                {% if field.indicators %}
+                    {% for ind in field.indicators %}
+                        {{ind}}
+                    {% endfor %}
+                {% endif %}
+                
+                {% if field.subfields %}
+                    {% for sf in field.subfields %}
+                        {% set c = loop.cycle('even','odd') %}
+                        {% if c == 'even' %}
+                            ${{sf}}
+                        {% else %}
+                            {{sf}}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {{ field.data }}
+                {% endif %}
+                <br>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endblock %}
