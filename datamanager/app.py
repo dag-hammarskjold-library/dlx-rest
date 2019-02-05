@@ -7,18 +7,11 @@ from pymarc import JSONReader, Record
 from marctools.pymarcer import make_json
 from jinja2 import filters
 from flask_restful import Resource, Api
-from .api.auths import AuthoritiesList, Authority
-from .api.bibs import BibsList, Bib
-from .api import Root
+from .api import Root, AuthoritiesList, BibsList, Authority, Bib
 import json, bson
 
 app = Flask(__name__)
 api = Api(app)
-
-config = DevelopmentConfig
-collections = config.collections
-formats = config.formats
-rpp = config.RPP
 
 api.add_resource(Root, '/')
 api.add_resource(AuthoritiesList, '/api/auths')
