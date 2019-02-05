@@ -108,13 +108,20 @@ class Authority(Resource):
         reader = JSONReader(pm)
         return_record = {
             "_links": {
-                "self": url_for('authority', identifier=identifier, _external=True)
+                "self": url_for('authority', identifier=identifier, _external=True),
+                "authorities": []
             },
             "record": ""
         }
         for record in reader:
             record.force_utf8 = True
             return_record["record"] = record.as_dict()
+            for f in record.fields:
+                this_0 = f.get_subfields('0')
+                for sf in this_0:
+                    return_record["_links"]["authorities"].append(
+                        url_for('authority', identifier=sf, _external=True)
+                    )
             return return_record
 
 
@@ -130,11 +137,18 @@ class Bib(Resource):
         reader = JSONReader(pm)
         return_record = {
             "_links": {
-                "self": url_for('bib', identifier=identifier, _external=True)
+                "self": url_for('bib', identifier=identifier, _external=True),
+                "authorities": []
             },
             "record": ""
         }
         for record in reader:
             record.force_utf8 = True
             return_record["record"] = record.as_dict()
+            for f in record.fields:
+                this_0 = f.get_subfields('0')
+                for sf in this_0:
+                    return_record["_links"]["authorities"].append(
+                        url_for('authority', identifier=sf, _external=True)
+                    )
             return return_record
