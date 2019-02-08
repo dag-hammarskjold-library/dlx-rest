@@ -7,7 +7,7 @@ from pymarc import JSONReader, Record
 from marctools.pymarcer import make_json
 from jinja2 import filters
 from flask_restful import Resource, Api
-from .api import Root, AuthoritiesList, BibsList, Authority, Bib
+from .api import Root, AuthoritiesList, BibsList, Authority, Bib, BibField
 import json, bson
 
 app = Flask(__name__)
@@ -19,4 +19,5 @@ api.add_resource(AuthoritiesList, '/api/auths')
 api.add_resource(Authority, '/api/auths/<int:identifier>')
 api.add_resource(BibsList, '/api/bibs')
 api.add_resource(Bib, '/api/bibs/<int:identifier>')
-
+# api.add_resource(BibFieldList, '/api/bibs/<int:identifier>/fields')
+api.add_resource(BibField, '/api/bibs/<int:identifier>/fields/<string:field>')

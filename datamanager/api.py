@@ -9,13 +9,15 @@ from marctools.pymarcer import make_json
 from pymarc import JSONReader
 from datamanager.config import DevelopmentConfig
 from flask_restful import Resource, reqparse
-import math
+import math, six
 
 # Initialize things
 config = DevelopmentConfig
 collections = config.collections
 auths = config.collections['auth']
 bibs = config.collections['bib']
+
+izip_longest = six.moves.zip_longest
 
 # Add some arguments in case we need them
 parser = reqparse.RequestParser()
@@ -177,4 +179,33 @@ class Bib(Resource):
                 this_0 = f.get_subfields('0')
                 for sf in this_0:
                     return_record["_links"]["authorities"].append(url_for('authority', identifier=sf, _external=True))
+            return return_record
+
+class BibField(Resource):
+    """
+    API piece to return a specific tag for a given Bibliographic Record.
+    """
+    def get(self, identifier, field):
+        found_record = bibs['name'].find_one({'_id': identifier})
+        if found_record is None:
+            abort(404)
+        pm = make_json(found_record)
+        reader = JSONReader(pm)
+        return_record = {
+            "_links": {
+                "self": url_for('bibfield', identifier=identifier, field=field, _external=True),
+            },
+            "subfields": {}
+        }
+        for record in reader:
+            record.force_utf8 = True
+            #return_record["record"] = record.as_dict()
+            this_field = record[field]
+            if this_field.is_control_field():
+                return_record["subfields"] = this_field.data
+            else:
+                #return_record["data"][tags] = {}
+                for t, v in izip_longest(*[iter(this_field.subfields)] * 2):
+                    return_record["subfields"][t] = v
+
             return return_record
