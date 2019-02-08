@@ -9,6 +9,7 @@ from marctools.pymarcer import make_json
 from pymarc import JSONReader
 from datamanager.config import DevelopmentConfig
 from flask_restful import Resource, reqparse
+import math
 
 # Initialize things
 config = DevelopmentConfig
@@ -20,6 +21,21 @@ bibs = config.collections['bib']
 parser = reqparse.RequestParser()
 parser.add_argument('limit')
 parser.add_argument('start')
+#parser.add_argument('jsonp')
+
+def paginate(args):
+    pages = {}
+    try:
+        pages['limit'] = int(args['limit'])
+    except TypeError:
+        pages['limit'] = 10
+
+    try:
+        pages['start'] = int(args['start'])
+    except TypeError:
+        pages['start'] = 0
+
+    return pages
 
 class Root(Resource):
     """ Return a list of the collection endpoints. """
@@ -49,24 +65,31 @@ class AuthoritiesList(Resource):
     """
     def get(self):
         args = parser.parse_args()
-        try:
-            rpp = int(args['limit'])
-        except TypeError:
-            rpp = 10
-        records = auths['name'].find({}).limit(rpp)
+        pages = paginate(args)
+        records = auths['name'].find({}).skip(pages['start']).limit(pages['limit'])
         return_data = {
             "_links": {
                 "self": url_for('authoritieslist', _external=True)
             },
-            "limit": rpp,
-            "authorities": [],
-            "start": "start",
-            "size": "size"
+            "limit": pages['limit'],
+            "start": pages['start'],
+            "size": records.count(),
+            "authorities": []
         }
-
+        
         for record in records:
             #return_data["authorities"].append(str(record['_id']))
             return_data["authorities"].append(url_for('authority',identifier=str(record['_id']), _external=True))
+
+        previous_set = pages['start'] - pages['limit']
+        if previous_set >= 0:
+            # we can include a previous
+            return_data['_links']['previous'] = url_for('authoritieslist', _external=True, start=previous_set, limit=pages['limit'])
+
+        next_set = pages['start'] + pages['limit']
+        if next_set < records.count():
+            return_data['_links']['next'] = url_for('authoritieslist', _external=True, start=next_set, limit=pages['limit'])
+
         return return_data
 
 class BibsList(Resource):
@@ -77,23 +100,30 @@ class BibsList(Resource):
     """
     def get(self):
         args = parser.parse_args()
-        try:
-            rpp = int(args['limit'])
-        except TypeError:
-            rpp = 10
-        records = bibs['name'].find({}).limit(rpp)
+        pages = paginate(args)
+        records = bibs['name'].find({}).skip(pages['start']).limit(pages['limit'])
         return_data = {
             "_links": {
                 "self": url_for('bibslist', _external=True)
             },
-            "limit": rpp,
-            "bibs": [],
-            "start": "start",
-            "size": "size"
+            "limit": pages['limit'],
+            "start": pages['start'],
+            "size": records.count(),
+            "bibs": []
         }
         for record in records:
             #return_records.append(str(record['_id']))
             return_data["bibs"].append(url_for('bib',identifier=str(record['_id']), _external=True))
+
+        previous_set = pages['start'] - pages['limit']
+        if previous_set >= 0:
+            # we can include a previous
+            return_data['_links']['previous'] = url_for('bibslist', _external=True, start=previous_set, limit=pages['limit'])
+
+        next_set = pages['start'] + pages['limit']
+        if next_set < records.count():
+            return_data['_links']['next'] = url_for('bibslist', _external=True, start=next_set, limit=pages['limit'])
+
         return return_data
 
 class Authority(Resource):
@@ -119,9 +149,7 @@ class Authority(Resource):
             for f in record.fields:
                 this_0 = f.get_subfields('0')
                 for sf in this_0:
-                    return_record["_links"]["authorities"].append(
-                        url_for('authority', identifier=sf, _external=True)
-                    )
+                    return_record["_links"]["authorities"].append(url_for('authority', identifier=sf, _external=True))
             return return_record
 
 
@@ -148,7 +176,5 @@ class Bib(Resource):
             for f in record.fields:
                 this_0 = f.get_subfields('0')
                 for sf in this_0:
-                    return_record["_links"]["authorities"].append(
-                        url_for('authority', identifier=sf, _external=True)
-                    )
+                    return_record["_links"]["authorities"].append(url_for('authority', identifier=sf, _external=True))
             return return_record

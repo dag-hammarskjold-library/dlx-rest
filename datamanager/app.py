@@ -13,8 +13,10 @@ import json, bson
 app = Flask(__name__)
 api = Api(app)
 
-api.add_resource(Root, '/')
+# REST API routes defined in api.py
+api.add_resource(Root, '/api')
 api.add_resource(AuthoritiesList, '/api/auths')
 api.add_resource(Authority, '/api/auths/<int:identifier>')
 api.add_resource(BibsList, '/api/bibs')
 api.add_resource(Bib, '/api/bibs/<int:identifier>')
+
