@@ -1,14 +1,29 @@
 from pymongo import MongoClient
 
-FILES_BUCKET = ''
+class DLX(object):
+    def __init__(self, client):
+        self.db = client['your_db']
+        self.auths = self.db['your_authorities_collection']
+        self.bibs = self.db['your_bib_collection']
+        self.files = self.db['your_files_collection']
 
-DB_CLIENT = MongoClient(
-    '<your_host_here>',
-    port=27017,
-    username='<username>',
-    password='<password>',
-    authSource='<athentication_database>',
-    authMechanism='SCRAM-SHA-256'
-)
+class Config(object):
+    DEBUG = False
+    TESTING = False
 
-DB = DB_CLIENT['<database_name>']
+    client = MongoClient(
+        'your_host',
+        port=8080,
+        username='your_username',
+        password='your_password',
+        authSource='your_authorization_db',
+        authMechanism='SCRAM-SHA-256'
+    )
+
+    dlx = DLX(client)
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+
+class ProductionConfig(Config):
+    DEBUG = False
