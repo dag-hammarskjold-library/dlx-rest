@@ -1,222 +1,173 @@
-from flask import url_for, Flask
+from flask import url_for, Flask, abort
 from flask_restplus import Resource, Api, reqparse
-#from marctools.jmarc import JMARC
+from marctools.pymarcer import make_json
+from marctools import jmarc
+from pymarc import JSONReader
 # replace DevelopmentConfig with ProductionConfig when deploying to production
-from .config import DevelopmentConfig as Config
+from .config import DevelopmentConfig
 
 app = Flask(__name__)
-app.config.from_object(Config)
+app.config.from_object(DevelopmentConfig)
 api = Api(app)
 
-ns = api.namespace('api', description='dlx REST API')
+db = app.config.get('DB')
+
+ns = api.namespace('api', description='DLX MARC REST API')
 
 parser = reqparse.RequestParser()
 parser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
 parser.add_argument('limit', type=int, help='Number of results to return. Default is 10 for record lists and 0 (unlimited) for field and subfield lists.')
 
-def make_list(endpoint, **kwargs):
+def make_list(endpoint, results, **kwargs):
     return_data = {
         '_links': {
             'self': url_for(endpoint, **kwargs)
         },
-        'start': kwargs.pop('start', ''),
-        'limit': kwargs.pop('limit', ''),
-        'results': []
+        'start': kwargs.pop('start', 0),
+        'limit': kwargs.pop('limit', 0),
+        'results': results
+    }
+
+
+    return return_data
+
+def make_singleton(endpoint, record_id, record, **kwargs):
+    #record_id = kwargs.pop('record_id')
+    
+    return_data = {
+        '_links': {
+            'self': url_for(endpoint, record_id=record_id, **kwargs)
+        },
+        'result': record
     }
 
     return return_data
 
-def make_singleton(endpoint, **kwargs):
-    return {
-        '_links': {
-            'self': url_for(endpoint, **kwargs)
-        },
-        'result': {}
-    }
+collections = ['bibs','auths','files']
 
-# Bib Records
-@ns.route('/bibs')
-class BibsList(Resource):
-    @ns.doc(description='Return a list of Bibliographic Records')
+@ns.route('/collections')
+class CollectionsList(Resource):
+    @ns.doc(description='Return a list of the collection endpoints.')
+    def get(self):
+        this_collections = []
+        for c in collections:
+            this_collections.append(url_for('api_records_list', collection=c, _external=True))
+        return make_list('api_collections_list', results=this_collections, _external=True)
+
+# MARC Records. Will this work with files as well?
+# Lists
+@ns.route('/<string:collection>')
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class RecordsList(Resource):
+    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(parser)
-    def get(self, start=0, limit=10):
-        return make_list('api_bibs_list', start=start, limit=limit, _external=True)
+    def get(self, collection):
+        args = parser.parse_args()
+        start = args['start'] or 0
+        limit = args['limit'] or 10
+        results = getattr(db, collection, db.bibs).find({}).skip(start).limit(limit)
+        this_results = []
+        for res in results:
+            this_results.append(
+            url_for('api_record', collection=collection, record_id=res['_id'], _external=True)
+        )
+        return make_list('api_records_list', results=this_results, collection=collection, start=start, limit=limit, _external=True)
 
-@ns.route('/bibs/<int:record_id>')
+@ns.route('/<string:collection>/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
-class Bib(Resource):
-    @ns.doc(description='Return the Bibliographic Record with the given identifier')
-    def get(self, record_id):
-        return make_singleton('api_bib', record_id=record_id, _external=True)
-
-@ns.route('/bibs/<int:record_id>/fields')
-@ns.param('record_id', 'The record identifier')
-class BibFieldsList(Resource):
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class RecordFieldsList(Resource):
     @ns.doc(description='Return a list of the Fields in the Bibliographic Record with the given record identifier')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 0
-        return make_list('api_bib_fields_list', record_id=record_id, start=start, limit=limit, _external=True)
+    def get(self, collection, record_id):
+        found_record = getattr(db, collection, db.bibs).find_one({'_id': record_id}) or abort(404)
+        record = jmarc.JMARC(found_record)
+        fields = []
+        for field in record.get_fields():
+            url = url_for('api_record_field', record_id=record.id, collection=collection, field_tag=field.tag, _external=True)
+            if url not in fields:
+                fields.append(url)
+        print(fields)
+        return make_list(endpoint='api_record_fields_list', results=fields, collection=collection, record_id=record_id, _external=True)
 
-@ns.route('/bibs/<int:record_id>/fields/<string:field_tag>')
+# Single records
+@ns.route('/<string:collection>/<int:record_id>')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class Record(Resource):
+    @ns.doc(description='Return the Bibliographic or Authority Record with the given identifier')
+    def get(self, collection, record_id):
+        found_record = getattr(db, collection, db.bibs).find_one({'_id': record_id}) or abort(404)
+        record = jmarc.JMARC(found_record)
+        return make_singleton('api_record', record_id=record_id, record=record.to_dict(), collection=collection, _external=True)
+
+@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>')
 @ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
 @ns.param('record_id', 'The record identifier')
-class BibField(Resource):
-    @ns.doc(description='Return the contents of the field in the Bibliographic Record with the given field tag and record identifier')
-    def get(self, record_id, field_tag):
-        return make_singleton('api_bib_field', record_id=record_id, field_tag=field_tag, _external=True)
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class RecordField(Resource):
+    @ns.doc(description='Return the contents of the field in the Bibliographic or Authority Record with the given field tag and record identifier')
+    def get(self, collection, record_id, field_tag):
+        found_record = getattr(db, collection, db.bibs).find_one({'_id': record_id}) or abort(404)
+        record = jmarc.JMARC(found_record)
+        fields = []
+        for field in record.get_fields(field_tag):
+            fields.append(field.to_bson())
+        return make_singleton('api_record_field', record_id=record_id, collection=collection, record=fields, field_tag=field_tag, _external=True)
 
-@ns.route('/bibs/<int:record_id>/fields/<string:field_tag>/subfields')
+@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:index>')
+@ns.param('index', 'In case the record has more than one instance of a MARC tag, return only the instance with the given index.')
 @ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
 @ns.param('record_id', 'The record identifier')
-class BibSubFieldsList(Resource):
-    @ns.doc(description='Return a list of the subfields in the identified field for this record')
-    def get(self, record_id, field_tag):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 0
-        return make_list('api_bib_sub_fields_list', record_id=record_id, field_tag=field_tag, start=start, limit=limit, _external=True)
+class RecordFieldIndex(Resource):
+    @ns.doc(description='Return the contents of the field in the Bibliographic or Authority Record with the given field tag and record identifier')
+    def get(self, collection, record_id, field_tag, index):
+        found_record = getattr(db, collection, db.bibs).find_one({'_id': record_id}) or abort(404)
+        record = jmarc.JMARC(found_record)
+        fields = list(record.get_fields(field_tag))[index].to_bson()
+        return make_singleton('api_record_field_index', collection=collection, record_id=record_id, record=fields, field_tag=field_tag, index=index, _external=True)
 
-@ns.route('/bibs/<int:record_id>/fields/<string:field_tag>/subfields/<string:subfield_code>')
-@ns.param('subfield_code', 'The code for a MARC tag\'s subfield. Example: a is a common subfield code.')
-@ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
+special_routes = [
+    '/bibs/{record_id}/auths',
+    '/bibs/{record_id}/files',
+    '/auths/{record_id}/auths',
+    '/auths/{record_id}/bibs',
+    '/files/{record_id}/bibs',
+]
+# Special endpoints. Should these be generalized?
+# /<from>/<id>/<to>
+# Can this handle files or no?
+@ns.route('/<string:from_collection>/<int:record_id>/<string:to_collection>')
 @ns.param('record_id', 'The record identifier')
-class BibSubField(Resource):
-    @ns.doc(description='Return the contents of a subfield for an identified record and field.')
-    def get(self, record_id, field_tag, subfield_code):
-        return make_singleton('api_bib_sub_field', record_id=record_id, field_tag=field_tag, subfield_code=subfield_code, _external=True)
+@ns.param('from_collection', 'The collection containing the individual record from which you want to search for relationships.')
+class RecordRelationsList(Resource):
+    @ns.doc(description="""
+    Returns relationships based on the pattern /<collection1>/<record_id>/<collection2> where record_id is a record 
+    in collection1 and the collections represent available collection endpoints.
 
-# Authorities
-# Lots of this is duplicative. Consider ways to refactor.
-@ns.route('/auths')
-class AuthsList(Resource):
-    @ns.doc(description='Return a list of Authority Records')
-    @ns.expect(parser)
-    def get(self):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_auths_list', start=start, limit=limit, _external=True)
-
-@ns.route('/auths/<int:record_id>')
-@ns.param('record_id', 'The record identifier')
-class Auth(Resource):
-    @ns.doc(description='Return the Authority Record with the given identifier')
-    def get(self, record_id):
-        return make_singleton('api_auth', record_id=record_id, _external=True)
-
-@ns.route('/auths/<int:record_id>/fields')
-@ns.param('record_id', 'The record identifier')
-class AuthFieldsList(Resource):
-    @ns.doc(description='Return a list of the Fields in the Authority Record with the given record identifier')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 0
-        return make_list('api_auth_fields_list', record_id=record_id, start=start, limit=limit, _external=True)
-
-@ns.route('/auths/<int:record_id>/fields/<string:field_tag>')
-@ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
-@ns.param('record_id', 'The record identifier')
-class AuthField(Resource):
-    @ns.doc(description='Return the contents of the field in the Authority Record with the given field tag and record identifier')
-    def get(self, record_id, field_tag):
-        return make_singleton('api_auth_field', record_id=record_id, field_tag=field_tag, _external=True)
-
-@ns.route('/auths/<int:record_id>/fields/<string:field_tag>/subfields')
-@ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
-@ns.param('record_id', 'The record identifier')
-class AuthSubFieldsList(Resource):
-    @ns.doc(description='Return a list of the subfields in the identified field for this record')
-    def get(self, record_id, field_tag):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 0
-        return make_list('api_auth_sub_fields_list', record_id=record_id, field_tag=field_tag, start=start, limit=limit, _external=True)
-
-@ns.route('/auths/<int:record_id>/fields/<string:field_tag>/subfields/<string:subfield_code>')
-@ns.param('subfield_code', 'The code for a MARC tag\'s subfield. Example: a is a common subfield code.')
-@ns.param('field_tag', 'The MARC tag identifying the field. Example: 245 is usually the tag for a title in MARC.')
-@ns.param('record_id', 'The record identifier')
-class AuthSubField(Resource):
-    @ns.doc(description='Return the contents of a subfield for an identified record and field.')
-    def get(self, record_id, field_tag, subfield_code):
-        return make_singleton('api_auth_sub_field', record_id=record_id, field_tag=field_tag, subfield_code=subfield_code, _external=True)
-
-# Files
-# /api/files
-@ns.route('/files')
-class FilesList(Resource):
-    @ns.doc(description='Return a list of files')
-    def get(self):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_files_list', start=start, limit=limit, _external=True)
-
-# /api/files/<id>
-@ns.route('/files/<string:file_id>')
-@ns.param('file_id', 'The file identifier')
-class File(Resource):
-    @ns.doc(description='Return the file with the given identifier')
-    def get(self, file_id):
-        return make_singleton('api_file', file_id=file_id, _external=True)
-
-
-# Cross-queries
-# /api/bibs/<id>/auths
-@ns.route('/bibs/<int:record_id>/auths')
-@ns.param('record_id', 'The record identifier')
-class BibAuthsList(Resource):
-    @ns.doc(description='Return a list of the authority records referenced by this bibliographic record')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_bib_auths_list', record_id=record_id, start=start, limit=limit, _external=True)
-
-# /api/auths/<id>/auths
-@ns.route('/auths/<int:record_id>/auths')
-@ns.param('record_id', 'The record identifier')
-class AuthAuthsList(Resource):
-    @ns.doc(description='Return a list of the authority records referenced by this authority record')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_auth_auths_list', record_id=record_id, start=start, limit=limit, _external=True)
-
-# harder
-# /api/auths/<id>/bibs
-@ns.route('/auths/<int:record_id>/bibs')
-@ns.param('record_id', 'The record identifier')
-class AuthBibsList(Resource):
-    @ns.doc(description='Return a list of the bibliographic records that reference this authority record')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_auth_bibs_list', record_id=record_id, start=start, limit=limit, _external=True)
-
-# /api/files/<id>/bibs
-@ns.route('/files/<int:file_id>/bibs')
-@ns.param('record_id', 'The file identifier')
-class FileBibsList(Resource):
-    @ns.doc(description='Return a list of the the bibliographic records that reference this file')
-    def get(self, file_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 10
-        return make_list('api_auth_auths_list', file_id=file_id, start=start, limit=limit, _external=True)
-
-# /api/bibs/<id>/files
-@ns.route('/bibs/<int:record_id>/files')
-@ns.param('record_id', 'The record identifier')
-class BibFilesList(Resource):
-    @ns.doc(description='Return a list of the files attached to this bibliographic record')
-    def get(self, record_id):
-        args = parser.parse_args()
-        start = args['start'] or 0
-        limit = args['limit'] or 0
-        return make_list('api_bib_files_list', record_id=record_id, start=start, limit=limit, _external=True)
+    Valid special routes are: %s
+    """ % ', '.join(special_routes)
+    )
+    def get(self, from_collection, record_id, to_collection):
+        constructed_route = '/' + '/'.join([from_collection,'{record_id}',to_collection])
+        print(constructed_route)
+        if constructed_route not in special_routes:
+            abort(400)
+        found_record = getattr(db, from_collection, db.bibs).find_one({'_id': record_id}) or abort(404)
+        record = jmarc.JMARC(found_record)
+        relations = []
+        for f in record.get_fields():
+            if isinstance(f, jmarc.Datafield):
+                for sf in f.subfield:
+                    if sf.code == "0":
+                        relations.append({
+                            'field': url_for(
+                                'api_record_field', 
+                                collection=from_collection, 
+                                record_id=record_id, 
+                                field_tag=f.tag, 
+                                _external=True
+                            ),
+                            'xref': url_for('api_record', collection='auths', record_id=sf.value, _external=True)
+                        })
+            # 856? other?
+        return make_list('api_record_relations_list', results=relations, from_collection=from_collection, record_id=record_id, to_collection=to_collection, _external=True)
