@@ -6,19 +6,25 @@ from pymarc import JSONReader
 # replace DevelopmentConfig with ProductionConfig when deploying to production
 from .config import DevelopmentConfig
 
+# App initialization
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
 api = Api(app)
-
-db = app.config.get('DB')
-
 ns = api.namespace('api', description='DLX MARC REST API')
 
+# Get some configs we need
+db = app.config.get('DB')
+collections = app.config.get('COLLECTIONS')
+
+# Set some api-wide arguments.
 parser = reqparse.RequestParser()
 parser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
 parser.add_argument('limit', type=int, help='Number of results to return. Default is 10 for record lists and 0 (unlimited) for field and subfield lists.')
 
 def make_list(endpoint, results, **kwargs):
+    '''
+    Makes a list of records, fields, whatever, and stores them in results.
+    '''
     return_data = {
         '_links': {
             'self': url_for(endpoint, **kwargs)
@@ -27,24 +33,22 @@ def make_list(endpoint, results, **kwargs):
         'limit': kwargs.pop('limit', 0),
         'results': results
     }
-
-
     return return_data
 
 def make_singleton(endpoint, record_id, record, **kwargs):
-    #record_id = kwargs.pop('record_id')
-    
+    '''
+    Makes a single record result and stores it in result.
+    '''
     return_data = {
         '_links': {
             'self': url_for(endpoint, record_id=record_id, **kwargs)
         },
         'result': record
     }
-
     return return_data
 
-collections = ['bibs','auths','files']
-
+# Descriptions are in-line below and are used by flask_restplus to make swagger docs.
+# Lists
 @ns.route('/collections')
 class CollectionsList(Resource):
     @ns.doc(description='Return a list of the collection endpoints.')
@@ -55,7 +59,6 @@ class CollectionsList(Resource):
         return make_list('api_collections_list', results=this_collections, _external=True)
 
 # MARC Records. Will this work with files as well?
-# Lists
 @ns.route('/<string:collection>')
 @ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
 class RecordsList(Resource):
@@ -126,6 +129,7 @@ class RecordFieldIndex(Resource):
         fields = list(record.get_fields(field_tag))[index].to_bson()
         return make_singleton('api_record_field_index', collection=collection, record_id=record_id, record=fields, field_tag=field_tag, index=index, _external=True)
 
+# This probably belongs in config.
 special_routes = [
     '/bibs/{record_id}/auths',
     '/bibs/{record_id}/files',
@@ -133,19 +137,22 @@ special_routes = [
     '/auths/{record_id}/bibs',
     '/files/{record_id}/bibs',
 ]
-# Special endpoints. Should these be generalized?
-# /<from>/<id>/<to>
+# Special, generalized endpoints: /<from>/<id>/<to>
 # Can this handle files or no?
 @ns.route('/<string:from_collection>/<int:record_id>/<string:to_collection>')
+@ns.param('to_collection', 'The collection containing the target records that are related to the source record.')
 @ns.param('record_id', 'The record identifier')
-@ns.param('from_collection', 'The collection containing the individual record from which you want to search for relationships.')
+@ns.param('from_collection', 'The collection containing the source record from which you want to search for relationships.')
 class RecordRelationsList(Resource):
     @ns.doc(description="""
-    Returns relationships based on the pattern /<collection1>/<record_id>/<collection2> where record_id is a record 
-    in collection1 and the collections represent available collection endpoints.
+    Returns relationships based on the pattern /api/{from_collection}/{record_id}/{to_collection} where record_id is a record in from_collection and the collections represent available collection endpoints.
+    \nValid special routes are:\n %s
 
-    Valid special routes are: %s
-    """ % ', '.join(special_routes)
+    Examples:
+    
+    To get the list of authorities referenced in the bibliographic record with record id 72764: /api/bibs/72764/auths
+    To get the list of files associated with the bibliographic record with record id 72764: /api/bibs/72764/files
+    """ % '\n'.join(special_routes)
     )
     def get(self, from_collection, record_id, to_collection):
         constructed_route = '/' + '/'.join([from_collection,'{record_id}',to_collection])
