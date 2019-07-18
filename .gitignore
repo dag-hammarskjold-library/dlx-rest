@@ -3,7 +3,6 @@ venv/
 env/
 __pycache__/
 *.py[co]
-zappa_settings.json
 .vscode
 _build/
 /docs/_build/
