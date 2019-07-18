@@ -48,6 +48,27 @@ class RecordsList(Resource):
         )
         return make_list('api_records_list', results=this_results, collection=collection, start=start, limit=limit, _external=True)
 
+@ns.route('/<string:collection>/<int:record_id>/fields')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class RecordFieldsList(Resource):
+    @ns.doc(description='Return a list of the Fields in the Bibliographic Record with the given record identifier')
+    def get(self, collection, record_id):
+        try:
+            this_collection = collections[collection]
+        except KeyError:
+            abort(404)
+        record = getattr(this_collection['instance_class'], 'match_id')(record_id)
+        if record:
+            fields = []
+            for field in record.get_fields():
+                url = url_for('api_record_field', record_id=record.id, collection=collection, field_tag=field.tag, _external=True)
+                if url not in fields:
+                    fields.append(url)
+            return make_list(endpoint='api_record_fields_list', results=fields, collection=collection, record_id=record_id, _external=True)
+        else:
+            abort(404)
+
 # Single records
 @ns.route('/<string:collection>/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
@@ -73,10 +94,15 @@ class Record(Resource):
 class RecordField(Resource):
     @ns.doc(description='Return the contents of the field in the Bibliographic or Authority Record with the given field tag and record identifier')
     def get(self, collection, record_id, field_tag):
-        found_record = getattr(db, collection, db.bibs).find_one({'_id': record_id}) or abort(404)
-        #record = jmarc.JMARC(found_record)
-        record = {}
+        try:
+            this_collection = collections[collection]
+        except KeyError:
+            abort(404)
+        record = getattr(this_collection['instance_class'], 'match_id')(record_id)
         fields = []
-        for field in record.get_fields(field_tag):
-            fields.append(field.to_bson())
-        return make_singleton('api_record_field', record_id=record_id, collection=collection, record=fields, field_tag=field_tag, _external=True)
+        if record:
+            for field in record.get_fields(field_tag):
+                fields.append(field.to_bson())
+            return make_singleton('api_record_field', record_id=record_id, collection=collection, record=fields, field_tag=field_tag, _external=True)
+        else:
+            abort(404)
