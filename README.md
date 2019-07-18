@@ -1,3 +1,7 @@
+![Travis CI](https://travis-ci.org/dag-hammarskjold-library/datamanager.svg?branch=master)
+
+Live here: https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/ 
+
 git clone https://github.com/dag-hammarskjold-library/datamanager
 
 cd datamanager
