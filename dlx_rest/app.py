@@ -1,8 +1,7 @@
 from flask import url_for, Flask, abort
 from flask_restplus import Resource, Api, reqparse
-from dlx import Bib, Auth
-from datamanager.config import Config
-from datamanager.utils import make_list, make_singleton
+from dlx_rest.config import Config
+from dlx_rest.utils import make_list, make_singleton
 
 app = Flask(__name__)
 app.config.from_object(Config)
