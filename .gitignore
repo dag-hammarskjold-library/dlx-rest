@@ -6,3 +6,4 @@ __pycache__/
 .vscode
 _build/
 /docs/_build/
+.DS_Store

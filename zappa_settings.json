@@ -1,7 +1,7 @@
 {
     "dev": {
         "slim_handler": "true",
-        "app_function": "datamanager.app.app",
+        "app_function": "dlx_rest.app.app",
         "project_name": "datamanager",
         "runtime": "python3.6",
         "s3_bucket": "zappa-9vpwkivvo",
