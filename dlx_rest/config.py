@@ -5,22 +5,12 @@ import boto3
 class Config(object):
     DEBUG = False
     TESTING = False
-
+    
     client = boto3.client('ssm')
     connect_string = client.get_parameter(Name='connect-string')['Parameter']['Value']
-    
-    DB = DB.connect(connect_string)
 
-    COLLECTIONS = {
-        'bibs': {
-            'endpoint': 'bibs',
-            'instance_class': Bib
-        },
-        'auths': {
-            'endpoint': 'auths',
-            'instance_class': Auth
-        }
-    }
+    BIB_COLLECTION = 'bibs'
+    AUTH_COLLECTION = 'auths'
 
 class DevelopmentConfig(Config):
     DEBUG = True
