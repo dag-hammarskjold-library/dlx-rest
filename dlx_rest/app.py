@@ -135,7 +135,7 @@ class CollectionsList(Resource):
             results
         )
 
-        return response.to_json()
+        return response.json()
 
 # Lists of records
 
