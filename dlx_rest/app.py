@@ -367,11 +367,13 @@ class Record(Resource):
 
         args = resource_argparser.parse_args()
         fmt = args.get('format', None)
-
+        
         if fmt:
             try:
                 return getattr(response, fmt)()
-            except:
+            except AttributeError:
                 abort(400)
+            except:
+                abort(500)
         else:
             return response.json()
