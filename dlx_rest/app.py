@@ -396,21 +396,22 @@ class Record(Resource):
 
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
     @ns.expect(resource_argparser)
-    def create(self, collection, data):
+    def post(self, collection, data):
         try:
             cls = ClassDispatch.by_collection(collection)
         except KeyError:
             abort(404)
         pass
 
-    @ns.doc(description='Update the Bibliographic or Authority Record with the given identifier and data.')
+    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
     @ns.expect(resource_argparser)
-    def update(self, collection, record_id, data):
+    def put(self, collection, record_id, data):
         try:
             cls = ClassDispatch.by_collection(collection)
         except KeyError:
             abort(404)
-        
+        pass
+
         record = cls.match_id(record_id) or abort(404)
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
