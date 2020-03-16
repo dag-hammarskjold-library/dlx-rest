@@ -8,8 +8,24 @@ DB.connect(Config.connect_string)
 
 app = Flask(__name__)
 app.config.from_object(Config)
-api = Api(app)
+
+# To do
+authorizations = {
+    'oauth2': {
+        'type': 'oauth2',
+        'flow': 'accessCode',
+        'tokenUrl': 'https://somewhere.com/token',
+        'authorizationUrl': 'https://somewhere.com/auth',
+        'scopes': {
+            'read': 'Grant read-only access',
+            'write': 'Grant read-write access',
+        }
+    }
+}
+
+api = Api(app, authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
+
 
 # Set some api-wide arguments
 
@@ -377,3 +393,34 @@ class Record(Resource):
                 abort(500)
         else:
             return response.json()
+
+    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
+    @ns.expect(resource_argparser)
+    def create(self, collection, data):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        pass
+
+    @ns.doc(description='Update the Bibliographic or Authority Record with the given identifier and data.')
+    @ns.expect(resource_argparser)
+    def update(self, collection, record_id, data):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        
+        record = cls.match_id(record_id) or abort(404)
+
+    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
+    @ns.expect(resource_argparser)
+    def delete(self, collection, record_id):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        
+        record = cls.match_id(record_id) or abort(404)
+
+        record.delete()
