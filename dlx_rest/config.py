@@ -13,10 +13,10 @@ class Config(object):
         TESTING = True
     elif 'DLX_REST_DEV' in os.environ:
         client = boto3.client('ssm')
-        connect_string = client.get_parameter(Name='dev-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='dlx-dev-connect-string')['Parameter']['Value']
     elif 'DLX_REST_PRODUCTION' in os.environ:
         client = boto3.client('ssm')
-        connect_string = client.get_parameter(Name='production-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
     else:
         raise Exception('One of the environment variables "DLX_REST_TESTING", "DLX_REST_DEV", or "DLX_REST_PRODUCTION" must return a true value in order to initialize the runtime environment')
 
