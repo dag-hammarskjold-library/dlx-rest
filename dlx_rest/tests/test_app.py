@@ -1,5 +1,5 @@
 import os
-os.environ['FLASK_TEST'] = 'True'
+os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest 
 import json, re
