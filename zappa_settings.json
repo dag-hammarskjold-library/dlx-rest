@@ -6,7 +6,7 @@
         "s3_bucket": "zappa-9vpwkivvo",
         "aws_region": "us-east-1",
         "environment_variables": {
-            "DLX_REST_DEVELOPMENT": "true"
+            "DLX_REST_DEV": "true"
         }
     }
 }
