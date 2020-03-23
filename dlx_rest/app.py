@@ -1,5 +1,7 @@
 from flask import Flask, Response, url_for, jsonify, abort as flask_abort
 from flask_restplus import Resource, Api, reqparse
+from pymongo import ASCENDING as ASC, DESCENDING as DESC
+
 from dlx_rest.config import Config
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
@@ -32,6 +34,9 @@ ns = api.namespace('api', description='DLX MARC REST API')
 list_argparser = reqparse.RequestParser()
 list_argparser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
 list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
+list_argparser.add_argument('sort', type=str, help='Valid strings are "date"')
+list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
+list_argparser.add_argument('format', type=str, help='Valid strings are "xml", "mrc", "mrk", "txt"')
 
 resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
@@ -51,7 +56,12 @@ class ClassDispatch():
         Config.BIB_COLLECTION: Bib,
         Config.AUTH_COLLECTION: Auth
     }
-
+    
+    batch_index = {
+        Config.BIB_COLLECTION: BibSet,
+        Config.AUTH_COLLECTION: AuthSet
+    }
+    
     @classmethod
     def list_names(cls):
         return cls.index.keys()
@@ -59,6 +69,10 @@ class ClassDispatch():
     @classmethod
     def by_collection(cls, name):
         return cls.index[name]
+        
+    @classmethod
+    def batch_by_collection(cls, name):
+        return cls.batch_index[name]
 
 class ListResponse():
     def __init__(self, endpoint, items, **kwargs):
@@ -162,17 +176,40 @@ class RecordsList(Resource):
     @ns.expect(list_argparser)
     def get(self, collection):
         try:
-            cls = ClassDispatch.by_collection(collection)
+            cls = ClassDispatch.batch_by_collection(collection)
         except KeyError:
             abort(404)
 
         args = list_argparser.parse_args()
         start = args['start'] or 0
         limit = args['limit'] or 100
-
-        records = cls.handle().find({}, {'_id': 1}, skip=start, limit=limit)
+        sort_by = args['sort']
+        direction = args['direction'] or ''
+        fmt = args['format'] or ''
+        
+        if sort_by == 'date':
+            if direction.lower() == 'asc':
+                sort = [('updated', ASC)]
+            else:
+                sort = [('updated', DESC)]
+        else:
+            sort = None
+        
+        project = None if fmt else {'_id': 1}
+        
+        rset = cls.from_query({}, projection=project, skip=start, limit=limit, sort=sort)
+        
+        if fmt == 'xml':
+            return Response(rset.to_xml(), mimetype='text/xml')
+        elif fmt == 'mrk':
+            return Response(rset.to_mrk(), mimetype='text/plain')
+        elif fmt == 'mrc':
+            return Response(rset.to_mrc(), mimetype='text/plain')
+        elif fmt == 'txt':
+            return Response(rset.to_str(), mimetype='text/plain')
+            
         records_list = [
-            URL('api_record', collection=collection, record_id=r['_id']).to_str() for r in records
+            URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
         ]
 
         response = ListResponse(

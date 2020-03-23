@@ -1,13 +1,34 @@
+# safelist
+branches:
+  only:
+  - master
+  - deploy
+
 language: python
 python:
-  - 3.6
+  - 3.7
 before_install:
   - pip install -U pip
   - pip install -U pytest
   - pip install codecov
 install:
   - pip install -r requirements.txt
-script: pytest
-after_success:
-  - zappa update dev
-  - codecov
+
+stages:
+  - name: Dev
+    if: branch = master
+
+  - name: Prod
+    if: branch = deploy
+
+jobs:
+  include:
+    - stage: Dev
+      script:
+      - zappa update -s zappa_settings.json dev
+      - pytest
+    
+    - stage: Prod
+      script:
+      - zappa update -s zappa_settings.json prod
+      - pytest

@@ -1,5 +1,5 @@
 import os
-os.environ['FLASK_TEST'] = 'True'
+os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest 
 import json, re
@@ -27,17 +27,17 @@ def records():
     
     for x in range(1,51):
         bib = Bib({'_id': x})
-        bib.set('245', 'a', str(randrange(1,100)))
+        bib.set('245', 'a', str(randrange(1, 100)))
         bib.set('500', 'a', '1x')
         bib.set('500', 'a', '2x', address=['+'])
-        bib.set('500', 'a', '3x', address=[1,'+'])
+        bib.set('500', 'a', '3x', address=[1, '+'])
         bib.commit()
         
         auth = Auth({'_id': x})
-        auth.set('100', 'a', str(randrange(1,100))),
+        auth.set('100', 'a', str(randrange(1, 100))),
         auth.set('400', 'a', '1x'),
         auth.set('400', 'a', '2x', address=['+'])
-        auth.set('400', 'a', '3x', address=[1,'+'])
+        auth.set('400', 'a', '3x', address=[1, '+'])
         auth.commit()
 
 # tests
@@ -62,6 +62,25 @@ def test_records_list(client,records):
     data = json.loads(client.get(PRE+'/auths').data)
     assert len(data['results']) == 50
     
+    data = json.loads(client.get(PRE+'/bibs?sort=date&direction=desc').data)
+    assert len(data['results']) == 50
+    assert data['results'][0] == PRE+'/bibs/50'
+    
+    data = json.loads(client.get(PRE+'/bibs?sort=date&direction=asc').data)
+    assert data['results'][0] == PRE+'/bibs/1'
+    
+    response = client.get(PRE+'/bibs?format=xml')
+    assert response.headers["Content-Type"] == 'text/xml; charset=utf-8'
+    
+    response = client.get(PRE+'/bibs?format=mrc')
+    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+    
+    response = client.get(PRE+'/bibs?format=txt')
+    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+    
+    response = client.get(PRE+'/bibs?format=mrk')
+    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+
 def test_record(client,records):
     data = json.loads(client.get(PRE+'/bibs/1').data)
     assert data['result']['_id'] == 1
