@@ -26,9 +26,9 @@ jobs:
     - stage: Dev
       script:
       - zappa update -s zappa_settings.json dev
-	  - pytest
+      - pytest
     
     - stage: Prod
       script:
       - zappa update -s zappa_settings.json prod
-	  - pytest
+      - pytest
