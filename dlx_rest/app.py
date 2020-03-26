@@ -1,5 +1,5 @@
 from flask import Flask, Response, url_for, jsonify, abort as flask_abort
-from flask_restplus import Resource, Api, reqparse
+from flask_restx import Resource, Api, reqparse
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from dlx_rest.config import Config
