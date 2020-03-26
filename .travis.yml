@@ -25,10 +25,10 @@ jobs:
   include:
     - stage: Dev
       script:
-      - zappa update -s zappa_settings.json dev
       - pytest
+      - zappa update -s zappa_settings.json dev
     
     - stage: Prod
       script:
-      - zappa update -s zappa_settings.json prod
       - pytest
+      - zappa update -s zappa_settings.json prod
