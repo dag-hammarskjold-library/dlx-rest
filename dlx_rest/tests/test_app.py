@@ -29,6 +29,7 @@ def test_logout(client):
     assert response.status_code == 200
 
 # User administration
+# All of these should work only if authenticated.
 def test_list_users(client):
     response = client.get(PRE + '/users')
     assert response.status_code == 200
@@ -36,6 +37,8 @@ def test_list_users(client):
 def test_create_user(client):
     # To do: mock a new user, /users/1
     response = client.get(PRE + '/users/new')
+    assert response.status_code == 200
+    response = client.post(PRE + '/users/new')
     assert response.status_code == 200
 
 def test_update_user(client):
@@ -55,5 +58,15 @@ def test_get_records_list(client):
         response = client.get(PRE + '/records/{}'.format(col))
         assert response.status_code == 200
 
-#def test_get_record()
+def test_get_record(client):
+    for col in ['bibs','auths']:
+        response = client.get(PRE + '/records/{}/{}'.format(coll, 1))
+        assert response.status_code == 200
 
+# This should behave differently, unless we don't need this route.
+'''
+def test_edit_record(client):
+    for col in ['bibs','auths']:
+        response = client.get(PRE + '/records/{}/{}'.format(coll, 1))
+        assert response.status_code == 200
+'''

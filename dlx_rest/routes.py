@@ -13,7 +13,7 @@ def authentication_required(view):
     @wraps(view)
     def wrap(*args, **kwargs):
         token = request.headers.get('Authorization')
-        auth_error = (jsonify())
+        auth_error = (jsonify({'message': 'User not loggeed in. Please authenticate.'}))
 
         if not token:
             return auth_error
@@ -38,9 +38,9 @@ def get_identity(jwt_token):
 
 def decode_token(jwt_token):
     # To do: set up Cognito pool and add it to config
-    jwks = web_request.urlopen(Config.cognito_pool + '/.well-known/jwks.json')
+    jwks = web_request.urlopen(Config.cognito_pool_id + '/.well-known/jwks.json')
     issuer = Config.cognito_pool_url + '/' + Config.cognito_pool_id
-    audience = Config.client_id
+    audience = Config.cognito_client_id
 
     payload = jwt.decode(
         jwt_token,
@@ -70,7 +70,7 @@ def login():
     pass
 
 @app.route('/logout')
-@authentication_required
+#@authentication_required
 def logout():
     pass
 
@@ -78,22 +78,36 @@ def logout():
 # Users Admin
 # Not sure if we should make any of this available to the API
 @app.route('/users')
-@authentication_required
+#@authentication_required
 def list_users():
     pass
 
 @app.route('/users/new', methods=['GET','POST'])
-@authentication_required
+#@authentication_required
 def create_user():
     pass
 
 @app.route('/users/<id>/edit', methods=['GET','POST'])
-@authentication_required
+#@authentication_required
 def update_user(id):
     pass
 
 @app.route('/users/<id>/delete', methods=['POST'])
-@authentication_required
+#@authentication_required
 def delete_user(id):
     pass
 
+
+# Records: Need a list of the routes necessary.
+@app.route('/records/<coll>')
+def get_records_list(coll):
+    pass
+
+@app.route('/records/<coll>/<id>', methods=['GET'])
+def get_record_by_id(coll,id):
+    pass
+
+@app.route('/records/<coll>/<id>/edit', methods=['GET'])
+#@authentication_required
+def edit_record_by_id(coll, id):
+    pass
