@@ -81,6 +81,7 @@ def test_delete_user(client, users):
     assert len(User.objects) == 0
 
 # Records
+'''
 def test_get_records_list(client):
     for col in ['bibs','auths']:
         response = client.get(PRE + '/records/{}'.format(col))
@@ -90,6 +91,7 @@ def test_get_record(client, coll):
     for col in ['bibs','auths']:
         response = client.get(PRE + '/records/{}/{}'.format(coll, 1))
         assert response.status_code == 200
+'''
 
 # This should behave differently, unless we don't need this route.
 '''
