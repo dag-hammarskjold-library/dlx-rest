@@ -2,6 +2,7 @@ import os
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import json, re
+from datetime import datetime
 from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
@@ -32,3 +33,15 @@ def records():
         auth.set('400', 'a', '2x', address=['+'])
         auth.set('400', 'a', '3x', address=[1, '+'])
         auth.commit()
+
+@pytest.fixture(scope='module')
+def users():
+    from mongoengine import connect, disconnect
+    from dlx_rest.models import User
+
+    disconnect()
+    connect('dbtest', host=Config.connect_string)
+    
+    user = User(email = 'test_user@un.org', created=datetime.now())
+    user.set_password('password')
+    user.save()

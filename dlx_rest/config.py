@@ -6,18 +6,19 @@ import boto3
 class Config(object):
     DEBUG = False
     TESTING = False
+
+    client = boto3.client('ssm')
+    secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
     
     if 'DLX_REST_TESTING' in os.environ:
-        client = None
         connect_string = 'mongomock://localhost'
         TESTING = True
+        LOGIN_DISABLED = True
         dbname = 'dlx'
     elif 'DLX_REST_DEV' in os.environ:
-        client = boto3.client('ssm')
         connect_string = client.get_parameter(Name='dlx-dev-connect-string')['Parameter']['Value']
         dbname = 'dev_dlx'
     elif 'DLX_REST_PRODUCTION' in os.environ:
-        client = boto3.client('ssm')
         connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
         dbname = 'dlx'
     else:
