@@ -11,7 +11,11 @@ DB.connect(Config.connect_string)
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app)
-app.secret_key=Config.secret_key
+
+try:
+    app.secret_key=Config.secret_key
+except AttributeError:
+    app.secret_key='top secret!'
 
 # Main app routes
 from dlx_rest.routes import *
