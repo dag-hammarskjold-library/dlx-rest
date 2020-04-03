@@ -37,9 +37,13 @@ def test_logout(client):
     # Logout should always redirect
     assert response.status_code == 302
 
-# User administration
+# Administration
 # All of these should work only if authenticated.
 # Authentication is disabled during unit testing
+def test_admin(client):
+    response = client.get(PRE + '/admin')
+    assert response.status_code == 200
+
 def test_list_users(client):
     response = client.get(PRE + '/admin/users')
     assert response.status_code == 200
