@@ -5,30 +5,11 @@ from flask_cors import CORS
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
+from dlx_rest.app import app
 
 DB.connect(Config.connect_string)
-
-app = Flask(__name__)
-app.config.from_object(Config)
-CORS(app)
-
-# To do
-authorizations = {
-    'oauth2': {
-        'type': 'oauth2',
-        'flow': 'accessCode',
-        'tokenUrl': 'https://somewhere.com/token',
-        'authorizationUrl': 'https://somewhere.com/auth',
-        'scopes': {
-            'read': 'Grant read-only access',
-            'write': 'Grant read-write access',
-        }
-    }
-}
-
-api = Api(app, authorizations=authorizations)
+api = Api(app, doc='/api/')
 ns = api.namespace('api', description='DLX MARC REST API')
-
 
 # Set some api-wide arguments
 
@@ -396,17 +377,28 @@ class RecordFieldPlaceSubfieldPlace(Resource):
             **route_params
         )
 
-try:
-    app.secret_key=Config.secret_key
-except AttributeError:
-    app.secret_key='top secret!'
+        return response.json()
 
-# Main app routes
-from dlx_rest.routes import *
+@ns.route('/<string:collection>/<int:record_id>')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class Record(Resource):
+    @ns.doc(description='Return the Bibliographic or Authority Record with the given identifier')
+    @ns.expect(resource_argparser)
+    def get(self, collection, record_id):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
 
-# Load the API route
-from dlx_rest.api import api
+        record = cls.match_id(record_id) or abort(404)
 
+        response = RecordResponse(
+            'api_record',
+            record,
+            collection=collection,
+            record_id=record_id,
+        )
 
         args = resource_argparser.parse_args()
         fmt = args.get('format', None)
@@ -420,35 +412,3 @@ from dlx_rest.api import api
                 abort(500)
         else:
             return response.json()
-
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
-    @ns.expect(resource_argparser)
-    def post(self, collection, data):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
-    @ns.expect(resource_argparser)
-    def put(self, collection, record_id, data):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-        record = cls.match_id(record_id) or abort(404)
-
-    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
-    @ns.expect(resource_argparser)
-    def delete(self, collection, record_id):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        
-        record = cls.match_id(record_id) or abort(404)
-
-        record.delete()
