@@ -1,1 +1,9 @@
-{% extends 'admin/base.html' %} {% block admin %} {% endblock %}
+{% extends 'admin/base.html' %} {% block admin %}
+
+<div class="container">
+    {% for user in users %}
+    <p>{{user.email}}</p>
+    {% endfor %}
+</div>
+
+{% endblock %}

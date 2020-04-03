@@ -28,29 +28,29 @@ def load_user(id):
 # Main app routes
 @app.route('/')
 def index():
-    return render_template('index.html', title="")
+    return render_template('index.html', title="Home")
 
 # Users
 @app.route('/register')
 def register():
     # To do: add a register form
-    return render_template('register.html')
+    form = RegisterForm()
+    return render_template('register.html', title="Register", form=form)
 
 @app.route('/login', methods=['GET','POST'])
 def login():
     # To do: add a login form
     if current_user.is_authenticated:
-        return redirect(request.referrer)
+        return redirect(url_for('main'))
     form = LoginForm()
     if form.validate_on_submit():
-        login_user(user)
-        flash('Logged in successfully.')
-        next_url = request.args.get('next')
-        if not is_safe_url(next_url):
-            return abort(400)
-
-        return redirect(next_url or url_for('index'))
-    return render_template('login.html', form=form)
+        user = User.objects(email=form.email.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user, remember=form.remember_me.data)
+        return redirect(url_for('index'))
+    return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
 @login_required
@@ -61,20 +61,20 @@ def logout():
 
 # Admin section
 @app.route('/admin')
-#@login_required
+@login_required
 def admin_index():
-    return render_template('admin/index.html')
+    return render_template('admin/index.html', title="Admin")
 
 # Users Admin
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
-#@login_required
+@login_required
 def list_users():
     users = User.objects
-    return render_template('admin/users.html', users=users)
+    return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
-#@login_required
+@login_required
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -94,7 +94,7 @@ def create_user():
             flash("An error occurred trying to create the user. Please review the information and try again.")
             return redirect(url_for('create_user'))
     else:
-        return render_template('admin/createuser.html', form=form)
+        return render_template('admin/createuser.html', title="Create User", form=form)
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
@@ -121,9 +121,9 @@ def update_user(id):
             return redirect(url_for('list_users'))
         except:
             flash("An error occurred trying to create the user. Please review the information and try again.")
-            return render_template('admin/edituser.html',user=user)
+            return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
     else:
-        return render_template('admin/edituser.html',user=user, form=form)
+        return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
 
 @app.route('/admin/users/<id>/delete', methods=['POST'])
 @login_required
@@ -135,7 +135,7 @@ def delete_user(id):
     else:
         flash("The user could not be found.")
 
-    return redirect(request.referrer)
+    return redirect(url_for('list_users'))
 
 
 # Records: Need a list of the routes necessary.
