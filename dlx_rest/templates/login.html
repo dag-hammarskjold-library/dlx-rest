@@ -1,0 +1,32 @@
+{% extends 'base.html' %} {% block content %}
+
+<style type="text/css">
+    .customize {
+        height: 400px;
+        width: 600px;
+    }
+</style>
+
+<div class="container customize shadow">
+    <h1>Sign In</h1>
+    <hr>
+    <form action="{{url_for('login')}}" method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <p>
+                {{ form.email.label }}<br> {{ form.email(size=32,class="form-control") }}
+            </p>
+        </div>
+        <div class="form-group">
+            <p>
+                {{ form.password.label }}<br> {{ form.password(size=32,class="form-control") }}
+            </p>
+        </div>
+        <div class="form-check">
+            <p>{{ form.remember_me(class="form-check-input") }} {{ form.remember_me.label }}</p>
+        </div>
+        <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>
+    </form>
+    <hr>
+</div>
+{% endblock %}

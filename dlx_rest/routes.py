@@ -28,7 +28,7 @@ def load_user(id):
 # Main app routes
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', title="")
 
 # Users
 @app.route('/register')
@@ -59,16 +59,22 @@ def logout():
     return redirect(url_for('login'))
 
 
+# Admin section
+@app.route('/admin')
+#@login_required
+def admin_index():
+    return render_template('admin/index.html')
+
 # Users Admin
 # Not sure if we should make any of this available to the API
-@app.route('/users')
+@app.route('/admin/users')
 #@login_required
 def list_users():
     users = User.objects
-    return render_template('users.html', users=users)
+    return render_template('admin/users.html', users=users)
 
-@app.route('/users/new', methods=['GET','POST'])
-@login_required
+@app.route('/admin/users/new', methods=['GET','POST'])
+#@login_required
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -88,9 +94,9 @@ def create_user():
             flash("An error occurred trying to create the user. Please review the information and try again.")
             return redirect(url_for('create_user'))
     else:
-        return render_template('createuser.html', form=form)
+        return render_template('admin/createuser.html', form=form)
 
-@app.route('/users/<id>/edit', methods=['GET','POST'])
+@app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
 def update_user(id):
     try:
@@ -98,6 +104,8 @@ def update_user(id):
     except IndexError:
         flash("The user was not found.")
         return redirect(url_for('list_users'))
+
+    form = CreateUserForm()
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -113,11 +121,11 @@ def update_user(id):
             return redirect(url_for('list_users'))
         except:
             flash("An error occurred trying to create the user. Please review the information and try again.")
-            return render_template('edituser.html',user=user)
+            return render_template('admin/edituser.html',user=user)
     else:
-        return render_template('edituser.html',user=user)
+        return render_template('admin/edituser.html',user=user, form=form)
 
-@app.route('/users/<id>/delete', methods=['POST'])
+@app.route('/admin/users/<id>/delete', methods=['POST'])
 @login_required
 def delete_user(id):
     user = User.objects.get(id=id)
