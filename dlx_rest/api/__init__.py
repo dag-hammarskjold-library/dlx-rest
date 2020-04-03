@@ -412,3 +412,37 @@ class Record(Resource):
                 abort(500)
         else:
             return response.json()
+    
+
+    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
+    def post(self, collection, data):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        pass
+
+        # To do: validate data and create the record
+
+    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
+    def put(self, collection, record_id, data):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        pass
+
+        record = cls.match_id(record_id) or abort(404)
+
+        # To do: Validate data and update the record
+
+    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
+    def delete(self, collection, record_id):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        
+        record = cls.match_id(record_id) or abort(404)
+
+        record.delete()
