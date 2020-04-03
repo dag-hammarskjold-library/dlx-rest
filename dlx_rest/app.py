@@ -422,7 +422,6 @@ from dlx_rest.api import api
             return response.json()
 
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
-    @ns.expect(resource_argparser)
     def post(self, collection, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -430,8 +429,9 @@ from dlx_rest.api import api
             abort(404)
         pass
 
+        # To do: validate data and create the record
+
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
-    @ns.expect(resource_argparser)
     def put(self, collection, record_id, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -441,8 +441,9 @@ from dlx_rest.api import api
 
         record = cls.match_id(record_id) or abort(404)
 
+        # To do: Validate data and update the record
+
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
-    @ns.expect(resource_argparser)
     def delete(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
