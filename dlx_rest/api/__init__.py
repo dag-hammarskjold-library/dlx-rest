@@ -438,6 +438,7 @@ class Record(Resource):
         # To do: Validate data and update the record
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
+    #@jwt_required
     def delete(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -446,4 +447,5 @@ class Record(Resource):
         
         record = cls.match_id(record_id) or abort(404)
 
-        record.delete()
+        # To do: Once authentication is done, implement this
+        #record.delete()
