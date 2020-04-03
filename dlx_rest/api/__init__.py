@@ -1,5 +1,6 @@
 from flask import Flask, Response, url_for, jsonify, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
+from flask_jwt_extended import jwt_required
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from dlx import DB
@@ -437,6 +438,7 @@ class Record(Resource):
         # To do: Validate data and update the record
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
+    #@jwt_required
     def delete(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -445,4 +447,5 @@ class Record(Resource):
         
         record = cls.match_id(record_id) or abort(404)
 
-        record.delete()
+        # To do: Once authentication is done, implement this
+        #record.delete()

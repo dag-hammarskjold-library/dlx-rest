@@ -37,20 +37,24 @@ def test_logout(client):
     # Logout should always redirect
     assert response.status_code == 302
 
-# User administration
+# Administration
 # All of these should work only if authenticated.
 # Authentication is disabled during unit testing
+def test_admin(client):
+    response = client.get(PRE + '/admin')
+    assert response.status_code == 200
+
 def test_list_users(client):
-    response = client.get(PRE + '/users')
+    response = client.get(PRE + '/admin/users')
     assert response.status_code == 200
 
 def test_create_user(client):
     from dlx_rest.models import User
 
-    response = client.get(PRE + '/users/new')
+    response = client.get(PRE + '/admin/users/new')
     assert response.status_code == 200
 
-    response = client.post(PRE + '/users/new', data={
+    response = client.post(PRE + '/admin/users/new', data={
         'email': 'new_test_user@un.org', 'password': 'password'
     })
     assert response.status_code == 302
@@ -61,10 +65,10 @@ def test_update_user(client, users):
     from dlx_rest.models import User
     user = User.objects.first()
 
-    response = client.get(PRE + '/users/{}/edit'.format(str(user.id)))
+    response = client.get(PRE + '/admin/users/{}/edit'.format(str(user.id)))
     assert response.status_code == 200
 
-    response = client.post(PRE + '/users/{}/edit'.format(str(user.id)), data={
+    response = client.post(PRE + '/admin/users/{}/edit'.format(str(user.id)), data={
         'email':'foo@bar.com', 'password': 'password'
     })
     assert response.status_code == 302
@@ -75,7 +79,7 @@ def test_delete_user(client, users):
     from dlx_rest.models import User
     user = User.objects.first()
 
-    response = client.post(PRE + '/users/{}/delete'.format(str(user.id)))
+    response = client.post(PRE + '/admin/users/{}/delete'.format(str(user.id)))
     assert response.status_code == 302
 
     assert len(User.objects) == 0
