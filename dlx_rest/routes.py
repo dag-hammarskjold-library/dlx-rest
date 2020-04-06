@@ -32,11 +32,26 @@ def index():
     return render_template('index.html', title="Home")
 
 # Users
-@app.route('/register')
+# Registration in case we need it.
+'''
+@app.route('/register', methods=['GET','POST'])
 def register():
-    # To do: add a register form
     form = RegisterForm()
+    if form.validate_on_submit():
+        email = request.form.get('email')
+        password = request.form.get('password')
+        created = datetime.now()
+        user = User(email=email, created=created)
+        user.set_password(password)
+        try:
+            user.save(validate=True)
+            flash("Registration was successful.")
+            return redirect(url_for('login'))
+        except:
+            flash("An error occurred during registration. Please review the information and try again.")
+            return redirect(url_for('register'))
     return render_template('register.html', title="Register", form=form)
+'''
 
 @app.route('/login', methods=['GET','POST'])
 def login():
