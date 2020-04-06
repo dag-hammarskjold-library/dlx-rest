@@ -22,7 +22,8 @@ login_manager.login_message =""
 def load_user(id):
     # To do: make an init script that creates an admin user
     # Also make a test for this
-    return User.objects.get(id=id)
+    user = User.objects.get(id=id)
+    return user
 
 
 # Main app routes
@@ -41,7 +42,7 @@ def register():
 def login():
     # To do: add a login form
     if current_user.is_authenticated:
-        return redirect(url_for('main'))
+        return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.objects(email=form.email.data).first()
@@ -53,7 +54,7 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
-@login_required
+#@login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))

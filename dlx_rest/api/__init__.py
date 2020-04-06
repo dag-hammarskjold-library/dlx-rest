@@ -455,7 +455,7 @@ class Record(Resource):
             return response.json()
     
 
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
+    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @auth.login_required
     def post(self, collection, data):
         try:
@@ -466,7 +466,7 @@ class Record(Resource):
 
         # To do: validate data and create the record
 
-    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
+    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
     @auth.login_required
     def put(self, collection, record_id, data):
         try:
@@ -479,7 +479,7 @@ class Record(Resource):
 
         # To do: Validate data and update the record
 
-    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
+    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @auth.login_required
     def delete(self, collection, record_id):
         try:
