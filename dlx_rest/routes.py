@@ -22,7 +22,8 @@ login_manager.login_message =""
 def load_user(id):
     # To do: make an init script that creates an admin user
     # Also make a test for this
-    return User.objects.get(id=id)
+    user = User.objects.get(id=id)
+    return user
 
 
 # Main app routes
@@ -31,17 +32,32 @@ def index():
     return render_template('index.html', title="Home")
 
 # Users
-@app.route('/register')
+# Registration in case we need it.
+'''
+@app.route('/register', methods=['GET','POST'])
 def register():
-    # To do: add a register form
     form = RegisterForm()
+    if form.validate_on_submit():
+        email = request.form.get('email')
+        password = request.form.get('password')
+        created = datetime.now()
+        user = User(email=email, created=created)
+        user.set_password(password)
+        try:
+            user.save(validate=True)
+            flash("Registration was successful.")
+            return redirect(url_for('login'))
+        except:
+            flash("An error occurred during registration. Please review the information and try again.")
+            return redirect(url_for('register'))
     return render_template('register.html', title="Register", form=form)
+'''
 
 @app.route('/login', methods=['GET','POST'])
 def login():
     # To do: add a login form
     if current_user.is_authenticated:
-        return redirect(url_for('main'))
+        return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.objects(email=form.email.data).first()
@@ -53,7 +69,7 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
-@login_required
+#@login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))

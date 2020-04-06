@@ -1,16 +1,27 @@
-from flask import Flask, Response, url_for, jsonify, abort as flask_abort
+from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
-from flask_jwt_extended import jwt_required
+from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
 from dlx_rest.app import app
+from dlx_rest.models import User
+
+#authorizations  
+authorizations = {
+    'basic': {
+        'type': 'basic'
+    }
+}
 
 DB.connect(Config.connect_string)
-api = Api(app, doc='/api/')
+api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
+basic_auth = HTTPBasicAuth()
+token_auth = HTTPTokenAuth('Bearer')
+auth = MultiAuth(basic_auth, token_auth)
 
 # Set some api-wide arguments
 
@@ -132,6 +143,35 @@ class URL():
         return url_for(self.endpoint, **self.kwargs)
 
 ### Routes
+
+# Authentication
+@ns.route('/token')
+class AuthToken(Resource):
+    @auth.login_required
+    def get(self):
+        token = g.user.generate_auth_token()
+        return jsonify({ 'token': token.decode('ascii') })
+
+@basic_auth.verify_password
+def verify_password(email, password):
+    # try to authenticate with username/password
+    try:
+        user = User.objects.get(email=email)
+        if not user.check_password(password):
+            return False
+    except:
+        return False
+    g.user = user
+    return True
+
+@token_auth.verify_token
+def verify_token(token):
+    user = User.verify_auth_token(token)
+    if user:
+        return True
+    else:
+        return False
+
 
 @ns.route('/collections')
 class CollectionsList(Resource):
@@ -415,7 +455,8 @@ class Record(Resource):
             return response.json()
     
 
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.')
+    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
+    @auth.login_required
     def post(self, collection, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -425,7 +466,8 @@ class Record(Resource):
 
         # To do: validate data and create the record
 
-    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.')
+    @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
+    @auth.login_required
     def put(self, collection, record_id, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -437,8 +479,8 @@ class Record(Resource):
 
         # To do: Validate data and update the record
 
-    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier')
-    #@jwt_required
+    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
+    @auth.login_required
     def delete(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
