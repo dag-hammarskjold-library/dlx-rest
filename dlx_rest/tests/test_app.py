@@ -16,9 +16,11 @@ def test_index(client):
     assert response.status_code == 200
 
 # User session management
+'''
 def test_get_register_page(client):
     response = client.get(PRE + '/register')
     assert response.status_code == 200
+'''
 '''
 def test_post_register_data(client):
     email
