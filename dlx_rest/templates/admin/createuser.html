@@ -2,38 +2,33 @@
 
 <style type="text/css">
     .customize {
-        height: 520px;
-        width: 520px;
+        height: 400px;
+        width: 600px;
     }
 </style>
-<script type="text/javascript">
-    $(function() {
-        $('#datetimepicker1').datetimepicker();
-    });
-</script>
 
-
-<div class="container customize ">
-
-    <h1 class="mt-5"> User creation </h1>
-
+<div class="container customize shadow">
+    <h1>Create User</h1>
     <hr>
-
-    <form class="mt-5 orm-signin" method="POST" action="{{url_for('create_user')}}">
+    <form action="{{url_for('create_user')}}" method="POST" novalidate>
+        {{ form.hidden_tag() }}
         <div class="form-group">
-            <label for="email">Email </label>
-            <input type="email" class="form-control" name="email" aria-describedby="emailHelp" placeholder="Enter email">
+            <p>
+                {{ form.email.label }}<br> {{ form.email(size=32,class="form-control") }}
+            </p>
         </div>
-
         <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" class="form-control" name="password" placeholder="Password">
+            <p>
+                {{ form.password.label }}<br> {{ form.password(size=32,class="form-control") }}
+            </p>
         </div>
-        <button type="submit" class="btn btn-primary mb-5">Create User</button>
-
+        <div class="form-group">
+            <p>
+                {{ form.admin.label }}<br> {{ form.admin(size=32,class="form-control") }}
+            </p>
+        </div>
+        <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>
     </form>
+    <hr>
 </div>
-
-
-
 {% endblock %}

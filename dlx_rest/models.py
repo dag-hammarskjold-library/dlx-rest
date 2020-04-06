@@ -13,6 +13,7 @@ class User(UserMixin, Document):
     email = StringField(max_lengt=200, required=True, unique=True)
     password_hash = StringField(max_length=200)
     status = StringField(max_length=200)
+    admin = BooleanField()
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
 

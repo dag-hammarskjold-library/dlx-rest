@@ -19,3 +19,5 @@ class RegisterForm(FlaskForm):
 class CreateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
+    admin = BooleanField('Admin?')
+    submit = SubmitField('Create')
