@@ -1,7 +1,11 @@
 from mongoengine import *
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
+from itsdangerous import (TimedJSONWebSignatureSerializer
+                          as Serializer, BadSignature, SignatureExpired)
 import time
+
+from dlx_rest.config import Config
 
 ## Setup some models for use
 
@@ -18,3 +22,20 @@ class User(UserMixin, Document):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def generate_auth_token(self, expiration=600):
+        s = Serializer(Config.JWT_SECRET_KEY, expires_in = expiration)
+        return s.dumps({ 'id': str(self.id) })
+
+    @staticmethod
+    def verify_auth_token(token):
+        print("Token: {}".format(token))
+        s = Serializer(Config.JWT_SECRET_KEY)
+        try:
+            data = s.loads(token)
+        except SignatureExpired:
+            return None    # valid token, but expired
+        except BadSignature:
+            return None    # invalid token
+        user = User.objects.get(id=data['id'])
+        return user

@@ -25,8 +25,6 @@ class Config(object):
     else:
         raise Exception('One of the environment variables "DLX_REST_TESTING", "DLX_REST_DEV", or "DLX_REST_PRODUCTION" must return a true value in order to initialize the runtime environment')
 
-    #JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", os.urandom(24))
-    ## Set the token to expire every week
-    #JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", os.urandom(24))
     BIB_COLLECTION = 'bibs'
     AUTH_COLLECTION = 'auths'
