@@ -1,1 +1,12 @@
-{% extends 'base.html' %} {% block content %} {% endblock %}
+{% extends 'base.html' %} {% block content %}
+
+<div class="container shadow text-left border border-success rounded mt-3">
+    <!--
+    <marc-record name="https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api/bibs/100000"></marc-record>
+    -->
+    <marc-record name="{{url_for('api_record', collection=coll, record_id=id)}}"></marc-record>
+</div>
+
+<script src="{{url_for('static', filename='js/marc.js')}}" defer></script>
+
+{% endblock %}
