@@ -10,6 +10,7 @@
         this.id="marc-record";
         this.recordNumber="";
         this.recordType="";
+        this.myToken=this.getToken();
         };
 
     // function fetching the data from the API
@@ -45,6 +46,12 @@
     getUrlAPI() {
         return this.getAttribute('name');
     }
+
+    // get the token value
+    getToken() {
+        return this.getAttribute('token');
+    }
+
 
     setUrlAPI(myUrlApi) {
         // Reflect the value of the open property as an HTML attribute.
@@ -103,14 +110,18 @@
         btnCreateNewRecord.className="btn btn-primary mr-2";
         btnCreateNewRecord.id="btnCreateNewRecord";
         btnCreateNewRecord.innerHTML="Create a new TAG";
+        if (this.myToken) {
         divContent.appendChild(btnCreateNewRecord);
+        }
 
         // create the button for the deletion
         let btnDeleteRecord = document.createElement("BUTTON");
         btnDeleteRecord.className="btn btn-danger mr-2";
         btnDeleteRecord.id="btnDeleteRecord";
         btnDeleteRecord.innerHTML="Delete this record";
+        if (this.myToken) {
         divContent.appendChild(btnDeleteRecord);   
+        }
         
         // create the button for the displaying a new record
         let btnDisplayNewRecord = document.createElement("BUTTON");
@@ -154,6 +165,7 @@
         tr.appendChild(th3);
         tr.appendChild(th4);
         tr.appendChild(th5);
+
         thead.appendChild(tr);
         table.appendChild(thead);
 
@@ -166,7 +178,9 @@
         th2.innerHTML="<span class='badge badge-secondary'> IND1 </span>";
         th3.innerHTML="<span class='badge badge-secondary'> IND2 </span>";
         th4.innerHTML="<span class='badge badge-secondary'> VALUE </span>";
-        th5.innerHTML="<span class='badge badge-secondary'> EDIT </span>";
+        if (this.myToken) {
+            th5.innerHTML="<span class='badge badge-secondary'> EDIT </span>";
+        }
 
         divContent.appendChild(table);
         this.appendChild(divContent);
@@ -193,7 +207,9 @@
                 th2.innerHTML="N/A";
                 th3.innerHTML="N/A";
                 th4.innerHTML=myData[myDataList[i]]; 
-                th5.innerHTML="<span class='badge badge-pill badge-warning'><i class='fas fa-edit'>  </i></span>";
+                if (this.myToken) {
+                    th5.innerHTML="<span class='badge badge-pill badge-warning'><i class='fas fa-edit'>  </i></span>";
+                }
 
                 tr.appendChild(th1);
                 tr.appendChild(th2);
@@ -215,6 +231,7 @@
                 let th4 = document.createElement("TH");
                 let th5 = document.createElement("TH");
 
+
                 let val1 =(myData[myDataList[i]][0]["indicators"][0] !==" ") ? myData[myDataList[i]][0]["indicators"][0] : " _ ";
                 let val2 =(myData[myDataList[i]][0]["indicators"][1] !==" ") ? myData[myDataList[i]][0]["indicators"][1] : " _ ";
                 th1.innerHTML="<span class='badge badge-pill badge-secondary'>" + myDataList[i] + "</span>"; 
@@ -228,7 +245,9 @@
                     // loop for the subfields
                     th4.innerHTML+="<span class='text-primary'>$"+myData[myDataList[i]][0]["subfields"][j]["code"] + " </span> "+ " " + myData[myDataList[i]][0]["subfields"][j]["value"] +" |";      
                 }
+                if (this.myToken) {
                 th5.innerHTML="<span class='badge badge-pill badge-warning'><span><i class='fas fa-edit'> </i></span></span>";
+                }
 
                 // add the tags to the parent
 
