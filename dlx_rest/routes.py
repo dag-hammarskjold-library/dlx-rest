@@ -23,6 +23,8 @@ def load_user(id):
     # To do: make an init script that creates an admin user
     # Also make a test for this
     user = User.objects.get(id=id)
+    # Hopefully this re-generates every 10 minutes of activity...
+    user.token = user.generate_auth_token().decode('UTF-8')
     return user
 
 
