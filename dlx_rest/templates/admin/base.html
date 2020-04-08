@@ -1,5 +1,15 @@
 {% extends 'base.html' %} {% block content %}
-
-<p>This is part of the admin template.</p>
+<div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
+        <a class="navbar-brand" href="{{url_for('admin_index')}}">Admin</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#adminNavbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle admin navigation"> <span class="navbar-toggler-icon"> </span></button>
+        <div class="collapse navbar-collapse" id="adminNavbarToggler">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item"><a class="nav-link" href="{{url_for('list_users')}}">Users</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{url_for('get_sync_log')}}">Sync Log</a></li>
+            </ul>
+        </div>
+    </nav>
+</div>
 
 {% block admin %} {% endblock %} {% endblock %}

@@ -86,6 +86,8 @@ def test_delete_user(client, users):
 
     assert len(User.objects) == 0
 
+#def test_sync(client):
+
 # Records
 '''
 def test_get_records_list(client):

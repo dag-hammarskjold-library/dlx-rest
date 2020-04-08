@@ -8,6 +8,7 @@ cfn-flip==1.2.2
 chardet==3.0.4
 click==7.1.1
 git+https://github.com/dag-hammarskjold-library/dlx
+git+https://github.com/dag-hammarskjold-library/dlx-dl
 docutils==0.16
 docutils==0.16
 durationpy==0.5

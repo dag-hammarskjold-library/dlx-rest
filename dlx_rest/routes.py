@@ -3,11 +3,12 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
+import dlx_dl
 
 #Local app imports
 from dlx_rest.app import app
 from dlx_rest.config import Config
-from dlx_rest.models import User
+from dlx_rest.models import User, SyncLog
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm
 from dlx_rest.utils import is_safe_url
 
@@ -22,7 +23,10 @@ login_manager.login_message =""
 def load_user(id):
     # To do: make an init script that creates an admin user
     # Also make a test for this
-    user = User.objects.get(id=id)
+    try:
+        user = User.objects.get(id=id)
+    except:
+        return False
     # Hopefully this re-generates every 10 minutes of activity...
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
@@ -82,6 +86,20 @@ def logout():
 @login_required
 def admin_index():
     return render_template('admin/index.html', title="Admin")
+
+@app.route('/admin/sync_log')
+@login_required
+def get_sync_log():
+    items = SyncLog.objects().order_by('-time')
+    return render_template('admin/sync_log.html', title="Sync Log", items=items)
+
+'''
+@app.route('/admin/_sync')
+@login_required
+'''
+
+    
+
 
 # Users Admin
 # Not sure if we should make any of this available to the API

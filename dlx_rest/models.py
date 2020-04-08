@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
-import time
+import time, datetime
 
 from dlx_rest.config import Config
 
@@ -40,3 +40,11 @@ class User(UserMixin, Document):
             return None    # invalid token
         user = User.objects.get(id=data['id'])
         return user
+
+class SyncLog(Document):
+    time = DateTimeField(default=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+    record_type = StringField(max_length=200)
+    record_id = StringField(max_length=200)
+    response_code = IntField()
+    response_text = StringField()
+    xml = StringField()
