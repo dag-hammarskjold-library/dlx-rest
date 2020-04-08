@@ -4,7 +4,7 @@ from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth
+from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
 from dlx_rest.config import Config
 from dlx_rest.app import app
 from dlx_rest.models import User
@@ -276,7 +276,63 @@ class RecordFieldsList(Resource):
         )
 
         return response.json()
+        
+@ns.route('/<string:collection>/<int:record_id>/subfields')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+class RecordSubfieldsList(Resource):
+    @ns.doc(description='Return a list of all the subfields in the record with the given record identifier')
+    def get(self, collection, record_id):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
 
+        record = cls.match_id(record_id) or abort(404)
+        subfields_list = []
+        
+        for tag in record.get_tags():
+            field_place = 0
+            
+            for field in record.get_fields(tag):        
+                if type(field) == Controlfield:
+                    # todo: do something with Datafields
+                    continue
+                    
+                subfield_place = 0
+                seen = {}
+                
+                for subfield in field.subfields:
+                    if subfield.code in seen:
+                        subfield_place = seen[subfield.code]
+                        seen[subfield.code] += 1
+                    else:
+                        subfield_place = 0
+                        seen[subfield.code] = 1
+                    
+                    subfields_list.append(
+                        URL(
+                            'api_record_field_place_subfield_place',
+                            collection=collection,
+                            record_id=record.id,
+                            field_tag=field.tag,
+                            field_place=field_place,
+                            subfield_code=subfield.code,
+                            subfield_place=subfield_place
+                        ).to_str()
+                    )    
+   
+                field_place += 1
+
+        response = ListResponse(
+            'api_record_subfields_list',
+            subfields_list,
+            collection=collection,
+            record_id=record.id,
+        )
+        
+        return response.json()
+    
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
