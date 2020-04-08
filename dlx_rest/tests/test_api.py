@@ -128,5 +128,9 @@ def test_record_field_place_subfield_place(client, records):
     data = json.loads(client.get(PRE+'/auths/1/fields/400/1/a/1').data)
     assert data['result'] == '3x'
     
-
-    
+def test_record_field_subfields_list(client, records):
+    data = json.loads(client.get(PRE+'/bibs/1/subfields').data)
+    assert len(data['results']) == 7
+    assert PRE+'/bibs/1/fields/245/0/a/0' in data['results']
+    assert PRE+'/bibs/1/fields/500/1/a/0' in data['results']
+    assert PRE+'/bibs/1/fields/500/1/a/1' in data['results']
