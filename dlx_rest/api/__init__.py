@@ -544,6 +544,11 @@ class Record(Resource):
             abort(404)
         
         record = cls.match_id(record_id) or abort(404)
-
-        # To do: Once authentication is done, implement this
-        #record.delete()
+        result = record.delete(user='?')
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
+        
+        

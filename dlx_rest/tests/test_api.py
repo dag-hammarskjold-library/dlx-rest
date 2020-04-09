@@ -134,3 +134,7 @@ def test_record_field_subfields_list(client, records):
     assert PRE+'/bibs/1/fields/245/0/a/0' in data['results']
     assert PRE+'/bibs/1/fields/500/1/a/0' in data['results']
     assert PRE+'/bibs/1/fields/500/1/a/1' in data['results']
+    
+def test_delete_record(client, records):
+    assert client.delete(PRE+'/bibs/1', data={}).status_code == 200
+    assert client.get(PRE+'/bibs/1').status_code == 404
