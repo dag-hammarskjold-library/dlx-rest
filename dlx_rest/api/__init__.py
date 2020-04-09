@@ -1,8 +1,7 @@
 from datetime import datetime
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
-from flask_login import current_user
-from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
+from flask_login import login_required, current_user
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
