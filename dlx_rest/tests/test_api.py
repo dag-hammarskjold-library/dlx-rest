@@ -42,14 +42,14 @@ def test_records_list(client,records):
     
     response = client.get(PRE+'/bibs?format=xml')
     assert response.headers["Content-Type"] == 'text/xml; charset=utf-8'
+
+    response = client.get(PRE+'/bibs?format=mrk')
+    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
     
     response = client.get(PRE+'/bibs?format=mrc')
-    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+    assert response.headers["Content-Type"] == 'application/marc'
     
     response = client.get(PRE+'/bibs?format=txt')
-    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
-    
-    response = client.get(PRE+'/bibs?format=mrk')
     assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
 
 def test_record(client,records):
