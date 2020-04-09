@@ -1,6 +1,12 @@
+from datetime import datetime
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
+<<<<<<< HEAD
 from flask_login import login_required
+=======
+from flask_login import current_user
+from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
+>>>>>>> f15f89476f52593f6ecd0a5edc2dae659989d61c
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
@@ -548,9 +554,11 @@ class Record(Resource):
             cls = ClassDispatch.by_collection(collection)
         except KeyError:
             abort(404)
+    
+        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
         
         record = cls.match_id(record_id) or abort(404)
-        result = record.delete(user='?')
+        result = record.delete(user=user)
         
         if result.acknowledged:
             return Response(status=200)
