@@ -9,7 +9,7 @@ import dlx_dl
 from dlx_rest.app import app
 from dlx_rest.config import Config
 from dlx_rest.models import User, SyncLog
-from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm
+from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
 from dlx_rest.utils import is_safe_url
 
 connect(host=Config.connect_string,db=Config.dbname)
@@ -98,9 +98,6 @@ def get_sync_log():
 @login_required
 '''
 
-    
-
-
 # Users Admin
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
@@ -141,14 +138,20 @@ def update_user(id):
         flash("The user was not found.")
         return redirect(url_for('list_users'))
 
-    form = CreateUserForm()
+    form = UpdateUserForm()
 
     if request.method == 'POST':
-        email = request.form.get('email')
+        user = User.objects.get(id=id)
+        email = request.form.get('email', user.email)
         password = request.form.get('password')
+        admin = request.form.get('admin', user.admin)
 
         user.email = email  #unsure if this is a good idea
         user.updated = datetime.now()
+        if admin:
+            user.admin = True
+        else:
+            user.admin = False
         user.set_password(password)
 
         try:
@@ -156,7 +159,8 @@ def update_user(id):
             flash("The user was updated successfully.")
             return redirect(url_for('list_users'))
         except:
-            flash("An error occurred trying to create the user. Please review the information and try again.")
+            flash("An error occurred trying to update the user. Please review the information and try again.")
+            raise
             return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
     else:
         return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
