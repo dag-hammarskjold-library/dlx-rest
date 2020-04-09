@@ -1,12 +1,13 @@
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
-from flask_httpauth import MultiAuth, HTTPBasicAuth, HTTPTokenAuth
+from flask_login import login_required
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
+from base64 import b64decode
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
 from dlx_rest.config import Config
-from dlx_rest.app import app
+from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
 
 #authorizations  
@@ -19,9 +20,6 @@ authorizations = {
 DB.connect(Config.connect_string)
 api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
-basic_auth = HTTPBasicAuth()
-token_auth = HTTPTokenAuth('Bearer')
-auth = MultiAuth(basic_auth, token_auth)
 
 # Set some api-wide arguments
 
@@ -34,6 +32,33 @@ list_argparser.add_argument('format', type=str, help='Valid strings are "xml", "
 
 resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
+
+# Set up the login manager for the API
+@login_manager.request_loader
+def request_loader(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return None
+
+    if 'Bearer ' in auth_header:
+        # Try a token first
+        token = auth_header.replace('Bearer ','',1)
+        user = User.verify_auth_token(token)
+        if user:
+            return user
+        return None
+    elif 'Basic ' in auth_header:
+        # Now try username and password in basic http auth
+        email,password = b64decode(auth_header.replace('Basic ','',1)).decode('utf-8').split(':')
+        try:
+            user = User.objects.get(email=email)
+            if not user.check_password(password):
+                return None
+        except:
+            return None
+        g.user = user
+        return user
+
 
 # Custom error messages
 def abort(code):
@@ -147,32 +172,13 @@ class URL():
 # Authentication
 @ns.route('/token')
 class AuthToken(Resource):
-    @auth.login_required
+    #@auth.login_required
+    @login_required
     def get(self):
         token = g.user.generate_auth_token()
         return jsonify({ 'token': token.decode('ascii') })
 
-@basic_auth.verify_password
-def verify_password(email, password):
-    # try to authenticate with username/password
-    try:
-        user = User.objects.get(email=email)
-        if not user.check_password(password):
-            return False
-    except:
-        return False
-    g.user = user
-    return True
-
-@token_auth.verify_token
-def verify_token(token):
-    user = User.verify_auth_token(token)
-    if user:
-        return True
-    else:
-        return False
-
-
+# Main API routes
 @ns.route('/collections')
 class CollectionsList(Resource):
     @ns.doc(description='Return a list of the collection endpoints.')
@@ -512,7 +518,7 @@ class Record(Resource):
     
 
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @auth.login_required
+    @login_required
     def post(self, collection, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -523,7 +529,7 @@ class Record(Resource):
         # To do: validate data and create the record
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
-    @auth.login_required
+    @login_required
     def put(self, collection, record_id, data):
         try:
             cls = ClassDispatch.by_collection(collection)
@@ -536,7 +542,7 @@ class Record(Resource):
         # To do: Validate data and update the record
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
-    @auth.login_required
+    @login_required
     def delete(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
