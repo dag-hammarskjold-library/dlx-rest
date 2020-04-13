@@ -10,6 +10,7 @@ from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
 from dlx_rest.config import Config
 from dlx_rest.app import app
 from dlx_rest.models import User
+import json
 
 #authorizations  
 authorizations = {
@@ -38,12 +39,12 @@ resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
 
 # Custom error messages
-def abort(code):
+def abort(code, message=None):
     msgs = {
         404: 'Requested resource not found'
     }
 
-    flask_abort(code, msgs.get(code, None))
+    flask_abort(code, msgs.get(code, None) or message)
 
 ### Utility classes
 
@@ -526,17 +527,24 @@ class Record(Resource):
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
     @auth.login_required
-    def put(self, collection, record_id, data):
+    def put(self, collection, record_id):
         try:
             cls = ClassDispatch.by_collection(collection)
         except KeyError:
             abort(404)
         pass
 
-        record = cls.match_id(record_id) or abort(404)
-
-        # To do: Validate data and update the record
-
+        try:
+            jmarc = json.loads(request.data)
+            result = cls(jmarc).commit()
+        except:
+            abort(400, 'Invalid JMARC')
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
+        
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @auth.login_required
     def delete(self, collection, record_id):
