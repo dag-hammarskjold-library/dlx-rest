@@ -254,7 +254,7 @@ class RecordsList(Resource):
         return response.json()
         
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @auth.login_required
+    @login_required
     def post(self, collection):
         try:
             cls = ClassDispatch.by_collection(collection)
