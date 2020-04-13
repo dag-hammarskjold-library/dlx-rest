@@ -247,6 +247,26 @@ class RecordsList(Resource):
         )
 
         return response.json()
+        
+    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
+    @auth.login_required
+    def post(self, collection):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+        pass
+
+        try:
+            jmarc = json.loads(request.data)
+            result = cls(jmarc).commit()
+        except:
+            abort(400, 'Invalid JMARC')
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
 
 @ns.route('/<string:collection>/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
@@ -514,16 +534,10 @@ class Record(Resource):
             return response.json()
     
 
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @auth.login_required
-    def post(self, collection, data):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-        # To do: validate data and create the record
+    #@ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
+    #@auth.login_required
+    #def post(self, collection, data):
+    #    pass
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
     @auth.login_required
