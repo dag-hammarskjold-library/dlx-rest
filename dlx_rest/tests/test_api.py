@@ -135,6 +135,11 @@ def test_record_field_subfields_list(client, records):
     assert PRE+'/bibs/1/fields/500/1/a/0' in data['results']
     assert PRE+'/bibs/1/fields/500/1/a/1' in data['results']
     
+def test_create_record(client, records):
+    data = {"245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "A new record"}]}]}    
+    response = client.post(PRE+'/bibs', headers={}, data=json.dumps(data))
+    assert response.status_code == 200
+
 def test_delete_record(client, records):
     assert client.delete(PRE+'/bibs/1').status_code == 200
     assert client.get(PRE+'/bibs/1').status_code == 404
@@ -151,6 +156,5 @@ def test_update_record(client, records):
     data = json.loads(client.get(PRE+'/bibs/1/fields/245/0/a/0').data)
     assert data['result'] == "An updated title"
     assert client.get(PRE+'/bibs/1/fields/500/0/a/0').status_code == 404
-    
     
     
