@@ -6,7 +6,7 @@ from datetime import datetime
 import dlx_dl
 
 #Local app imports
-from dlx_rest.app import app
+from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
 from dlx_rest.models import User, SyncLog
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
@@ -14,10 +14,7 @@ from dlx_rest.utils import is_safe_url
 
 connect(host=Config.connect_string,db=Config.dbname)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-login_manager.login_message =""
+
 
 @login_manager.user_loader
 def load_user(id):
