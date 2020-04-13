@@ -128,5 +128,29 @@ def test_record_field_place_subfield_place(client, records):
     data = json.loads(client.get(PRE+'/auths/1/fields/400/1/a/1').data)
     assert data['result'] == '3x'
     
+def test_record_field_subfields_list(client, records):
+    data = json.loads(client.get(PRE+'/bibs/1/subfields').data)
+    assert len(data['results']) == 7
+    assert PRE+'/bibs/1/fields/245/0/a/0' in data['results']
+    assert PRE+'/bibs/1/fields/500/1/a/0' in data['results']
+    assert PRE+'/bibs/1/fields/500/1/a/1' in data['results']
+    
+def test_delete_record(client, records):
+    assert client.delete(PRE+'/bibs/1').status_code == 200
+    assert client.get(PRE+'/bibs/1').status_code == 404
+    
+def test_update_record(client, records):
+    data = '{"_id": 1, "invalid": 1}'
+    response = client.put(PRE+'/bibs/1', headers={}, data=json.dumps(data))
+    assert response.status_code == 400
 
+    data = {"_id": 1, "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "An updated title"}]}]}    
+    response = client.put(PRE+'/bibs/1', headers={}, data=json.dumps(data))
+    assert response.status_code == 200
+    
+    data = json.loads(client.get(PRE+'/bibs/1/fields/245/0/a/0').data)
+    assert data['result'] == "An updated title"
+    assert client.get(PRE+'/bibs/1/fields/500/0/a/0').status_code == 404
+    
+    
     
