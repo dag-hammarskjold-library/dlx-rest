@@ -51,6 +51,15 @@ def test_records_list(client,records):
     
     response = client.get(PRE+'/bibs?format=txt')
     assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+    
+def test_search(client, records):
+    data = json.loads(client.get(PRE+'/bibs?search={"900": {"a": "25"}}').data)
+    assert len(data['results']) == 1
+    
+    res = client.get(PRE+'/auths?search={"OR": {"500": 1, "900": 0}}')
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert len(data['results']) == 50
 
 def test_record(client,records):
     data = json.loads(client.get(PRE+'/bibs/1').data)
@@ -76,15 +85,17 @@ def test_record_formats(client, records):
 def test_records_fields_list(client, records):
     data = json.loads(client.get(PRE+'/bibs/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 2
+    assert len(data['results']) == 3
     assert PRE+'/bibs/1/fields/245' in data['results']
     assert PRE+'/bibs/1/fields/500' in data['results']
+    assert PRE+'/bibs/1/fields/900' in data['results']
     
     data = json.loads(client.get(PRE+'/auths/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 2
+    assert len(data['results']) == 3
     assert PRE+'/auths/1/fields/100' in data['results']
     assert PRE+'/auths/1/fields/400' in data['results']
+    assert PRE+'/auths/1/fields/900' in data['results']
     
 def test_record_field_place_list(client, records):
     data = json.loads(client.get(PRE+'/bibs/1/fields/500').data)
@@ -130,7 +141,7 @@ def test_record_field_place_subfield_place(client, records):
     
 def test_record_field_subfields_list(client, records):
     data = json.loads(client.get(PRE+'/bibs/1/subfields').data)
-    assert len(data['results']) == 7
+    assert len(data['results']) == 9
     assert PRE+'/bibs/1/fields/245/0/a/0' in data['results']
     assert PRE+'/bibs/1/fields/500/1/a/0' in data['results']
     assert PRE+'/bibs/1/fields/500/1/a/1' in data['results']

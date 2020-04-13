@@ -25,6 +25,7 @@ def records():
         bib.set('500', 'a', '1x')
         bib.set('500', 'a', '2x', address=['+'])
         bib.set('500', 'a', '3x', address=[1, '+'])
+        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
         bib.commit()
         
         auth = Auth({'_id': x})
@@ -32,6 +33,7 @@ def records():
         auth.set('400', 'a', '1x'),
         auth.set('400', 'a', '2x', address=['+'])
         auth.set('400', 'a', '3x', address=[1, '+'])
+        auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
 
 @pytest.fixture(scope='module')

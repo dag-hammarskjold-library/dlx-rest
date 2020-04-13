@@ -248,15 +248,9 @@ class RecordsList(Resource):
         
         rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
         
-        if fmt == 'xml':
-            return BatchResponse(rset).xml()
-        elif fmt == 'mrk':
-            return BatchResponse(rset).mrk()
-        elif fmt == 'mrc':
-            return BatchResponse(rset).mrc()
-        elif fmt == 'txt':
-            return BatchResponse(rset).txt()
-            
+        if fmt:
+            return getattr(BatchResponse(rset), fmt)()
+
         records_list = [
             URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
         ]
