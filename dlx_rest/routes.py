@@ -162,7 +162,7 @@ def update_user(id):
     else:
         return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
 
-@app.route('/admin/users/<id>/delete', methods=['POST'])
+@app.route('/admin/users/<id>/delete')
 @login_required
 def delete_user(id):
     user = User.objects.get(id=id)
