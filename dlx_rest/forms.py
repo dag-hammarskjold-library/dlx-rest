@@ -21,3 +21,9 @@ class CreateUserForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     admin = BooleanField('Admin?')
     submit = SubmitField('Create')
+
+class UpdateUserForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    admin = BooleanField('Admin?')
+    submit = SubmitField('Update')

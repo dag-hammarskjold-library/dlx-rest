@@ -1,0 +1,25 @@
+{% extends 'admin/base.html' %} {% block admin %}
+<div class="container">
+    <h3>Synchronizations to UNDL</h3>
+    <table class="table">
+        <thead>
+            <th>Time</th>
+            <th>Record Type</th>
+            <th>Record ID</th>
+            <th>Response Code</th>
+            <th>XML</th>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{item.time}}</td>
+                <td>{{item.record_type}}</td>
+                <td>{{item.record_id}}</td>
+                <td>{{item.response_code}}</td>
+                <td>Show</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
