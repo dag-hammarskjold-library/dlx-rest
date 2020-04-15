@@ -58,17 +58,27 @@ def register():
 
 @app.route('/login', methods=['GET','POST'])
 def login():
-    # To do: add a login form
+    next_url = request.args.get('next')
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        if not is_safe_url(request, next_url):
+            return abort(400)
+        return redirect(next_url or url_for('index'))
     form = LoginForm()
-    if form.validate_on_submit():
-        user = User.objects(email=form.email.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
-        login_user(user, remember=form.remember_me.data)
-        return redirect(url_for('index'))
+    if request.method == 'POST':
+        next_url = request.args.get('next')
+        if form.validate_on_submit():
+            user = User.objects(email=form.email.data).first()
+            password = form.password.data
+            if user and user.check_password(password):
+                login_user(user, remember=form.remember_me.data)
+                flash('Logged in successfully.')
+                print(next_url)
+                if not is_safe_url(request, next_url):
+                    return abort(400)
+                return redirect(next_url or url_for('index'))
+            else:
+                flash('Invalid username or password.')
+                return render_template('login.html', title='Sign In', form=form)
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')

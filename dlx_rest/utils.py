@@ -1,6 +1,6 @@
 from urllib.parse import urlparse, urljoin
 
-def is_safe_url(target):
+def is_safe_url(request, target):
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and \
