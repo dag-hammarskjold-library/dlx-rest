@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_mongoengine.wtf import model_form
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, SelectMultipleField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, SelectMultipleField, HiddenField
 from wtforms.fields import SelectFieldBase
 from wtforms.validators import DataRequired, EqualTo
 
@@ -9,6 +9,7 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
+    #next_url = HiddenField()
 
 class RegisterForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
