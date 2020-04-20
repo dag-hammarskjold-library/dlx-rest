@@ -6,7 +6,7 @@ from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth, File, FileSet, Controlfield, Datafield
+from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
