@@ -6,7 +6,7 @@ from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
+from dlx.marc import BibSet, Bib, AuthSet, Auth, File, FileSet, Controlfield, Datafield
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
@@ -75,12 +75,14 @@ def abort(code, message=None):
 class ClassDispatch():
     index = {
         Config.BIB_COLLECTION: Bib,
-        Config.AUTH_COLLECTION: Auth
+        Config.AUTH_COLLECTION: Auth,
+        Config.FILE_COLLECTION: File
     }
     
     batch_index = {
         Config.BIB_COLLECTION: BibSet,
-        Config.AUTH_COLLECTION: AuthSet
+        Config.AUTH_COLLECTION: AuthSet,
+        Config.FILE_COLLECTION: FileSet
     }
     
     @classmethod
@@ -537,18 +539,6 @@ class Record(Resource):
                 abort(500)
         else:
             return response.json()
-    
-
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @login_required
-    def post(self, collection, data):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-        # To do: validate data and create the record
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
@@ -588,4 +578,6 @@ class Record(Resource):
         else:
             abort(500)
         
+
+#@ns.route('/files')
         
