@@ -537,18 +537,6 @@ class Record(Resource):
                 abort(500)
         else:
             return response.json()
-    
-
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @login_required
-    def post(self, collection, data):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-        # To do: validate data and create the record
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
