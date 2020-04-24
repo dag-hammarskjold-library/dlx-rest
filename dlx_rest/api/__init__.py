@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
 from flask_login import login_required, current_user
@@ -234,6 +235,8 @@ class RecordsList(Resource):
         fmt = args['format'] or ''
         
         if search:
+            search = unquote(search)                
+            
             try:
                 json.loads(search)
             except:
