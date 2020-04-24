@@ -53,13 +53,20 @@ def test_records_list(client,records):
     assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
     
 def test_search(client, records):
-    data = json.loads(client.get(PRE+'/bibs?search={"900": {"a": "25"}}').data)
-    assert len(data['results']) == 1
-    
-    res = client.get(PRE+'/auths?search={"OR": {"500": 1, "999": 0}}')
+    res = client.get(PRE+'/bibs?search={"900": {"a": "25"}}')
     assert res.status_code == 200
     data = json.loads(res.data)
-    assert len(data['results']) == 50
+    assert len(data['results']) == 1
+    
+    res = client.get(PRE+'/bibs?search={"900": {"a": "/^3\\\d/"}}')
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert len(data['results']) == 10
+    
+    res = client.get(PRE+'/auths?search={"OR": {"400": 0, "999": 1}}')
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert len(data['results']) == 0
 
 def test_record(client,records):
     data = json.loads(client.get(PRE+'/bibs/1').data)
