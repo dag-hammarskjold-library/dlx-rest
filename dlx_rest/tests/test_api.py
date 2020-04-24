@@ -56,7 +56,7 @@ def test_search(client, records):
     data = json.loads(client.get(PRE+'/bibs?search={"900": {"a": "25"}}').data)
     assert len(data['results']) == 1
     
-    res = client.get(PRE+'/auths?search={"OR": {"500": 1, "900": 0}}')
+    res = client.get(PRE+'/auths?search={"OR": {"500": 1, "999": 0}}')
     assert res.status_code == 200
     data = json.loads(res.data)
     assert len(data['results']) == 50
