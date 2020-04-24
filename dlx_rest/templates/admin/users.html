@@ -1,9 +1,29 @@
 {% extends 'admin/base.html' %} {% block admin %}
 
 <div class="container">
-    {% for user in users %}
-    <p>{{user.email}}</p>
-    {% endfor %}
+    <table class="table">
+        <thead>
+            <th>Email</th>
+            <th>Admin?</th>
+            <th>Actions</th>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{user.email}}</td>
+                <td>{{user.admin}}</td>
+                <td>
+                    <i class="fas fa-edit"><a href="{{url_for('update_user', id=user.id)}}"> Edit</a></i> |
+                    <i class="fas fa-trash-alt"><a href="{{url_for('delete_user', id=user.id)}}"> Delete</a></i></td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td></td>
+                <td></td>
+                <td><a href="{{url_for('create_user')}}">Create New User</a></td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 {% endblock %}

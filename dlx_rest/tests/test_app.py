@@ -81,10 +81,12 @@ def test_delete_user(client, users):
     from dlx_rest.models import User
     user = User.objects.first()
 
-    response = client.post(PRE + '/admin/users/{}/delete'.format(str(user.id)))
+    response = client.get(PRE + '/admin/users/{}/delete'.format(str(user.id)))
     assert response.status_code == 302
 
     assert len(User.objects) == 0
+
+#def test_sync(client):
 
 # Records
 '''
