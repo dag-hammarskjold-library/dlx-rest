@@ -3,7 +3,7 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
-import dlx_dl
+#import dlx_dl
 
 #Local app imports
 from dlx_rest.app import app, login_manager

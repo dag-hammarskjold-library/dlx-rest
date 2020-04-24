@@ -6,7 +6,7 @@ from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth, Controlfield, Datafield
+from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafield, QueryDocument
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
@@ -31,6 +31,7 @@ list_argparser.add_argument('limit', type=int, help='Number of results to return
 list_argparser.add_argument('sort', type=str, help='Valid strings are "date"')
 list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
 list_argparser.add_argument('format', type=str, help='Valid strings are "xml", "mrc", "mrk", "txt"')
+list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
 
 resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
@@ -68,7 +69,7 @@ def abort(code, message=None):
         404: 'Requested resource not found'
     }
 
-    flask_abort(code, msgs.get(code, None) or message)
+    flask_abort(code, message or msgs.get(code, None))
 
 ### Utility classes
 
@@ -114,6 +115,23 @@ class ListResponse():
 
         return jsonify(data)
 
+class BatchResponse():
+    def __init__(self, records):
+        assert isinstance(records, MarcSet)
+        self.records = records
+        
+    def xml(self):
+        return Response(self.records.to_xml(), mimetype='text/xml')
+
+    def mrc(self):
+        return Response(self.records.to_mrc(), mimetype='application/marc')
+
+    def mrk(self):
+        return Response(self.records.to_mrk(), mimetype='text/plain')
+
+    def txt(self):
+        return Response(self.records.to_str(), mimetype='text/plain')
+
 class RecordResponse():
     def __init__(self, endpoint, record, **kwargs):
         self.record = record
@@ -130,20 +148,16 @@ class RecordResponse():
         return jsonify(data)
 
     def xml(self):
-        xml = self.record.to_xml()
-        return Response(xml, mimetype='text/xml')
+        return Response(self.record.to_xml(), mimetype='text/xml')
 
     def mrc(self):
-        mrc = self.record.to_mrc()
-        return Response(mrc, mimetype='application/marc')
+        return Response(self.record.to_mrc(), mimetype='application/marc')
 
     def mrk(self):
-        mrk = self.record.to_mrk()
-        return Response(mrk, mimetype='text/plain')
+        return Response(self.record.to_mrk(), mimetype='text/plain')
 
     def txt(self):
-        mrk = self.record.to_str()
-        return Response(mrk, mimetype='text/plain')
+        return Response(self.record.to_str(), mimetype='text/plain')
 
 class ValueResponse():
     def __init__(self, endpoint, value, **kwargs):
@@ -212,11 +226,22 @@ class RecordsList(Resource):
             abort(404)
 
         args = list_argparser.parse_args()
+        search = args['search']
         start = args['start'] or 0
         limit = args['limit'] or 100
         sort_by = args['sort']
         direction = args['direction'] or ''
         fmt = args['format'] or ''
+        
+        if search:
+            try:
+                json.loads(search)
+            except:
+                abort(400, 'Search string is invalid JSON')
+                
+            query = QueryDocument.from_string(search)
+        else:
+            query = {}
         
         if sort_by == 'date':
             if direction.lower() == 'asc':
@@ -228,17 +253,11 @@ class RecordsList(Resource):
         
         project = None if fmt else {'_id': 1}
         
-        rset = cls.from_query({}, projection=project, skip=start, limit=limit, sort=sort)
+        rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
         
-        if fmt == 'xml':
-            return Response(rset.to_xml(), mimetype='text/xml')
-        elif fmt == 'mrk':
-            return Response(rset.to_mrk(), mimetype='text/plain')
-        elif fmt == 'mrc':
-            return Response(rset.to_mrc(), mimetype='text/plain')
-        elif fmt == 'txt':
-            return Response(rset.to_str(), mimetype='text/plain')
-            
+        if fmt:
+            return getattr(BatchResponse(rset), fmt)()
+
         records_list = [
             URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
         ]
@@ -248,7 +267,8 @@ class RecordsList(Resource):
             records_list,
             collection=collection,
             start=start,
-            limit=limit
+            limit=limit,
+            sort=sort_by
         )
 
         return response.json()
