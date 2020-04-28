@@ -49,4 +49,7 @@ class SyncLog(Document):
     response_text = StringField()
     xml = StringField()
 
-    meta = {'collection': Config.sync_log_collection}
+    meta = {
+        'collection': Config.sync_log_collection,
+        'strict': False
+    }
