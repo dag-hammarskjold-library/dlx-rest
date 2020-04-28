@@ -48,3 +48,5 @@ class SyncLog(Document):
     response_code = IntField()
     response_text = StringField()
     xml = StringField()
+
+    meta = {'collection': Config.sync_log_collection}
