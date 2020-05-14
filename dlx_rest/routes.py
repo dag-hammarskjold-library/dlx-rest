@@ -194,6 +194,11 @@ def get_records_list(coll):
 def get_record_by_id(coll,id):
     return render_template('record.html', coll=coll, id=id)
 
+@app.route('/records/<coll>/new')
+@login_required
+def create_record(coll):
+    return render_template('record.html')
+
 '''
 @app.route('/records/<coll>/<id>/edit', methods=['GET'])
 #@login_required
