@@ -53,3 +53,12 @@ class SyncLog(Document):
         'collection': Config.sync_log_collection,
         'strict': False
     }
+
+class File(Document):
+    identifiers = ListField()
+    languages = ListField()
+    mimetype = StringField()
+    size = IntField()
+    source = StringField()
+    timestamp = DateTimeField()
+    uri = URLField()

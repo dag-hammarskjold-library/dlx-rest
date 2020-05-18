@@ -8,6 +8,7 @@ from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafield, QueryDocument
+from dlx.file import File, Identifier, FileExists, FileExistsIdentifierConflict, FileExistsLanguageConflict
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
@@ -601,5 +602,15 @@ class Record(Resource):
         
         
 # files is a special collection and doesn't use MARC by itself
-#@ns.route('/files')
+@ns.route('/files')
 #@ns.param()
+class FileList(Resource):
+    # Can we add params in here?
+    @ns.doc(description="Get the list of most recently added files.")
+    def get():
+        pass
+
+    @ns.doc(description="Add a new file.")
+    @login_required
+    def post():
+        pass

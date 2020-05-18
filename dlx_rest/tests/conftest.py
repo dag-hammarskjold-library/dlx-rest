@@ -16,6 +16,8 @@ def client():
 def records():
     from dlx import DB
     from dlx.marc import Bib, Auth
+    from dlx.file import Identifier
+    from dlx_rest.models import File
     from random import randrange
     DB.connect(Config.connect_string)
     
@@ -35,6 +37,9 @@ def records():
         auth.set('400', 'a', '3x', address=[1, '+'])
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
+
+        db_file = File({'_id': x})
+        db_file.set(identifiers=["S/2020/{}".format(str(x))])
 
 @pytest.fixture(scope='module')
 def users():
