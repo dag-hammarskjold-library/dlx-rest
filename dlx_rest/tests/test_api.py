@@ -22,7 +22,7 @@ def test_app(client):
 
 def test_collections_list(client):
     data = json.loads(client.get(PRE+'/collections').data)
-    assert len(data['results']) == 2
+    assert len(data['results']) == 3
     assert PRE+'/bibs' in data['results']
     assert PRE+'/auths' in data['results']
     
@@ -181,3 +181,22 @@ def test_update_record(client, records):
     assert client.get(PRE+'/bibs/1/fields/500/0/a/0').status_code == 404
     
     
+def test_list_files(client, records):
+    data = json.loads(client.get(PRE+'/files').data)
+    assert len(data['results']) == 50
+
+    # add format testing
+
+def test_get_file(client, records):
+    response = client.get(PRE+'/files')
+    assert response.status_code == 200
+
+    files = json.loads(response.data)
+    file_id = files[0]['_id']
+
+    response = client.get('{}/files/{}'.format(PRE, file_id))
+    assert response.status_code == 200
+
+    # We should follow the URI to make sure the file is in S3, but that
+    # will take more work to mock up
+    #file_url = files[0]['uri']

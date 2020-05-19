@@ -38,8 +38,16 @@ def records():
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
 
-        db_file = File({'_id': x})
-        db_file.set(identifiers=["S/2020/{}".format(str(x))])
+        db_file = File(
+            identifiers=["S/2020/{}".format(str(x))],
+            languages=['EN'],
+            mimetype='application/pdf',
+            source= 'DLX::PyTest',
+            size= randrange(50000,500000),
+            timestamp= datetime.utcnow(),
+            uri= 'undl-files.s3.amazonaws.com/1519a878ebc1150740bcc7a2da48ec83'
+        )
+        db_file.save()
 
 @pytest.fixture(scope='module')
 def users():

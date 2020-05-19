@@ -78,12 +78,14 @@ def abort(code, message=None):
 class ClassDispatch():
     index = {
         Config.BIB_COLLECTION: Bib,
-        Config.AUTH_COLLECTION: Auth
+        Config.AUTH_COLLECTION: Auth,
+        Config.FILES_COLLECTION: File
     }
     
     batch_index = {
         Config.BIB_COLLECTION: BibSet,
-        Config.AUTH_COLLECTION: AuthSet
+        Config.AUTH_COLLECTION: AuthSet,
+        #Config.FILES_COLLECTION: FileSet
     }
     
     @classmethod
@@ -608,7 +610,7 @@ class FileList(Resource):
     # Can we add params in here?
     @ns.doc(description="Get the list of most recently added files.")
     def get():
-        pass
+        files = File.objects()
 
     @ns.doc(description="Add a new file.")
     @login_required

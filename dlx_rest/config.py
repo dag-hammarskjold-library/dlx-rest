@@ -32,3 +32,4 @@ class Config(object):
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", os.urandom(24))
     BIB_COLLECTION = 'bibs'
     AUTH_COLLECTION = 'auths'
+    FILES_COLLECTION = 'files'

@@ -61,4 +61,6 @@ class File(Document):
     size = IntField()
     source = StringField()
     timestamp = DateTimeField()
-    uri = URLField()
+    # Consider changing to URLField() and ensuring
+    # incoming text has a scheme, e.g., https://foo
+    uri = StringField()
