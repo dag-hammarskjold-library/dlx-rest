@@ -183,10 +183,11 @@ def test_update_record(client, records):
     
 def test_list_files(client, records):
     data = json.loads(client.get(PRE+'/files').data)
+    print(data)
     assert len(data['results']) == 50
 
     # add format testing
-
+'''
 def test_get_file(client, records):
     response = client.get(PRE+'/files')
     assert response.status_code == 200
@@ -200,3 +201,4 @@ def test_get_file(client, records):
     # We should follow the URI to make sure the file is in S3, but that
     # will take more work to mock up
     #file_url = files[0]['uri']
+'''
