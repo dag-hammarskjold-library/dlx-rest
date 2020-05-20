@@ -44,6 +44,18 @@
         " </div> " ;
     }
 
+    // creatio of the external script of the component
+    createScript(){
+
+        // Adding the function to add a new code/subfield value
+        const myScript=document.createElement("SCRIPT");
+        const inlineScript = document.createTextNode("function ylsAlert(){alert('gloire a Dieu')};");
+        myScript.appendChild(inlineScript);
+        this.appendChild(myScript);
+
+        // Adding the function to delete a new code/subfield value
+
+    }
 
     // function fetching the data from the API
     async getDataFromApi(url){
@@ -90,31 +102,31 @@
     }
 
     // call the API for creation
-    async createRecord(url){
-        
-
+    async createRecord(url,data){
+    //async createRecord(url){
+  
         let username = "dev_admin@un.org";
         let password = "password";
-        
         let encodedString=window.btoa(username+":"+password);
         let auth="Basic "+encodedString;
 
         fetch(url,{
-            method: 'post',
+            method: 'POST',
             headers: new Headers({
-                'Accept' : 'application/json',
+                "Content-Type" : "application/json",
                 "Authorization": auth
             }),
-            body:JSON.stringify({'777': [{"indicators": [" ", " "], "subfields": [{"code": 'a', "value": 'yalshire test record'}]}]})
+            body:data
             }).then(response => {
             if (response.ok) {
             // display the mail
             divMailHeader.innerHTML="<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record created!</div>";
             console.log(response.status)
             //refresh the page
-            setTimeout(location.reload(),2000);
+            setTimeout(location.reload(),10000);
             }else{
-            return divMailHeader.innerHTML="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.status + "</div>";
+            return divMailHeader.innerHTML="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => {throw new Error(text)}) + "</div>";
+            setTimeout(location.reload(),10000);
             }
             })
     }
@@ -132,11 +144,12 @@
 
             //--->create data table > start
             var tbl = '';
-            tbl +='<table id="tableNewRecord" class="table table-hover" style="">'
+            tbl +='<table id="tableNewRecord" class="table table-hover">'
 
                 //--->create table header > start
                 tbl +='<thead>';
                     tbl +='<tr>';
+                    tbl +='<th><span class="badge badge-secondary">#</span></th>';
                     tbl +='<th><span class="badge badge-secondary">TAG</span></th>';
                     tbl +='<th><span class="badge badge-secondary">IND1 </span></th>';
                     tbl +='<th><span class="badge badge-secondary">IND2 </span></th>';
@@ -155,10 +168,11 @@
                 // creation of the header of the table
 
                 tbl +='<tr id="'+ row_id + '">';
-                tbl +='<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol'+ row_id +' " type="text" placeholder="Tag" maxlength="3" size="3"></div></td>';
-                tbl +='<td ><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col'+ row_id +' "><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-                tbl +='<td ><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col'+ row_id +' "><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-                tbl +='<td><div style="display: table;" class="valueClass col-sm-12" col_name="valueCol" contenteditable="true"><select class="mr-2" id="code'+ row_id +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="90" id="value'+ row_id +' " type="text" placeholder="Value"><span>  </span><span class="badge badge-pill badge-warning"><i class="fa fa-plus" aria-hidden="true"> ADD  </i></span><span>  </span><span class="badge badge-pill badge-warning"> <i class="fa fa-minus" aria-hidden="true"> DEL </i></span></div></td>'; 
+                tbl +='<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol'+ row_id +' " type="checkbox" placeholder="Tag" maxlength="3" size="3"></div></td>';
+                tbl +='<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol'+ row_id +'" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
+                tbl +='<td ><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col'+ row_id +'"><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
+                tbl +='<td ><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col'+ row_id +'"><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
+                tbl +='<td><div id="divData'+ row_id +'" style="display: table;" class="valueClass " col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code'+ row_id +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value'+ row_id +' " type="text" placeholder="Value"></div></div></td>'; 
         
                 // end of the line
         
@@ -178,10 +192,6 @@
 
                 // Adding a div with the number of line created for the record
                 tbl+="<div ><span id='valNumLineNewRecord' >" + this.rowLineNewRecord + "</span> line(s) created for this record </div>"
-
-                // Adding the Button
-
-                tbl +="<button type='button' class='btn btn-success mb-2'>Save the record</button>";
                 
                 // check if the div content is already created 
 
@@ -226,17 +236,21 @@
     addNewLineRecord(row_id){
 
         if (this.tableNewRecordCreated==true) {
+            this.rowLineNewRecord++;
+            let row_id =this.rowLineNewRecord; 
             const myTable =  document.getElementById("tableNewRecord"); 
             let NewRow = myTable.insertRow(-1); 
-            let cell1 = NewRow.insertCell(0); 
-            let cell2 = NewRow.insertCell(1); 
-            let cell3 = NewRow.insertCell(2); 
-            let cell4 = NewRow.insertCell(3); 
-            cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol'+ row_id +' " type="text" placeholder="Tag" maxlength="3" size="3"></div>'; 
-            cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col'+ row_id +' "><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>'; 
-            cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col'+ row_id +' "><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>'; 
-            cell4.innerHTML = '<div style="display: table;" class="valueClass col-sm-12" col_name="valueCol" contenteditable="true"><select class="mr-2" id="code'+ row_id +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="90" id="value'+ row_id +' " type="text" placeholder="Value"><span>  </span><span class="badge badge-pill badge-warning"><i class="fa fa-plus" aria-hidden="true"> ADD  </i></span><span>  </span><span class="badge badge-pill badge-warning"> <i class="fa fa-minus" aria-hidden="true"> DEL </i></span></div>'; 
-            this.rowLineNewRecord++;
+            NewRow.id=row_id;
+            let cell0 = NewRow.insertCell(0); 
+            let cell1 = NewRow.insertCell(1); 
+            let cell2 = NewRow.insertCell(2); 
+            let cell3 = NewRow.insertCell(3); 
+            let cell4 = NewRow.insertCell(4); 
+            cell0.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol'+ row_id +' " type="checkbox" placeholder="Tag" maxlength="3" size="3"></div>';
+            cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol'+ row_id +'" type="text" min="001" max="999" placeholder="Tag" maxlength="3" size="3"></div>'; 
+            cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col'+ row_id +'"><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>'; 
+            cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col'+ row_id +'"><option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>'; 
+            cell4.innerHTML = '<div id="divData'+ row_id +'" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code'+ row_id +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value'+ row_id +' " type="text" placeholder="Value"></div></div>'; 
             this.updateNumberOfLineRecord();
         }
          else
@@ -252,7 +266,6 @@
             const myTable=document.getElementById("tableNewRecord")
             myTable.deleteRow(-1);
             this.rowLineNewRecord=this.rowLineNewRecord-1;
-            console.log(this.rowLineNewRecord)
             this.updateNumberOfLineRecord();
         }
         else
@@ -260,6 +273,150 @@
             alert("Please create a new the record first!!!");
         }
     }
+
+    // Add a new subfieldLine
+    addNewSubFieldLine(){
+        if (this.tableNewRecordCreated==true) {
+            let checkButton=false;
+
+            // Retrieving the table
+            const myTable = document.getElementById("tableNewRecord");
+
+            // Retrieving all the checkbox
+            const myCheckbox = myTable.getElementsByClassName("myCheckbox");
+
+            //Loop through the CheckBoxes.
+            for (var i = 0; i < myCheckbox.length; i++) {
+                if (myCheckbox[i].checked) {
+                    checkButton=true;
+                    let row = myCheckbox[i].parentNode.parentNode.parentNode;
+                    let myId="divData" + row.rowIndex;
+                    let myTd = document.getElementById(myId);
+                    //myTd.insertAdjacentHTML('beforeend','<div style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><select class="mr-2" id="code'+ row.rowIndex +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value'+ row.rowIndex +' " type="text" placeholder="Value"></div>');    
+                    myTd.insertAdjacentHTML('beforeend','<div><select class="mr-2"><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" type="text" placeholder="Value"></div>');    
+                    }
+            }
+            if (checkButton==false){
+                alert("Please check a tag first!!!");
+            }
+        }
+        else{
+            alert("Please create a new the record first!!!");
+        }
+    }
+
+    // Remove a new subfieldLine
+    delNewSubFieldLine(){
+        if (this.tableNewRecordCreated==true) {
+            // Retrieving the table
+            const myTable = document.getElementById("tableNewRecord");
+
+            // Retrieving all the checkbox
+            const myCheckbox = myTable.getElementsByClassName("myCheckbox");
+
+            //Loop through the CheckBoxes.
+            for (var i = 0; i < myCheckbox.length; i++) {
+
+                if (myCheckbox[i].checked) {
+                    let row = myCheckbox[i].parentNode.parentNode.parentNode;
+                    let myId= "divData"+row.rowIndex;
+                    let myTd = document.getElementById(myId);
+
+                    if (myTd.childElementCount>1){
+                        myTd.removeChild(myTd.lastElementChild);                       
+                    }
+                }
+            }
+        } 
+    }
+
+
+    // Retrieving the table
+    generateDataToSave(){
+
+        // my data variable
+        let myRecord=[];
+        let mySpecialRecord="{";
+        //let myTagLine={};
+        let myTag=[]
+        let myInd1=[]
+        let myInd2=[]
+        let myListOfSubField="[";
+        let myData="";
+        let recup="";
+
+        // Retrieving the table
+        const myTable = document.getElementById("tableNewRecord");
+
+        // Retrieving all the rows
+        const totalRow = myTable.getElementsByTagName("TR");
+        // console.log(totalRow)
+
+        for (var i = 1, row; row = myTable.rows[i]; i++) {
+
+
+            // Retrieving tag data
+            myTag=document.getElementById("tagCol"+i).value;
+
+            // Retrieving ind1 data
+            myInd1=document.getElementById("ind1Col"+i).value;
+
+            // Retrieving ind2 data
+            myInd2=document.getElementById("ind2Col"+i).value;
+
+            // Retrieving Subfield data
+            let myData=document.getElementById("divData"+i).getElementsByTagName("DIV");
+      
+            let lenMyData=myData.length;
+
+            let mySubField="";
+
+            for (var j=0;j<lenMyData;j++){
+                let myCode=myData[j].getElementsByTagName("SELECT")[0].value;
+                console.log("le code est  :" + myCode)
+
+                let myValue=myData[j].getElementsByTagName("INPUT")[0].value;
+                console.log("la valeur est  :" + myValue)
+                
+           
+                // Definition of the dict to store the subfields
+                if (j===(lenMyData-1)){
+                //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
+                myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
+                } else {
+                myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` + "," ;
+                }
+
+            } 
+
+            // close the subfield string
+            myListOfSubField=myListOfSubField + "]"; 
+            console.log(myListOfSubField)
+
+            if (i===(totalRow.length-1)){
+                 mySpecialRecord=mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}`+"}]}";
+             } else {
+                 mySpecialRecord=mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}`+"}],";
+            }
+
+            myListOfSubField="[";
+
+        }
+        
+        console.log(mySpecialRecord)
+
+        // Retrieving the value of the type of Record
+        
+        const  typeRecord=document.getElementById("selectTypeRecord").value;
+
+        // Saving the Data
+        let data=mySpecialRecord;
+
+        this.createRecord(this.prefixUrl+typeRecord,data)
+        
+    }
+  
+    
 
     // update the number of lines variable
 
@@ -270,10 +427,6 @@
         // assign the new value of the variable
         myNumber.innerHTML=this.rowLineNewRecord;
         }
-    }
-
-    generateDataToSave(){
-
     }
 
     // get the ID of the record
@@ -382,6 +535,28 @@
                  // adding the logic to call the new url
                  btnCreateNewRecord.addEventListener("click",()=>{
 
+                    let divRecordType=document.getElementById("divRecordType");
+     
+                    if (divRecordType==null){
+                        let myHtml = document.createElement("DIV");
+                        myHtml.innerHTML=`<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
+                                        <!--<option selected>Please select the record type</option>->
+                                        <option value="bibs" selected>Bibliographic record</option>
+                                        <option value="auths">Authority Record</option>
+                                </select>`
+                        myHtml.id="divRecordType"
+                        myHtml.className="mr-2 mb-2";          
+                        divContentHeader.appendChild(myHtml);
+                    }
+
+                    if (divRecordType!==null){
+                        divRecordType.innerHTML=`<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
+                            
+                                        <option value="bibs" selected>Bibliographic record</option>
+                                        <option value="auths">Authority Record</option>
+                                </select>`
+                    }
+
                     const myDiv=document.getElementById("divNewRecord");
                     if (myDiv){
                         this.removeDiv(myDiv);
@@ -396,7 +571,7 @@
                 let btnAddingNewLine = document.createElement("BUTTON");
                 btnAddingNewLine.className="btn btn-info mr-2 mb-2";
                 btnAddingNewLine.id="btnAddingNewLine";
-                btnAddingNewLine.innerHTML="Add a new line for the record";
+                btnAddingNewLine.innerHTML="<i class='fa fa-plus' aria-hidden='true'> Tag </i>";
                 divContentHeader.appendChild(btnAddingNewLine);  
 
                 // adding the logic to call the new url
@@ -409,7 +584,7 @@
                 let btnDeletingNewLine = document.createElement("BUTTON");
                 btnDeletingNewLine.className="btn btn-info mr-2 mb-2";
                 btnDeletingNewLine.id="btnDeletingNewLine";
-                btnDeletingNewLine.innerHTML="Delete the last line of the record";
+                btnDeletingNewLine.innerHTML="<i class='fa fa-minus' aria-hidden='true'> Tag </i>";
                 divContentHeader.appendChild(btnDeletingNewLine);  
 
                 // adding the logic to call the new url
@@ -417,15 +592,54 @@
                     this.removeLastLineRecord();
                 });
 
+                // create the button for adding a new subfield
+
+                let btnAddNewSubField = document.createElement("BUTTON");
+                btnAddNewSubField.className="btn btn-info mr-2 mb-2";
+                btnAddNewSubField.id="btnDeletingNewLine";
+                btnAddNewSubField.innerHTML="<i class='fa fa-plus' aria-hidden='true'> Subfield </i>";
+                divContentHeader.appendChild(btnAddNewSubField);  
+
+                // adding the logic to call the new url
+                btnAddNewSubField.addEventListener("click",()=>{
+                    this.addNewSubFieldLine();
+                });
+
+                // create the button for deleting a new subfield
+
+                let btnDelNewSubField = document.createElement("BUTTON");
+                btnDelNewSubField.className="btn btn-info mr-2 mb-2";
+                btnDelNewSubField.id="btnDeletingNewLine";
+                btnDelNewSubField.innerHTML="<i class='fas fa-minus' aria-hidden='true'> Subfield </i>";
+                divContentHeader.appendChild(btnDelNewSubField);  
+
+                // adding the logic to call the new url
+                btnDelNewSubField.addEventListener("click",()=>{
+                    this.delNewSubFieldLine();
+                });
+
+                // save the record button
+
+                let btnSaveRecord = document.createElement("BUTTON");
+                btnSaveRecord.className="btn btn-success mr-2 mb-2";
+                btnSaveRecord.id="btnSaveRecord";
+                btnSaveRecord.innerHTML="Save the record";
+                divContentHeader.appendChild(btnSaveRecord);  
+
+                // adding the logic to call the new url
+                btnSaveRecord.addEventListener("click",()=>{
+                    this.generateDataToSave();
+                });
+
+
                 // Adding the dropdown list to define the type of record
                 let myHtml = document.createElement("DIV");
-                    myHtml.innerHTML=`<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
-                                    <option selected>Please select the record type</option>
-                                    <option value="Bibs">Bibliographic record</option>
-                                    <option value="Auths">Authority Record</option>
-                            </select>`
-                    myHtml.id="divRecordType"
-                    myHtml.className="mr-2 mb-2";          
+                myHtml.innerHTML=`<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
+                                <option value="bibs" selected>Bibliographic record</option>
+                                <option value="auths">Authority Record</option>
+                        </select>`
+                myHtml.id="divRecordType"
+                myHtml.className="mr-2 mb-2";          
                 divContentHeader.appendChild(myHtml);
             }
             
@@ -451,7 +665,7 @@
         //if (this.recordNumber!==myData["_id"]){
         //if (true){
 
-            console.log("entered")
+  
 
                 // loop to display the values
                 let md=myDataList.sort();
@@ -673,9 +887,9 @@
     // Main features
     connectedCallback() {
     // Call the function
-    //this.createRecord(this.prefixUrl+"bibs")
     this.createhiddenModalForm();
     this.createHeaderComponent();
+    this.createScript();
     if (this.getUrlAPI()){
         this.getDataFromApi(this.getUrlAPI());
         this.getRecordType(this.getUrlAPI());
@@ -690,4 +904,6 @@
 
 // Define the new element
 customElements.define('marc-record', MarcRecord);
+
+
 
