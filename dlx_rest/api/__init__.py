@@ -11,7 +11,7 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafiel
 from dlx.file import File, Identifier, FileExists, FileExistsIdentifierConflict, FileExistsLanguageConflict
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User, File as DBFile
+from dlx_rest.models import User
 import json
 
 #authorizations  
@@ -79,7 +79,7 @@ class ClassDispatch():
     index = {
         Config.BIB_COLLECTION: Bib,
         Config.AUTH_COLLECTION: Auth,
-        #Config.FILES_COLLECTION: File
+        Config.FILES_COLLECTION: File
     }
     
     batch_index = {
@@ -530,7 +530,7 @@ class RecordFieldPlaceSubfieldPlace(Resource):
 
         return response.json()
 
-@ns.route('/<string:collection>/<int:record_id>')
+@ns.route('/<string:collection>/<record_id>')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
 class Record(Resource):
@@ -542,7 +542,7 @@ class Record(Resource):
         except KeyError:
             abort(404)
 
-        record = cls.match_id(record_id) or abort(404)
+        record = cls.match_id(int(record_id)) or abort(404)
 
         response = RecordResponse(
             'api_record',
@@ -594,148 +594,12 @@ class Record(Resource):
     
         user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
         
-        record = cls.match_id(record_id) or abort(404)
+        record = cls.match_id(int(record_id)) or abort(404)
         result = record.delete(user=user)
         
         if result.acknowledged:
             return Response(status=200)
         else:
             abort(500)
-        
-        
-# files is a special collection and doesn't use MARC by itself
-@ns.route('/files')
-#@ns.param()
-class FileList(Resource):
-    @ns.doc(description='Return a list of File Records')
-    @ns.expect(list_argparser)
-    def get(self):
 
-        args = list_argparser.parse_args()
-        search = args['search']
-        start = args['start'] or 0
-        limit = args['limit'] or 100
-        sort_by = args['sort']
-        direction = args['direction'] or ''
-        fmt = args['format'] or ''
-
-        if sort_by == 'date':
-            if direction.lower() == 'asc':
-                sort = [('timestamp', ASC)]
-            else:
-                sort = [('timestamp', DESC)]
-        else:
-            sort = None
-        
-        project = None if fmt else {'_id': 1}
-        
-        rset = DBFile.objects(skip=start, limit=limit, sort=sort)
-        #rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
-        
-        #if fmt:
-        #    return getattr(FileBatchResponse(rset), fmt)()
-
-        records_list = [
-            URL('api_file', collection='files', record_id=r.id).to_str() for r in rset
-        ]
-
-        response = ListResponse(
-            'api_files_list',
-            records_list,
-            collection='files',
-            start=start,
-            limit=limit,
-            sort=sort_by
-        )
-
-        return response.json()
-
-
-    @ns.doc(description="Add a new file.")
-    @login_required
-    def post(self):
-        pass
-
-
-'''
-@ns.route('/<string:collection>')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
-class RecordsList(Resource):
-    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
-    @ns.expect(list_argparser)
-    def get(self, collection):
-        try:
-            cls = ClassDispatch.batch_by_collection(collection)
-        except KeyError:
-            abort(404)
-
-        args = list_argparser.parse_args()
-        search = args['search']
-        start = args['start'] or 0
-        limit = args['limit'] or 100
-        sort_by = args['sort']
-        direction = args['direction'] or ''
-        fmt = args['format'] or ''
-        
-        if search:
-            search = unquote(search)                
-            
-            try:
-                json.loads(search)
-            except:
-                abort(400, 'Search string is invalid JSON')
-                
-            query = QueryDocument.from_string(search)
-        else:
-            query = {}
-        
-        if sort_by == 'date':
-            if direction.lower() == 'asc':
-                sort = [('updated', ASC)]
-            else:
-                sort = [('updated', DESC)]
-        else:
-            sort = None
-        
-        project = None if fmt else {'_id': 1}
-        
-        rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
-        
-        if fmt:
-            return getattr(BatchResponse(rset), fmt)()
-
-        records_list = [
-            URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
-        ]
-
-        response = ListResponse(
-            'api_records_list',
-            records_list,
-            collection=collection,
-            start=start,
-            limit=limit,
-            sort=sort_by
-        )
-
-        return response.json()
-        
-    @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @login_required
-    def post(self, collection):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-
-        try:
-            jmarc = json.loads(request.data)
-            result = cls(jmarc).commit()
-        except:
-            abort(400, 'Invalid JMARC')
-        
-        if result.acknowledged:
-            return Response(status=200)
-        else:
-            abort(500)
-'''
+from dlx_rest.api.files import *
