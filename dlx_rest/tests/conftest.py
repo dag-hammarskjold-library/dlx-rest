@@ -13,12 +13,16 @@ def client():
     return app.test_client()
     
 @pytest.fixture(scope='module')
+def db():
+    from dlx import DB
+    # ?
+    
+@pytest.fixture(scope='module')
 def records():
     from dlx import DB
     from dlx.marc import Bib, Auth
     from random import randrange
-    DB.connect(Config.connect_string)
-    
+
     for x in range(1,51):
         bib = Bib({'_id': x})
         bib.set('245', 'a', str(randrange(1, 100)))
@@ -35,7 +39,8 @@ def records():
         auth.set('400', 'a', '3x', address=[1, '+'])
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
-
+        
+   
 @pytest.fixture(scope='module')
 def users():
     from mongoengine import connect, disconnect

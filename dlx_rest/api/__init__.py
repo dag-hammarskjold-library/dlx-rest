@@ -37,6 +37,9 @@ list_argparser.add_argument('search', type=str, help='Consult documentation for 
 resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
 
+post_argparser = reqparse.RequestParser()
+post_argparser.add_argument('format')
+    
 # Set up the login manager for the API
 @login_manager.request_loader
 def request_loader(request):
@@ -275,8 +278,12 @@ class RecordsList(Resource):
         )
 
         return response.json()
+    
+    post_argparser = reqparse.RequestParser()
+    post_argparser.add_argument("format")
         
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
+    @ns.expect(post_argparser)
     @login_required
     def post(self, collection):
         try:
@@ -284,17 +291,30 @@ class RecordsList(Resource):
         except KeyError:
             abort(404)
         pass
-
-        try:
-            jmarc = json.loads(request.data)
-            result = cls(jmarc).commit()
-        except:
-            abort(400, 'Invalid JMARC')
         
-        if result.acknowledged:
-            return Response(status=200)
+        args = post_argparser.parse_args()
+        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        
+        if args.format == 'mrk':
+            try:
+                result = cls.from_mrk(request.data.decode()).commit(user=user)
+            except:
+                abort(400, 'Invalid MRK')
+                
         else:
-            abort(500)
+            try:
+                jmarc = json.loads(request.data)
+                result = cls(jmarc).commit(user=user)
+            except:
+                abort(400, 'Invalid JMARC')
+                
+            if '_id' in jmarc:
+                abort(400, '"_id" field is invalid for a new record')
+        
+            if result.acknowledged:
+                return Response(status=200)
+            else:
+                abort(500)
 
 @ns.route('/<string:collection>/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
@@ -570,17 +590,46 @@ class Record(Resource):
             abort(404)
         pass
 
-        try:
-            jmarc = json.loads(request.data)
-            result = cls(jmarc).commit()
-        except:
-            abort(400, 'Invalid JMARC')
+        args = post_argparser.parse_args()
+        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        
+        if args.format == 'mrk':
+            try:
+                record = cls.from_mrk(request.data.decode())
+                record.id = record_id
+                result = record.commit(user=user)
+            except:
+                abort(400, 'Invalid MRK')
+                
+        else:
+            try:
+                jmarc = json.loads(request.data)
+                result = cls(jmarc).commit(user=user)
+            except:
+                abort(400, 'Invalid JMARC')
+                
+            if '_id' not in jmarc:
+                abort(400, '"_id" field required in update record')
         
         if result.acknowledged:
             return Response(status=200)
         else:
             abort(500)
+    
+    @ns.doc(description='Patch')
+    @login_required
+    def patch(self, collection, record_id):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+            
+        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
         
+        # todo
+        
+        return
+    
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
     def delete(self, collection, record_id):
