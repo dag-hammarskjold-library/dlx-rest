@@ -34,6 +34,7 @@ def records():
         
         auth = Auth({'_id': x})
         auth.set('100', 'a', str(randrange(1, 100))),
+        auth.set('110', 'a', 'Name'),
         auth.set('400', 'a', '1x'),
         auth.set('400', 'a', '2x', address=['+'])
         auth.set('400', 'a', '3x', address=[1, '+'])

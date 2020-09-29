@@ -37,8 +37,8 @@ list_argparser.add_argument('search', type=str, help='Consult documentation for 
 resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
 
-post_argparser = reqparse.RequestParser()
-post_argparser.add_argument('format')
+post_put_argparser = reqparse.RequestParser()
+post_put_argparser.add_argument('format', help="The format of the date being sent through the HTTP request")
     
 # Set up the login manager for the API
 @login_manager.request_loader
@@ -162,6 +162,9 @@ class RecordResponse():
 
     def txt(self):
         return Response(self.record.to_str(), mimetype='text/plain')
+        
+    def jmarcnx(self):
+        return jsonify(json.loads(self.record.to_jmarcnx()))
 
 class ValueResponse():
     def __init__(self, endpoint, value, **kwargs):
@@ -279,11 +282,11 @@ class RecordsList(Resource):
 
         return response.json()
     
-    post_argparser = reqparse.RequestParser()
-    post_argparser.add_argument("format")
+    post_put_argparser = reqparse.RequestParser()
+    post_put_argparser.add_argument("format")
         
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @ns.expect(post_argparser)
+    @ns.expect(post_put_argparser)
     @login_required
     def post(self, collection):
         try:
@@ -292,7 +295,7 @@ class RecordsList(Resource):
             abort(404)
         pass
         
-        args = post_argparser.parse_args()
+        args = post_put_argparser.parse_args()
         user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
         
         if args.format == 'mrk':
@@ -300,16 +303,27 @@ class RecordsList(Resource):
                 result = cls.from_mrk(request.data.decode()).commit(user=user)
             except:
                 abort(400, 'Invalid MRK')
+        elif args.format == 'jmarcnx':
+            try:
+                jmarcnx = request.data
                 
+                if '_id' in json.loads(jmarcnx):
+                    abort(400, '"_id" field is invalid for a new record')
+                
+                result = cls.from_jmarcnx(jmarcnx).commit(user=user)
+            except:
+                raise
+                abort(400, 'Invalid JMARCNX')
         else:
             try:
                 jmarc = json.loads(request.data)
+                
+                if '_id' in jmarc:
+                    abort(400, '"_id" field is invalid for a new record')
+                    
                 result = cls(jmarc).commit(user=user)
             except:
                 abort(400, 'Invalid JMARC')
-                
-            if '_id' in jmarc:
-                abort(400, '"_id" field is invalid for a new record')
         
             if result.acknowledged:
                 return Response(status=200)
@@ -590,7 +604,7 @@ class Record(Resource):
             abort(404)
         pass
 
-        args = post_argparser.parse_args()
+        args = post_put_argparser.parse_args()
         user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
         
         if args.format == 'mrk':

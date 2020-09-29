@@ -90,6 +90,9 @@ def test_record_formats(client):
         
         response = client.get('{}/{}/1?format=txt'.format(PRE, col))
         assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+        
+        data = json.loads(client.get(f'{PRE}/{col}/1?format=jmarcnx').data)
+        assert data['_id'] == 1
 
 def test_records_fields_list(client):
     data = json.loads(client.get(f'{PRE}/bibs/1/fields').data)
@@ -101,7 +104,7 @@ def test_records_fields_list(client):
     
     data = json.loads(client.get(f'{PRE}/auths/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 3
+    assert len(data['results']) == 4
     assert f'{PRE}/auths/1/fields/100' in data['results']
     assert f'{PRE}/auths/1/fields/400' in data['results']
     assert f'{PRE}/auths/1/fields/900' in data['results']
@@ -181,7 +184,20 @@ def test_create_record_from_mrk(client):
             "000": ['leader'],
             "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Yet another title"}, {'code': 'b', 'value': 'subtitle'}]}],
             "269": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]
-        } 
+        }
+        
+def test_create_record_from_jmarcnx(client):
+    data = 'invalid'
+    response = client.post(f'{PRE}/bibs', headers={}, data=data)
+    assert response.status_code == 400
+    
+    data = '{"001": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    
+    response = client.post(f'{PRE}/bibs?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
+    
+    response = client.get(f'{PRE}/bibs/53')
+    assert json.loads(response.data)['result']['_id'] == 53
     
 def test_delete_record(client):
     assert client.delete(f'{PRE}/bibs/1').status_code == 200
