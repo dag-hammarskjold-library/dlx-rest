@@ -33,7 +33,7 @@ def test_records_list(client, records):
     assert len(data['results']) == 50
     
     data = json.loads(client.get(f'{PRE}/auths').data)
-    assert len(data['results']) == 50
+    assert len(data['results']) == 51
     
     data = json.loads(client.get(f'{PRE}/bibs?sort=date&direction=desc').data)
     assert len(data['results']) == 50
@@ -68,7 +68,7 @@ def test_search(client):
     res = client.get(f'{PRE}/auths?search=' + '{"OR": {"400": 0, "999": 1}}')
     assert res.status_code == 200
     data = json.loads(res.data)
-    assert len(data['results']) == 0
+    assert len(data['results']) == 1
 
 def test_record(client):
     data = json.loads(client.get(f'{PRE}/bibs/1').data)
@@ -91,8 +91,8 @@ def test_record_formats(client):
         response = client.get('{}/{}/1?format=txt'.format(PRE, col))
         assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
         
-        data = json.loads(client.get(f'{PRE}/{col}/1?format=jmarcnx').data)
-        assert data['_id'] == 1
+        response = client.get(f'{PRE}/{col}/1?format=jmarcnx')
+        assert json.loads(response.data)['result']['_id'] == 1
 
 def test_records_fields_list(client):
     data = json.loads(client.get(f'{PRE}/bibs/1/fields').data)
@@ -104,7 +104,7 @@ def test_records_fields_list(client):
     
     data = json.loads(client.get(f'{PRE}/auths/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 4
+    assert len(data['results']) == 3
     assert f'{PRE}/auths/1/fields/100' in data['results']
     assert f'{PRE}/auths/1/fields/400' in data['results']
     assert f'{PRE}/auths/1/fields/900' in data['results']
@@ -191,13 +191,15 @@ def test_create_record_from_jmarcnx(client):
     response = client.post(f'{PRE}/bibs', headers={}, data=data)
     assert response.status_code == 400
     
-    data = '{"001": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    data = '{"000": ["leader"], "710": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
     
     response = client.post(f'{PRE}/bibs?format=jmarcnx', headers={}, data=data)
     assert response.status_code == 200
     
-    response = client.get(f'{PRE}/bibs/53')
-    assert json.loads(response.data)['result']['_id'] == 53
+    response = client.get(f'{PRE}/bibs/53?format=mrk')
+    assert response.status_code == 200
+    assert response.data.decode() == '=000  leader\n=710  \\\\$aName\n' # \
+        #{"_id": 53, "000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}
     
 def test_delete_record(client):
     assert client.delete(f'{PRE}/bibs/1').status_code == 200
@@ -221,7 +223,7 @@ def test_update_record_from_mrk(client):
     response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
     assert response.status_code == 400
     
-    data = '=000  leader\n=245  \\\\$aYet another title$bsubtitle\n=269  \\\\$a2020'
+    data = '=000  leader\n=245  \\\\$aUpdated by MRK$bsubtitle\n=269  \\\\$a2020'
     response = client.put(f'{PRE}/bibs/25?format=mrk', headers={}, data=data)
     assert response.status_code == 200
     
@@ -230,7 +232,21 @@ def test_update_record_from_mrk(client):
         {
             "_id": 25,
             "000": ['leader'],
-            "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Yet another title"}, {'code': 'b', 'value': 'subtitle'}]}],
+            "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Updated by MRK"}, {'code': 'b', 'value': 'subtitle'}]}],
             "269": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]
         }
     
+def test_update_record_from_jmarcnx(client):
+    data = 'invalid'
+    response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
+    assert response.status_code == 400
+    
+    data = '{"000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    
+    #response = client.put(f'{PRE}/bibs/1?format=jmarcnx', headers={}, data=data)
+    #assert response.status_code == 200
+    
+    #response = client.get(f'{PRE}/bibs/1')
+    #print(json.loads(response.data)['result'])
+    #assert json.loads(response.data)['result']
+    #['269'] == [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]

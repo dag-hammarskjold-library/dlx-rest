@@ -164,8 +164,15 @@ class RecordResponse():
         return Response(self.record.to_str(), mimetype='text/plain')
         
     def jmarcnx(self):
-        return jsonify(json.loads(self.record.to_jmarcnx()))
-
+        data = {
+            '_links': {
+                'self': self.url
+            },
+            'result': json.loads(self.record.to_jmarcnx())
+        }
+        
+        return jsonify(data)
+        
 class ValueResponse():
     def __init__(self, endpoint, value, **kwargs):
         self.value = value
@@ -309,6 +316,9 @@ class RecordsList(Resource):
                 
                 if '_id' in json.loads(jmarcnx):
                     abort(400, '"_id" field is invalid for a new record')
+                    
+                print(jmarcnx)
+                print(cls.from_jmarcnx(jmarcnx).to_jmarcnx())
                 
                 result = cls.from_jmarcnx(jmarcnx).commit(user=user)
             except:
@@ -596,6 +606,7 @@ class Record(Resource):
             return response.json()
 
     @ns.doc(description='Update/replace a Bibliographic or Authority Record with the given data.', security='basic')
+    @ns.expect(post_put_argparser)
     @login_required
     def put(self, collection, record_id):
         try:
@@ -612,9 +623,24 @@ class Record(Resource):
                 record = cls.from_mrk(request.data.decode())
                 record.id = record_id
                 result = record.commit(user=user)
+            
             except:
                 abort(400, 'Invalid MRK')
+        elif args.format == 'jmarcnx':
+            try:
+                jmarcnx = request.data
                 
+                if '_id' in json.loads(jmarcnx):
+                    abort(400, '"_id" field is invalid for a new record')
+                
+                rec = cls.from_jmarcnx(jmarcnx)
+                
+                
+                
+                result = rec.commit(user=user)
+            except:
+                raise
+                abort(400, 'Invalid JMARCNX')        
         else:
             try:
                 jmarc = json.loads(request.data)
