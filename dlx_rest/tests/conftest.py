@@ -34,13 +34,13 @@ def records():
         
         auth = Auth({'_id': x})
         auth.set('100', 'a', str(randrange(1, 100))),
-        auth.set('110', 'a', 'Name'),
         auth.set('400', 'a', '1x'),
         auth.set('400', 'a', '2x', address=['+'])
         auth.set('400', 'a', '3x', address=[1, '+'])
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
         
+    Auth({'_id': 51}).set('110', 'a', 'Name').commit(),
    
 @pytest.fixture(scope='module')
 def users():
