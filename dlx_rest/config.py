@@ -17,7 +17,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='dev-dlx-connect-string')['Parameter']['Value']
-        dbname = 'dev_dlx'
+        dbname = 'dev_undlFiles'
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_PRODUCTION' in os.environ:
         client = boto3.client('ssm')
