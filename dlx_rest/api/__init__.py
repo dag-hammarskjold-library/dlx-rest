@@ -497,7 +497,40 @@ class RecordFieldPlaceSubfieldList(Resource):
     @ns.doc(description='Replace the field with the given tag at the given place')
     @login_required
     def put(self, collection, record_id, field_tag, field_place):
-        return
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+            
+        record = cls.from_id(record_id) or abort(404)
+        
+        args = post_put_argparser.parse_args()
+        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        
+        if args.format == 'jmarcnx':
+            try:
+                field = Datafield.from_jmarcnx(
+                    record_type=cls.record_type, 
+                    tag=field_tag,
+                    data=request.data.decode()
+                )
+                
+                record_data = record.to_dict()
+                field_data = field.to_bson().to_dict()
+                record_data[field_tag][field_place] = field_data
+                
+                record = cls(record_data)
+            except:
+                raise
+                abort(400, 'Invalid JMARCNX field or authority-controlled value')        
+        
+        result = record.commit(user=user)
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
+        
 
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
