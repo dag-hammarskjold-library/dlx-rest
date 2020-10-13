@@ -241,12 +241,13 @@ def test_update_record_from_jmarcnx(client):
     response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
     assert response.status_code == 400
     
-    data = '{"000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    data = '{"_id": 1, "000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
     
-    #response = client.put(f'{PRE}/bibs/1?format=jmarcnx', headers={}, data=data)
-    #assert response.status_code == 200
+    response = client.put(f'{PRE}/bibs/1?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
     
-    #response = client.get(f'{PRE}/bibs/1')
-    #print(json.loads(response.data)['result'])
-    #assert json.loads(response.data)['result']
-    #['269'] == [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]
+    response = client.get(f'{PRE}/bibs/1')
+    print(json.loads(response.data)['result'])
+    result = json.loads(response.data)['result']
+    assert result['610'] == [{"indicators": [" ", " "], "subfields": [{"code": "a", "xref": 51}]}]
+    
