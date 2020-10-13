@@ -168,7 +168,7 @@ def test_create_record(client):
     assert response.status_code == 200
     assert client.get(f'{PRE}/bibs/51').status_code == 200
     
-def test_create_record_from_mrk(client):
+def test_create_record_mrk(client):
     data = 'invalid'
     response = client.post(f'{PRE}/bibs', headers={}, data=data)
     assert response.status_code == 400
@@ -186,7 +186,7 @@ def test_create_record_from_mrk(client):
             "269": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]
         }
         
-def test_create_record_from_jmarcnx(client):
+def test_create_record_jmarcnx(client):
     data = 'invalid'
     response = client.post(f'{PRE}/bibs', headers={}, data=data)
     assert response.status_code == 400
@@ -218,7 +218,7 @@ def test_update_record(client):
     assert data['result'] == "An updated title"
     assert client.get(f'{PRE}/bibs/1/fields/500/0/a/0').status_code == 404
     
-def test_update_record_from_mrk(client):
+def test_update_record_mrk(client):
     data = 'invalid'
     response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
     assert response.status_code == 400
@@ -236,7 +236,7 @@ def test_update_record_from_mrk(client):
             "269": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "2020"}]}]
         }
     
-def test_update_record_from_jmarcnx(client):
+def test_update_record_jmarcnx(client):
     data = 'invalid'
     response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
     assert response.status_code == 400
@@ -247,7 +247,38 @@ def test_update_record_from_jmarcnx(client):
     assert response.status_code == 200
     
     response = client.get(f'{PRE}/bibs/1')
-    print(json.loads(response.data)['result'])
     result = json.loads(response.data)['result']
     assert result['610'] == [{"indicators": [" ", " "], "subfields": [{"code": "a", "xref": 51}]}]
+    
+def test_update_field_jmarcnx(client):
+    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Put on field"}]}'
+    response = client.put(f'{PRE}/bibs/2/fields/245/0?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
+    
+    response = client.get(f'{PRE}/bibs/2/fields/245/0/a/0')
+    assert response.status_code == 200 
+    assert json.loads(response.data)['result'] == 'Put on field'
+    
+    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}'
+    response = client.put(f'{PRE}/bibs/1/fields/610/0?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
