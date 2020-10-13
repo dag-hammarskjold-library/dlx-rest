@@ -316,9 +316,6 @@ class RecordsList(Resource):
                 
                 if '_id' in json.loads(jmarcnx):
                     abort(400, '"_id" field is invalid for a new record')
-                    
-                print(jmarcnx)
-                print(cls.from_jmarcnx(jmarcnx).to_jmarcnx())
                 
                 result = cls.from_jmarcnx(jmarcnx).commit(user=user)
             except:
@@ -496,6 +493,11 @@ class RecordFieldPlaceSubfieldList(Resource):
         )
 
         return response.json()
+        
+    @ns.doc(description='Replace the field with the given tag at the given place')
+    @login_required
+    def put(self, collection, record_id, field_tag, field_place):
+        return
 
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
@@ -630,12 +632,10 @@ class Record(Resource):
             try:
                 jmarcnx = request.data
                 
-                if '_id' in json.loads(jmarcnx):
-                    abort(400, '"_id" field is invalid for a new record')
+                if '_id' not in json.loads(jmarcnx):
+                    abort(400, '"_id" field is required to update record')
                 
                 rec = cls.from_jmarcnx(jmarcnx)
-                
-                
                 
                 result = rec.commit(user=user)
             except:
