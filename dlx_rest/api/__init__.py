@@ -38,7 +38,7 @@ resource_argparser = reqparse.RequestParser()
 resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
 
 post_put_argparser = reqparse.RequestParser()
-post_put_argparser.add_argument('format', help="The format of the date being sent through the HTTP request")
+post_put_argparser.add_argument('format', help="The format of the data being sent through the HTTP request")
     
 # Set up the login manager for the API
 @login_manager.request_loader
@@ -229,7 +229,7 @@ class CollectionsList(Resource):
 # Lists of records
 
 @ns.route('/<string:collection>')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(list_argparser)
@@ -303,7 +303,7 @@ class RecordsList(Resource):
         pass
         
         args = post_put_argparser.parse_args()
-        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        user = 'testing' if current_user.is_anonymous else current_user.email
         
         if args.format == 'mrk':
             try:
@@ -339,7 +339,7 @@ class RecordsList(Resource):
 
 @ns.route('/<string:collection>/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFieldsList(Resource):
     @ns.doc(description='Return a list of the Fields in the Record with the given record identifier')
     def get(self, collection, record_id):
@@ -371,7 +371,7 @@ class RecordFieldsList(Resource):
         
 @ns.route('/<string:collection>/<int:record_id>/subfields')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordSubfieldsList(Resource):
     @ns.doc(description='Return a list of all the subfields in the record with the given record identifier')
     def get(self, collection, record_id):
@@ -428,7 +428,7 @@ class RecordSubfieldsList(Resource):
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlaceList(Resource):
     @ns.doc(description='Return a list of the instances of the field in the record with the given identifier')
     def get(self, collection, record_id, field_tag):
@@ -442,8 +442,8 @@ class RecordFieldPlaceList(Resource):
 
         record = cls.match_id(record_id) or abort(404)
         places = len(list(record.get_fields(field_tag)))
-
         field_places = []
+        
         for place in range(0, places):
             route_params['field_place'] = place
 
@@ -458,12 +458,52 @@ class RecordFieldPlaceList(Resource):
         )
 
         return response.json()
-
+    
+    @ns.doc(description='Create new field with the given tag', security='basic')
+    @ns.expect(post_put_argparser)
+    @login_required
+    def post(self, collection, record_id, field_tag):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+            
+        record = cls.match_id(record_id) or abort(404)
+        
+        args = post_put_argparser.parse_args()
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        
+        if args.format == 'jmarcnx':
+            try:
+                field = Datafield.from_jmarcnx(
+                    record_type=cls.record_type, 
+                    tag=field_tag,
+                    data=request.data.decode()
+                )
+                
+                record_data = record.to_dict()
+                field_data = field.to_bson().to_dict()
+                record_data[field_tag].append(field_data)
+                
+                record = cls(record_data)
+            except:
+                raise
+                abort(400, 'Invalid JMARCNX field or authority-controlled value')
+        else:
+            abort(422)    
+        
+        result = record.commit(user=user)
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
+    
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlaceSubfieldList(Resource):
     @ns.doc(description='Return a list of the subfields of the field in the given place in the record with the given identifier')
     def get(self, collection, record_id, field_tag, field_place):
@@ -494,7 +534,8 @@ class RecordFieldPlaceSubfieldList(Resource):
 
         return response.json()
         
-    @ns.doc(description='Replace the field with the given tag at the given place')
+    @ns.doc(description='Replace the field with the given tag at the given place', security='basic')
+    @ns.expect(post_put_argparser)
     @login_required
     def put(self, collection, record_id, field_tag, field_place):
         try:
@@ -504,9 +545,9 @@ class RecordFieldPlaceSubfieldList(Resource):
             
         record = cls.from_id(record_id) or abort(404)
         
+        user = f'testing@{datetime.now()}' if current_user.is_anonymous else current_user.email
         args = post_put_argparser.parse_args()
-        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
-        
+
         if args.format == 'jmarcnx':
             try:
                 field = Datafield.from_jmarcnx(
@@ -519,27 +560,44 @@ class RecordFieldPlaceSubfieldList(Resource):
                 field_data = field.to_bson().to_dict()
                 record_data[field_tag][field_place] = field_data
                 
-                record = cls(record_data)
+                result = cls(record_data).commit()
             except:
                 raise
-                abort(400, 'Invalid JMARCNX field or authority-controlled value')        
-        
-        result = record.commit(user=user)
+                abort(400, 'Invalid JMARCNX field or authority-controlled value')
+        else:
+            abort(422)     
         
         if result.acknowledged:
             return Response(status=200)
         else:
             abort(500)
+    
+    @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
+    @login_required
+    def delete(self, collection, record_id, field_tag, field_place):
+        try:
+            cls = ClassDispatch.by_collection(collection)
+        except KeyError:
+            abort(404)
+            
+        record = cls.from_id(record_id) or abort(404)
+        record.get_field(field_tag, place=field_place) or abort(404)
         
-
+        record.delete_field(field_tag, place=field_place)
+        
+        if record.commit(user=f'testing@{datetime.now()}' if current_user.is_anonymous else current_user.email):
+            return Response(status=200)
+        else:
+            abort(500)
+        
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlaceSubfieldPlaceList(Resource):
-    @ns.doc(description='Return a list of the subfields of the field in the given place in the record with the given identifier')
+    @ns.doc(description='Return a list of the subfields with the given code')
     def get(self, collection, record_id, field_tag, field_place, subfield_code):
         route_params = locals()
         route_params.pop('self')
@@ -577,7 +635,7 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlaceSubfieldPlace(Resource):
     @ns.doc(description='Return the value of a subfield in the given place in the field in the given place in the record with the given identifier')
     def get(self, collection, record_id, field_tag, field_place, subfield_code, subfield_place):
@@ -608,7 +666,7 @@ class RecordFieldPlaceSubfieldPlace(Resource):
 
 @ns.route('/<string:collection>/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', 'The name of the collection. Valid values are "bibs" and "auths".')
+@ns.param('collection', '"bibs" or "auths"')
 class Record(Resource):
     @ns.doc(description='Return the Bibliographic or Authority Record with the given identifier')
     @ns.expect(resource_argparser)
@@ -651,7 +709,7 @@ class Record(Resource):
         pass
 
         args = post_put_argparser.parse_args()
-        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        user = 'testing' if current_user.is_anonymous else current_user.email
         
         if args.format == 'mrk':
             try:
@@ -689,7 +747,7 @@ class Record(Resource):
         else:
             abort(500)
     
-    @ns.doc(description='Patch')
+    @ns.doc(description='Not functional', security='basic')
     @login_required
     def patch(self, collection, record_id):
         try:
@@ -697,7 +755,7 @@ class Record(Resource):
         except KeyError:
             abort(404)
             
-        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        user = 'testing' if current_user.is_anonymous else current_user.email
         
         # todo
         
@@ -711,7 +769,7 @@ class Record(Resource):
         except KeyError:
             abort(404)
     
-        user = 'testing@{}'.format(datetime.now()) if current_user.is_anonymous else current_user.email
+        user = 'testing' if current_user.is_anonymous else current_user.email
         
         record = cls.match_id(record_id) or abort(404)
         result = record.delete(user=user)

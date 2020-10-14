@@ -60,7 +60,7 @@ def test_search(client):
     data = json.loads(res.data)
     assert len(data['results']) == 1
     
-    res = client.get(f'{PRE}/bibs?search=' + '{"900": {"a": "/^3\\\d/"}}')
+    res = client.get(f'{PRE}/bibs?search=' + r'{"900": {"a": "/^3\\d/"}}')
     assert res.status_code == 200
     data = json.loads(res.data)
     assert len(data['results']) == 10
@@ -262,23 +262,19 @@ def test_update_field_jmarcnx(client):
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}'
     response = client.put(f'{PRE}/bibs/1/fields/610/0?format=jmarcnx', headers={}, data=data)
     assert response.status_code == 200
+
+def test_create_field_jmarcnx(client):
+    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Post on field"}]}'
+    response = client.post(f'{PRE}/bibs/31/fields/500?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
     
+    response = client.get(f'{PRE}/bibs/31/fields/500/2/a/0')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result'] == 'Post on field'
     
+def test_delete_field(client):
+    response = client.delete(f'{PRE}/bibs/31/fields/245/0')
+    assert response.status_code == 200
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    response = client.get(f'{PRE}/bibs/31/fields/245/0')
+    assert response.status_code == 404
