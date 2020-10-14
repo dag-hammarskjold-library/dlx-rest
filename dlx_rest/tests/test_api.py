@@ -60,7 +60,7 @@ def test_search(client):
     data = json.loads(res.data)
     assert len(data['results']) == 1
     
-    res = client.get(f'{PRE}/bibs?search=' + '{"900": {"a": "/^3\\\d/"}}')
+    res = client.get(f'{PRE}/bibs?search=' + r'{"900": {"a": "/^3\\d/"}}')
     assert res.status_code == 200
     data = json.loads(res.data)
     assert len(data['results']) == 10
@@ -207,20 +207,20 @@ def test_delete_record(client):
     
 def test_update_record(client):
     data = '{"_id": 1, "invalid": 1}'
-    response = client.put(f'{PRE}/bibs/1', headers={}, data=json.dumps(data))
+    response = client.put(f'{PRE}/bibs/2', headers={}, data=json.dumps(data))
     assert response.status_code == 400
 
-    data = {"_id": 1, "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "An updated title"}]}]}    
-    response = client.put(f'{PRE}/bibs/1', headers={}, data=json.dumps(data))
+    data = {"_id": 2, "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "An updated title"}]}]}    
+    response = client.put(f'{PRE}/bibs/2', headers={}, data=json.dumps(data))
     assert response.status_code == 200
     
-    data = json.loads(client.get(f'{PRE}/bibs/1/fields/245/0/a/0').data)
+    data = json.loads(client.get(f'{PRE}/bibs/2/fields/245/0/a/0').data)
     assert data['result'] == "An updated title"
     assert client.get(f'{PRE}/bibs/1/fields/500/0/a/0').status_code == 404
     
 def test_update_record_mrk(client):
     data = 'invalid'
-    response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
+    response = client.put(f'{PRE}/bibs/2', headers={}, data=data)
     assert response.status_code == 400
     
     data = '=000  leader\n=245  \\\\$aUpdated by MRK$bsubtitle\n=269  \\\\$a2020'
@@ -238,47 +238,43 @@ def test_update_record_mrk(client):
     
 def test_update_record_jmarcnx(client):
     data = 'invalid'
-    response = client.put(f'{PRE}/bibs/1', headers={}, data=data)
+    response = client.put(f'{PRE}/bibs/2', headers={}, data=data)
     assert response.status_code == 400
     
-    data = '{"_id": 1, "000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    data = '{"_id": 2, "000": ["leader"], "610": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
     
-    response = client.put(f'{PRE}/bibs/1?format=jmarcnx', headers={}, data=data)
+    response = client.put(f'{PRE}/bibs/2?format=jmarcnx', headers={}, data=data)
     assert response.status_code == 200
     
-    response = client.get(f'{PRE}/bibs/1')
+    response = client.get(f'{PRE}/bibs/2')
     result = json.loads(response.data)['result']
     assert result['610'] == [{"indicators": [" ", " "], "subfields": [{"code": "a", "xref": 51}]}]
     
 def test_update_field_jmarcnx(client):
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Put on field"}]}'
-    response = client.put(f'{PRE}/bibs/2/fields/245/0?format=jmarcnx', headers={}, data=data)
+    response = client.put(f'{PRE}/bibs/3/fields/245/0?format=jmarcnx', headers={}, data=data)
     assert response.status_code == 200
     
-    response = client.get(f'{PRE}/bibs/2/fields/245/0/a/0')
+    response = client.get(f'{PRE}/bibs/3/fields/245/0/a/0')
     assert response.status_code == 200 
     assert json.loads(response.data)['result'] == 'Put on field'
     
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}'
-    response = client.put(f'{PRE}/bibs/1/fields/610/0?format=jmarcnx', headers={}, data=data)
+    response = client.put(f'{PRE}/bibs/2/fields/610/0?format=jmarcnx', headers={}, data=data)
+    assert response.status_code == 200
+
+def test_create_field_jmarcnx(client):
+    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Post on field"}]}'
+    response = client.post(f'{PRE}/bibs/31/fields/500?format=jmarcnx', headers={}, data=data)
     assert response.status_code == 200
     
+    response = client.get(f'{PRE}/bibs/31/fields/500/2/a/0')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result'] == 'Post on field'
     
+def test_delete_field(client):
+    response = client.delete(f'{PRE}/bibs/31/fields/245/0')
+    assert response.status_code == 200
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    response = client.get(f'{PRE}/bibs/31/fields/245/0')
+    assert response.status_code == 404
