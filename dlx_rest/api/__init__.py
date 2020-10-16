@@ -294,8 +294,8 @@ class RecordsList(Resource):
         if args.format == 'mrk':
             try:
                 result = cls.from_mrk(request.data.decode()).commit(user=user)
-            except:
-                abort(400, 'Invalid MRK')
+            except Exception as e:
+                abort(400, str(e))
         else:
             try:
                 jmarc = json.loads(request.data)
@@ -304,12 +304,8 @@ class RecordsList(Resource):
                     abort(400, '"_id" field is invalid for a new record')
                     
                 result = cls(jmarc).commit(user=user)
-            except JSONDecodeError:
-                abort(400, 'JSON decode error')
-            except (InvalidAuthValue, InvalidAuthXref):
-                abort(400, 'Invalid authority value')
-            except:
-                abort(400, 'Problem parsing the data')
+            except Exception as e:
+                abort(400, str(e))
         
             if result.acknowledged:
                 return Response(status=200)
@@ -453,12 +449,8 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
                 
             record = cls(record_data)
-        except JSONDecodeError:
-            abort(400, 'JSON decode error')
-        except (InvalidAuthValue, InvalidAuthXref):
-            abort(400, 'Invalid authority value')
-        except:
-            abort(400, 'Problem parsing the data')  
+        except Exception as e:
+            abort(400, str(e))
         
         result = record.commit(user=user)
         
@@ -520,12 +512,8 @@ class RecordFieldPlaceSubfieldList(Resource):
             record_data[field_tag][field_place] = field_data
                 
             result = cls(record_data).commit()
-        except JSONDecodeError:
-            abort(400, 'JSON decode error')
-        except (InvalidAuthValue, InvalidAuthXref):
-            abort(400, 'Invalid authority value')
-        except:
-            abort(400, 'Problem parsing the data')
+        except Exception as e:
+            abort(400, str(e))
 
         if result.acknowledged:
             return Response(status=200)
@@ -605,7 +593,7 @@ class RecordFieldPlaceSubfieldPlace(Resource):
 
         try:
             value = [sub.value for sub in subfields][subfield_place]
-        except:
+        except KeyError:
             abort(404)
 
         response = ValueResponse(
@@ -661,21 +649,14 @@ class Record(Resource):
                 record = cls.from_mrk(request.data.decode())
                 record.id = record_id
                 result = record.commit(user=user)
-            
-            except (InvalidAuthValue, InvalidAuthXref):
-                abort(400, 'Invalid authority value')
-            except:
-                abort(400, 'Problem parsing the data')
+            except Exception as e:
+                abort(400, str(e))
         else:
             try:
                 jmarc = json.loads(request.data)
                 result = cls(jmarc).commit(user=user)
-            except JSONDecodeError:
-                abort(400, 'JSON decode error')
-            except (InvalidAuthValue, InvalidAuthXref):
-                abort(400, 'Invalid authority value')
-            except:
-                abort(400, 'Problem parsing the data')
+            except Exception as e:
+                abort(400, str(e))
         
         if result.acknowledged:
             return Response(status=200)
