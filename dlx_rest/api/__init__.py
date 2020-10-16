@@ -7,11 +7,12 @@ from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
-from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafield, QueryDocument
+from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
 import json
+from json import JSONDecodeError
 
 #authorizations  
 authorizations = {
@@ -163,16 +164,7 @@ class RecordResponse():
 
     def txt(self):
         return Response(self.record.to_str(), mimetype='text/plain')
-        
-    def jmarcnx(self):
-        data = {
-            '_links': {
-                'self': self.url
-            },
-            'result': json.loads(self.record.to_jmarcnx())
-        }
-        
-        return jsonify(data)
+
         
 class ValueResponse():
     def __init__(self, endpoint, value, **kwargs):
@@ -256,7 +248,7 @@ class RecordsList(Resource):
             except:
                 abort(400, 'Search string is invalid JSON')
                 
-            query = QueryDocument.from_string(search)
+            query = Query.from_string(search)
         else:
             query = {}
         
@@ -290,38 +282,20 @@ class RecordsList(Resource):
 
         return response.json()
     
-    post_put_argparser = reqparse.RequestParser()
-    post_put_argparser.add_argument("format")
-        
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @ns.expect(post_put_argparser)
     @login_required
     def post(self, collection):
-        try:
-            cls = ClassDispatch.by_collection(collection)
-        except KeyError:
-            abort(404)
-        pass
-        
-        args = post_put_argparser.parse_args()
         user = 'testing' if current_user.is_anonymous else current_user.email
+        args = post_put_argparser.parse_args()
         
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+    
         if args.format == 'mrk':
             try:
                 result = cls.from_mrk(request.data.decode()).commit(user=user)
             except:
                 abort(400, 'Invalid MRK')
-        elif args.format == 'jmarcnx':
-            try:
-                jmarcnx = request.data
-                
-                if '_id' in json.loads(jmarcnx):
-                    abort(400, '"_id" field is invalid for a new record')
-                
-                result = cls.from_jmarcnx(jmarcnx).commit(user=user)
-            except:
-                raise
-                abort(400, 'Invalid JMARCNX')
         else:
             try:
                 jmarc = json.loads(request.data)
@@ -330,8 +304,12 @@ class RecordsList(Resource):
                     abort(400, '"_id" field is invalid for a new record')
                     
                 result = cls(jmarc).commit(user=user)
+            except JSONDecodeError:
+                abort(400, 'JSON decode error')
+            except (InvalidAuthValue, InvalidAuthXref):
+                abort(400, 'Invalid authority value')
             except:
-                abort(400, 'Invalid JMARC')
+                abort(400, 'Problem parsing the data')
         
             if result.acknowledged:
                 return Response(status=200)
@@ -452,33 +430,35 @@ class RecordFieldPlaceList(Resource):
         return response.json()
     
     @ns.doc(description='Create new field with the given tag', security='basic')
-    @ns.expect(post_put_argparser)
     @login_required
     def post(self, collection, record_id, field_tag):
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
-        args = post_put_argparser.parse_args()
-        user = 'testing' if current_user.is_anonymous else current_user.email
-        
-        if args.format == 'jmarcnx':
-            try:
-                field = Datafield.from_jmarcnx(
-                    record_type=cls.record_type, 
-                    tag=field_tag,
-                    data=request.data.decode()
-                )
+        try:
+            field = Datafield.from_json(
+                record_type=cls.record_type, 
+                tag=field_tag,
+                data=request.data.decode()
+            )
                 
-                record_data = record.to_dict()
-                field_data = field.to_bson().to_dict()
-                record_data[field_tag].append(field_data)
+            record_data = record.to_dict()
+            field_data = field.to_dict()
+            
+            if field_tag not in record_data:
+                record_data[field_tag] = []
+            
+            record_data[field_tag].append(field_data)
                 
-                record = cls(record_data)
-            except:
-                raise
-                abort(400, 'Invalid JMARCNX field or authority-controlled value')
-        else:
-            abort(422)    
+            record = cls(record_data)
+        except JSONDecodeError:
+            abort(400, 'JSON decode error')
+        except (InvalidAuthValue, InvalidAuthXref):
+            abort(400, 'Invalid authority value')
+        except:
+            abort(400, 'Problem parsing the data')  
         
         result = record.commit(user=user)
         
@@ -500,8 +480,8 @@ class RecordFieldPlaceSubfieldList(Resource):
 
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-        
         field = record.get_field(field_tag, place=field_place) or abort(404)
+        
         subfield_places = []
 
         for sub in field.subfields:
@@ -520,34 +500,33 @@ class RecordFieldPlaceSubfieldList(Resource):
         return response.json()
         
     @ns.doc(description='Replace the field with the given tag at the given place', security='basic')
-    @ns.expect(post_put_argparser)
     @login_required
-    def put(self, collection, record_id, field_tag, field_place):        
-        user = f'testing@{datetime.now()}' if current_user.is_anonymous else current_user.email
-        args = post_put_argparser.parse_args()
+    def put(self, collection, record_id, field_tag, field_place):
+        user = f'testing' if current_user.is_anonymous else current_user.email
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-
-        if args.format == 'jmarcnx':
-            try:
-                field = Datafield.from_jmarcnx(
-                    record_type=cls.record_type, 
-                    tag=field_tag,
-                    data=request.data.decode()
-                )
-                
-                record_data = record.to_dict()
-                field_data = field.to_bson().to_dict()
-                record_data[field_tag][field_place] = field_data
-                
-                result = cls(record_data).commit()
-            except:
-                raise
-                abort(400, 'Invalid JMARCNX field or authority-controlled value')
-        else:
-            abort(422)     
+        record.get_field(field_tag, place=field_place) or abort(404)
         
+        try:
+            field = Datafield.from_json(
+                record_type=cls.record_type, 
+                tag=field_tag,
+                data=request.data.decode()
+            )
+                
+            record_data = record.to_dict()
+            field_data = field.to_bson().to_dict()
+            record_data[field_tag][field_place] = field_data
+                
+            result = cls(record_data).commit()
+        except JSONDecodeError:
+            abort(400, 'JSON decode error')
+        except (InvalidAuthValue, InvalidAuthXref):
+            abort(400, 'Invalid authority value')
+        except:
+            abort(400, 'Problem parsing the data')
+
         if result.acknowledged:
             return Response(status=200)
         else:
@@ -683,30 +662,20 @@ class Record(Resource):
                 record.id = record_id
                 result = record.commit(user=user)
             
+            except (InvalidAuthValue, InvalidAuthXref):
+                abort(400, 'Invalid authority value')
             except:
-                abort(400, 'Invalid MRK')
-        elif args.format == 'jmarcnx':
-            try:
-                jmarcnx = request.data
-                
-                if '_id' not in json.loads(jmarcnx):
-                    abort(400, '"_id" field is required to update record')
-                
-                rec = cls.from_jmarcnx(jmarcnx)
-                
-                result = rec.commit(user=user)
-            except:
-                raise
-                abort(400, 'Invalid JMARCNX')        
+                abort(400, 'Problem parsing the data')
         else:
             try:
                 jmarc = json.loads(request.data)
                 result = cls(jmarc).commit(user=user)
+            except JSONDecodeError:
+                abort(400, 'JSON decode error')
+            except (InvalidAuthValue, InvalidAuthXref):
+                abort(400, 'Invalid authority value')
             except:
-                abort(400, 'Invalid JMARC')
-                
-            if '_id' not in jmarc:
-                abort(400, '"_id" field required in update record')
+                abort(400, 'Problem parsing the data')
         
         if result.acknowledged:
             return Response(status=200)
@@ -718,13 +687,13 @@ class Record(Resource):
     def patch(self, collection, record_id):
         user = 'testing' if current_user.is_anonymous else current_user.email
         
+        abort(501)
+        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
         # todo
-        
-        abort(501)
-    
+
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
     def delete(self, collection, record_id):
