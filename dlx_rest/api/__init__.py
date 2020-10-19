@@ -1,4 +1,6 @@
 from datetime import datetime
+from json import loads as load_json, JSONDecodeError
+from copy import copy
 from urllib.parse import unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
@@ -7,12 +9,10 @@ from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
-from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
+from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
-import json
-from json import JSONDecodeError
 
 #authorizations  
 authorizations = {
@@ -140,9 +140,10 @@ class BatchResponse():
         return Response(self.records.to_str(), mimetype='text/plain')
         
 class FieldResponse():
-    def __init__(self, field):
+    def __init__(self, endpoint, field, **kwargs):
         assert isinstance(field, Field)
         self.field = field
+        self.url = URL(endpoint, **kwargs).to_str()
         
     def json(self):
         data = {
@@ -259,7 +260,7 @@ class RecordsList(Resource):
             search = unquote(search)                
             
             try:
-                json.loads(search)
+                load_json(search)
             except:
                 abort(400, 'Search string is invalid JSON')
                 
@@ -310,12 +311,12 @@ class RecordsList(Resource):
                 abort(400, str(e))
         else:
             try:
-                jmarc = json.loads(request.data)
+                jmarc = load_json(request.data)
                 
                 if '_id' in jmarc:
                     abort(400, '"_id" field is invalid for a new record')
                     
-                result = cls(jmarc).commit(user=user)
+                result = cls(jmarc, auth_control=True).commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
@@ -335,14 +336,17 @@ class RecordFieldsList(Resource):
 
         fields_list = []
         
-        for tag in sorted(set(record.get_tags())):
-            fields_list.append(
-                URL('api_record_field_place_list',
-                    collection=collection,
-                    record_id=record.id,
-                    field_tag=tag
-                ).to_str()
-            )
+        for tag in record.get_tags():
+            for place, field in enumerate(record.get_fields(tag)):
+                
+                fields_list.append(
+                    URL('api_record_field_place',
+                        collection=collection,
+                        record_id=record.id,
+                        field_tag=tag,
+                        field_place=place
+                    ).to_str()
+                )
 
         response = ListResponse(
             'api_record_fields_list',
@@ -359,15 +363,16 @@ class RecordFieldsList(Resource):
 class RecordSubfieldsList(Resource):
     @ns.doc(description='Return a list of all the subfields in the record with the given record')
     def get(self, collection, record_id):
+        route_params = locals()
+        route_params.pop('self')
+        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
         subfields_list = []
         
-        for tag in record.get_tags():
-            field_place = 0
-            
-            for field in record.get_fields(tag):        
+        for tag in record.get_tags(): 
+            for field_place, field in enumerate(record.get_fields(tag)):        
                 if type(field) == Controlfield:
                     # todo: do something with Datafields
                     continue
@@ -385,7 +390,7 @@ class RecordSubfieldsList(Resource):
                     
                     subfields_list.append(
                         URL(
-                            'api_record_field_place_subfield_place',
+                            'api_record_field_subfield_value',
                             collection=collection,
                             record_id=record.id,
                             field_tag=field.tag,
@@ -393,15 +398,12 @@ class RecordSubfieldsList(Resource):
                             subfield_code=subfield.code,
                             subfield_place=subfield_place
                         ).to_str()
-                    )    
-   
-                field_place += 1
+                    )
 
         response = ListResponse(
             'api_record_subfields_list',
             subfields_list,
-            collection=collection,
-            record_id=record.id,
+            **route_params
         )
         
         return response.json()
@@ -410,7 +412,7 @@ class RecordSubfieldsList(Resource):
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
-class RecordFieldPlaceList(Resource):
+class RecordFieldList(Resource):
     @ns.doc(description='Return a list of the instances of the field in the record')
     def get(self, collection, record_id, field_tag):
         route_params = locals()
@@ -418,7 +420,7 @@ class RecordFieldPlaceList(Resource):
 
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-        
+
         places = len(list(record.get_fields(field_tag)))
         field_places = []
         
@@ -426,11 +428,11 @@ class RecordFieldPlaceList(Resource):
             route_params['field_place'] = place
 
             field_places.append(
-                URL('api_record_field_place_subfield_list', **route_params).to_str()
+                URL('api_record_field_place', **route_params).to_str()
             )
 
         response = ListResponse(
-            'api_record_field_place_list',
+            'api_record_field_list',
             field_places,
             **route_params
         )
@@ -449,7 +451,8 @@ class RecordFieldPlaceList(Resource):
             field = Datafield.from_json(
                 record_type=cls.record_type, 
                 tag=field_tag,
-                data=request.data.decode()
+                data=request.data.decode(),
+                auth_control=True
             )
                 
             record_data = record.to_dict()
@@ -476,7 +479,8 @@ class RecordFieldPlaceList(Resource):
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
-class RecordFieldPlaceSubfieldList(Resource):
+class RecordFieldPlace(Resource):
+    '''
     @ns.doc(description='Return a list of the subfield codes in the field')
     def get(self, collection, record_id, field_tag, field_place):
         route_params = locals()
@@ -496,13 +500,24 @@ class RecordFieldPlaceSubfieldList(Resource):
             )
 
         response = ListResponse(
-            'api_record_field_place_subfield_list',
+            'api_record_field_place',
             subfield_places,
             **route_params
         )
 
         return response.json()
+    '''
+    @ns.doc(description='Return the field at the given place in the record')
+    def get(self, collection, record_id, field_tag, field_place):
+        route_params = locals()
+        route_params.pop('self')
         
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+        field = record.get_field(field_tag, place=field_place) or abort(404)
+        
+        return FieldResponse('api_record_field_place', field, **route_params).json()
+
     @ns.doc(description='Replace the field with the given tag at the given place', security='basic')
     @login_required
     def put(self, collection, record_id, field_tag, field_place):
@@ -516,7 +531,8 @@ class RecordFieldPlaceSubfieldList(Resource):
             field = Datafield.from_json(
                 record_type=cls.record_type, 
                 tag=field_tag,
-                data=request.data.decode()
+                data=request.data.decode(),
+                auth_control=True
             )
                 
             record_data = record.to_dict()
@@ -547,8 +563,49 @@ class RecordFieldPlaceSubfieldList(Resource):
             return Response(status=200)
         else:
             abort(500)
+
+@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
+@ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
+@ns.param('field_tag', 'The MARC tag identifying the field')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordFieldPlaceSubfieldList(Resource):
+    @ns.doc(description='Return a list of the subfields in the field')
+    def get(self, collection, record_id, field_tag, field_place):
+        route_params = locals()
+        route_params.pop('self')
+
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+        field = record.get_field(field_tag, place=field_place) or abort(404)
         
-@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/<string:subfield_code>')
+        subfields, seen, place = [], {}, 0
+        
+        for sub in field.subfields:
+            new_route_params = copy(route_params)
+            new_route_params['subfield_code'] = sub.code
+            
+            if sub.code in seen:
+                place += 1
+            else:
+                place = 0
+                seen[sub.code] = True
+            
+            new_route_params['subfield_place'] = place
+
+            subfields.append(
+                URL('api_record_field_subfield_value', **new_route_params).to_str()
+            )
+
+        response = ListResponse(
+            'api_record_field_place_subfield_list',
+            subfields,
+            **route_params
+        )
+
+        return response.json()
+       
+@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
@@ -564,14 +621,13 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         record = cls.from_id(record_id) or abort(404)
         
         field = record.get_field(field_tag, place=field_place) or abort(404)
-        subfields = filter(lambda x: x.code == subfield_code, field.subfields) or abort(404) # dlx needs a 'get_subfields' method
+        subfields = filter(lambda x: x.code == subfield_code, field.subfields) or abort(404)
 
         subfield_places = []
+        
         for place in range(0, len(list(subfields))):
-            route_params['subfield_place'] = place
-
             subfield_places.append(
-                URL('api_record_field_place_subfield_place', **route_params).to_str()
+                URL('api_record_field_subfield_value', subfield_place=place, **route_params).to_str()
             )
 
         response = ListResponse(
@@ -584,14 +640,14 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 
 # Single records
 
-@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/<string:subfield_code>/<int:subfield_place>')
+@ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>/<int:subfield_place>')
 @ns.param('subfield_place', 'The incidence number of the subfield code in the field, starting wtih 0')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
-class RecordFieldPlaceSubfieldPlace(Resource):
+class RecordFieldSubfieldValue(Resource):
     @ns.doc(description='Return the value of the subfield')
     def get(self, collection, record_id, field_tag, field_place, subfield_code, subfield_place):
         route_params = locals()
@@ -599,17 +655,10 @@ class RecordFieldPlaceSubfieldPlace(Resource):
 
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
+        value = record.get_value(field_tag, subfield_code, address=[field_place, subfield_place]) or abort(404)
         
-        field = record.get_field(field_tag, place=field_place) or abort(404)
-        subfields = filter(lambda x: x.code == subfield_code, field.subfields) or abort(404)
-
-        try:
-            value = [sub.value for sub in subfields][subfield_place]
-        except KeyError:
-            abort(404)
-
         response = ValueResponse(
-            'api_record_field_place_subfield_place',
+            'api_record_field_subfield_value',
             value,
             **route_params
         )
@@ -665,7 +714,7 @@ class Record(Resource):
                 abort(400, str(e))
         else:
             try:
-                jmarc = json.loads(request.data)
+                jmarc = load_json(request.data)
                 result = cls(jmarc).commit(user=user)
             except Exception as e:
                 abort(400, str(e))

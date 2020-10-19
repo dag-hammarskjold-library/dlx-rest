@@ -24,14 +24,6 @@ def records():
     from random import randrange
 
     for x in range(1,51):
-        bib = Bib({'_id': x})
-        bib.set('245', 'a', str(randrange(1, 100)))
-        bib.set('500', 'a', '1x')
-        bib.set('500', 'a', '2x', address=['+'])
-        bib.set('500', 'a', '3x', address=[1, '+'])
-        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
-        bib.commit()
-        
         auth = Auth({'_id': x})
         auth.set('100', 'a', str(randrange(1, 100))),
         auth.set('400', 'a', '1x'),
@@ -40,7 +32,16 @@ def records():
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
         
-    Auth({'_id': 51}).set('110', 'a', 'Name').commit(),
+        Auth({'_id': 51}).set('110', 'a', 'Name').commit(),
+        
+        bib = Bib({'_id': x})
+        bib.set('245', 'a', str(randrange(1, 100)))
+        bib.set('500', 'a', '1x')
+        bib.set('610', 'a', 'Name')
+        bib.set('500', 'a', '2x', address=['+'])
+        bib.set('500', 'a', '3x', address=[1, '+'])
+        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
+        bib.commit()
    
 @pytest.fixture(scope='module')
 def users():
