@@ -21,6 +21,7 @@ authorizations = {
     }
 }
 
+
 DB.connect(Config.connect_string)
 
 api = Api(app, doc='/api/', authorizations=authorizations)

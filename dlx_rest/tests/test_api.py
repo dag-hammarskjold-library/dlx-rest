@@ -150,10 +150,13 @@ def test_record_field_place_subfield_place(client):
     
 def test_record_field_subfields_list(client):
     data = json.loads(client.get(f'{API}/bibs/1/subfields').data)
-    assert len(data['results']) == 9
+    assert len(data['results']) == 6
     assert f'{API}/bibs/1/fields/245/0/a/0' in data['results']
     assert f'{API}/bibs/1/fields/500/1/a/0' in data['results']
     assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/b/0' in data['results']
     
 def test_create_record(client):
     data = '{"_id": 1, "invalid": 1}'
