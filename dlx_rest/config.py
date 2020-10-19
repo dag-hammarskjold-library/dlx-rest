@@ -27,7 +27,6 @@ class Config(object):
         dbname = 'undlFiles'
         sync_log_collection = 'dlx_dl_log'
     else:
-        print(os.environ)
         raise Exception('One of the environment variables "DLX_REST_TESTING", "DLX_REST_DEV", or "DLX_REST_PRODUCTION" must return a true value in order to initialize the runtime environment')
 
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", os.urandom(24))

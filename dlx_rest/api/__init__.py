@@ -111,9 +111,7 @@ class ListResponse():
 
     def json(self):
         data = {
-            '_links': {
-                'self': self.url
-            },
+            '_links': {'self': self.url},
             'start': self.start,
             'limit': self.limit,
             'results': self.items
@@ -137,7 +135,10 @@ class BatchResponse():
         
     def mrk(self):
         return Response(self.records.to_mrk(), mimetype='text/plain')
-
+    
+    def txt(self):
+        return Response(self.records.to_str(), mimetype='text/plain')
+        
 class FieldResponse():
     def __init__(self, field):
         assert isinstance(field, Field)
@@ -145,9 +146,7 @@ class FieldResponse():
         
     def json(self):
         data = {
-            '_links': {
-                'self': self.url
-            },
+            '_links': {'self': self.url},
             'result': self.field.to_dict()
         }
         
@@ -163,9 +162,7 @@ class RecordResponse():
 
     def json(self):
         data = {
-            '_links': {
-                'self': self.url
-            },
+            '_links': {'self': self.url},
             'result': self.record.to_dict()
         }
 
@@ -193,9 +190,7 @@ class ValueResponse():
 
     def json(self):
         data = {
-            '_links': {
-                'self': self.url
-            },
+            '_links': {'self': self.url},
             'result': self.value
         }
 

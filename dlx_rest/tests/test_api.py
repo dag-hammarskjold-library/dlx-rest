@@ -50,7 +50,10 @@ def test_records_list(client, records):
     
     response = client.get(f'{API}/bibs?format=mrc')
     assert response.headers["Content-Type"] == 'application/marc'
-
+    
+    response = client.get(f'{API}/bibs?format=txt')
+    assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
+    
 def test_search(client):
     res = client.get(f'{API}/bibs?search=' + '{"900": {"a": "25"}}')
     assert res.status_code == 200
@@ -147,10 +150,13 @@ def test_record_field_place_subfield_place(client):
     
 def test_record_field_subfields_list(client):
     data = json.loads(client.get(f'{API}/bibs/1/subfields').data)
-    assert len(data['results']) == 9
+    assert len(data['results']) == 6
     assert f'{API}/bibs/1/fields/245/0/a/0' in data['results']
     assert f'{API}/bibs/1/fields/500/1/a/0' in data['results']
     assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/b/0' in data['results']
     
 def test_create_record(client):
     data = '{"_id": 1, "invalid": 1}'
