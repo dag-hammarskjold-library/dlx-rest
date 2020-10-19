@@ -33,11 +33,11 @@ list_argparser.add_argument('start', type=int, help='Number of record results to
 list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
 list_argparser.add_argument('sort', type=str, help='Valid strings are "date"')
 list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
-list_argparser.add_argument('format', type=str, help='Valid strings are "xml", "mrc", "mrk", "txt"')
+list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk"')
 list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
 
 resource_argparser = reqparse.RequestParser()
-resource_argparser.add_argument('format', type=str, help='Return format. Valid strings are "json", "xml", "mrc", "mrk", "txt". Default is "json"')
+resource_argparser.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk", "txt"')
 
 post_put_argparser = reqparse.RequestParser()
 post_put_argparser.add_argument('format', help="The format of the data being sent through the HTTP request")
@@ -126,17 +126,35 @@ class BatchResponse():
         assert isinstance(records, MarcSet)
         self.records = records
         
+    def json(self):
+        return jsonify([r.to_dict() for r in self.records])
+    
     def xml(self):
         return Response(self.records.to_xml(), mimetype='text/xml')
 
     def mrc(self):
         return Response(self.records.to_mrc(), mimetype='application/marc')
-
+        
     def mrk(self):
         return Response(self.records.to_mrk(), mimetype='text/plain')
 
-    def txt(self):
-        return Response(self.records.to_str(), mimetype='text/plain')
+class FieldResponse():
+    def __init__(self, field):
+        assert isinstance(field, Field)
+        self.field = field
+        
+    def json(self):
+        data = {
+            '_links': {
+                'self': self.url
+            },
+            'result': self.field.to_dict()
+        }
+        
+        return jsonify(data)
+        
+    def json_raw(self):
+        return jsonify(self.field.to_dict())
 
 class RecordResponse():
     def __init__(self, endpoint, record, **kwargs):
@@ -152,6 +170,9 @@ class RecordResponse():
         }
 
         return jsonify(data)
+        
+    def json_raw(self):
+        return jsonify(self.record.to_dict())
 
     def xml(self):
         return Response(self.record.to_xml(), mimetype='text/xml')
@@ -164,7 +185,6 @@ class RecordResponse():
 
     def txt(self):
         return Response(self.record.to_str(), mimetype='text/plain')
-
         
 class ValueResponse():
     def __init__(self, endpoint, value, **kwargs):
@@ -251,12 +271,9 @@ class RecordsList(Resource):
             query = Query.from_string(search)
         else:
             query = {}
-        
+
         if sort_by == 'date':
-            if direction.lower() == 'asc':
-                sort = [('updated', ASC)]
-            else:
-                sort = [('updated', DESC)]
+            sort = [('updated', ASC)] if direction.lower() == 'asc' else [('updated', DESC)]
         else:
             sort = None
         
