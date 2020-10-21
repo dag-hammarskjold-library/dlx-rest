@@ -94,17 +94,19 @@ def test_record_formats(client):
 def test_records_fields_list(client):
     data = json.loads(client.get(f'{API}/bibs/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 3
-    assert f'{API}/bibs/1/fields/245' in data['results']
-    assert f'{API}/bibs/1/fields/500' in data['results']
-    assert f'{API}/bibs/1/fields/900' in data['results']
+    assert len(data['results']) == 5
+    assert f'{API}/bibs/1/fields/245/0' in data['results']
+    assert f'{API}/bibs/1/fields/500/0' in data['results']
+    assert f'{API}/bibs/1/fields/500/1' in data['results']
+    assert f'{API}/bibs/1/fields/900/0' in data['results']
     
     data = json.loads(client.get(f'{API}/auths/1/fields').data)
     # this may change if future dlx version sets a 001 field automatically with the id
-    assert len(data['results']) == 3
-    assert f'{API}/auths/1/fields/100' in data['results']
-    assert f'{API}/auths/1/fields/400' in data['results']
-    assert f'{API}/auths/1/fields/900' in data['results']
+    assert len(data['results']) == 4
+    assert f'{API}/auths/1/fields/100/0' in data['results']
+    assert f'{API}/auths/1/fields/400/0' in data['results']
+    assert f'{API}/auths/1/fields/400/1' in data['results']
+    assert f'{API}/auths/1/fields/900/0' in data['results']
     
 def test_record_field_place_list(client):
     data = json.loads(client.get(f'{API}/bibs/1/fields/500').data)
@@ -118,45 +120,45 @@ def test_record_field_place_list(client):
     assert f'{API}/auths/1/fields/400/1' in data['results']
     
 def test_record_field_place_subfield_list(client):
-    data = json.loads(client.get(f'{API}/bibs/1/fields/500/0').data)
+    data = json.loads(client.get(f'{API}/bibs/1/fields/500/0/subfields').data)
     assert len(data['results']) == 1
-    assert f'{API}/bibs/1/fields/500/0/a' in data['results']
+    assert f'{API}/bibs/1/fields/500/0/subfields/a/0' in data['results']
     
-    data = json.loads(client.get(f'{API}/auths/1/fields/400/0').data)
+    data = json.loads(client.get(f'{API}/auths/1/fields/400/0/subfields').data)
     assert len(data['results']) == 1
-    assert f'{API}/auths/1/fields/400/0/a' in data['results']
+    assert f'{API}/auths/1/fields/400/0/subfields/a/0' in data['results']
     
 def test_record_field_place_subfield_place_list(client):
-    data = json.loads(client.get(f'{API}/bibs/1/fields/500/0/a').data)
+    data = json.loads(client.get(f'{API}/bibs/1/fields/500/0/subfields/a').data)
     assert len(data['results']) == 1
-    data = json.loads(client.get(f'{API}/bibs/1/fields/500/1/a').data)
+    data = json.loads(client.get(f'{API}/bibs/1/fields/500/1/subfields/a').data)
     assert len(data['results']) == 2
-    assert f'{API}/bibs/1/fields/500/1/a/0' in data['results']
-    assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/subfields/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/subfields/a/1' in data['results']
     
-    data = json.loads(client.get(f'{API}/auths/1/fields/400/0/a').data)
+    data = json.loads(client.get(f'{API}/auths/1/fields/400/0/subfields/a').data)
     assert len(data['results']) == 1
-    data = json.loads(client.get(f'{API}/auths/1/fields/400/1/a').data)
+    data = json.loads(client.get(f'{API}/auths/1/fields/400/1/subfields/a').data)
     assert len(data['results']) == 2
-    assert f'{API}/auths/1/fields/400/1/a/0' in data['results']
-    assert f'{API}/auths/1/fields/400/1/a/1' in data['results']
+    assert f'{API}/auths/1/fields/400/1/subfields/a/0' in data['results']
+    assert f'{API}/auths/1/fields/400/1/subfields/a/1' in data['results']
     
 def test_record_field_place_subfield_place(client):
-    data = json.loads(client.get(f'{API}/bibs/1/fields/500/1/a/1').data)
+    data = json.loads(client.get(f'{API}/bibs/1/fields/500/1/subfields/a/1').data)
     assert data['result'] == '3x'
     
-    data = json.loads(client.get(f'{API}/auths/1/fields/400/1/a/1').data)
+    data = json.loads(client.get(f'{API}/auths/1/fields/400/1/subfields/a/1').data)
     assert data['result'] == '3x'
     
 def test_record_field_subfields_list(client):
     data = json.loads(client.get(f'{API}/bibs/1/subfields').data)
-    assert len(data['results']) == 6
-    assert f'{API}/bibs/1/fields/245/0/a/0' in data['results']
-    assert f'{API}/bibs/1/fields/500/1/a/0' in data['results']
-    assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
-    assert f'{API}/bibs/1/fields/500/1/a/1' in data['results']
-    assert f'{API}/bibs/1/fields/900/0/a/0' in data['results']
-    assert f'{API}/bibs/1/fields/900/0/b/0' in data['results']
+    assert len(data['results']) == 7
+    assert f'{API}/bibs/1/fields/245/0/subfields/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/subfields/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/subfields/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/500/1/subfields/a/1' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/subfields/a/0' in data['results']
+    assert f'{API}/bibs/1/fields/900/0/subfields/b/0' in data['results']
     
 def test_create_record(client):
     data = '{"_id": 1, "invalid": 1}'
@@ -207,9 +209,9 @@ def test_update_record(client):
     response = client.put(f'{API}/bibs/2', headers={}, data=data)
     assert response.status_code == 200
     
-    data = json.loads(client.get(f'{API}/bibs/2/fields/245/0/a/0').data)
+    data = json.loads(client.get(f'{API}/bibs/2/fields/245/0/subfields/a/0').data)
     assert data['result'] == "An updated title"
-    assert client.get(f'{API}/bibs/1/fields/500/0/a/0').status_code == 404
+    assert client.get(f'{API}/bibs/1/fields/500/0/subfields/a/0').status_code == 404
     
 def test_update_record_mrk(client):
     data = 'invalid'
@@ -234,7 +236,7 @@ def test_create_field(client):
     response = client.post(f'{API}/bibs/31/fields/610', headers={}, data=data)
     assert response.status_code == 200
     
-    response = client.get(f'{API}/bibs/31/fields/610/0/a/0')
+    response = client.get(f'{API}/bibs/31/fields/610/0/subfields/a/0')
     assert response.status_code == 200
     assert json.loads(response.data)['result'] == 'Name'
   
@@ -243,12 +245,14 @@ def test_update_field(client):
     response = client.put(f'{API}/bibs/31/fields/245/0', headers={}, data=data)
     assert response.status_code == 200
     
-    response = client.get(f'{API}/bibs/31/fields/245/0/a/0')
+    response = client.get(f'{API}/bibs/31/fields/245/0/subfields/a/0')
     assert response.status_code == 200 
     assert json.loads(response.data)['result'] == 'Put on field'
     
-    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}'
-    response = client.put(f'{API}/bibs/31/fields/610/0', headers={}, data=data)
+    data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "New name"}]}'
+    response = client.put(f'{API}/auths/51/fields/110/0', headers={}, data=data)
+    assert response.status_code == 200
+    response = client.put(f'{API}/bibs/27/fields/610/0', headers={}, data=data)
     assert response.status_code == 200
     
 def test_delete_field(client):
