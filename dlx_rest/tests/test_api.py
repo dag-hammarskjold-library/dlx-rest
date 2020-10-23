@@ -239,6 +239,12 @@ def test_create_field(client):
     response = client.get(f'{API}/bibs/31/fields/610/0/subfields/a/0')
     assert response.status_code == 200
     assert json.loads(response.data)['result'] == 'Name'
+    
+    #controlfield
+    response = client.post(f'{API}/bibs/47/fields/007', headers={}, data='controlfield data')
+    assert response.status_code == 200
+    response = client.get(f'{API}/bibs/47')
+    assert json.loads(response.data)['result']['007'] == ['controlfield data']
   
 def test_update_field(client):
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Put on field"}]}'
@@ -255,6 +261,12 @@ def test_update_field(client):
     response = client.put(f'{API}/bibs/27/fields/610/0', headers={}, data=data)
     assert response.status_code == 200
     
+    #controlfield
+    response = client.post(f'{API}/bibs/14/fields/006', headers={}, data='controlfield data')
+    response = client.put(f'{API}/bibs/14/fields/006/0', headers={}, data='updated controlfield data')
+    response = client.get(f'{API}/bibs/14')
+    assert json.loads(response.data)['result']['006'] == ['updated controlfield data']
+
 def test_delete_field(client):
     response = client.delete(f'{API}/bibs/31/fields/245/0')
     assert response.status_code == 200
