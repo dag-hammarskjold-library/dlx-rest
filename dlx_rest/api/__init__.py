@@ -448,15 +448,18 @@ class RecordFieldList(Resource):
         record = cls.from_id(record_id) or abort(404)
         
         try:
-            field = Datafield.from_json(
-                record_type=cls.record_type, 
-                tag=field_tag,
-                data=request.data.decode(),
-                auth_control=True
-            )
-                
+            if field_tag[:2] == '00':
+                field_data = request.data.decode() # scalar value
+            else:
+                field = Datafield.from_json(
+                    record_type=cls.record_type, 
+                    tag=field_tag,
+                    data=request.data.decode(),
+                    auth_control=True
+                )
+                field_data = field.to_dict()
+            
             record_data = record.to_dict()
-            field_data = field.to_dict()
             
             if field_tag not in record_data:
                 record_data[field_tag] = []
@@ -528,17 +531,21 @@ class RecordFieldPlace(Resource):
         record.get_field(field_tag, place=field_place) or abort(404)
         
         try:
-            field = Datafield.from_json(
-                record_type=cls.record_type, 
-                tag=field_tag,
-                data=request.data.decode(),
-                auth_control=True
-            )
-                
+            if field_tag[:2] == '00':
+                field_data = request.data.decode() # scalar value
+            else:
+                field = Datafield.from_json(
+                    record_type=cls.record_type, 
+                    tag=field_tag,
+                    data=request.data.decode(),
+                    auth_control=True
+                )
+                field_data = field.to_dict()
+            
             record_data = record.to_dict()
-            field_data = field.to_bson().to_dict()
+            record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-                
+            
             result = cls(record_data).commit()
         except Exception as e:
             abort(400, str(e))
@@ -715,6 +722,7 @@ class Record(Resource):
         else:
             try:
                 jmarc = load_json(request.data)
+                
                 result = cls(jmarc).commit(user=user)
             except Exception as e:
                 abort(400, str(e))
