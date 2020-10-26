@@ -192,7 +192,7 @@ def get_records_list(coll):
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
-    return render_template('record.html', coll=coll, id=id)
+    return render_template('record.html', coll=coll, record_id=id)
 
 @app.route('/records/<coll>/new')
 @login_required
