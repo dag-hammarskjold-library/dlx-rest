@@ -221,6 +221,8 @@ class MarcRecord extends HTMLElement {
             document.getElementById("btnCloneRecord").style.display='none';
             document.getElementById("btnEditRecord").style.display='inline';
             document.getElementById("btnUpdateRecord").style.display='none';
+            document.getElementById("divRecordType").style.display='none';
+        
         } 
 
         if (this.typeEditMode==='TAGRECORD'){
@@ -264,6 +266,7 @@ class MarcRecord extends HTMLElement {
             if (document.getElementById("divDetail")){
                 document.getElementById("divDetail").style.display='none';
             }
+            document.getElementById("divRecordType").style.display='inline';
         }
     }
 
@@ -321,7 +324,7 @@ class MarcRecord extends HTMLElement {
         tbl += '<hr>'
 
         // Adding a div with the number of line created for the record
-        tbl += "<div ><span id='valNumLineNewRecord' >" + this.rowLineNewRecord + "</span> line(s) created for this record </div>"
+        tbl += "<div ><span id='valNumLineNewRecord' >" + this.rowLineNewRecord + "</span> Tag(s) created for this record </div>"
 
         // check if the div content is already created 
 
@@ -471,6 +474,7 @@ class MarcRecord extends HTMLElement {
         let myListOfSubField = "[";
         let myData = "";
         let recup = "";
+        let myLeader="";
 
         // Retrieving the table
         const myTable = document.getElementById("tableNewRecord");
@@ -479,70 +483,106 @@ class MarcRecord extends HTMLElement {
         const totalRow = myTable.getElementsByTagName("TR");
         // console.log(totalRow)
 
+        // Loop for the leaders fields
+        for (var i = 1, row; row = myTable.rows[i]; i++) {
+
+            // Retrieving tag data
+            myTag = document.getElementById("tagCol" + i).value;
+
+            if (this.leaderList.indexOf(myTag)!==-1) {
+
+                if (myLeader===""){
+                    myLeader=`"${myTag}":["${document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value}"]`;
+                }
+                else {
+                    myLeader=myLeader+","+`"${myTag}":["${document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value}"]`;
+                }
+            }
+        }
+
+        // Adding the leaders fields to my special record
+        if (myLeader!==""){
+            mySpecialRecord=mySpecialRecord+myLeader+",";
+        }
+
         for (var i = 1, row; row = myTable.rows[i]; i++) {
 
 
             // Retrieving tag data
             myTag = document.getElementById("tagCol" + i).value;
 
-            // Retrieving ind1 data
-            if (document.getElementById("ind1Col" + i).value){
-                myInd1 = document.getElementById("ind1Col" + i).value
-            }else {
-                myInd1 = " "
-            };
+            //
+            if (this.leaderList.indexOf(myTag)===-1) 
+            {
 
-            // Retrieving ind2 data
-            if (document.getElementById("ind2Col" + i).value){
-                myInd2 = document.getElementById("ind2Col" + i).value
-            }else {
-                myInd2 = " "
-            };
+                // Retrieving ind1 data
+                if (document.getElementById("ind1Col" + i).value){
+                    myInd1 = document.getElementById("ind1Col" + i).value
+                }else {
+                    myInd1 = " "
+                };
 
-            // Retrieving Subfield data
-            let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
+                // Retrieving ind2 data
+                if (document.getElementById("ind2Col" + i).value){
+                    myInd2 = document.getElementById("ind2Col" + i).value
+                }else {
+                    myInd2 = " "
+                };
 
-            let lenMyData = myData.length;
+                // Retrieving Subfield data
+                let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
 
-            let mySubField = "";
+                let lenMyData = myData.length;
 
-            for (var j = 0; j < lenMyData; j++) {
-                let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
-                //console.log("le code est  :" + myCode)
+                let mySubField = "";
 
-                let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
-                //console.log("la valeur est  :" + myValue)
+                for (var j = 0; j < lenMyData; j++) {
+                    let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
+                    //console.log("le code est  :" + myCode)
+
+                    let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
+                    //console.log("la valeur est  :" + myValue)
 
 
-                // Definition of the dict to store the subfields
-                if (j === (lenMyData - 1)) {
-                    //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
-                    myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
-                } else {
-                    myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                    // Definition of the dict to store the subfields
+                    if (j === (lenMyData - 1)) {
+                        //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
+                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
+                    } else {
+                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                    }
+
                 }
 
+                // close the subfield string
+                myListOfSubField = myListOfSubField + "]";
+                //console.log(myListOfSubField)
+
+                if (i === (totalRow.length - 1)) {
+                    mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}]}";
+                } else {
+                    mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}],";
+                }
+
+                myListOfSubField = "[";
             }
-
-            // close the subfield string
-            myListOfSubField = myListOfSubField + "]";
-            console.log(myListOfSubField)
-
-            if (i === (totalRow.length - 1)) {
-                mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}]}";
-            } else {
-                mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}],";
-            }
-
-            myListOfSubField = "[";
 
         }
 
         // Retrieving the value of the type of Record
-        const typeRecord = document.getElementById("selectTypeRecord").value;
+        let typeRecord =""
+        if (this.typeEditMode==="CREATERECORD"){
+            typeRecord = document.getElementById("selectTypeRecord").value;
+        } 
+        else
+        {
+            typeRecord = this.typeRecordToUpdate;
+        }
 
         // Saving the Data
         let data = mySpecialRecord;
+
+        console.log(data);
 
         // Call the method to create the record
         this.createRecord(this.prefixUrl + typeRecord, data)
@@ -565,6 +605,7 @@ class MarcRecord extends HTMLElement {
         let myListOfSubField = "[";
         let myData = "";
         let recup = "";
+        let myLeader="";
 
         // Retrieving the table
         const myTable = document.getElementById("tableNewRecord");
@@ -573,83 +614,118 @@ class MarcRecord extends HTMLElement {
         const totalRow = myTable.getElementsByTagName("TR");
         // console.log(totalRow)
 
+        // Loop for the leaders fields
         for (var i = 1, row; row = myTable.rows[i]; i++) {
-
 
             // Retrieving tag data
             myTag = document.getElementById("tagCol" + i).value;
 
-            // Retrieving ind1 data
-            if (document.getElementById("ind1Col" + i).value){
-                myInd1 = document.getElementById("ind1Col" + i).value
-            }else {
-                myInd1 = " "
-            };
+            if (this.leaderList.indexOf(myTag)!==-1) {
 
-            // Retrieving ind2 data
-            if (document.getElementById("ind2Col" + i).value){
-                myInd2 = document.getElementById("ind2Col" + i).value
-            }else {
-                myInd2 = " "
-            };
-
-            // Retrieving Subfield data
-            let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
-
-            let lenMyData = myData.length;
-
-            let mySubField = "";
-
-            for (var j = 0; j < lenMyData; j++) {
-                let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
-                console.log("le code est  :" + myCode)
-
-                let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
-                console.log("la valeur est  :" + myValue)
-
-
-                // Definition of the dict to store the subfields
-                if (j === (lenMyData - 1)) {
-                    //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
-                    myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
-                } else {
-                    myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                if (myLeader===""){
+                    myLeader=`"${myTag}":["${document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value}"]`;
                 }
-
+                else {
+                    myLeader=myLeader+","+`"${myTag}":["${document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value}"]`;
+                }
             }
+        }
 
-            // close the subfield string
-            myListOfSubField = myListOfSubField + "]";
-            console.log(myListOfSubField)
+        // Adding the leaders fields to my special record
+        if (myLeader!==""){
+            mySpecialRecord=mySpecialRecord+myLeader+",";
+        }
+        
 
-            if (i === (totalRow.length - 1)) {
-                mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}]}";
-            } else {
-                mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}],";
+        // Loop for the other fields
+        for (var i = 1, row; row = myTable.rows[i]; i++) {
+
+            // Retrieving tag data
+            myTag = document.getElementById("tagCol" + i).value;
+
+            //
+            if (this.leaderList.indexOf(myTag)===-1) 
+            {
+                    
+                
+                    // Retrieving ind1 data
+                    if (document.getElementById("ind1Col" + i).value){
+                        myInd1 = document.getElementById("ind1Col" + i).value
+                    }else {
+                        myInd1 = " "
+                    };
+
+                    // Retrieving ind2 data
+                    if (document.getElementById("ind2Col" + i).value){
+                        myInd2 = document.getElementById("ind2Col" + i).value
+                    }else {
+                        myInd2 = " "
+                    };
+
+                    // Retrieving Subfield data
+                    let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
+
+                    let lenMyData = myData.length;
+
+                    let mySubField = "";
+
+                    for (var j = 0; j < lenMyData; j++) {
+                        let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
+                        //console.log("le code est  :" + myCode)
+
+                        let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
+                        //console.log("la valeur est  :" + myValue)
+
+
+                        // Definition of the dict to store the subfields
+                        if (j === (lenMyData - 1)) {
+                            //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
+                        } else {
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                        }
+
+                    }
+
+                    // close the subfield string
+                    myListOfSubField = myListOfSubField + "]";
+                    //console.log(myListOfSubField)
+
+                    if (i === (totalRow.length - 1)) {
+                        mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}]}";
+                    } else {
+                        mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}],";
+                    }
+
+                    myListOfSubField = "[";
+            
             }
-
-            myListOfSubField = "[";
 
         }
 
-        console.log(mySpecialRecord)
+        //console.log(mySpecialRecord)
 
         // Retrieving the value of the type of Record
-
         const typeRecord = this.typeRecordToUpdate;
+        
         // Saving the Data
         let data = mySpecialRecord;
 
-        this.updateRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data)
-            //this.updateRecord(this.prefixUrl + typeRecord + "/1", data)
+        console.log(data)
 
         // cleaning 
+
+        this.typeEditMode="INIT"
+
+        this.updateFullRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data);
+        //this.updateRecord(this.prefixUrl + typeRecord + "/1", data) not good
+
         this.typeRecordToUpdate = "";
         this.idToUpdate = "";
 
         // showing the save button
-        var btn = document.getElementById("btnSaveRecord")
-        btn.style.display = "block";
+        //var btn = document.getElementById("btnSaveRecord")
+        //btn.style.display = "block";
 
     }
 
@@ -794,8 +870,14 @@ class MarcRecord extends HTMLElement {
     // get the ID of the record
     getRecordType(url) {
         if (url) {
-            let letter = (url.substring(63, 64));
-            return (letter === "a") ? "auths" : "bibs";
+            // check if the string contains auths or bibs
+            if (url.includes("auths")){
+                    return "auths" 
+                }
+            
+            if (url.includes("bibs")){
+                return "bibs" 
+            }
         } else {
             return "N/A"
         }
@@ -1033,9 +1115,9 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call to edit a record
             btnEditRecord.addEventListener("click", () => {
-                //this.typeEditMode="FULLRECORD"
-                //this.displayFullRecordEditMode();
-                alert("Feature in progress!!!")
+                this.typeEditMode="FULLRECORD"
+                this.displayFullRecordEditMode();
+                //alert("Feature in progress!!!")
             });
 
             // clone record button
@@ -1049,7 +1131,7 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call to clone a record
             btnCloneRecord.addEventListener("click", () => {
-                // to be defined
+                this.generateDataToSave();
             });
 
             // Adding the dropdown list to define the type of record
@@ -1087,6 +1169,7 @@ class MarcRecord extends HTMLElement {
     displayFullRecordEditMode(){
 
                 this.typeRecordToUpdate = this.recordType;
+                this.idToUpdate=this.recordNumber;
 
                 //check if the divNewRecord is already displayed
                 let myDiv = document.getElementById("divNewRecord");
@@ -1104,13 +1187,14 @@ class MarcRecord extends HTMLElement {
                     // display the framework for the new record
                     this.createFrameNewRecord();
 
-                    let myRowsDestination=document.getElementById("tableNewRecord").rows;
+                    //let myRowsDestination=document.getElementById("tableNewRecord").rows;
  
-                    let tableSize=myRowsOrigin.length;
+                    let tableSize=myRowsOrigin.length-1;
+                    //console.log("la taille est : " + tableSize)
 
-                    for(let i=0; i<tableSize; i++)
+
+                    for(let i=1; i<=tableSize; i++)
                     {
-                        //this.addNewLineRecord();
                         
                         for(let j=0; j<4; j++)
                         {   
@@ -1135,40 +1219,68 @@ class MarcRecord extends HTMLElement {
                                 if (j==3){
                                     //console.log(myRowsOrigin[i].cells[j].innerText);
                                     //document.getElementById("value"+i).value=myRowsOrigin[i].cells[j].innerText;
+                                    // (document.getElementById("tagCol"+i).value<"009")
 
-
-                                    // Management of the subfield
+                                    if (Number(document.getElementById("tagCol"+i).value)<10){
+                                        // Management of the leader
+                                        //console.log(Number(document.getElementById("tagCol"+i).value))
+                                        document.getElementById("code"+i).value="N/A";
+                                        document.getElementById("value"+i).value=myRowsOrigin[i].cells[j].innerText;
+                                    }
+                                    else
+                                    {                                 
+                                    
+                                        // Management of one normal field
                                         let recupSubFieldValues = myRowsOrigin[i].cells[j].innerText.split("|");
+                                        //console.log(recupSubFieldValues)
                                         let myBox = document.getElementById("checkboxCol"+i);
-                                        let myLine=1;
+                                        let myLine=i;
 
                                         for (let y = 0; y < (recupSubFieldValues.length - 1); y++) {
                                             let myCode = "";
                                             let myValue = "";
                                             
-                    
+                                            //console.log("la valeur de y est : " + y)
                                             if (y === 0) {
                                                 myCode = document.getElementById("code" + myLine);
                                                 myCode.value = recupSubFieldValues[y].charAt(1).trim();
                                                 myValue = document.getElementById("value" + myLine);
                                                 myValue.value = recupSubFieldValues[y].substring(2).trim();
-                                            } else {
+                                            } 
+                                            else {
+
+                                                //console.log("la valeur de myBox est : "+ myBox.value)
                                                 myBox.checked = true;
                                                 this.addNewSubFieldLine();
-                                                myCode = document.getElementById("divData1").lastChild.getElementsByTagName("SELECT")[0];
-                                                myCode.value = recupSubFieldValues[y].charAt(1).trim();
-                                                myValue = document.getElementById("divData1").lastChild.getElementsByTagName("INPUT")[0];
-                                                myValue.value = recupSubFieldValues[y].substring(2).trim();
+                                                
+
+                                                //console.log("la valeur a afficher est : "+ recupSubFieldValues[y])
+                                                let recupSubFieldValues1 = recupSubFieldValues[y].split("   ");
+
+                                                myCode = document.getElementById("divData"+i).lastChild.getElementsByTagName("SELECT")[0];
+                                                myCode.value = recupSubFieldValues1[0].charAt(1).trim();
+                                                //console.log("la valeur du code est : "+ recupSubFieldValues1[0].charAt(1).trim())
+
+                                                myValue = document.getElementById("divData"+i).lastChild.getElementsByTagName("INPUT")[0];
+                                                myValue.value = recupSubFieldValues1[1];
+                                                //console.log("la valeur est "+ recupSubFieldValues1[1])
+                                                
+                                                
+                                                myBox.checked = false;
                     
                                             }
-                                            myLine++;
+                                        //     myLine++;
                                         }
 
+                                    }
 
 
                                 }
                             }
                             
+                        }
+                    if (i!==tableSize){
+                        this.addNewLineRecord();
                         }
                     }
                 }
