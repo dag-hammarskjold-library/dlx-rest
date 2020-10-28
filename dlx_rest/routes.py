@@ -3,6 +3,7 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
+import json, requests
 #import dlx_dl
 
 #Local app imports
@@ -188,7 +189,48 @@ def delete_user(id):
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
 def get_records_list(coll):
-    return render_template('list_records.html', coll=coll)
+    '''Collect arguments'''
+    limit = request.args.get('limit', 10)
+    sort = request.args.get('sort', 'date')
+    direction = request.args.get('direction', 'desc')
+    start = request.args.get('start', 0)
+    search = request.args.get('search', '')
+
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True)
+    print(endpoint)
+    records_data = requests.get(endpoint).json()
+    records = []
+    try:
+        for r in records_data["results"]:
+            rid = r.split("/")[-1]
+            records.append(rid)
+    except:
+        pass
+
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
+
+@app.route('/records/<coll>/search')
+def search_records(coll):
+    '''Collect arguments'''
+    limit = request.args.get('limit', 10)
+    sort = request.args.get('sort', 'date')
+    direction = request.args.get('direction', 'desc')
+    start = request.args.get('start', 0)
+    q = request.args.get('q', '')
+
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True)
+    print(endpoint)
+    records_data = requests.get(endpoint).json()
+    records = []
+    try:
+        for r in records_data["results"]:
+            rid = r.split("/")[-1]
+            records.append(rid)
+    except:
+        pass
+
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q)
+
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):

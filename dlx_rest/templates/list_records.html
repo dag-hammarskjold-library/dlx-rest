@@ -1,1 +1,25 @@
-{% extends 'base.html' %} {% block content %} {% endblock %}
+{% extends 'base.html' %} {% block content %}
+<div class="container">
+    <div class="row">
+        <form class="form-inline" action="{{url_for('search_records', coll=coll)}}">
+            {% if q %}
+            <input id="q" name="q" class="form-control mr-sm-2" type="search" aria-label="Search {{coll}} collection" value="{{q}}"> {% else %}
+            <input id="q" name="q" class="form-control mr-sm-2" type="search" placeholder="Search {{coll}} collection" aria-label="Search this collection"> {% endif %}
+            <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
+        </form>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <p>Start: {{start}}</p> |
+        <p>Limit: {{limit}}</p> |
+        <p>Sort: {{sort}}</p> |
+        <p>Direction: {{direction}}</p>
+    </div>
+</div>
+<div class="container">
+    {% for record in records %}
+    <div class="row"><a href="{{ url_for('get_record_by_id', coll=coll, id=record) }}">{{record}}</a></div>
+    {% endfor %}
+</div>
+{% endblock %}
