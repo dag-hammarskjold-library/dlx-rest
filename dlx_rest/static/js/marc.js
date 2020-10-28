@@ -543,6 +543,17 @@ class MarcRecord extends HTMLElement {
                     let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
                     //console.log("la valeur est  :" + myValue)
 
+                    let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
+                    //console.log("la valeur est  :" + myValue)
+
+
+                    // Definition of the dict to store the subfields
+                    if (j === (lenMyData - 1)) {
+                        //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
+                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
+                    } else {
+                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                    }
 
                     // Definition of the dict to store the subfields
                     if (j === (lenMyData - 1)) {
