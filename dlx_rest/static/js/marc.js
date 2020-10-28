@@ -870,8 +870,14 @@ class MarcRecord extends HTMLElement {
     // get the ID of the record
     getRecordType(url) {
         if (url) {
-            let letter = (url.substring(63, 64));
-            return (letter === "a") ? "auths" : "bibs";
+            // check if the string contains auths or bibs
+            if (url.includes("auths")){
+                    return "auths" 
+                }
+            
+            if (url.includes("bibs")){
+                return "bibs" 
+            }
         } else {
             return "N/A"
         }
