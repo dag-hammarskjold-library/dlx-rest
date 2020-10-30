@@ -31,7 +31,7 @@ ns = api.namespace('api', description='DLX MARC REST API')
 list_argparser = reqparse.RequestParser()
 list_argparser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
 list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
-list_argparser.add_argument('sort', type=str, help='Valid strings are "date"')
+list_argparser.add_argument('sort', type=str, help='Valid strings are "updated"')
 list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
 list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk"')
 list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
@@ -104,28 +104,60 @@ class ClassDispatch():
 
 class ListResponse():
     def __init__(self, endpoint, items, **kwargs):
+        self.items = items
         self.url = URL(endpoint, **kwargs).to_str()
         self.start = kwargs.pop('start', 0)
         self.limit = kwargs.pop('limit', 0)
-        self.items = items
+        self.next = URL(endpoint, start=self.start + self.limit, limit=self.limit, **kwargs).to_str()
+        
+        if self.start - self.limit > 0:
+            next_start = self.start - self.limit
+        else:
+            next_start = 1
+            
+        if self.start > 1:
+            self.prev = URL(endpoint, start=next_start, limit=self.limit, **kwargs).to_str()
 
     def json(self):
         data = {
-            '_links': {'self': self.url},
-            'start': self.start,
-            'limit': self.limit,
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
             'results': self.items
         }
 
         return jsonify(data)
 
 class BatchResponse():
-    def __init__(self, records):
+    def __init__(self, endpoint, records, **kwargs):
         assert isinstance(records, MarcSet)
         self.records = records
+        self.url = URL(endpoint, **kwargs).to_str()
+        self.start = kwargs.pop('start', 0)
+        self.limit = kwargs.pop('limit', 0)
+        self.next = URL(endpoint, start=self.start + self.limit, limit=self.limit, **kwargs).to_str()
+        
+        if self.start - self.limit > 0:
+            next_start = self.start - self.limit
+        else:
+            next_start = 1
+            
+        if next_start > 1:
+            self.prev = URL(endpoint, start=next_start, limit=self.limit, **kwargs).to_str()
         
     def json(self):
-        return jsonify([r.to_dict() for r in self.records])
+        data = {
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
+                'results': [r.to_dict() for r in self.records]
+        }
+        
+        return jsonify(data)
     
     def xml(self):
         return Response(self.records.to_xml(), mimetype='text/xml')
@@ -243,11 +275,7 @@ class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(list_argparser)
     def get(self, collection):
-        try:
-            cls = ClassDispatch.batch_by_collection(collection)
-        except KeyError:
-            abort(404)
-
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = list_argparser.parse_args()
         search = args['search']
         start = args['start'] or 0
@@ -264,11 +292,15 @@ class RecordsList(Resource):
             except:
                 abort(400, 'Search string is invalid JSON')
                 
-            query = Query.from_string(search)
-        else:
-            query = {}
-
-        if sort_by == 'date':
+        query = Query.from_string(search) if search else {}
+        
+        if start:
+            start -= 1
+            
+        if int(limit) > 1000:
+            abort(404, 'Maximum limit is 1000')
+            
+        if sort_by == 'updated':
             sort = [('updated', ASC)] if direction.lower() == 'asc' else [('updated', DESC)]
         else:
             sort = None
@@ -276,19 +308,29 @@ class RecordsList(Resource):
         project = None if fmt else {'_id': 1}
         
         rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
-        
-        if fmt:
-            return getattr(BatchResponse(rset), fmt)()
 
-        records_list = [
-            URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
-        ]
+        response = BatchResponse(
+            'api_records_list', 
+            rset,
+            collection=collection,
+            start=start + 1,
+            limit=limit,
+            sort=sort_by
+        )
+            
+        if fmt:
+            return getattr(response, fmt)()
+        else:
+            #return response.list()
+            pass
+
+        records_list = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset]
 
         response = ListResponse(
             'api_records_list',
             records_list,
             collection=collection,
-            start=start,
+            start=start + 1,
             limit=limit,
             sort=sort_by
         )
@@ -449,7 +491,7 @@ class RecordFieldList(Resource):
         
         try:
             if field_tag[:2] == '00':
-                field_data = request.data.decode() # scalar value
+                field_data = request.data.decode() #     scalar value
             else:
                 field = Datafield.from_json(
                     record_type=cls.record_type, 
