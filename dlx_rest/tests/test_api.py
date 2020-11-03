@@ -57,6 +57,14 @@ def test_records_list(client, records):
     response = client.get(f'{API}/bibs?format=txt')
     assert response.headers["Content-Type"] == 'text/plain; charset=utf-8'
     
+    response = client.get(f'{API}/bibs?format=brief')
+    results = json.loads(response.data)['results']
+    assert len(results[0]) == 4
+    
+    response = client.get(f'{API}/auths?format=brief')
+    results = json.loads(response.data)['results']
+    assert len(results[0]) == 3
+    
 def test_search(client, records):
     res = client.get(f'{API}/bibs?search=' + '{"900": {"a": "10"}}')
     assert res.status_code == 200

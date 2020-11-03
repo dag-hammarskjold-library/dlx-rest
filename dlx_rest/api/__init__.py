@@ -33,7 +33,7 @@ list_argparser.add_argument('start', type=int, help='Number of record results to
 list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
 list_argparser.add_argument('sort', type=str, help='Valid strings are "updated"')
 list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
-list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk"')
+list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk", "brief"')
 list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
 
 resource_argparser = reqparse.RequestParser()
@@ -154,7 +154,7 @@ class BatchResponse():
                 'next': self.next,
                 'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
             },
-                'results': [r.to_dict() for r in self.records]
+            'results': [r.to_dict() for r in self.records]
         }
         
         return jsonify(data)
@@ -170,6 +170,38 @@ class BatchResponse():
     
     def txt(self):
         return Response(self.records.to_str(), mimetype='text/plain')
+    
+    def brief(self):
+        def brief_bib(record):
+            return [
+                record.id,
+                '; '.join(record.get_values('191', 'a')),
+                ' '.join(record.get_values('245', 'a', 'b', 'c')),
+                record.get_value('269', 'a')
+            ]
+            
+        def brief_auth(record):
+            digits = record.heading_field.tag[1:3]
+            alt_tag = '4' + digits
+            
+            return [
+                record.id,
+                record.heading_value('a'),
+                '; '.join(record.get_values(alt_tag, 'a')) 
+            ]
+            
+        make_brief = brief_bib if self.records.record_class == Bib else brief_auth
+            
+        data = {
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
+            'results': [make_brief(r) for r in self.records]
+        }
+        
+        return jsonify(data)
         
 class FieldResponse():
     def __init__(self, endpoint, field, **kwargs):
@@ -263,7 +295,10 @@ class CollectionsList(Resource):
         response = ListResponse(
             'api_collections_list',
             results
+
         )
+
+
 
         return response.json()
 
@@ -308,21 +343,17 @@ class RecordsList(Resource):
         project = None if fmt else {'_id': 1}
         
         rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
-
-        response = BatchResponse(
-            'api_records_list', 
-            rset,
-            collection=collection,
-            start=start + 1,
-            limit=limit,
-            sort=sort_by
-        )
             
-        if fmt:
+        if fmt: # in ('xml', 'mrk', 'mrc', 'txt', 'brief'):
+            response = BatchResponse(
+                'api_records_list', 
+                rset,
+                collection=collection,
+                start=start + 1,
+                limit=limit,
+                sort=sort_by
+            )
             return getattr(response, fmt)()
-        else:
-            #return response.list()
-            pass
 
         records_list = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset]
 
