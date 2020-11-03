@@ -282,3 +282,8 @@ def test_delete_field(client, records):
     
     response = client.get(f'{API}/bibs/8/fields/245/0')
     assert response.status_code == 404
+    
+def test_files(client, records):
+    response = client.get(f'{API}/bibs/8')
+    assert isinstance(json.loads(response.data)['files'], list)
+    

@@ -10,6 +10,7 @@ from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
+from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
@@ -134,6 +135,7 @@ class BatchResponse():
     def __init__(self, endpoint, records, **kwargs):
         assert isinstance(records, MarcSet)
         self.records = records
+        self.collection = kwargs['collection']
         self.url = URL(endpoint, **kwargs).to_str()
         self.start = kwargs.pop('start', 0)
         self.limit = kwargs.pop('limit', 0)
@@ -174,8 +176,8 @@ class BatchResponse():
     def brief(self):
         def brief_bib(record):
             return [
-                record.id,
-                '; '.join(record.get_values('191', 'a')),
+                URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
                 ' '.join(record.get_values('245', 'a', 'b', 'c')),
                 record.get_value('269', 'a')
             ]
@@ -226,9 +228,18 @@ class RecordResponse():
         self.url = URL(endpoint, **kwargs).to_str()
 
     def json(self):
+        files = []
+        
+        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
+            f = File.latest_by_identifier_language(Identifier('symbol', self.record.get_value('191', 'a')), lang)
+            
+            if f:
+                files.append({'language': lang.lower(), 'url': 'https://' + f.uri})
+        
         data = {
             '_links': {'self': self.url},
-            'result': self.record.to_dict()
+            'result': self.record.to_dict(),
+            'files': files
         }
 
         return jsonify(data)
@@ -805,6 +816,7 @@ class Record(Resource):
         else:
             abort(500)
     
+    '''
     @ns.doc(description='Not functional', security='basic')
     @login_required
     def patch(self, collection, record_id):
@@ -816,6 +828,7 @@ class Record(Resource):
         record = cls.from_id(record_id) or abort(404)
         
         # todo
+    '''
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
