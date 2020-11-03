@@ -52,23 +52,10 @@ class MarcRecord extends HTMLElement {
             " </div> ";
     }
 
-    // creatio of the external script of the component
-    // createScript() {
-
-    //     // Adding the function to add a new code/subfield value
-    //     const myScript = document.createElement("SCRIPT");
-    //     const inlineScript = document.createTextNode("function ylsAlert(){alert('gloire a Dieu')};");
-    //     myScript.appendChild(inlineScript);
-    //     this.appendChild(myScript);
-
-    //     // Adding the function to delete a new code/subfield value
-
-    // }
-
     // function fetching the data from the API
-    async getDataFromApi(url) {
-        this.url = url;
-        let response = await fetch(url);
+    async getDataFromApi(value) {
+        this.url = this.prefixUrl + value;
+        let response = await fetch(this.url);
         if (response.ok) { // if HTTP-status is 200-299
             // get the response body (the method explained below)
             let json = await response.json();
@@ -134,10 +121,10 @@ class MarcRecord extends HTMLElement {
                 // display the mail
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record created!</div>";
                 console.log(response.status)
-                    //refresh the page
+                //refresh the page
                 setTimeout(location.reload(), 10000);
             } else {
-                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { throw new Error(text) }) + "</div>";
+                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { Error(text) }) + "</div>";
                 setTimeout(location.reload(), 10000);
             }
         })
@@ -305,7 +292,7 @@ class MarcRecord extends HTMLElement {
         tbl += '<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
         tbl += '<td ><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
         tbl += '<td ><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-        tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
+        tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
 
         // end of the line
 
@@ -385,7 +372,7 @@ class MarcRecord extends HTMLElement {
             cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text" min="001" max="999" placeholder="Tag" maxlength="3" size="3"></div>';
             cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
             cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
-            cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
+            cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
             this.updateNumberOfLineRecord();
         } else {
             alert("Please create a new record first!!!");
@@ -424,7 +411,7 @@ class MarcRecord extends HTMLElement {
                     let myId = "divData" + row.rowIndex;
                     let myTd = document.getElementById(myId);
                     //myTd.insertAdjacentHTML('beforeend','<div style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><select class="mr-2" id="code'+ row.rowIndex +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value'+ row.rowIndex +' " type="text" placeholder="Value"></div>');    
-                    myTd.insertAdjacentHTML('beforeend', '<div><select class="mr-2"><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" type="text" placeholder="Value"></div>');
+                    myTd.insertAdjacentHTML('beforeend', '<div><select class="mr-2"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" type="text" placeholder="Value"></div>');
                 }
             }
             if (checkButton == false) {
@@ -584,6 +571,8 @@ class MarcRecord extends HTMLElement {
 
         console.log(data);
 
+        alert(data)
+
         // Call the method to create the record
         this.createRecord(this.prefixUrl + typeRecord, data)
 
@@ -591,6 +580,156 @@ class MarcRecord extends HTMLElement {
         this.typeEditMode="INIT"
 
     }
+
+        // Update at the Full Record level
+        generateDataFullRecordToUpdateNewVersion(type) {
+
+            // Retrieving the value of the type of Record
+            let typeRecord = this.typeRecordToUpdate;
+
+            let myInd1 = ""
+            let myInd2 = ""
+            let myLeaderField=[]
+            let myNormalField=[]        
+            
+            // Objects definition
+            
+            let subfields=[]        // array of subfields
+            let indicators=[]       // array of indicators
+
+            let tagRecord=[]        // all the contains for the tag
+            let marcRecords={}      // List of marc records
+
+            // Retrieving the id
+            if (type===1){
+                marcRecords["_id"]=this.idToUpdate;
+            }
+
+            // Retrieving the table
+            const myTable = document.getElementById("tableNewRecord");
+    
+            // Loop for the leaders fields
+            for (var i = 1, row; row = myTable.rows[i]; i++) {
+  
+                // Retrieving the leader data
+                // Here we will just fill the tagRecord with the value of the divData 
+                if (this.leaderList.indexOf(document.getElementById("tagCol" + i).value)!==-1) {
+
+                    // Retrieving the data of the leader field
+                    tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
+
+                    // Case where the tag is already in the list, we should add a new value to this array
+                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value)!==-1){ 
+                        marcRecords[document.getElementById("tagCol" + i).value]=recup.push(tagRecord);
+                    }
+
+                    // Case where the tag is not in the list
+                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value)===-1){
+
+                        // Inserting the value of this tag in the marcRecord
+                        marcRecords[document.getElementById("tagCol" + i).value]=tagRecord
+                        
+                        // Insert the tag in the list of tag already processed
+                        myLeaderField.push(document.getElementById("tagCol" + i).value)
+                    }
+
+                    // Cleaning the tagRecord
+                    tagRecord=[]
+
+                } 
+                // Extracting the "normal" fields 
+                else{
+
+                            // step 1
+                            // Retriving the indicators
+                            // Retrieving ind1 data
+                            if (document.getElementById("ind1Col" + i).value){
+                                myInd1 = document.getElementById("ind1Col" + i).value
+                            }else {
+                                myInd1 = " "
+                            };
+
+                            // Retrieving ind2 data
+                            if (document.getElementById("ind2Col" + i).value){
+                                myInd2 = document.getElementById("ind2Col" + i).value
+                            }else {
+                                myInd2 = " "
+                            };
+
+                            // Inserting the values in the indicator array
+                            indicators.push(myInd1,myInd2)
+
+                            console.log("les indicators contienent"+ indicators)
+
+                            // Step2
+                            // Inserting the subfields
+
+                            let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
+
+                            let lenMyData = myData.length;
+
+                            for (var j = 0; j < lenMyData; j++) {
+                                let subfield=new Object()         // subfields with code and values
+
+                                // Retrieving the code 
+                                subfield["code"] = myData[j].getElementsByTagName("SELECT")[0].value;
+
+                                // Retrieving the value
+                                subfield["value"] = myData[j].getElementsByTagName("INPUT")[0].value.trimEnd();
+
+                                // Inserting the value in the subfields arrays
+                                subfields.push(subfield);
+                            }
+
+                            // Inserting the values
+                            let values=new Object()           // dictionnary with indicators and subfields
+                            values["indicators"]=indicators
+                            values["subfields"]=subfields
+
+                            // Inserting the values in tagRecord
+                            tagRecord.push(values)
+
+                            // Case where the tag is not in the list
+                            if (myNormalField.indexOf(document.getElementById("tagCol" + i).value)===-1){
+                                // Inserting the values in tagRecord
+                                marcRecords[document.getElementById("tagCol" + i).value]=tagRecord
+                            } else {
+                                // Inserting the values in tagRecord
+                                marcRecords[document.getElementById("tagCol" + i).value]=marcRecords[document.getElementById("tagCol" + i).value].concat(tagRecord)
+                            }
+
+                            // Cleaning 
+                            indicators=[]
+                            subfields=[]
+                            tagRecord=[]
+
+                            // Inserting this tag in the list of tags already loaded
+                            myNormalField.push(document.getElementById("tagCol" + i).value)
+
+                    }                   
+            }
+
+            // Build the json syntax    
+            let data = JSON.stringify(marcRecords);
+
+            // Display the json generated
+            console.log(data)
+
+            if (type===1) {
+                //  update the Data
+                this.updateFullRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data);
+            } else {
+                //  save the data
+                typeRecord = document.getElementById("selectTypeRecord").value;
+                this.createRecord(this.prefixUrl + typeRecord, data)
+            }
+
+            //  Cleaning global variables
+            this.typeEditMode="INIT"
+            this.typeRecordToUpdate = "";
+            this.idToUpdate = "";
+    
+        }
 
     // Update at the Full Record level
     generateDataFullRecordToUpdate() {
@@ -955,7 +1094,7 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call the new url
             btnDisplayNewRecordHeader.addEventListener("click", () => {
-                document.getElementById("modalTitle").innerHTML = "<div class='alert alert-success mt-2' role='alert'>Display one record</div>";
+                document.getElementById("modalTitle").innerHTML = "<div class='alert alert-success mt-2' role='alert'>Display one record (collection/recordnumber)</div>";
                 document.getElementById("modalContent").innerHTML = "<div class='form-group'><label for='modalUrl'>Please insert the url of the record</label><input type='text' class='form-control' id='modalUrl'></div>";
                 let myButtonHeader = document.getElementById("modalButton");
                 myButtonHeader.innerHTML = "Display";
@@ -1077,7 +1216,8 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call the new url
             btnSaveRecord.addEventListener("click", () => {
-                this.generateDataToSave();
+                //this.generateDataToSave();
+                this.generateDataFullRecordToUpdateNewVersion(0);
                 this.typeEditMode="INIT";
             });
 
@@ -1099,7 +1239,8 @@ class MarcRecord extends HTMLElement {
 
                 if (this.typeEditMode==="FULLRECORD"){
                     console.log("fullupdate")
-                    this.generateDataFullRecordToUpdate();
+                    //this.generateDataFullRecordToUpdate();
+                    this.generateDataFullRecordToUpdateNewVersion(1);
                 }
 
             });
