@@ -191,19 +191,24 @@ def delete_user(id):
 def get_records_list(coll):
     '''Collect arguments'''
     limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'date')
+    sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
     start = request.args.get('start', 0)
     search = request.args.get('search', '')
 
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True)
-    print(endpoint)
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
     records_data = requests.get(endpoint).json()
     records = []
     try:
-        for r in records_data["results"]:
-            rid = r.split("/")[-1]
-            records.append(rid)
+        for url, symbol, title, date in records_data["results"]:
+            rid = url.split("/")[-1]
+            record = {
+                'id': rid,
+                'symbol': symbol,
+                'title': title,
+                'date': date
+            }
+            records.append(record)
     except:
         pass
 
@@ -213,19 +218,25 @@ def get_records_list(coll):
 def search_records(coll):
     '''Collect arguments'''
     limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'date')
+    sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
     start = request.args.get('start', 0)
     q = request.args.get('q', '')
 
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True)
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
     print(endpoint)
     records_data = requests.get(endpoint).json()
     records = []
     try:
-        for r in records_data["results"]:
-            rid = r.split("/")[-1]
-            records.append(rid)
+        for url, symbol, title, date in records_data["results"]:
+            rid = url.split("/")[-1]
+            record = {
+                'id': rid,
+                'symbol': symbol,
+                'title': title,
+                'date': date
+            }
+            records.append(record)
     except:
         pass
 

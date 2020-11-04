@@ -19,7 +19,13 @@
 </div>
 <div class="container">
     {% for record in records %}
-    <div class="row"><a href="{{ url_for('get_record_by_id', coll=coll, id=record) }}">{{record}}</a></div>
+    <div class="row">
+        <div class="card" style="width: 100%;">
+            <a href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
+            {{record['symbol']}}: {{record['title']}} ({{record['date']}})
+            </a>
+        </div>
+    </div>
     {% endfor %}
 </div>
 {% endblock %}
