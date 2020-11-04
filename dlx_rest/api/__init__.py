@@ -187,7 +187,7 @@ class BatchResponse():
             alt_tag = '4' + digits
             
             return [
-                record.id,
+                URL('api_record', collection=self.collection, record_id=record.id).to_str(),
                 record.heading_value('a'),
                 '; '.join(record.get_values(alt_tag, 'a')) 
             ]
@@ -351,8 +351,19 @@ class RecordsList(Resource):
         else:
             sort = None
         
-        project = None if fmt else {'_id': 1}
-        
+        if fmt == 'brief':
+            if collection == 'bibs':
+                project = dict.fromkeys(('191', '245', '269', '791'), True)
+            elif collection == 'auths':
+                project = dict.fromkeys(
+                    ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491'),
+                    True
+                )
+        elif fmt:
+            project = None
+        else:
+            project = {'_id': 1}
+
         rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
             
         if fmt: # in ('xml', 'mrk', 'mrc', 'txt', 'brief'):
@@ -362,7 +373,8 @@ class RecordsList(Resource):
                 collection=collection,
                 start=start + 1,
                 limit=limit,
-                sort=sort_by
+                sort=sort_by,
+                format=fmt
             )
             return getattr(response, fmt)()
 
