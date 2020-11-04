@@ -231,10 +231,19 @@ class RecordResponse():
         files = []
         
         for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            f = File.latest_by_identifier_language(Identifier('symbol', self.record.get_value('191', 'a')), lang)
+            f = File.latest_by_identifier_language(
+                Identifier('symbol', self.record.get_value('191', 'a') or self.record.get_value('791', 'a')), 
+                lang
+            )
             
             if f:
-                files.append({'language': lang.lower(), 'url': 'https://' + f.uri})
+                files.append(
+                    {
+                        'mimetype': f.mimetype,
+                        'language': lang.lower(),
+                        'url': 'https://' + f.uri
+                    }
+                )
         
         data = {
             '_links': {'self': self.url},
