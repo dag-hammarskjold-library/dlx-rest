@@ -7,7 +7,7 @@ from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
 
-DB.connect(Config.connect_string)
+#DB.connect(Config.connect_string)
 
 app = Flask(__name__)
 app.config.from_object(Config)

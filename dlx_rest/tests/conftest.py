@@ -13,23 +13,19 @@ def client():
     return app.test_client()
     
 @pytest.fixture(scope='module')
+def db():
+    from dlx import DB
+    # ?
+    
+@pytest.fixture(scope='module')
 def records():
     from dlx import DB
     from dlx.marc import Bib, Auth
     from dlx.file import Identifier
     from dlx_rest.models import File
     from random import randrange
-    DB.connect(Config.connect_string)
-    
-    for x in range(1,51):
-        bib = Bib({'_id': x})
-        bib.set('245', 'a', str(randrange(1, 100)))
-        bib.set('500', 'a', '1x')
-        bib.set('500', 'a', '2x', address=['+'])
-        bib.set('500', 'a', '3x', address=[1, '+'])
-        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
-        bib.commit()
-        
+
+    for x in range(1, 11):
         auth = Auth({'_id': x})
         auth.set('100', 'a', str(randrange(1, 100))),
         auth.set('400', 'a', '1x'),
@@ -37,6 +33,37 @@ def records():
         auth.set('400', 'a', '3x', address=[1, '+'])
         auth.set('900', 'a', str(x)).set('900', 'b', str(x))
         auth.commit()
+        
+        Auth({'_id': 11}).set('110', 'a', 'Name').commit(),
+        
+        bib = Bib({'_id': x})
+        bib.set('245', 'a', str(randrange(1, 100)))
+        bib.set('500', 'a', '1x')
+        bib.set('610', 'a', 'Name')
+        bib.set('500', 'a', '2x', address=['+'])
+        bib.set('500', 'a', '3x', address=[1, '+'])
+        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
+        bib.commit()
+        
+@pytest.fixture(scope='module')
+def auths():
+    from dlx import DB
+    from dlx.marc import Bib, Auth
+    from random import randrange
+    
+    auths = []
+    auths.append(Auth({'_id': 11}).set('110', 'a', 'Name'))
+
+    for x in range(1, 11):
+        auth = Auth({'_id': x})
+        auth.set('100', 'a', str(randrange(1, 100))),
+        auth.set('400', 'a', '1x'),
+        auth.set('400', 'a', '2x', address=['+'])
+        auth.set('400', 'a', '3x', address=[1, '+'])
+        auth.set('900', 'a', str(x)).set('900', 'b', str(x))
+        auths.append(auth)
+        
+    return auths
 
         db_file = File(
             identifiers=["S/2020/{}".format(str(x))],
@@ -49,6 +76,26 @@ def records():
         )
         db_file.save()
 
+@pytest.fixture(scope='module')
+def bibs():
+    from dlx import DB
+    from dlx.marc import Bib, Auth
+    from random import randrange
+    
+    bibs = []
+    
+    for x in range(1, 11):
+        bib = Bib({'_id': x})
+        bib.set('245', 'a', str(randrange(1, 100)))
+        bib.set('500', 'a', '1x')
+        bib.set('610', 'a', 'Name')
+        bib.set('500', 'a', '2x', address=['+'])
+        bib.set('500', 'a', '3x', address=[1, '+'])
+        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
+        bibs.append(bib)
+    
+    return bibs
+  
 @pytest.fixture(scope='module')
 def users():
     from mongoengine import connect, disconnect
