@@ -21,8 +21,8 @@
     {% for record in records %}
     <div class="row">
         <div class="card" style="width: 100%;">
-            <a href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
-            {{record['symbol']}}: {{record['title']}} ({{record['date']}})
+            <a href="{{ url_for('get_record_by_id', coll=coll, id=record['_id']) }}">
+            - {{record['symbol']}} <br> - {{record['title']}} <br> - {{record['date']}} | {{record['types']}}
             </a>
         </div>
     </div>
