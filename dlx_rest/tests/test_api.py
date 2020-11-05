@@ -59,11 +59,13 @@ def test_records_list(client, records):
     
     response = client.get(f'{API}/bibs?format=brief')
     results = json.loads(response.data)['results']
-    assert len(results[0]) == 4
+    for field in ('_id', 'symbol', 'title', 'date', 'types'):
+        assert field in results[0]
     
     response = client.get(f'{API}/auths?format=brief')
     results = json.loads(response.data)['results']
-    assert len(results[0]) == 3
+    for field in ('_id', 'heading', 'alt'):
+        assert field in results[0]
     
 def test_search(client, records):
     res = client.get(f'{API}/bibs?search=' + '{"900": {"a": "10"}}')

@@ -185,23 +185,25 @@ class BatchResponse():
                 if member:
                     head += f' ({member})'
 
-            return [
-                URL('api_record', collection=self.collection, record_id=record.id).to_str(),
-                '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
-                head,
-                record.get_value('269', 'a'),
-                *ctypes
-            ]
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
+                'title': head,
+                'date': record.get_value('269', 'a'),
+                'types': '; '.join(ctypes)
+            }
             
         def brief_auth(record):
             digits = record.heading_field.tag[1:3]
             alt_tag = '4' + digits
             
-            return [
-                URL('api_record', collection=self.collection, record_id=record.id).to_str(),
-                record.heading_value('a'),
-                '; '.join(record.get_values(alt_tag, 'a'))
-            ]
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'heading': record.heading_value('a'),
+                'alt': '; '.join(record.get_values(alt_tag, 'a'))
+            }
             
         make_brief = brief_bib if self.records.record_class == Bib else brief_auth
             
