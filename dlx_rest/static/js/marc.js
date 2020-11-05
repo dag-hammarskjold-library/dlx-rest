@@ -31,26 +31,27 @@ class MarcRecord extends HTMLElement {
 
     // create the hidden Modal form
     createhiddenModalForm() {
-            this.innerHTML="<div id='myModal' class='modal' tabindex='-1' role='dialog'> " +
-            "        <div class='modal-dialog' role='document'> " +
-            "        <div class='modal-content'> " +
-            "            <div class='modal-header'> " + 
-            "            <div id='modalTitle' class='modal-title'> myTitle </div> " +
-            "            <button type='button' class='close' data-dismiss='modal' aria-label='Close'> " +
-            "                <span aria-hidden='true'>&times;</span> " +
-            "            </button> " +
-            "            </div> " +
-            "            <div class='modal-body'> " +
-            "            <div id='modalContent'>  myContent  </div> " +
-            "            </div> " +
-            "            <div class='modal-footer'> " +
-            "            <button id='modalClose' type='button' class='btn btn-secondary' data-dismiss='modal'>Close</button> " +
-            "            <button id='modalButton' type='button' class='btn btn-primary'> myButtonLabel  </button> " +
-            "            </div>" +
-            "        </div>" +
-            "        </div>" +
-            "        </div> ";
-            }
+        // creation of the modal
+        this.innerHTML = "<div id='myModal' class='modal' tabindex='-1' role='dialog'> " +
+            "<div class='modal-dialog' role='document'> " +
+            "  <div class='modal-content'> " +
+            "    <div class='modal-header'> " +
+            "      <div id='modalTitle' class='modal-title'> myTitle </div> " +
+            "      <button type='button' class='close' data-dismiss='modal' aria-label='Close'> " +
+            "        <span aria-hidden='true'>&times;</span> " +
+            "      </button> " +
+            "    </div> " +
+            "     <div class='modal-body'> " +
+            "      <div id='modalContent'>  myContent  </div> " +
+            "    </div> " +
+            "    <div class='modal-footer'> " +
+            "      <button id='modalClose' type='button' class='btn btn-secondary' data-dismiss='modal'>Close</button> " +
+            "      <button id='modalButton' type='button' class='btn btn-primary'> myButtonLabel  </button> " +
+            "    </div>" +
+            "  </div>" +
+            " </div>" +
+            " </div> ";
+    }
 
     // function fetching the data from the API
     async getDataFromApi(value) {

@@ -2,7 +2,7 @@
 
 <div class="container shadow text-left border border-success rounded mt-3">
     {% if record_id %}
-    <marc-record url="{{url_for('api_record', collection=coll, record_id=record_id)}}" token="{{current_user.token}}"></marc-record>
+    <marc-record url="{{ coll }}/{{ record_id }}" token="{{current_user.token}}"></marc-record>
     {% else %}
     <marc-record url="" token="{{current_user.token}}"></marc-record>
     {% endif %}
