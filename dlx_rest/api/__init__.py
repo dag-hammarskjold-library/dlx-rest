@@ -353,12 +353,7 @@ class RecordsList(Resource):
         fmt = args['format'] or ''
         
         if search:
-            search = unquote(search)                
-            
-            try:
-                load_json(search)
-            except:
-                abort(400, 'Search string is invalid JSON')
+            search = unquote(search)
                 
         query = Query.from_string(search) if search else {}
         
