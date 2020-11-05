@@ -198,19 +198,25 @@ def get_records_list(coll):
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
     records_data = requests.get(endpoint).json()
+    #print(records_data)
     records = []
-    try:
-        for url, symbol, title, date in records_data["results"]:
-            rid = url.split("/")[-1]
-            record = {
-                'id': rid,
-                'symbol': symbol,
-                'title': title,
-                'date': date
-            }
-            records.append(record)
-    except:
-        pass
+    for r in records_data["results"]:
+        url = r[0]
+        rid = url.split("/")[-1]
+        r.pop(0)
+        rd = []
+        for d in r:
+            if len(d) > 1:
+                rd.append(d)
+            else:
+                rd.append(url)
+        record_data = " | ".join(set(rd))
+
+        record = {
+            'id': rid,
+            'data': record_data
+        }
+        records.append(record)
 
     return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
 
