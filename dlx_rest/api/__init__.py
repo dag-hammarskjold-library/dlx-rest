@@ -175,22 +175,35 @@ class BatchResponse():
     
     def brief(self):
         def brief_bib(record):
-            return [
-                URL('api_record', collection=self.collection, record_id=record.id).to_str(),
-                '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
-                ' '.join(record.get_values('245', 'a', 'b', 'c')),
-                record.get_value('269', 'a')
-            ]
+            ctypes = ['::'.join(field.get_values('a', 'b', 'c')) for field in record.get_fields('989')]
+            
+            if record.get_value('245', 'a'):    
+                head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
+            else:    
+                head, member = record.get_value('700', 'a'), record.get_value('710', 'a')
+
+                if member:
+                    head += f' ({member})'
+
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
+                'title': head,
+                'date': record.get_value('269', 'a'),
+                'types': '; '.join(ctypes)
+            }
             
         def brief_auth(record):
             digits = record.heading_field.tag[1:3]
             alt_tag = '4' + digits
             
-            return [
-                record.id,
-                record.heading_value('a'),
-                '; '.join(record.get_values(alt_tag, 'a')) 
-            ]
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'heading': record.heading_value('a'),
+                'alt': '; '.join(record.get_values(alt_tag, 'a'))
+            }
             
         make_brief = brief_bib if self.records.record_class == Bib else brief_auth
             
@@ -231,10 +244,19 @@ class RecordResponse():
         files = []
         
         for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            f = File.latest_by_identifier_language(Identifier('symbol', self.record.get_value('191', 'a')), lang)
+            f = File.latest_by_identifier_language(
+                Identifier('symbol', self.record.get_value('191', 'a') or self.record.get_value('791', 'a')), 
+                lang
+            )
             
             if f:
-                files.append({'language': lang.lower(), 'url': 'https://' + f.uri})
+                files.append(
+                    {
+                        'mimetype': f.mimetype,
+                        'language': lang.lower(),
+                        'url': 'https://' + f.uri
+                    }
+                )
         
         data = {
             '_links': {'self': self.url},
@@ -351,8 +373,19 @@ class RecordsList(Resource):
         else:
             sort = None
         
-        project = None if fmt else {'_id': 1}
-        
+        if fmt == 'brief':
+            if collection == 'bibs':
+                project = dict.fromkeys(('191', '245', '269', '700', '710', '791', '989'), True)
+            elif collection == 'auths':
+                project = dict.fromkeys(
+                    ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491'),
+                    True
+                )
+        elif fmt:
+            project = None
+        else:
+            project = {'_id': 1}
+
         rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
             
         if fmt: # in ('xml', 'mrk', 'mrc', 'txt', 'brief'):
@@ -362,7 +395,8 @@ class RecordsList(Resource):
                 collection=collection,
                 start=start + 1,
                 limit=limit,
-                sort=sort_by
+                sort=sort_by,
+                format=fmt
             )
             return getattr(response, fmt)()
 

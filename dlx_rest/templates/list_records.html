@@ -22,8 +22,18 @@
     <div class="row">
         <div class="card" style="width: 100%;">
             <a href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
-            {{record['data']}}
-            </a>
+                {% if coll == 'bibs' %}
+                    {% if record['symbol'] %}
+                        {{record['symbol'] }} | 
+                    {% endif %}
+                    {% if record['title'] %}
+                        {{ record['title'] }} 
+                    {% endif %}
+                    {% if record['date'] %}
+                        ({{ record['date'] }})
+                    {% endif %}
+                    {{ record['types'] }}
+            {% endif %}
         </div>
     </div>
     {% endfor %}
