@@ -197,8 +197,34 @@ def get_records_list(coll):
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
     data = requests.get(endpoint).json()
+    records = []
+    for r in data['results']:
+        if coll == 'bibs':
+            second_line = []
+            if len(r['symbol']) > 1:
+                second_line.append(r['symbol'])
+            if len(r['date']) > 1:
+                second_line.append(r['date'])
+            if len(r['types']) > 1:
+                second_line.append(r['types'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['title'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+        elif coll == 'auths':
+            second_line = []
+            if len(r['alt']) > 1:
+                second_line.append(r['alt'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['heading'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
     
-    return render_template('list_records.html', coll=coll, records=data['results'], start=start, limit=limit, sort=sort, direction=direction, search=search)
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
 
 @app.route('/records/<coll>/search')
 def search_records(coll):

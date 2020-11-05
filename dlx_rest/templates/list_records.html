@@ -8,32 +8,23 @@
             <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
         </form>
     </div>
-</div>
-<div class="container">
     <div class="row">
         <p>Start: {{start}}</p> |
         <p>Limit: {{limit}}</p> |
         <p>Sort: {{sort}}</p> |
         <p>Direction: {{direction}}</p>
     </div>
-</div>
-<div class="container">
     {% for record in records %}
-    <div class="row">
-        <div class="card" style="width: 100%;">
-            <a href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
-                {% if coll == 'bibs' %}
-                    {% if record['symbol'] %}
-                        {{record['symbol'] }} | 
-                    {% endif %}
-                    {% if record['title'] %}
-                        {{ record['title'] }} 
-                    {% endif %}
-                    {% if record['date'] %}
-                        ({{ record['date'] }})
-                    {% endif %}
-                    {{ record['types'] }}
-            {% endif %}
+    <div class="row pt-2 border-bottom">
+        <div class="container">
+            <div class="row">
+                <a class="lead" href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
+                    {{record['title_line']}}
+                </a>
+            </div>
+            <div class="row">
+                <p>{{record['second_line']}}</p>
+            </div>
         </div>
     </div>
     {% endfor %}
