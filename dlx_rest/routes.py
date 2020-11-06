@@ -272,5 +272,24 @@ def edit_record_by_id(coll, id):
 
 @app.route('/collect')
 @login_required
-def collect_files():
-    return render_template('collect.html')
+def collect_files(methods=['GET','POST']):
+    if request.method == 'POST':
+        return "POST"
+    else:
+        return render_template('collect.html')
+
+@app.route('/collect/spreadsheet')
+@login_required
+def collect_spreadsheet(methods=['GET','POST']):
+    if request.method == 'POST':
+        return "POST"
+    else:
+        return render_template('collect_spreadsheet.html')
+
+@app.route('/collect/direct')
+@login_required
+def collect_direct(methods=['GET','POST']):
+    if request.method == 'POST':
+        return "POST"
+    else:
+        return render_template('collect_direct.html')
