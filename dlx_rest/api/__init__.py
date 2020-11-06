@@ -104,8 +104,9 @@ class ClassDispatch():
         return cls.batch_index.get(name)
 
 class ListResponse():
-    def __init__(self, endpoint, items, **kwargs):
-        self.items = items
+    def __init__(self, endpoint, *, payload, **kwargs):
+        self.items = payload
+        self.collection = kwargs.get('collection')
         self.url = URL(endpoint, **kwargs).to_str()
         self.start = kwargs.pop('start', 0)
         self.limit = kwargs.pop('limit', 0)
@@ -131,23 +132,12 @@ class ListResponse():
 
         return jsonify(data)
 
-class BatchResponse():
-    def __init__(self, endpoint, records, **kwargs):
-        assert isinstance(records, MarcSet)
-        self.records = records
-        self.collection = kwargs['collection']
-        self.url = URL(endpoint, **kwargs).to_str()
-        self.start = kwargs.pop('start', 0)
-        self.limit = kwargs.pop('limit', 0)
-        self.next = URL(endpoint, start=self.start + self.limit, limit=self.limit, **kwargs).to_str()
+class BatchResponse(ListResponse):
+    def __init__(self, endpoint, *, payload, **kwargs):
+        assert isinstance(payload, MarcSet)
+        self.records = payload
         
-        if self.start - self.limit > 0:
-            next_start = self.start - self.limit
-        else:
-            next_start = 1
-            
-        if next_start > 1:
-            self.prev = URL(endpoint, start=next_start, limit=self.limit, **kwargs).to_str()
+        super().__init__(endpoint, payload=payload, **kwargs)
         
     def json(self):
         data = {
@@ -327,11 +317,8 @@ class CollectionsList(Resource):
 
         response = ListResponse(
             'api_collections_list',
-            results
-
+            payload=results
         )
-
-
 
         return response.json()
 
@@ -352,22 +339,26 @@ class RecordsList(Resource):
         direction = args['direction'] or ''
         fmt = args['format'] or ''
         
+        # search
         if search:
             search = unquote(search)
                 
         query = Query.from_string(search) if search else {}
         
+        # start
         if start:
             start -= 1
             
         if int(limit) > 1000:
             abort(404, 'Maximum limit is 1000')
             
+        # sort
         if sort_by == 'updated':
             sort = [('updated', ASC)] if direction.lower() == 'asc' else [('updated', DESC)]
         else:
             sort = None
         
+        # format
         if fmt == 'brief':
             if collection == 'bibs':
                 project = dict.fromkeys(('191', '245', '269', '700', '710', '791', '989'), True)
@@ -381,32 +372,32 @@ class RecordsList(Resource):
         else:
             project = {'_id': 1}
 
-        rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
+        ###
+        
+        recordset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
+        
+        ###
+        
+        kwargs = {
+            'collection': collection,
+            'start': start + 1,
+            'limit': limit,
+            'sort': sort_by,
+            'format': fmt
+        } 
             
-        if fmt: # in ('xml', 'mrk', 'mrc', 'txt', 'brief'):
-            response = BatchResponse(
-                'api_records_list', 
-                rset,
-                collection=collection,
-                start=start + 1,
-                limit=limit,
-                sort=sort_by,
-                format=fmt
-            )
+        if fmt:
+            response = BatchResponse('api_records_list', payload=recordset, **kwargs)
+            
             return getattr(response, fmt)()
+        else:
+            response = ListResponse(
+                'api_records_list', 
+                payload=[URL('api_record', collection=collection, record_id=r.id).to_str() for r in recordset],
+                **kwargs
+            )
 
-        records_list = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset]
-
-        response = ListResponse(
-            'api_records_list',
-            records_list,
-            collection=collection,
-            start=start + 1,
-            limit=limit,
-            sort=sort_by
-        )
-
-        return response.json()
+            return response.json()
     
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @ns.expect(post_put_argparser)
@@ -429,12 +420,15 @@ class RecordsList(Resource):
                 if '_id' in jmarc:
                     abort(400, '"_id" field is invalid for a new record')
                     
-                result = cls(jmarc, auth_control=True).commit(user=user)
+                record = cls(jmarc, auth_control=True)
+                result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
             if result.acknowledged:
-                return Response(status=200)
+                data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                
+                return data, 201
             else:
                 abort(500)
 
@@ -463,7 +457,7 @@ class RecordFieldsList(Resource):
 
         response = ListResponse(
             'api_record_fields_list',
-            fields_list,
+            payload=fields_list,
             collection=collection,
             record_id=record.id,
         )
@@ -515,7 +509,7 @@ class RecordSubfieldsList(Resource):
 
         response = ListResponse(
             'api_record_subfields_list',
-            subfields_list,
+            payload=subfields_list,
             **route_params
         )
         
@@ -546,7 +540,7 @@ class RecordFieldList(Resource):
 
         response = ListResponse(
             'api_record_field_list',
-            field_places,
+            payload=field_places,
             **route_params
         )
 
@@ -586,7 +580,15 @@ class RecordFieldList(Resource):
         result = record.commit(user=user)
         
         if result.acknowledged:
-            return Response(status=200)
+            url = URL(
+                'api_record_field_place',
+                collection=collection,
+                record_id=record.id,
+                field_tag=field_tag,
+                field_place=len(record.get_fields(field_tag)) - 1
+            )
+
+            return {'result': url.to_str()}, 201
         else:
             abort(500)
     
@@ -596,33 +598,6 @@ class RecordFieldList(Resource):
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlace(Resource):
-    '''
-    @ns.doc(description='Return a list of the subfield codes in the field')
-    def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-        field = record.get_field(field_tag, place=field_place) or abort(404)
-        
-        subfield_places = []
-
-        for sub in field.subfields:
-            route_params['subfield_code'] = sub.code
-
-            subfield_places.append(
-                URL('api_record_field_place_subfield_place_list', **route_params).to_str()
-            )
-
-        response = ListResponse(
-            'api_record_field_place',
-            subfield_places,
-            **route_params
-        )
-
-        return response.json()
-    '''
     @ns.doc(description='Return the field at the given place in the record')
     def get(self, collection, record_id, field_tag, field_place):
         route_params = locals()
@@ -664,7 +639,15 @@ class RecordFieldPlace(Resource):
             abort(400, str(e))
 
         if result.acknowledged:
-            return Response(status=200)
+            url = URL(
+                'api_record_field_place',
+                collection=collection,
+                record_id=record.id,
+                field_tag=field_tag,
+                field_place=field_place
+            )
+
+            return {'result': url.to_str()}, 201
         else:
             abort(500)
     
@@ -719,7 +702,7 @@ class RecordFieldPlaceSubfieldList(Resource):
 
         response = ListResponse(
             'api_record_field_place_subfield_list',
-            subfields,
+            payload=subfields,
             **route_params
         )
 
@@ -752,7 +735,7 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 
         response = ListResponse(
             'api_record_field_place_subfield_place_list',
-            subfield_places,
+            payload=subfield_places,
             **route_params
         )
 
@@ -841,7 +824,9 @@ class Record(Resource):
                 abort(400, str(e))
         
         if result.acknowledged:
-            return Response(status=200)
+            data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+            
+            return data, 201
         else:
             abort(500)
     
@@ -873,5 +858,25 @@ class Record(Resource):
             return Response(status=200)
         else:
             abort(500)
+            
+###
+
+@ns.route('/<string:collection>/lookup/<string:field_tag>/<string:subfield_code>')
+@ns.param('subfield_code', 'The subfield code of the value to look up')
+@ns.param('field_tag', 'The tag of the field value to look up')
+@ns.param('collection', '"bibs" or "auths"')
+class Lookup(Resource):
+    @ns.doc(description='Return a list of authorities that match a string value')
+    #@ns.expect(list_argparser)
+    def get(self, collection, field_tag, subfield_code):
+        cls = ClassDispatch.by_collection(collection) or abort(404)
         
+        string = request.args.get('search')
         
+        if string:
+            results = Auth.partial_lookup(field_tag, subfield_code, string, record_type='bib')
+            
+            return jsonify([r.to_dict() for r in results])
+        else:
+            abort(404, '?search=<string> required')
+            
