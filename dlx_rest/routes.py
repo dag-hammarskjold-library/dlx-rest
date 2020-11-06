@@ -185,52 +185,74 @@ def delete_user(id):
 
     return redirect(url_for('list_users'))
 
-
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
 def get_records_list(coll):
     '''Collect arguments'''
     limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'date')
+    sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
     start = request.args.get('start', 0)
     search = request.args.get('search', '')
 
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True)
-    print(endpoint)
-    records_data = requests.get(endpoint).json()
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
+    data = requests.get(endpoint).json()
     records = []
-    try:
-        for r in records_data["results"]:
-            rid = r.split("/")[-1]
-            records.append(rid)
-    except:
-        pass
-
+    for r in data['results']:
+        if coll == 'bibs':
+            second_line = []
+            if len(r['symbol']) > 1:
+                second_line.append(r['symbol'])
+            if len(r['date']) > 1:
+                second_line.append(r['date'])
+            if len(r['types']) > 1:
+                second_line.append(r['types'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['title'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+        elif coll == 'auths':
+            second_line = []
+            if len(r['alt']) > 1:
+                second_line.append(r['alt'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['heading'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+    
     return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
     '''Collect arguments'''
     limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'date')
+    sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
     start = request.args.get('start', 0)
     q = request.args.get('q', '')
 
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True)
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
     print(endpoint)
     records_data = requests.get(endpoint).json()
     records = []
     try:
-        for r in records_data["results"]:
-            rid = r.split("/")[-1]
-            records.append(rid)
+        for url, symbol, title, date in records_data["results"]:
+            rid = url.split("/")[-1]
+            record = {
+                'id': rid,
+                'symbol': symbol,
+                'title': title,
+                'date': date
+            }
+            records.append(record)
     except:
         pass
 
     return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q)
-
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):

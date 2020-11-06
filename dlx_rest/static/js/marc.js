@@ -25,6 +25,7 @@ class MarcRecord extends HTMLElement {
         this.rowselected = 0;
         this.indexRecordToUpdate="";
         this.tagRecordToUpdate=""
+        this.filesAvailable=[];
         this.leaderList=['000','001','002','003','004','005','006','007','008','009']
     };
 
@@ -60,6 +61,12 @@ class MarcRecord extends HTMLElement {
             // get the response body (the method explained below)
             let json = await response.json();
             let resultsList = Object.keys(json["result"]);
+            
+            // check if the files are available
+            if (Object.keys(json["files"])){
+                this.filesAvailable=json["files"]
+            }
+
             let resultsSize = resultsList.length;
             let results = json["result"];
             divMailHeader.innerHTML = "";
@@ -1597,6 +1604,29 @@ class MarcRecord extends HTMLElement {
                     document.getElementById("modalClose").click();
                 })
             })
+            // create the hr 
+            let hrx = document.createElement("HR");
+            divContent.appendChild(hrx);
+
+             // create the files framework
+            if (this.filesAvailable.length>0){
+                // adding the logic
+                let myHeader = document.createElement("H5");
+                myHeader.innerHTML="<span class='badge badge-pill badge-success'>"+this.filesAvailable.length+"</span> File(s) available , Click the file path to display the file!!! ";
+                let myTable = document.createElement("TABLE");
+                myTable.className="table table-striped"
+                myTable.innerHTML+="<div>"
+                myTable.innerHTML +="<table><thead> <tr><th>Language</th><th>File path</th></tr></thead><tbody>";
+                let i;
+                let myTableContent="";
+                for (i = 0; i < this.filesAvailable.length; i++) {
+                    myTableContent+="<tr><td><span class='text-center ml-2'>"+this.filesAvailable[i]['language']+"</span></td><td><a href='"+ this.filesAvailable[i]['url']  +"' target='_blank'>"+this.filesAvailable[i]['url']+"</a></td></tr>"
+                }
+                myTable.innerHTML+=myTableContent+"</tbody></table></div>"
+                divContent.appendChild(myHeader);
+                divContent.appendChild(myTable);
+
+            }
 
             // adding a new hr 
             let hr2 = document.createElement("HR");
@@ -1877,6 +1907,7 @@ class MarcRecord extends HTMLElement {
         // Call the function
         this.createhiddenModalForm();
         this.createHeaderComponent();
+        //this.createFileModalForm();
         //this.createScript();
         if (this.getUrlAPI()) {
             this.getDataFromApi(this.getUrlAPI());
