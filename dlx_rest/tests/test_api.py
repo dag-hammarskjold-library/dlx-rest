@@ -174,12 +174,12 @@ def test_create_record(client, records):
     
     data = {"245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "A new record"}]}]}
     response = client.post(f'{API}/bibs', headers={}, data=json.dumps(data))
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert client.get(f'{API}/bibs/11').status_code == 200
     
     data = '{"000": ["leader"], "710": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
     response = client.post(f'{API}/bibs', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     response = client.get(f'{API}/bibs/12?format=mrk')
     assert response.status_code == 200
@@ -213,7 +213,7 @@ def test_update_record(client, records):
 
     data = '{"_id": 2, "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "An updated title"}]}]}'    
     response = client.put(f'{API}/bibs/2', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     data = json.loads(client.get(f'{API}/bibs/2/fields/245/0/subfields/a/0').data)
     assert data['result'] == "An updated title"
@@ -226,7 +226,7 @@ def test_update_record_mrk(client, records):
     
     data = '=000  leader\n=245  \\\\$aUpdated by MRK$bsubtitle\n=269  \\\\$a2020'
     response = client.put(f'{API}/bibs/7?format=mrk', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     response = client.get(f'{API}/bibs/7')
     assert json.loads(response.data)['result'] == {
@@ -239,7 +239,7 @@ def test_update_record_mrk(client, records):
 def test_create_field(client, records):
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}'
     response = client.post(f'{API}/bibs/3/fields/610', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     response = client.get(f'{API}/bibs/3/fields/610/0/subfields/a/0')
     assert response.status_code == 200
@@ -247,14 +247,14 @@ def test_create_field(client, records):
     
     #controlfield
     response = client.post(f'{API}/bibs/4/fields/007', headers={}, data='controlfield data')
-    assert response.status_code == 200
+    assert response.status_code == 201
     response = client.get(f'{API}/bibs/4')
     assert json.loads(response.data)['result']['007'] == ['controlfield data']
   
 def test_update_field(client, records):
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Put on field"}]}'
     response = client.put(f'{API}/bibs/8/fields/245/0', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     response = client.get(f'{API}/bibs/8/fields/245/0/subfields/a/0')
     assert response.status_code == 200 
@@ -262,9 +262,9 @@ def test_update_field(client, records):
     
     data = '{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "New name"}]}'
     response = client.put(f'{API}/auths/11/fields/110/0', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     response = client.put(f'{API}/bibs/9/fields/610/0', headers={}, data=data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     
     #controlfield
     response = client.post(f'{API}/bibs/4/fields/006', headers={}, data='controlfield data')
