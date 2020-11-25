@@ -270,7 +270,9 @@ def search_records(coll):
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
-    return render_template('record.html', coll=coll, record_id=id)
+    this_prefix = url_for('doc', _external=True)
+    #print(this_prefix)
+    return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
 @app.route('/records/<coll>/new')
 @login_required
