@@ -130,7 +130,7 @@ class MarcRecord extends HTMLElement {
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record created!</div>";
                 console.log(response.status)
                     //refresh the page
-                setTimeout(location.reload(), 10000);
+                //setTimeout(location.reload(), 10000);
             } else {
                 return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { Error(text) }) + "</div>";
                 setTimeout(location.reload(), 10000);
@@ -160,7 +160,7 @@ class MarcRecord extends HTMLElement {
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record updated!</div>";
                 console.log(response.status)
                     //refresh the page
-                setTimeout(location.reload(), 10000);
+                //setTimeout(location.reload(), 10000);
             } else {
                 return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { throw new Error(text) }) + "</div>";
                 setTimeout(location.reload(), 10000);
