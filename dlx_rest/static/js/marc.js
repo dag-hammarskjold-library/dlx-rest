@@ -218,7 +218,6 @@ class MarcRecord extends HTMLElement {
             document.getElementById("btnEditRecord").style.display='none';
             document.getElementById("btnUpdateRecord").style.display='none';
             document.getElementById("divRecordType").style.display='none';
-
         } 
 
         if (this.typeEditMode==='TAGRECORD'){
@@ -230,7 +229,9 @@ class MarcRecord extends HTMLElement {
             document.getElementById("btnCreateNewRecord").style.display='none';
             document.getElementById("btnCloneRecord").style.display='none';
             document.getElementById("btnEditRecord").style.display='none';
+
             document.getElementById("btnUpdateRecord").style.display='inline';           
+
         } 
         
         if (this.typeEditMode==='FULLRECORD') {
@@ -262,6 +263,7 @@ class MarcRecord extends HTMLElement {
                 document.getElementById("divDetail").style.display='none';
             }
             document.getElementById("divRecordType").style.display='inline';
+
          }
     }
 
@@ -1607,6 +1609,7 @@ class MarcRecord extends HTMLElement {
                 })
             })
 
+
             // create the links for other formats
             let displayMarc = document.createElement("A");
             displayMarc.id = "btnDisplayMarc";
@@ -1618,7 +1621,6 @@ class MarcRecord extends HTMLElement {
             displayXML.innerHTML = `<a class="ml-2" href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=xml" target="_blank" aria-pressed="true">XML format</a>`                                              
             divContent.appendChild(displayXML);
 
-             // create the hr 
             let hrx = document.createElement("HR");
             divContent.appendChild(hrx);
 
