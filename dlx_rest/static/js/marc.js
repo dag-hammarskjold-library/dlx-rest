@@ -130,7 +130,7 @@ class MarcRecord extends HTMLElement {
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record created!</div>";
                 console.log(response.status)
                     //refresh the page
-                //setTimeout(location.reload(), 10000);
+                    //setTimeout(location.reload(), 10000);
             } else {
                 return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { Error(text) }) + "</div>";
                 setTimeout(location.reload(), 10000);
@@ -160,7 +160,7 @@ class MarcRecord extends HTMLElement {
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record updated!</div>";
                 console.log(response.status)
                     //refresh the page
-                //setTimeout(location.reload(), 10000);
+                    //setTimeout(location.reload(), 10000);
             } else {
                 return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { throw new Error(text) }) + "</div>";
                 setTimeout(location.reload(), 10000);
@@ -1624,151 +1624,99 @@ class MarcRecord extends HTMLElement {
             divContent.appendChild(myHeader);
             divContent.appendChild(myTable);
 
-        }
 
-        // adding a new hr 
-        let hr2 = document.createElement("HR");
-        divContent.appendChild(hr2);
+            // create the links for other formats
+            let displayMarc = document.createElement("A");
+            displayMarc.id = "btnDisplayMarc";
+            displayMarc.innerHTML = `<a href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=mrk" target="_blank" aria-pressed="true">MARC format</a>`
+            divContent.appendChild(displayMarc);
 
-        /////////////////////////////////////////////////////////////////////////////////
-        // creation of the header of the table
-        /////////////////////////////////////////////////////////////////////////////////
+            let displayXML = document.createElement("A");
+            displayXML.id = "btnDisplayXML";
+            displayXML.innerHTML = `<a class="ml-2" href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=xml" target="_blank" aria-pressed="true">XML format</a>`
+            divContent.appendChild(displayXML);
 
-        // creation of the html tags
+            let hrx = document.createElement("HR");
+            divContent.appendChild(hrx);
 
-        let table = document.createElement("TABLE");
-        let thead = document.createElement("THEAD");
-        let tr = document.createElement("TR");
-        let th1 = document.createElement("TH");
-        let th2 = document.createElement("TH");
-        let th3 = document.createElement("TH");
-        let th4 = document.createElement("TH");
-        let th5 = document.createElement("TH");
-
-        // add the tags to the parent
-
-        tr.appendChild(th1);
-        tr.appendChild(th2);
-        tr.appendChild(th3);
-        tr.appendChild(th4);
-        tr.appendChild(th5);
-
-        thead.appendChild(tr);
-        table.appendChild(thead);
-
-        // some styling for the header
-        thead.className = "thead-light";
-        table.className = "table-sm";
-        table.id = "tableData"
-
-        // add the values of the columns
-        th1.innerHTML = "<span class='badge badge-secondary'> TAG </span>";
-        th2.innerHTML = "<span class='badge badge-secondary'> IND1 </span>";
-        th3.innerHTML = "<span class='badge badge-secondary'> IND2 </span>";
-        th4.innerHTML = "<span class='badge badge-secondary'> VALUE </span>";
-        if (this.myToken) {
-            th5.innerHTML = "<span class='badge badge-secondary dataProvider'> EDIT </span>";
-        }
-
-        divContent.appendChild(table);
-        this.appendChild(divContent);
-        this.appendChild(divDetail);
-
-
-        /////////////////////////////////////////////////////////////////////////////////
-        // Loop the records and build the table
-        /////////////////////////////////////////////////////////////////////////////////
-
-        for (let i = 0; i < myDataSize; i++) {
-            let newIndex = i;
-
-            // Display the metadata part
-            //if ((myDataList[i] !== "_id") && (myDataList[i] < "029")) {
-            if ((myDataList[i] !== "_id") && (myDataList[i] < "010")) {
-
-                let tr = document.createElement("TR");
-                let th1 = document.createElement("TH");
-                let th2 = document.createElement("TH");
-                let th3 = document.createElement("TH");
-                let th4 = document.createElement("TH");
-                let th5 = document.createElement("TH");
-
-                th1.innerHTML = "<span class='badge badge-pill badge-secondary'>" + myDataList[i] + "</span>";
-                th2.innerHTML = "N/A";
-                th3.innerHTML = "N/A";
-                th4.innerHTML = myData[myDataList[i]];
-                if (this.myToken) {
-                    th5.innerHTML = "<span class='badge badge-pill badge-warning dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "'><i class='fas fa-edit'>  </i></span>";
-                    /////// 
-
-                    th5.addEventListener("click", () => {
-
-                        // Edit the value of the edit mode
-                        this.typeEditMode = "TAGRECORD"
-                        this.editMode = "True"
-
-                        // retrieving some parameters
-
-                        this.idToUpdate = this.recordNumber;
-
-                        // retrieving the line number
-                        let recup = 0;
-                        this.getDataLine("tableData", row => {
-                            // retrieving the data
-                            const myData = document.getElementsByClassName("dataProvider")[row.rowIndex].id;
-
-                            const myDiv = document.getElementById("divNewRecord");
-                            if (myDiv) {
-                                this.removeDiv(myDiv);
-                                this.tableNewRecordCreated = false;
-                                this.rowLineNewRecord = 0;
-                            }
-                            // display the framework for the new record
-                            this.createFrameNewRecord();
-
-                            // inserting the values in an array
-                            const recupValue = myData.split("//")
-
-                            this.tagRecordToUpdate = recupValue[1];
-                            this.indexRecordToUpdate = recupValue[5];
-
-                            // inserting values from the record selected
-                            let myTag = document.getElementById("tagCol1");
-                            let myIND1 = document.getElementById("ind1Col1");
-                            let myIND2 = document.getElementById("ind2Col1");
-                            let myCode = document.getElementById("code1");
-                            let myValue = document.getElementById("value1");
-
-                            myTag.value = recupValue[1];
-                            myIND1.value = recupValue[2];
-                            myIND2.value = recupValue[3];
-                            myCode.value = 'N/A';
-                            myValue.value = recupValue[4];
-
-                        });
-
-
-                    })
-
-                    ///////
-
+            // create the files framework
+            if (this.filesAvailable.length > 0) {
+                // adding the logic
+                let myHeader = document.createElement("H5");
+                myHeader.innerHTML = "<span class='badge badge-pill badge-success'>" + this.filesAvailable.length + "</span> File(s) available , Click the file path to display the file!!! ";
+                let myTable = document.createElement("TABLE");
+                myTable.className = "table table-striped"
+                myTable.innerHTML += "<div>"
+                myTable.innerHTML += "<table><thead> <tr><th>Language</th><th>File path</th></tr></thead><tbody>";
+                let i;
+                let myTableContent = "";
+                for (i = 0; i < this.filesAvailable.length; i++) {
+                    myTableContent += "<tr><td><span class='text-center ml-2'>" + this.filesAvailable[i]['language'] + "</span></td><td><a href='" + this.filesAvailable[i]['url'] + "' target='_blank'>" + this.filesAvailable[i]['url'] + "</a></td></tr>"
                 }
-
-                tr.appendChild(th1);
-                tr.appendChild(th2);
-                tr.appendChild(th3);
-                tr.appendChild(th4);
-                tr.appendChild(th5);
-                thead.appendChild(tr);
-                table.appendChild(thead);
-
+                myTable.innerHTML += myTableContent + "</tbody></table></div>"
+                divContent.appendChild(myHeader);
+                divContent.appendChild(myTable);
             }
 
-            // Display the subfield part
-            //if (parseInt(myDataList[i], 10) >= 29) {
-            if (parseInt(myDataList[i], 10) >= 10) {
-                let numOccur = myData[myDataList[i]].length;
-                for (let j = 0; j < myData[myDataList[i]].length; j++) {
+            // adding a new hr 
+            let hr2 = document.createElement("HR");
+            divContent.appendChild(hr2);
+
+            /////////////////////////////////////////////////////////////////////////////////
+            // creation of the header of the table
+            /////////////////////////////////////////////////////////////////////////////////
+
+            // creation of the html tags
+
+            let table = document.createElement("TABLE");
+            let thead = document.createElement("THEAD");
+            let tr = document.createElement("TR");
+            let th1 = document.createElement("TH");
+            let th2 = document.createElement("TH");
+            let th3 = document.createElement("TH");
+            let th4 = document.createElement("TH");
+            let th5 = document.createElement("TH");
+
+            // add the tags to the parent
+
+            tr.appendChild(th1);
+            tr.appendChild(th2);
+            tr.appendChild(th3);
+            tr.appendChild(th4);
+            tr.appendChild(th5);
+
+            thead.appendChild(tr);
+            table.appendChild(thead);
+
+            // some styling for the header
+            thead.className = "thead-light";
+            table.className = "table-sm";
+            table.id = "tableData"
+
+            // add the values of the columns
+            th1.innerHTML = "<span class='badge badge-secondary'> TAG </span>";
+            th2.innerHTML = "<span class='badge badge-secondary'> IND1 </span>";
+            th3.innerHTML = "<span class='badge badge-secondary'> IND2 </span>";
+            th4.innerHTML = "<span class='badge badge-secondary'> VALUE </span>";
+            if (this.myToken) {
+                th5.innerHTML = "<span class='badge badge-secondary dataProvider'> EDIT </span>";
+            }
+
+            divContent.appendChild(table);
+            this.appendChild(divContent);
+            this.appendChild(divDetail);
+
+
+            /////////////////////////////////////////////////////////////////////////////////
+            // Loop the records and build the table
+            /////////////////////////////////////////////////////////////////////////////////
+
+            for (let i = 0; i < myDataSize; i++) {
+                let newIndex = i;
+
+                // Display the metadata part
+                //if ((myDataList[i] !== "_id") && (myDataList[i] < "029")) {
+                if ((myDataList[i] !== "_id") && (myDataList[i] < "010")) {
 
                     let tr = document.createElement("TR");
                     let th1 = document.createElement("TH");
@@ -1777,31 +1725,14 @@ class MarcRecord extends HTMLElement {
                     let th4 = document.createElement("TH");
                     let th5 = document.createElement("TH");
 
-
-                    let val1 = (myData[myDataList[i]][j]["indicators"][0] !== " ") ? myData[myDataList[i]][j]["indicators"][0] : " _ ";
-                    let val2 = (myData[myDataList[i]][j]["indicators"][1] !== " ") ? myData[myDataList[i]][j]["indicators"][1] : " _ ";
                     th1.innerHTML = "<span class='badge badge-pill badge-secondary'>" + myDataList[i] + "</span>";
-                    th2.innerHTML = val1;
-                    th3.innerHTML = val2;
-
-
-                    // retrieve the number of subfields
-                    let numberSubfield = myData[myDataList[i]][j]["subfields"].length;
-
-                    for (let k = 0; k < numberSubfield; k++) {
-                        // loop for the subfields
-                        // Management of the xref
-                        if (myData[myDataList[i]][j]["subfields"][k]["value"]) {
-                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["value"] + " |";
-                        } else {
-                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["xref"] + " |";
-                        }
-                    }
-
+                    th2.innerHTML = "N/A";
+                    th3.innerHTML = "N/A";
+                    th4.innerHTML = myData[myDataList[i]];
                     if (this.myToken) {
+                        th5.innerHTML = "<span class='badge badge-pill badge-warning dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "'><i class='fas fa-edit'>  </i></span>";
+                        /////// 
 
-                        // building a string with the information about the TAG Line
-                        th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i></span></span>";
                         th5.addEventListener("click", () => {
 
                             // Edit the value of the edit mode
@@ -1816,13 +1747,8 @@ class MarcRecord extends HTMLElement {
                             let recup = 0;
                             this.getDataLine("tableData", row => {
                                 // retrieving the data
-                                const yls = row.rowIndex;
-                                const myData = document.getElementsByClassName("dataProvider")[yls].id;
+                                const myData = document.getElementsByClassName("dataProvider")[row.rowIndex].id;
 
-                                // starting the edit mode
-                                //this.editMode = "True";
-                                //this.typeEditMode="TAGMODE"
-                                // check if the divNewRecord is already displayed
                                 const myDiv = document.getElementById("divNewRecord");
                                 if (myDiv) {
                                     this.removeDiv(myDiv);
@@ -1842,46 +1768,23 @@ class MarcRecord extends HTMLElement {
                                 let myTag = document.getElementById("tagCol1");
                                 let myIND1 = document.getElementById("ind1Col1");
                                 let myIND2 = document.getElementById("ind2Col1");
+                                let myCode = document.getElementById("code1");
+                                let myValue = document.getElementById("value1");
 
                                 myTag.value = recupValue[1];
                                 myIND1.value = recupValue[2];
                                 myIND2.value = recupValue[3];
-
-                                // Management of the subfield
-                                const recupSubFieldValues = recupValue[4].split("|")
-                                    // console.log(recupSubFieldValues)
-                                    // console.log(recupSubFieldValues.length)
-                                let myLine = 1;
-                                const myBox = document.getElementById("checkboxCol1");
-
-                                for (let i = 0; i < (recupSubFieldValues.length - 1); i++) {
-                                    let myCode = "";
-                                    let myValue = "";
-
-                                    if (i === 0) {
-                                        myCode = document.getElementById("code" + myLine);
-                                        myCode.value = recupSubFieldValues[i].charAt(1).trim();
-                                        myValue = document.getElementById("value" + myLine);
-                                        myValue.value = recupSubFieldValues[i].substring(2).trim();
-                                    } else {
-                                        myBox.checked = true;
-                                        this.addNewSubFieldLine();
-                                        myCode = document.getElementById("divData1").lastChild.getElementsByTagName("SELECT")[0];
-                                        myCode.value = recupSubFieldValues[i].charAt(1).trim();
-                                        myValue = document.getElementById("divData1").lastChild.getElementsByTagName("INPUT")[0];
-                                        myValue.value = recupSubFieldValues[i].substring(2).trim();
-
-                                    }
-                                    myLine++;
-                                }
+                                myCode.value = 'N/A';
+                                myValue.value = recupValue[4];
 
                             });
 
 
                         })
-                    }
 
-                    // add the tags to the parent
+                        ///////
+
+                    }
 
                     tr.appendChild(th1);
                     tr.appendChild(th2);
@@ -1889,35 +1792,164 @@ class MarcRecord extends HTMLElement {
                     tr.appendChild(th4);
                     tr.appendChild(th5);
                     thead.appendChild(tr);
+                    table.appendChild(thead);
 
                 }
+
+                // Display the subfield part
+                //if (parseInt(myDataList[i], 10) >= 29) {
+                if (parseInt(myDataList[i], 10) >= 10) {
+                    let numOccur = myData[myDataList[i]].length;
+                    for (let j = 0; j < myData[myDataList[i]].length; j++) {
+
+                        let tr = document.createElement("TR");
+                        let th1 = document.createElement("TH");
+                        let th2 = document.createElement("TH");
+                        let th3 = document.createElement("TH");
+                        let th4 = document.createElement("TH");
+                        let th5 = document.createElement("TH");
+
+
+                        let val1 = (myData[myDataList[i]][j]["indicators"][0] !== " ") ? myData[myDataList[i]][j]["indicators"][0] : " _ ";
+                        let val2 = (myData[myDataList[i]][j]["indicators"][1] !== " ") ? myData[myDataList[i]][j]["indicators"][1] : " _ ";
+                        th1.innerHTML = "<span class='badge badge-pill badge-secondary'>" + myDataList[i] + "</span>";
+                        th2.innerHTML = val1;
+                        th3.innerHTML = val2;
+
+
+                        // retrieve the number of subfields
+                        let numberSubfield = myData[myDataList[i]][j]["subfields"].length;
+
+                        for (let k = 0; k < numberSubfield; k++) {
+                            // loop for the subfields
+                            // Management of the xref
+                            if (myData[myDataList[i]][j]["subfields"][k]["value"]) {
+                                th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["value"] + " |";
+                            } else {
+                                th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["xref"] + " |";
+                            }
+                        }
+
+                        if (this.myToken) {
+
+                            // building a string with the information about the TAG Line
+                            th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i></span></span>";
+                            th5.addEventListener("click", () => {
+
+                                // Edit the value of the edit mode
+                                this.typeEditMode = "TAGRECORD"
+                                this.editMode = "True"
+
+                                // retrieving some parameters
+
+                                this.idToUpdate = this.recordNumber;
+
+                                // retrieving the line number
+                                let recup = 0;
+                                this.getDataLine("tableData", row => {
+                                    // retrieving the data
+                                    const yls = row.rowIndex;
+                                    const myData = document.getElementsByClassName("dataProvider")[yls].id;
+
+                                    // starting the edit mode
+                                    //this.editMode = "True";
+                                    //this.typeEditMode="TAGMODE"
+                                    // check if the divNewRecord is already displayed
+                                    const myDiv = document.getElementById("divNewRecord");
+                                    if (myDiv) {
+                                        this.removeDiv(myDiv);
+                                        this.tableNewRecordCreated = false;
+                                        this.rowLineNewRecord = 0;
+                                    }
+                                    // display the framework for the new record
+                                    this.createFrameNewRecord();
+
+                                    // inserting the values in an array
+                                    const recupValue = myData.split("//")
+
+                                    this.tagRecordToUpdate = recupValue[1];
+                                    this.indexRecordToUpdate = recupValue[5];
+
+                                    // inserting values from the record selected
+                                    let myTag = document.getElementById("tagCol1");
+                                    let myIND1 = document.getElementById("ind1Col1");
+                                    let myIND2 = document.getElementById("ind2Col1");
+
+                                    myTag.value = recupValue[1];
+                                    myIND1.value = recupValue[2];
+                                    myIND2.value = recupValue[3];
+
+                                    // Management of the subfield
+                                    const recupSubFieldValues = recupValue[4].split("|")
+                                        // console.log(recupSubFieldValues)
+                                        // console.log(recupSubFieldValues.length)
+                                    let myLine = 1;
+                                    const myBox = document.getElementById("checkboxCol1");
+
+                                    for (let i = 0; i < (recupSubFieldValues.length - 1); i++) {
+                                        let myCode = "";
+                                        let myValue = "";
+
+                                        if (i === 0) {
+                                            myCode = document.getElementById("code" + myLine);
+                                            myCode.value = recupSubFieldValues[i].charAt(1).trim();
+                                            myValue = document.getElementById("value" + myLine);
+                                            myValue.value = recupSubFieldValues[i].substring(2).trim();
+                                        } else {
+                                            myBox.checked = true;
+                                            this.addNewSubFieldLine();
+                                            myCode = document.getElementById("divData1").lastChild.getElementsByTagName("SELECT")[0];
+                                            myCode.value = recupSubFieldValues[i].charAt(1).trim();
+                                            myValue = document.getElementById("divData1").lastChild.getElementsByTagName("INPUT")[0];
+                                            myValue.value = recupSubFieldValues[i].substring(2).trim();
+
+                                        }
+                                        myLine++;
+                                    }
+
+                                });
+
+
+                            })
+                        }
+
+                        // add the tags to the parent
+
+                        tr.appendChild(th1);
+                        tr.appendChild(th2);
+                        tr.appendChild(th3);
+                        tr.appendChild(th4);
+                        tr.appendChild(th5);
+                        thead.appendChild(tr);
+
+                    }
+                }
+            }
+            // Adding the div to the page
+            this.appendChild(divContent);
+
+        }
+
+
+        // Main features
+        connectedCallback() {
+            this.typeEditMode = "INIT";
+            // Call the function
+            this.createhiddenModalForm();
+            this.createHeaderComponent();
+            //this.createFileModalForm();
+            //this.createScript();
+            if (this.getUrlAPI()) {
+                this.getDataFromApi(this.getUrlAPI());
+                this.getRecordType(this.getUrlAPI());
             }
         }
-        // Adding the div to the page
-        this.appendChild(divContent);
+
+        disconnectedCallback() {};
+
+        attributeChangedCallback(attrName, oldVal, newVal) {};
 
     }
 
-
-    // Main features
-    connectedCallback() {
-        this.typeEditMode = "INIT";
-        // Call the function
-        this.createhiddenModalForm();
-        this.createHeaderComponent();
-        //this.createFileModalForm();
-        //this.createScript();
-        if (this.getUrlAPI()) {
-            this.getDataFromApi(this.getUrlAPI());
-            this.getRecordType(this.getUrlAPI());
-        }
-    }
-
-    disconnectedCallback() {};
-
-    attributeChangedCallback(attrName, oldVal, newVal) {};
-
-}
-
-// Define the new element
-customElements.define('marc-record', MarcRecord);
+    // Define the new element
+    customElements.define('marc-record', MarcRecord);
