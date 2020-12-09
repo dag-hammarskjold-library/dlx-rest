@@ -218,6 +218,7 @@ class MarcRecord extends HTMLElement {
             document.getElementById("btnEditRecord").style.display='none';
             document.getElementById("btnUpdateRecord").style.display='none';
             document.getElementById("divRecordType").style.display='none';
+        
         } 
 
         if (this.typeEditMode==='TAGRECORD'){
@@ -229,9 +230,8 @@ class MarcRecord extends HTMLElement {
             document.getElementById("btnCreateNewRecord").style.display='none';
             document.getElementById("btnCloneRecord").style.display='none';
             document.getElementById("btnEditRecord").style.display='none';
-
-            document.getElementById("btnUpdateRecord").style.display='inline';           
-
+            document.getElementById("btnUpdateRecord").style.display='inline';
+            
         } 
         
         if (this.typeEditMode==='FULLRECORD') {
@@ -263,8 +263,7 @@ class MarcRecord extends HTMLElement {
                 document.getElementById("divDetail").style.display='none';
             }
             document.getElementById("divRecordType").style.display='inline';
-
-         }
+        }
     }
 
     // create the record form
@@ -1609,18 +1608,22 @@ class MarcRecord extends HTMLElement {
                 })
             })
 
+            // create the print button
+            let btnPrintRecord = document.createElement("BUTTON");
+            //btnPrintRecord.className = "btn btn-success mr-2";
+            btnPrintRecord.id = "btnDeleteRecord";
+            btnPrintRecord.innerHTML = `<div class='dropdown'>
+                                        <button class='btn btn-secondary dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Other formats</button>
+                                        <div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>
+                                            <a class='dropdown-item' href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=mrk" target="_blank">Marc format</a>
+                                            <a class='dropdown-item' href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=xml" target="_blank">XML format</a>
+                                            <a class='dropdown-item' href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=txt" target="_blank">TXT format</a>
+                                        </div>
+                                    </div>`
+            divContent.appendChild(btnPrintRecord);
 
-            // create the links for other formats
-            let displayMarc = document.createElement("A");
-            displayMarc.id = "btnDisplayMarc";
-            displayMarc.innerHTML = `<a href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=mrk" target="_blank" aria-pressed="true">MARC format</a>`                                              
-            divContent.appendChild(displayMarc);
 
-            let displayXML = document.createElement("A");
-            displayXML.id = "btnDisplayXML";
-            displayXML.innerHTML = `<a class="ml-2" href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=xml" target="_blank" aria-pressed="true">XML format</a>`                                              
-            divContent.appendChild(displayXML);
-
+            // create the hr 
             let hrx = document.createElement("HR");
             divContent.appendChild(hrx);
 
