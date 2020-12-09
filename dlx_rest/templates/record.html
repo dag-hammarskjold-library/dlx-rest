@@ -1,4 +1,9 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} {% block content %} {% if record_id %}
+<div class="container">
+    Other formats:
+    <a href="{{ url_for('api_record', collection=coll, record_id=record_id, format='mrk') }}">Printable (mrk)</a>
+</div>
+{% endif %}
 <div class="container shadow text-left border border-success rounded mt-3">
     {% if record_id %}
     <marc-record url="{{ coll }}/{{ record_id }}" token="{{current_user.token}}" prefix="{{prefix}}"></marc-record>
