@@ -87,7 +87,6 @@ class MarcRecord extends HTMLElement {
     // call the API for deletion
     async deleteDataFromApi(recordType, recordID) {
 
-
         let myString = this.prefixUrl + recordType + '/' + recordID;
         let username = "admin@un.org";
         let password = "qitqiv-1sonmy-rAnwov";
@@ -100,16 +99,25 @@ class MarcRecord extends HTMLElement {
                 'Accept': 'application/json',
                 "Authorization": auth
             })
-        }).then(response => {
+        })
+        .then(response => {
             if (response.ok) {
-                // display the mail
-                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record deleted!</div>";
-                //refresh the page
-                setTimeout(location.reload(), 2000);
-            } else {
-                return divMail.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.status + "</div>";
+                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record deleted!</div>";
+              }
+
+            if(!response.ok){
+                response.json()
+                    .then(json => {
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong: " + json.message + "</div>";
+                    });
             }
         })
+        .catch(error =>{
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong: " + error.message + "</div>";
+        })
+
+        this.typeEditMode='INIT';
+        this.manageDisplayButton(); 
     }
 
     // call the API for creation
@@ -128,18 +136,24 @@ class MarcRecord extends HTMLElement {
                 "Authorization": auth
             }),
             body: data
-        }).then(response => {
+        })        
+        .then(response => {
             if (response.ok) {
-                // display the mail
-                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record created!</div>";
-                console.log(response.status)
-                    //refresh the page
-                    //setTimeout(location.reload(), 10000);
-            } else {
-                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { Error(text) }) + "</div>";
-                setTimeout(location.reload(), 10000);
+                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
+              }
+            if(!response.ok){
+                response.json()
+                    .then(json => {
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + json.message + "</div>";
+                    });
             }
         })
+        .catch(error =>{
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + error.message + "</div>";
+        })
+
+        this.typeEditMode='CREATERECORD';
+        this.manageDisplayButton(); 
     }
 
     // update at the record level
@@ -158,18 +172,24 @@ class MarcRecord extends HTMLElement {
                 "Authorization": auth
             }),
             body: data
-        }).then(response => {
+        })        
+        .then(response => {
             if (response.ok) {
-                // display the mail
-                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record updated!</div>";
-                console.log(response.status)
-                    //refresh the page
-                    //setTimeout(location.reload(), 10000);
-            } else {
-                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { throw new Error(text) }) + "</div>";
-                setTimeout(location.reload(), 10000);
+                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Full Record updated!</div>";
+              }
+            if(!response.ok){
+                response.json()
+                    .then(json => {
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + json.message + "</div>";
+                    });
             }
         })
+        .catch(error =>{
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + error.message + "</div>";
+        })
+
+        this.typeEditMode='FULLRECORD';
+        this.manageDisplayButton(); 
     }
 
 
@@ -188,19 +208,32 @@ class MarcRecord extends HTMLElement {
                 "Authorization": auth
             }),
             body: data
-        }).then(response => {
-            if (response.ok) {
-                // display the mail
-                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>New record updated!</div>";
-                console.log(response.status)
-                    //refresh the page
-                setTimeout(location.reload(), 50000);
-            } else {
-                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong " + response.text().then(text => { throw new Error(text) }) + "</div>";
-                setTimeout(location.reload(), 50000);
-            }
-            this.indexRecord = "";
         })
+        .then(response => {
+            if (response.ok) {
+                this.typeEditMode='TAGRECORD';
+                this.manageDisplayButton(); 
+                this.indexRecord="";
+                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record updated at the TAG level!</div>";
+            }
+            if(!response.ok){
+                response.json()
+                    .then(json => {
+                        this.typeEditMode='TAGRECORD';
+                        this.manageDisplayButton(); 
+                        this.indexRecord="";
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong 1 : " + json.message + "</div>";
+                    });
+            }
+        })
+        .catch(error =>{
+            this.typeEditMode='TAGRECORD';
+            this.manageDisplayButton(); 
+            this.indexRecord="";
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong 2 : " + error.message + "</div>";
+        })
+
+
     }
 
     // remove a div from the page
@@ -595,6 +628,7 @@ class MarcRecord extends HTMLElement {
     // Update at the Full Record level
     generateDataFullRecordToUpdateNewVersion(type) {
 
+        console.log(type)
         // Retrieving the value of the type of Record
         let typeRecord = this.typeRecordToUpdate;
 
@@ -734,10 +768,9 @@ class MarcRecord extends HTMLElement {
         }
 
         //  Cleaning global variables
-        this.typeEditMode = "INIT"
-        this.typeRecordToUpdate = "";
-        this.idToUpdate = "";
-
+        //this.typeEditMode = "INIT"
+        // this.typeRecordToUpdate = "";
+        // this.idToUpdate = "";
     }
 
     // Update at the Full Record level
@@ -986,10 +1019,10 @@ class MarcRecord extends HTMLElement {
         this.updateTagRecord(myUrl1, data)
 
         // cleaning 
-        this.typeRecordToUpdate = "";
-        this.idToUpdate = "";
-        this.tagRecordToUpdate = "";
-        this.indexRecordToUpdate = "";
+        // this.typeRecordToUpdate = "";
+        // this.idToUpdate = "";
+        // this.tagRecordToUpdate = "";
+        // this.indexRecordToUpdate = "";
         this.editMode = "False"
 
 
@@ -1248,13 +1281,10 @@ class MarcRecord extends HTMLElement {
             // adding the logic to call to edit a record
             btnUpdateRecord.addEventListener("click", () => {
                 if (this.typeEditMode === "TAGRECORD") {
-                    console.log("tagupdate")
                     this.generateDataTagToUpdate();
                 }
 
                 if (this.typeEditMode === "FULLRECORD") {
-                    console.log("fullupdate")
-                        //this.generateDataFullRecordToUpdate();
                     this.generateDataFullRecordToUpdateNewVersion(1);
                 }
 
