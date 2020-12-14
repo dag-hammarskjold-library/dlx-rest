@@ -573,7 +573,7 @@ class RecordFieldList(Resource):
             
             record_data[field_tag].append(field_data)
                 
-            record = cls(record_data)
+            record = cls(record_data, auth_control=True)
         except Exception as e:
             abort(400, str(e))
         
@@ -634,7 +634,7 @@ class RecordFieldPlace(Resource):
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
             
-            result = cls(record_data).commit()
+            result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
 
@@ -819,7 +819,7 @@ class Record(Resource):
             try:
                 jmarc = load_json(request.data)
                 
-                result = cls(jmarc).commit(user=user)
+                result = cls(jmarc, auth_control=True).commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
