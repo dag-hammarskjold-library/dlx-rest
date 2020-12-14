@@ -57,8 +57,8 @@ class MarcRecord extends HTMLElement {
     async getDataFromApi(value) {
         this.url = this.prefixUrl + value;
         let response = await fetch(this.url);
-        if (response.ok) { // if HTTP-status is 200-299
-            // get the response body (the method explained below)
+        if (response.ok) { 
+            
             let json = await response.json();
             let resultsList = Object.keys(json["result"]);
 
@@ -74,7 +74,9 @@ class MarcRecord extends HTMLElement {
             this.editMode = "INIT"
 
             // display the Edit button
-            document.getElementById("btnEditRecord").style.display = 'inline';
+            if (document.getElementById("btnEditRecord")){
+                document.getElementById("btnEditRecord").style.display = 'inline';
+            }
 
             this.displayDataFromApi(resultsList, resultsSize, results);
         } else {
