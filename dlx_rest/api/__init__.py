@@ -179,7 +179,7 @@ class BatchResponse(ListResponse):
                 '_id': record.id,
                 'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
                 'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
-                'title': head,
+                'title': head or '[No Title]',
                 'date': record.get_value('269', 'a'),
                 'types': '; '.join(ctypes)
             }
