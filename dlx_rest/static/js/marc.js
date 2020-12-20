@@ -7,12 +7,12 @@ class MarcRecord extends HTMLElement {
         super();
 
         // Definition of the id of the component
+        this.loggedIn = this.getAttribute('token') ? true : false
         this.heigth = "1000px";
         this.width = "1000px";
         this.id = "marc-record";
         this.recordNumber = "";
         this.recordType = "";
-        this.myToken = this.getToken();
         this.url = ""
         this.tableNewRecordCreated = false;
         this.displayRecord = false;
@@ -88,17 +88,9 @@ class MarcRecord extends HTMLElement {
     async deleteDataFromApi(recordType, recordID) {
 
         let myString = this.prefixUrl + recordType + '/' + recordID;
-        let username = "admin@un.org";
-        let password = "qitqiv-1sonmy-rAnwov";
-        let encodedString = window.btoa(username + ":" + password);
-        let auth = "Basic " + encodedString;
 
         fetch(myString, {
-            method: 'DELETE',
-            headers: new Headers({
-                'Accept': 'application/json',
-                "Authorization": auth
-            })
+            method: 'DELETE'
         })
         .then(response => {
             if (response.ok) {
@@ -124,17 +116,8 @@ class MarcRecord extends HTMLElement {
     async createRecord(url, data) {
         //async createRecord(url){
 
-        let username = "admin@un.org";
-        let password = "qitqiv-1sonmy-rAnwov";
-        let encodedString = window.btoa(username + ":" + password);
-        let auth = "Basic " + encodedString;
-
         fetch(url, {
             method: 'POST',
-            headers: new Headers({
-                "Content-Type": "application/json",
-                "Authorization": auth
-            }),
             body: data
         })        
         .then(response => {
@@ -160,17 +143,8 @@ class MarcRecord extends HTMLElement {
     async updateFullRecord(url, data) {
         //async createRecord(url){
 
-        let username = "admin@un.org";
-        let password = "qitqiv-1sonmy-rAnwov";
-        let encodedString = window.btoa(username + ":" + password);
-        let auth = "Basic " + encodedString;
-
         fetch(url, {
             method: 'PUT',
-            headers: new Headers({
-                "Content-Type": "application/json",
-                "Authorization": auth
-            }),
             body: data
         })        
         .then(response => {
@@ -195,18 +169,9 @@ class MarcRecord extends HTMLElement {
 
     // update at the tag level
     async updateTagRecord(url, data) {
-
-        let username = "admin@un.org";
-        let password = "qitqiv-1sonmy-rAnwov";
-        let encodedString = window.btoa(username + ":" + password);
-        let auth = "Basic " + encodedString;
-
+		
         fetch(url, {
             method: 'PUT',
-            headers: new Headers({
-                "Content-Type": "application/json",
-                "Authorization": auth
-            }),
             body: data
         })
         .then(response => {
@@ -613,7 +578,7 @@ class MarcRecord extends HTMLElement {
         // Saving the Data
         let data = mySpecialRecord;
 
-        console.log(data);
+        //console.log(data);
 
         alert(data)
 
@@ -628,7 +593,7 @@ class MarcRecord extends HTMLElement {
     // Update at the Full Record level
     generateDataFullRecordToUpdateNewVersion(type) {
 
-        console.log(type)
+        //console.log(type)
         // Retrieving the value of the type of Record
         let typeRecord = this.typeRecordToUpdate;
 
@@ -756,7 +721,7 @@ class MarcRecord extends HTMLElement {
         let data = JSON.stringify(marcRecords);
 
         // Display the json generated
-        console.log(data)
+        //console.log(data)
 
         if (type === 1) {
             //  update the Data
@@ -890,7 +855,7 @@ class MarcRecord extends HTMLElement {
         // Saving the Data
         let data = mySpecialRecord;
 
-        console.log(data)
+        //console.log(data)
 
         // cleaning 
 
@@ -968,10 +933,10 @@ class MarcRecord extends HTMLElement {
 
                 for (var j = 0; j < lenMyData; j++) {
                     let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
-                    console.log("le code est  :" + myCode)
+                    //console.log("le code est  :" + myCode)
 
                     let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
-                    console.log("la valeur est  :" + myValue)
+                    //console.log("la valeur est  :" + myValue)
 
 
                     // Definition of the dict to store the subfields
@@ -1011,7 +976,7 @@ class MarcRecord extends HTMLElement {
         // Saving the Data
         let data = mySpecialRecord;
 
-        console.log(data)
+        //console.log(data)
 
         //var myUrl1=this.prefixUrl + this.recordType + "/" + this.idToUpdate +"/fields/" + this.tagRecordToUpdate +"/"+ (this.indexRecordToUpdate-1)+"?format=jmarcnx";
         var myUrl1 = this.prefixUrl + this.recordType + "/" + this.idToUpdate + "/fields/" + this.tagRecordToUpdate + "/" + (this.indexRecordToUpdate - 1);
@@ -1071,18 +1036,15 @@ class MarcRecord extends HTMLElement {
         return this.getAttribute('url');
     }
 
-    // get the token value
-    getToken() {
-        return this.getAttribute('token');
-    }
-
     // get the API URL Prefix
     getPrefix() {
         var apiPrefix = this.getAttribute('prefix')
         if (apiPrefix) {
             return apiPrefix;
         } else {
-            return "https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api/";
+            let msg = "API base URL must be set as attribute 'prefix' of the HTML component"
+            window.alert(msg)
+			throw(msg)
         }
     }
 
@@ -1126,9 +1088,7 @@ class MarcRecord extends HTMLElement {
         divMailHeader.id = "divMailHeader";
         this.appendChild(divMailHeader);
 
-        let isToken = this.getToken();
-
-        if (isToken !== "") {
+        if (this.loggedIn) {
 
             // Display the button for the displaying a new record
             let btnDisplayNewRecordHeader = document.createElement("BUTTON");
@@ -1619,7 +1579,7 @@ class MarcRecord extends HTMLElement {
         btnDeleteRecord.className = "btn btn-danger mr-2";
         btnDeleteRecord.id = "btnDeleteRecord";
         btnDeleteRecord.innerHTML = "Delete this record";
-        if (this.myToken) {
+        if (this.loggedIn) {
             divContent.appendChild(btnDeleteRecord);
         }
         btnDeleteRecord.setAttribute('data-toggle', 'modal');
@@ -1712,7 +1672,7 @@ class MarcRecord extends HTMLElement {
         th2.innerHTML = "<span class='badge badge-secondary'> IND1 </span>";
         th3.innerHTML = "<span class='badge badge-secondary'> IND2 </span>";
         th4.innerHTML = "<span class='badge badge-secondary'> VALUE </span>";
-        if (this.myToken) {
+        if (this.loggedIn) {
             th5.innerHTML = "<span class='badge badge-secondary dataProvider'> EDIT </span>";
         }
 
@@ -1743,7 +1703,7 @@ class MarcRecord extends HTMLElement {
                 th2.innerHTML = "N/A";
                 th3.innerHTML = "N/A";
                 th4.innerHTML = myData[myDataList[i]];
-                if (this.myToken) {
+                if (this.loggedIn) {
                     th5.innerHTML = "<span class='badge badge-pill badge-warning dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "'><i class='fas fa-edit'>  </i></span>";
                     /////// 
 
@@ -1844,7 +1804,7 @@ class MarcRecord extends HTMLElement {
                         }
                     }
 
-                    if (this.myToken) {
+                    if (this.loggedIn) {
 
                         // building a string with the information about the TAG Line
                         th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i></span></span>";
