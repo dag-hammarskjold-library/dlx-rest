@@ -8,7 +8,7 @@ class MarcRecord extends HTMLElement {
 
         // Definition of the id of the component
         this.heigth = "1000px";
-        this.width = "1000px";
+        this.width = "1500px";
         this.id = "marc-record";
         this.recordNumber = "";
         this.recordType = "";
@@ -71,13 +71,8 @@ class MarcRecord extends HTMLElement {
             let results = json["result"];
             divMailHeader.innerHTML = "";
             this.displayRecord = true
-            this.editMode = "INIT"
-
-            // display the Edit button
-            if (document.getElementById("btnEditRecord")){
-                document.getElementById("btnEditRecord").style.display = 'inline';
-            }
-
+            this.typeEditMode = "INIT"
+            this.manageDisplayButton();
             this.displayDataFromApi(resultsList, resultsSize, results);
         } else {
             return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong, HTTP-Error number : " + response.status + "</div>";
@@ -140,6 +135,41 @@ class MarcRecord extends HTMLElement {
         .then(response => {
             if (response.ok) {
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
+              }
+            if(!response.ok){
+                response.json()
+                    .then(json => {
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + json.message + "</div>";
+                    });
+            }
+        })
+        .catch(error =>{
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong : " + error.message + "</div>";
+        })
+
+        this.typeEditMode='CREATERECORD';
+        this.manageDisplayButton(); 
+    }
+
+    async cloneRecord(url, data) {
+        //async createRecord(url){
+
+        let username = "admin@un.org";
+        let password = "qitqiv-1sonmy-rAnwov";
+        let encodedString = window.btoa(username + ":" + password);
+        let auth = "Basic " + encodedString;
+
+        fetch(url, {
+            method: 'POST',
+            headers: new Headers({
+                "Content-Type": "application/json",
+                "Authorization": auth
+            }),
+            body: data
+        })        
+        .then(response => {
+            if (response.ok) {
+                divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record cloned!</div>";
               }
             if(!response.ok){
                 response.json()
@@ -222,7 +252,7 @@ class MarcRecord extends HTMLElement {
                         this.typeEditMode='TAGRECORD';
                         this.manageDisplayButton(); 
                         this.indexRecord="";
-                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong 1 : " + json.message + "</div>";
+                        divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong: " + json.message + "</div>";
                     });
             }
         })
@@ -230,7 +260,7 @@ class MarcRecord extends HTMLElement {
             this.typeEditMode='TAGRECORD';
             this.manageDisplayButton(); 
             this.indexRecord="";
-            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong 2 : " + error.message + "</div>";
+            divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong: " + error.message + "</div>";
         })
 
 
@@ -241,63 +271,58 @@ class MarcRecord extends HTMLElement {
         this.removeChild(name);
     }
 
-
     manageDisplayButton() {
         if (this.typeEditMode === 'INIT') {
-            document.getElementById("btnAddingNewLine").style.display = 'none';
-            document.getElementById("btnDeletingNewLine").style.display = 'none';
-            document.getElementById("btnAddNewSubField").style.display = 'none';
-            document.getElementById("btnDelNewSubField").style.display = 'none';
-            document.getElementById("btnSaveRecord").style.display = 'none';
-            document.getElementById("btnCreateNewRecord").style.display = 'inline';
-            document.getElementById("btnCloneRecord").style.display = 'none';
-            document.getElementById("btnEditRecord").style.display = 'none';
-            document.getElementById("btnUpdateRecord").style.display = 'none';
-            document.getElementById("divRecordType").style.display = 'none';
+            if (document.getElementById("btnAddingNewLine")) document.getElementById("btnAddingNewLine").style.display = 'none';
+            if (document.getElementById("btnDeletingNewLine")) document.getElementById("btnDeletingNewLine").style.display = 'none';
+            if (document.getElementById("btnAddNewSubField")) document.getElementById("btnAddNewSubField").style.display = 'none';
+            if (document.getElementById("btnDelNewSubField")) document.getElementById("btnDelNewSubField").style.display = 'none';
+            if (document.getElementById("btnSaveRecord")) document.getElementById("btnSaveRecord").style.display = 'none';
+            if (document.getElementById("btnCreateNewRecord")) document.getElementById("btnCreateNewRecord").style.display = 'inline';
+            if (document.getElementById("btnCloneRecord")) document.getElementById("btnCloneRecord").style.display = 'none';
+            if (document.getElementById("btnEditRecord")) document.getElementById("btnEditRecord").style.display = 'inline';
+            if (document.getElementById("btnUpdateRecord")) document.getElementById("btnUpdateRecord").style.display = 'none';
+            if (document.getElementById("divRecordType")) document.getElementById("divRecordType").style.display = 'none';
 
         }
 
         if (this.typeEditMode === 'TAGRECORD') {
-            document.getElementById("btnAddingNewLine").style.display = 'none';
-            document.getElementById("btnDeletingNewLine").style.display = 'none';
-            document.getElementById("btnAddNewSubField").style.display = 'inline';
-            document.getElementById("btnDelNewSubField").style.display = 'inline';
-            document.getElementById("btnSaveRecord").style.display = 'none';
-            document.getElementById("btnCreateNewRecord").style.display = 'none';
-            document.getElementById("btnCloneRecord").style.display = 'none';
-            document.getElementById("btnEditRecord").style.display = 'none';
-            document.getElementById("btnUpdateRecord").style.display = 'inline';
+            if (document.getElementById("btnAddingNewLine"))document.getElementById("btnAddingNewLine").style.display = 'none';
+            if (document.getElementById("btnDeletingNewLine"))document.getElementById("btnDeletingNewLine").style.display = 'none';
+            if (document.getElementById("btnAddNewSubField"))document.getElementById("btnAddNewSubField").style.display = 'inline';
+            if (document.getElementById("btnDelNewSubField"))document.getElementById("btnDelNewSubField").style.display = 'inline';
+            if (document.getElementById("btnSaveRecord"))document.getElementById("btnSaveRecord").style.display = 'none';
+            if (document.getElementById("btnCreateNewRecord"))document.getElementById("btnCreateNewRecord").style.display = 'none';
+            if (document.getElementById("btnCloneRecord"))document.getElementById("btnCloneRecord").style.display = 'none';
+            if (document.getElementById("btnEditRecord"))document.getElementById("btnEditRecord").style.display = 'none';
+            if (document.getElementById("btnUpdateRecord"))document.getElementById("btnUpdateRecord").style.display = 'inline';
         }
 
         if (this.typeEditMode === 'FULLRECORD') {
-            document.getElementById("btnAddingNewLine").style.display = 'inline';
-            document.getElementById("btnDeletingNewLine").style.display = 'inline';
-            document.getElementById("btnAddNewSubField").style.display = 'inline';
-            document.getElementById("btnDelNewSubField").style.display = 'inline';
-            document.getElementById("btnSaveRecord").style.display = 'none';
-            document.getElementById("btnCreateNewRecord").style.display = 'none';
-            document.getElementById("btnCloneRecord").style.display = 'inline';
-            document.getElementById("btnEditRecord").style.display = 'none';
-            document.getElementById("btnUpdateRecord").style.display = 'inline';
-            if (document.getElementById("divDetail")) {
-                document.getElementById("divDetail").style.display = 'inline';
-            }
+            if (document.getElementById("btnAddingNewLine"))document.getElementById("btnAddingNewLine").style.display = 'inline';
+            if (document.getElementById("btnDeletingNewLine"))document.getElementById("btnDeletingNewLine").style.display = 'inline';
+            if (document.getElementById("btnAddNewSubField"))document.getElementById("btnAddNewSubField").style.display = 'inline';
+            if (document.getElementById("btnDelNewSubField"))document.getElementById("btnDelNewSubField").style.display = 'inline';
+            if (document.getElementById("btnSaveRecord"))document.getElementById("btnSaveRecord").style.display = 'none';
+            if (document.getElementById("btnCreateNewRecord"))document.getElementById("btnCreateNewRecord").style.display = 'none';
+            if (document.getElementById("btnCloneRecord"))document.getElementById("btnCloneRecord").style.display = 'inline';
+            if (document.getElementById("btnEditRecord"))document.getElementById("btnEditRecord").style.display = 'none';
+            if (document.getElementById("btnUpdateRecord"))document.getElementById("btnUpdateRecord").style.display = 'inline';
+            if (document.getElementById("divDetail")) document.getElementById("divDetail").style.display = 'inline';
         }
 
         if (this.typeEditMode === 'CREATERECORD') {
-            document.getElementById("btnAddingNewLine").style.display = 'inline';
-            document.getElementById("btnDeletingNewLine").style.display = 'inline';
-            document.getElementById("btnAddNewSubField").style.display = 'inline';
-            document.getElementById("btnDelNewSubField").style.display = 'inline';
-            document.getElementById("btnSaveRecord").style.display = 'inline';
-            document.getElementById("btnCreateNewRecord").style.display = 'none';
-            document.getElementById("btnCloneRecord").style.display = 'none';
-            document.getElementById("btnEditRecord").style.display = 'none';
-            document.getElementById("btnUpdateRecord").style.display = 'none';
-            if (document.getElementById("divDetail")) {
-                document.getElementById("divDetail").style.display = 'none';
-            }
-            document.getElementById("divRecordType").style.display = 'inline';
+            if (document.getElementById("btnAddingNewLine"))document.getElementById("btnAddingNewLine").style.display = 'inline';
+            if (document.getElementById("btnDeletingNewLine"))document.getElementById("btnDeletingNewLine").style.display = 'inline';
+            if (document.getElementById("btnAddNewSubField"))document.getElementById("btnAddNewSubField").style.display = 'inline';
+            if (document.getElementById("btnDelNewSubField"))document.getElementById("btnDelNewSubField").style.display = 'inline';
+            if (document.getElementById("btnSaveRecord"))document.getElementById("btnSaveRecord").style.display = 'inline';
+            if (document.getElementById("btnCreateNewRecord"))document.getElementById("btnCreateNewRecord").style.display = 'none';
+            if (document.getElementById("btnCloneRecord"))document.getElementById("btnCloneRecord").style.display = 'none';
+            if (document.getElementById("btnEditRecord"))document.getElementById("btnEditRecord").style.display = 'none';
+            if (document.getElementById("btnUpdateRecord"))document.getElementById("btnUpdateRecord").style.display = 'none';
+            if (document.getElementById("divDetail")) document.getElementById("divDetail").style.display = 'none';
+            if (document.getElementById("divRecordType"))document.getElementById("divRecordType").style.display = 'inline';
         }
     }
 
@@ -308,7 +333,8 @@ class MarcRecord extends HTMLElement {
 
         //--->create data table > start
         var tbl = '';
-        tbl += '<table id="tableNewRecord" class="table table-hover">'
+        //table-responsive table-sm
+        tbl += '<table id="tableNewRecord" class="table table-hover table-responsive">'
 
         //--->create table header > start
         tbl += '<thead>';
@@ -318,6 +344,7 @@ class MarcRecord extends HTMLElement {
         tbl += '<th><span class="badge badge-secondary">IND1 </span></th>';
         tbl += '<th><span class="badge badge-secondary">IND2 </span></th>';
         tbl += '<th><span class="badge badge-secondary">VALUE</span></th>';
+        tbl += '<th><span class="badge badge-secondary">XREF</span></th>';
         tbl += '</tr>';
         tbl += '</thead>';
 
@@ -332,11 +359,12 @@ class MarcRecord extends HTMLElement {
         // creation of the header of the table
 
         tbl += '<tr id="' + row_id + '">';
-        tbl += '<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div></td>';
-        tbl += '<td ><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
-        tbl += '<td ><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-        tbl += '<td ><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-        tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
+        tbl += '<td><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div></td>';
+        tbl += '<td><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
+        tbl += '<td><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
+        tbl += '<td><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
+        tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="25" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
+        tbl += '<td><div id="divXref' + row_id + '" ><div><input size="8" id="inputXref' + row_id + '" type="text" placeholder="xref"></div></div></td>';
 
         // end of the line
 
@@ -364,15 +392,6 @@ class MarcRecord extends HTMLElement {
             //this.removeDiv(divContent);
             divContent.innerHTML = " ";
         }
-        //divContent.className="table-responsive";
-
-
-        // check if the div detail is already created 
-        // let divDetail = document.getElementById("divDetail");
-        // if (divDetail !== null) {
-        //this.removeDiv(divDetail);
-        //    divDetail.innerHTML = " ";
-        //}
 
         // check if the div newRecord is already created 
         let divNewRecord = document.getElementById("divNewRecord");
@@ -381,7 +400,6 @@ class MarcRecord extends HTMLElement {
             divNewRecord.innerHTML = " ";
             //this.removeDiv(divNewRecord);
         }
-        //divNewRecord.className="table-responsive";
 
         // create the div for the data
         if (divNewRecord === null) {
@@ -416,11 +434,13 @@ class MarcRecord extends HTMLElement {
             let cell2 = NewRow.insertCell(2);
             let cell3 = NewRow.insertCell(3);
             let cell4 = NewRow.insertCell(4);
+            let cell5 = NewRow.insertCell(5);
             cell0.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div>';
             cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text" min="001" max="999" placeholder="Tag" maxlength="3" size="3"></div>';
             cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
             cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
-            cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
+            cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="25" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
+            cell5.innerHTML = '<div id="divXref' + row_id + '" ><div><input size="8" id="inputXref' + row_id + '" type="text" placeholder="xref"></div></div>';
             this.updateNumberOfLineRecord();
         } else {
             alert("Please create a new record first!!!");
@@ -456,17 +476,23 @@ class MarcRecord extends HTMLElement {
                 if (myCheckbox[i].checked) {
                     checkButton = true;
                     let row = myCheckbox[i].parentNode.parentNode.parentNode;
+                    
                     let myId = "divData" + row.rowIndex;
                     let myTd = document.getElementById(myId);
-                    //myTd.insertAdjacentHTML('beforeend','<div style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><select class="mr-2" id="code'+ row.rowIndex +' "><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option></select><input size="80" id="value'+ row.rowIndex +' " type="text" placeholder="Value"></div>');    
-                    myTd.insertAdjacentHTML('beforeend', '<div><select class="mr-2"><option value=" "> </option><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="80" type="text" placeholder="Value"></div>');
+                    myTd.insertAdjacentHTML('beforeend', '<div><select class="mr-2"><option value=" "> </option><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="xref">xref</option></select><input size="25" type="text" placeholder="Value"></div>');
+
+                    // Management of the xref
+                    let myXref="divXref" + row.rowIndex;
+                    let myTdXref=document.getElementById(myXref);
+                    myTdXref.insertAdjacentHTML('beforeend', '<div><input size="8" type="text" placeholder="xref"></div>');
+
                 }
             }
             if (checkButton == false) {
-                alert("Please check a tag first!!!");
+                divMailHeader.innerHTML ="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Please check a tag first!!!</div>";
             }
         } else {
-            alert("Please create a new the record first or Edit an old record!!!");
+            divMailHeader.innerHTML ="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Please create a new the record first or Edit an old record!!!</div>";
         }
     }
 
@@ -485,10 +511,19 @@ class MarcRecord extends HTMLElement {
                 if (myCheckbox[i].checked) {
                     let row = myCheckbox[i].parentNode.parentNode.parentNode;
                     let myId = "divData" + row.rowIndex;
+                    let myIdXref= "divXref" + row.rowIndex;
                     let myTd = document.getElementById(myId);
+                    let myTdXref = document.getElementById(myIdXref);
 
                     if (myTd.childElementCount > 1) {
                         myTd.removeChild(myTd.lastElementChild);
+                    }else {
+                        divMailHeader.innerHTML ="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Impossible to remove this line!!!</div>";
+                    }
+                    if (myTdXref.childElementCount > 1) {
+                        myTdXref.removeChild(myTdXref.lastElementChild);
+                    }else {
+                        divMailHeader.innerHTML ="<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Impossible to remove this line!!!</div>"
                     }
                 }
             }
@@ -709,6 +744,9 @@ class MarcRecord extends HTMLElement {
 
                 let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
 
+                // Retrieving xref data
+                let myXrefData = document.getElementById("divXref" + i).getElementsByTagName("INPUT");
+
                 let lenMyData = myData.length;
 
                 for (var j = 0; j < lenMyData; j++) {
@@ -719,6 +757,10 @@ class MarcRecord extends HTMLElement {
 
                     // Retrieving the value
                     subfield["value"] = myData[j].getElementsByTagName("INPUT")[0].value.trimEnd();
+
+                    if (myXrefData[j].value){
+                        subfield["xref"] = parseInt(myXrefData[j].value);
+                    }
 
                     // Inserting the value in the subfields arrays
                     subfields.push(subfield);
@@ -758,19 +800,25 @@ class MarcRecord extends HTMLElement {
         // Display the json generated
         console.log(data)
 
+        // update
         if (type === 1) {
             //  update the Data
             this.updateFullRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data);
-        } else {
+        } 
+        
+        // create
+        if (type === 0) { 
             //  save the data
             typeRecord = document.getElementById("selectTypeRecord").value;
             this.createRecord(this.prefixUrl + typeRecord, data)
         }
 
-        //  Cleaning global variables
-        //this.typeEditMode = "INIT"
-        // this.typeRecordToUpdate = "";
-        // this.idToUpdate = "";
+        // clone
+        if (type === 2) { 
+            //  save the data
+            typeRecord = this.recordType ;
+            this.cloneRecord(this.prefixUrl + typeRecord, data)
+        }
     }
 
     // Update at the Full Record level
@@ -962,24 +1010,49 @@ class MarcRecord extends HTMLElement {
                 // Retrieving Subfield data
                 let myData = document.getElementById("divData" + i).getElementsByTagName("DIV");
 
+                // Retrieving xref data
+                let myXrefData = document.getElementById("divXref" + i).getElementsByTagName("INPUT");
+
                 let lenMyData = myData.length;
 
                 let mySubField = "";
 
                 for (var j = 0; j < lenMyData; j++) {
-                    let myCode = myData[j].getElementsByTagName("SELECT")[0].value;
+                    // Code management
+                    let myCode = myData[j].getElementsByTagName("SELECT")[0].value.trimEnd();
                     console.log("le code est  :" + myCode)
 
-                    let myValue = myData[j].getElementsByTagName("INPUT")[0].value;
+                    // Value management
+                    let myValue = myData[j].getElementsByTagName("INPUT")[0].value.trimEnd();
                     console.log("la valeur est  :" + myValue)
+
+                    // xref management
+                    let myXref=0;
+                    if (parseInt(myXrefData[j].value.trimEnd(),10)>0){
+                       myXref = parseInt(myXrefData[j].value.trimEnd(),10);
+                    }
+                     
+                    console.log("la valeur est  :" + myXref)
 
 
                     // Definition of the dict to store the subfields
-                    if (j === (lenMyData - 1)) {
-                        //myListOfSubField = myListOfSubField +`{"code": "${myCode}","value": "${myValue}"}` ;
-                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
-                    } else {
-                        myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+
+                    // xref
+                    if (myXref!==0){
+                        if (j === (lenMyData - 1)) {
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}","xref": ${myXref}}`;
+                        } else {
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}","xref": ${myXref}}` + ",";
+                        }
+                    }
+
+                    // no xref
+                    if (myXref===0){
+                        if (j === (lenMyData - 1)) {
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}`;
+                        } else {
+                            myListOfSubField = myListOfSubField + `{"code": "${myCode}","value": "${myValue}"}` + ",";
+                        }
                     }
 
                 }
@@ -989,6 +1062,7 @@ class MarcRecord extends HTMLElement {
 
 
                 if (i === (totalRow.length - 1)) {
+                    console.log("Inside")
                     //mySpecialRecord = mySpecialRecord + `"${myTag}":[{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}]}";
                     mySpecialRecord = mySpecialRecord + `{"indicators":["${myInd1}","${myInd2}"],"subfields": ${myListOfSubField}` + "}";
 
@@ -1264,7 +1338,6 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call the new url
             btnSaveRecord.addEventListener("click", () => {
-                //this.generateDataToSave();
                 this.generateDataFullRecordToUpdateNewVersion(0);
                 this.typeEditMode = "INIT";
             });
@@ -1316,7 +1389,8 @@ class MarcRecord extends HTMLElement {
 
             // adding the logic to call to clone a record
             btnCloneRecord.addEventListener("click", () => {
-                this.generateDataToSave();
+                this.generateDataFullRecordToUpdateNewVersion(2);
+                this.typeEditMode = "INIT";
             });
 
             // Adding the dropdown list to define the type of record
@@ -1420,36 +1494,59 @@ class MarcRecord extends HTMLElement {
                             for (let y = 0; y < (recupSubFieldValues.length - 1); y++) {
                                 let myCode = "";
                                 let myValue = "";
+                                let myXref=0
 
                                 //console.log("la valeur de y est : " + y)
                                 if (y === 0) {
                                     myCode = document.getElementById("code" + myLine);
                                     myCode.value = recupSubFieldValues[y].charAt(1).trim();
-                                    myValue = document.getElementById("value" + myLine);
-                                    myValue.value = recupSubFieldValues[y].substring(2).trim();
+
+                                    // xref Management if there is a value
+                                    if (recupSubFieldValues[y].includes("@@@")) {
+                                        
+                                        let dataX=recupSubFieldValues[y].substring(2).split("@@@");
+                                        myValue = document.getElementById("value" + myLine);
+                                        myValue.value = dataX[0].trim();
+                                        myXref = document.getElementById("inputXref" + myLine);
+                                        myXref.value = parseInt(dataX[1].trim());
+                                    } else{
+                                        myValue = document.getElementById("value" + myLine);
+                                        myValue.value =recupSubFieldValues[y].substring(2).trim();
+                                    }
+                                    
                                 } else {
 
                                     //console.log("la valeur de myBox est : "+ myBox.value)
                                     myBox.checked = true;
                                     this.addNewSubFieldLine();
 
-
-                                    //console.log("la valeur a afficher est : "+ recupSubFieldValues[y])
                                     let recupSubFieldValues1 = recupSubFieldValues[y].split("   ");
 
                                     myCode = document.getElementById("divData" + i).lastChild.getElementsByTagName("SELECT")[0];
-                                    myCode.value = recupSubFieldValues1[0].charAt(1).trim();
-                                    //console.log("la valeur du code est : "+ recupSubFieldValues1[0].charAt(1).trim())
+                                    myCode.value = recupSubFieldValues1[0].charAt(1).trim();            
 
                                     myValue = document.getElementById("divData" + i).lastChild.getElementsByTagName("INPUT")[0];
-                                    myValue.value = recupSubFieldValues1[1].trim();
-                                    //console.log("la valeur est "+ recupSubFieldValues1[1])
+                                   
+         
+                                    ///////////////////////////////////////////////////////////////////////
+                                    // xref Management if there is a value
+                                    ///////////////////////////////////////////////////////////////////////
 
+                                    if (recupSubFieldValues1.includes("@@@")) {
+                                        
+                                        let dataX=recupSubFieldValues1[y].substring(2).split("@@@");
+                                        myValue.value = dataX[0].trim();
+                                        myXref = document.getElementById("divXref"+ i).lastChild.getElementsByTagName("INPUT")[0];
+                                        myXref.value = parseInt(dataX[1].trim());
+                                    } else {
+                                        myValue.value = recupSubFieldValues1[1].trim();
+                                    }
+                                    ///////////////////////////////////////////////////////////////////////
 
                                     myBox.checked = false;
 
                                 }
-                                //     myLine++;
+
                             }
 
                         }
@@ -1505,9 +1602,11 @@ class MarcRecord extends HTMLElement {
             let myIND1 = document.getElementById("ind1Col1");
             let myIND2 = document.getElementById("ind2Col1");
 
+
             myTag.value = recupValue[1];
             myIND1.value = recupValue[2];
             myIND2.value = recupValue[3];
+
 
             // Management of the subfield
             const recupSubFieldValues = recupValue[4].split("|")
@@ -1532,6 +1631,7 @@ class MarcRecord extends HTMLElement {
                     myValue.value = recupSubFieldValues[i].substring(2).trim();
 
                 }
+                //let myXref= document.getElementById("xref" + myLine).value;
                 myLine++;
             }
 
@@ -1546,6 +1646,7 @@ class MarcRecord extends HTMLElement {
     // function generating the record with the value from the API
     displayDataFromApi(myDataList, myDataSize, myData) {
 
+
         // check if the record is already displayed
         let divNewRecord = document.getElementById("divNewRecord");
         if (divNewRecord !== null) {
@@ -1555,10 +1656,6 @@ class MarcRecord extends HTMLElement {
         if (divRecordType !== null) {
             divRecordType.innerHTML = " ";
         }
-
-        // check if the record is already displayed
-        //if (this.recordNumber!==myData["_id"]){
-        //if (true){
 
         // loop to display the values
         let md = myDataList.sort();
@@ -1690,6 +1787,8 @@ class MarcRecord extends HTMLElement {
         let th3 = document.createElement("TH");
         let th4 = document.createElement("TH");
         let th5 = document.createElement("TH");
+        //let th6 = document.createElement("TH");
+
 
         // add the tags to the parent
 
@@ -1698,13 +1797,14 @@ class MarcRecord extends HTMLElement {
         tr.appendChild(th3);
         tr.appendChild(th4);
         tr.appendChild(th5);
+        //tr.appendChild(th6);
 
         thead.appendChild(tr);
         table.appendChild(thead);
 
         // some styling for the header
         thead.className = "thead-light";
-        table.className = "table-sm";
+        table.className = "table-sm table-responsive ";
         table.id = "tableData"
 
         // add the values of the columns
@@ -1715,7 +1815,7 @@ class MarcRecord extends HTMLElement {
         if (this.myToken) {
             th5.innerHTML = "<span class='badge badge-secondary dataProvider'> EDIT </span>";
         }
-
+        //76th6.innerHTML = "<span class='badge badge-secondary'> XREF </span>";
         divContent.appendChild(table);
         this.appendChild(divContent);
         this.appendChild(divDetail);
@@ -1774,6 +1874,7 @@ class MarcRecord extends HTMLElement {
 
                             // inserting the values in an array
                             const recupValue = myData.split("//")
+                            console.log(recupValue)
 
                             this.tagRecordToUpdate = recupValue[1];
                             this.indexRecordToUpdate = recupValue[5];
@@ -1785,11 +1886,13 @@ class MarcRecord extends HTMLElement {
                             let myCode = document.getElementById("code1");
                             let myValue = document.getElementById("value1");
 
+
                             myTag.value = recupValue[1];
                             myIND1.value = recupValue[2];
                             myIND2.value = recupValue[3];
                             myCode.value = 'N/A';
                             myValue.value = recupValue[4];
+
 
                         });
 
@@ -1822,7 +1925,7 @@ class MarcRecord extends HTMLElement {
                     let th3 = document.createElement("TH");
                     let th4 = document.createElement("TH");
                     let th5 = document.createElement("TH");
-
+  
 
                     let val1 = (myData[myDataList[i]][j]["indicators"][0] !== " ") ? myData[myDataList[i]][j]["indicators"][0] : " _ ";
                     let val2 = (myData[myDataList[i]][j]["indicators"][1] !== " ") ? myData[myDataList[i]][j]["indicators"][1] : " _ ";
@@ -1836,18 +1939,21 @@ class MarcRecord extends HTMLElement {
 
                     for (let k = 0; k < numberSubfield; k++) {
                         // loop for the subfields
-                        // Management of the xref
-                        if (myData[myDataList[i]][j]["subfields"][k]["value"]) {
-                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["value"] + " |";
-                        } else {
-                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["xref"] + " |";
+                        
+                        if (myData[myDataList[i]][j]["subfields"][k]["xref"]) {           
+                            //th6.innerHTML +="<span class='text-success'>@" + myData[myDataList[i]][j]["subfields"][k]["xref"];+ " </span> "
+                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["value"] + "  <span class='text-success'>@@@" + myData[myDataList[i]][j]["subfields"][k]["xref"] + " </span> "+ "|";
                         }
+                        else{
+                            th4.innerHTML += "<span class='text-primary'>$" + myData[myDataList[i]][j]["subfields"][k]["code"] + " </span> " + " " + myData[myDataList[i]][j]["subfields"][k]["value"] + " |";
+                        }
+
                     }
 
                     if (this.myToken) {
 
                         // building a string with the information about the TAG Line
-                        th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i></span></span>";
+                        th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i> </span></span>";
                         th5.addEventListener("click", () => {
 
                             // Edit the value of the edit mode
@@ -1865,9 +1971,6 @@ class MarcRecord extends HTMLElement {
                                 const yls = row.rowIndex;
                                 const myData = document.getElementsByClassName("dataProvider")[yls].id;
 
-                                // starting the edit mode
-                                //this.editMode = "True";
-                                //this.typeEditMode="TAGMODE"
                                 // check if the divNewRecord is already displayed
                                 const myDiv = document.getElementById("divNewRecord");
                                 if (myDiv) {
@@ -1895,27 +1998,52 @@ class MarcRecord extends HTMLElement {
 
                                 // Management of the subfield
                                 const recupSubFieldValues = recupValue[4].split("|")
-                                    // console.log(recupSubFieldValues)
-                                    // console.log(recupSubFieldValues.length)
+                                console.log(recupSubFieldValues)
+                                
                                 let myLine = 1;
                                 const myBox = document.getElementById("checkboxCol1");
 
                                 for (let i = 0; i < (recupSubFieldValues.length - 1); i++) {
                                     let myCode = "";
                                     let myValue = "";
+                                    let myXref =0;
 
                                     if (i === 0) {
                                         myCode = document.getElementById("code" + myLine);
                                         myCode.value = recupSubFieldValues[i].charAt(1).trim();
-                                        myValue = document.getElementById("value" + myLine);
-                                        myValue.value = recupSubFieldValues[i].substring(2).trim();
+
+                                        // xref Management if there is a value
+                                        if (recupSubFieldValues[i].includes("@@@")) {
+                                            
+                                            let dataX=recupSubFieldValues[i].substring(2).split("@@@");
+                                            myValue = document.getElementById("value" + myLine);
+                                            myValue.value = dataX[0].trim();
+                                            myXref = document.getElementById("inputXref" + myLine);
+                                            myXref.value = parseInt(dataX[1].trim());
+                                        } else{
+                                            myValue = document.getElementById("value" + myLine);
+                                            myValue.value =recupSubFieldValues[i].substring(2).trim();
+                                        }
+                                   
                                     } else {
+                                       
                                         myBox.checked = true;
                                         this.addNewSubFieldLine();
+                                        
                                         myCode = document.getElementById("divData1").lastChild.getElementsByTagName("SELECT")[0];
                                         myCode.value = recupSubFieldValues[i].charAt(1).trim();
+                                        
                                         myValue = document.getElementById("divData1").lastChild.getElementsByTagName("INPUT")[0];
-                                        myValue.value = recupSubFieldValues[i].substring(2).trim();
+                                        // xref Management if there is a value
+                                        if (recupSubFieldValues.includes("@@@")) {
+                                            
+                                            let dataX=recupSubFieldValues[i].substring(2).split("@@@");
+                                            myValue.value = dataX[0].trim();
+                                            myXref = document.getElementById("divXref1").lastChild.getElementsByTagName("INPUT")[0];
+                                            myXref.value = parseInt(dataX[1].trim());
+                                        } else {
+                                            myValue.value=recupSubFieldValues[i].substring(2).trim();
+                                        }
 
                                     }
                                     myLine++;
@@ -1934,6 +2062,7 @@ class MarcRecord extends HTMLElement {
                     tr.appendChild(th3);
                     tr.appendChild(th4);
                     tr.appendChild(th5);
+                    //tr.appendChild(th6);
                     thead.appendChild(tr);
 
                 }
@@ -1948,11 +2077,8 @@ class MarcRecord extends HTMLElement {
     // Main features
     connectedCallback() {
         this.typeEditMode = "INIT";
-        // Call the function
         this.createhiddenModalForm();
         this.createHeaderComponent();
-        //this.createFileModalForm();
-        //this.createScript();
         if (this.getUrlAPI()) {
             this.getDataFromApi(this.getUrlAPI());
             this.getRecordType(this.getUrlAPI());
