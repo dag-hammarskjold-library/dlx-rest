@@ -71,8 +71,10 @@ class MarcRecord extends HTMLElement {
             let results = json["result"];
             divMailHeader.innerHTML = "";
             this.displayRecord = true
+
             this.typeEditMode = "INIT"
             this.manageDisplayButton();
+
             this.displayDataFromApi(resultsList, resultsSize, results);
         } else {
             return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong, HTTP-Error number : " + response.status + "</div>";
@@ -149,7 +151,6 @@ class MarcRecord extends HTMLElement {
 
         this.typeEditMode='CREATERECORD';
         this.manageDisplayButton(); 
-    }
 
     async cloneRecord(url, data) {
         //async createRecord(url){
@@ -184,6 +185,7 @@ class MarcRecord extends HTMLElement {
 
         this.typeEditMode='CREATERECORD';
         this.manageDisplayButton(); 
+
     }
 
     // update at the record level
@@ -245,6 +247,7 @@ class MarcRecord extends HTMLElement {
                 this.manageDisplayButton(); 
                 this.indexRecord="";
                 divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record updated at the TAG level!</div>";
+
             }
             if(!response.ok){
                 response.json()
@@ -262,6 +265,7 @@ class MarcRecord extends HTMLElement {
             this.indexRecord="";
             divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong: " + error.message + "</div>";
         })
+
 
 
     }
