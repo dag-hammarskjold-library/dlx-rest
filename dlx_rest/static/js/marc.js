@@ -134,6 +134,7 @@ class MarcRecord extends HTMLElement {
 
         this.typeEditMode = 'CREATERECORD';
         this.manageDisplayButton();
+    }
 
         async cloneRecord(url, data) {
             //async createRecord(url){
