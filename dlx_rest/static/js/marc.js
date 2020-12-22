@@ -7,8 +7,7 @@ class MarcRecord extends HTMLElement {
         super();
 
         // Definition of the id of the component
-        this.loggedIn = this.getAttribute('token');
-        console.log(this.loggedIn);
+        this.token = this.getAttribute('token');
         if (this.token == "True") {
             this.loggedIn = true;
         }
