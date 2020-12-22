@@ -7,7 +7,13 @@ class MarcRecord extends HTMLElement {
         super();
 
         // Definition of the id of the component
-        this.loggedIn = this.getAttribute('token') ? true : false
+        this.token = this.getAttribute('token') ? "True" : "False"
+        if (this.token == "True") {
+            this.loggedIn = true;
+        }
+        else {
+            this.loggedIn = false;
+        }
         this.heigth = "1000px";
         this.width = "1500px";
         this.id = "marc-record";
@@ -134,6 +140,7 @@ class MarcRecord extends HTMLElement {
 
         this.typeEditMode = 'CREATERECORD';
         this.manageDisplayButton();
+    }
 
         async cloneRecord(url, data) {
             //async createRecord(url){
