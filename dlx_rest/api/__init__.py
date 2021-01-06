@@ -859,7 +859,7 @@ class Record(Resource):
         else:
             abort(500)
             
-###
+### auth lookup
 
 @ns.route('/<string:collection>/lookup/<string:field_tag>/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code of the value to look up')
@@ -880,3 +880,38 @@ class Lookup(Resource):
         else:
             abort(404, '?search=<string> required')
             
+### templates
+
+@ns.route('/<string:collection>/templates')
+@ns.param('collection', '"bibs" or "auths"')
+class TemplatesList(Resource):
+    @ns.doc(description='Return a list of teamplates for the given collection')
+    
+    def get(self, collection):
+        # interim implementation
+        template_collection = DB.handle[f'{collection}_templates']
+        templates = DB.template_collection.find({})
+    
+        return ListResponse(
+            'api_templates_list',
+            payload=[URL('api_template', t) for t in templates]
+        )
+        
+    def post():
+        pass
+
+@ns.route('/<string:collection>/templates/<string:template_name>')
+@ns.param('collection', '"bibs" or "auths"')
+@ns.param('collection', 'The name of the template')
+class Template(Resource):
+    @ns.doc(description='Return the the template with the given name for the given collection')
+    
+    def get(self, collection, template_name):
+        # interim implementation
+        template_collection = DB.handle[f'{collection}_templates']
+        record = template_collection.find_one({'name': template_name})
+    
+        return RecordResponse('api_template', record)
+    
+    def put():
+        pass
