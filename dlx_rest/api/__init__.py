@@ -10,6 +10,7 @@ from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
+from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
@@ -31,9 +32,9 @@ ns = api.namespace('api', description='DLX MARC REST API')
 list_argparser = reqparse.RequestParser()
 list_argparser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
 list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
-list_argparser.add_argument('sort', type=str, help='Valid strings are "date"')
+list_argparser.add_argument('sort', type=str, help='Valid strings are "updated"')
 list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
-list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk"')
+list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk", "brief"')
 list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
 
 resource_argparser = reqparse.RequestParser()
@@ -103,29 +104,52 @@ class ClassDispatch():
         return cls.batch_index.get(name)
 
 class ListResponse():
-    def __init__(self, endpoint, items, **kwargs):
+    def __init__(self, endpoint, *, payload, **kwargs):
+        self.items = payload
+        self.collection = kwargs.get('collection')
         self.url = URL(endpoint, **kwargs).to_str()
         self.start = kwargs.pop('start', 0)
         self.limit = kwargs.pop('limit', 0)
-        self.items = items
+        self.next = URL(endpoint, start=self.start + self.limit, limit=self.limit, **kwargs).to_str()
+        
+        if self.start - self.limit > 0:
+            next_start = self.start - self.limit
+        else:
+            next_start = 1
+            
+        if self.start > 1:
+            self.prev = URL(endpoint, start=next_start, limit=self.limit, **kwargs).to_str()
 
     def json(self):
         data = {
-            '_links': {'self': self.url},
-            'start': self.start,
-            'limit': self.limit,
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
             'results': self.items
         }
 
         return jsonify(data)
 
-class BatchResponse():
-    def __init__(self, records):
-        assert isinstance(records, MarcSet)
-        self.records = records
+class BatchResponse(ListResponse):
+    def __init__(self, endpoint, *, payload, **kwargs):
+        assert isinstance(payload, MarcSet)
+        self.records = payload
+        
+        super().__init__(endpoint, payload=payload, **kwargs)
         
     def json(self):
-        return jsonify([r.to_dict() for r in self.records])
+        data = {
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
+            'results': [r.to_dict() for r in self.records]
+        }
+        
+        return jsonify(data)
     
     def xml(self):
         return Response(self.records.to_xml(), mimetype='text/xml')
@@ -138,6 +162,51 @@ class BatchResponse():
     
     def txt(self):
         return Response(self.records.to_str(), mimetype='text/plain')
+    
+    def brief(self):
+        def brief_bib(record):
+            ctypes = ['::'.join(field.get_values('a', 'b', 'c')) for field in record.get_fields('989')]
+            
+            if record.get_value('245', 'a'):    
+                head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
+            else:    
+                head, member = record.get_value('700', 'a'), record.get_value('710', 'a')
+
+                if member:
+                    head += f' ({member})'
+
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
+                'title': head or '[No Title]',
+                'date': record.get_value('269', 'a'),
+                'types': '; '.join(ctypes)
+            }
+            
+        def brief_auth(record):
+            digits = record.heading_field.tag[1:3]
+            alt_tag = '4' + digits
+            
+            return {
+                '_id': record.id,
+                'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
+                'heading': record.heading_value('a'),
+                'alt': '; '.join(record.get_values(alt_tag, 'a'))
+            }
+            
+        make_brief = brief_bib if self.records.record_class == Bib else brief_auth
+            
+        data = {
+            '_links': {
+                'self': self.url,
+                'next': self.next,
+                'prev': getattr(self, 'prev', url_for('api_collections_list', _external=True))
+            },
+            'results': [make_brief(r) for r in self.records]
+        }
+        
+        return jsonify(data)
         
 class FieldResponse():
     def __init__(self, endpoint, field, **kwargs):
@@ -162,9 +231,27 @@ class RecordResponse():
         self.url = URL(endpoint, **kwargs).to_str()
 
     def json(self):
+        files = []
+        
+        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
+            f = File.latest_by_identifier_language(
+                Identifier('symbol', self.record.get_value('191', 'a') or self.record.get_value('791', 'a')), 
+                lang
+            )
+            
+            if f:
+                files.append(
+                    {
+                        'mimetype': f.mimetype,
+                        'language': lang.lower(),
+                        'url': 'https://' + f.uri
+                    }
+                )
+        
         data = {
             '_links': {'self': self.url},
-            'result': self.record.to_dict()
+            'result': self.record.to_dict(),
+            'files': files
         }
 
         return jsonify(data)
@@ -230,7 +317,7 @@ class CollectionsList(Resource):
 
         response = ListResponse(
             'api_collections_list',
-            results
+            payload=results
         )
 
         return response.json()
@@ -243,11 +330,7 @@ class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(list_argparser)
     def get(self, collection):
-        try:
-            cls = ClassDispatch.batch_by_collection(collection)
-        except KeyError:
-            abort(404)
-
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = list_argparser.parse_args()
         search = args['search']
         start = args['start'] or 0
@@ -256,44 +339,65 @@ class RecordsList(Resource):
         direction = args['direction'] or ''
         fmt = args['format'] or ''
         
+        # search
         if search:
-            search = unquote(search)                
-            
-            try:
-                load_json(search)
-            except:
-                abort(400, 'Search string is invalid JSON')
+            search = unquote(search)
                 
-            query = Query.from_string(search)
-        else:
-            query = {}
-
-        if sort_by == 'date':
+        query = Query.from_string(search) if search else {}
+        
+        # start
+        if start:
+            start -= 1
+            
+        if int(limit) > 1000:
+            abort(404, 'Maximum limit is 1000')
+            
+        # sort
+        if sort_by == 'updated':
             sort = [('updated', ASC)] if direction.lower() == 'asc' else [('updated', DESC)]
         else:
             sort = None
         
-        project = None if fmt else {'_id': 1}
+        # format
+        if fmt == 'brief':
+            if collection == 'bibs':
+                project = dict.fromkeys(('191', '245', '269', '700', '710', '791', '989'), True)
+            elif collection == 'auths':
+                project = dict.fromkeys(
+                    ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491'),
+                    True
+                )
+        elif fmt:
+            project = None
+        else:
+            project = {'_id': 1}
+
+        ###
         
-        rset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
+        recordset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
         
+        ###
+        
+        kwargs = {
+            'collection': collection,
+            'start': start + 1,
+            'limit': limit,
+            'sort': sort_by,
+            'format': fmt
+        } 
+            
         if fmt:
-            return getattr(BatchResponse(rset), fmt)()
+            response = BatchResponse('api_records_list', payload=recordset, **kwargs)
+            
+            return getattr(response, fmt)()
+        else:
+            response = ListResponse(
+                'api_records_list', 
+                payload=[URL('api_record', collection=collection, record_id=r.id).to_str() for r in recordset],
+                **kwargs
+            )
 
-        records_list = [
-            URL('api_record', collection=collection, record_id=r.id).to_str() for r in rset
-        ]
-
-        response = ListResponse(
-            'api_records_list',
-            records_list,
-            collection=collection,
-            start=start,
-            limit=limit,
-            sort=sort_by
-        )
-
-        return response.json()
+            return response.json()
     
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @ns.expect(post_put_argparser)
@@ -316,12 +420,15 @@ class RecordsList(Resource):
                 if '_id' in jmarc:
                     abort(400, '"_id" field is invalid for a new record')
                     
-                result = cls(jmarc, auth_control=True).commit(user=user)
+                record = cls(jmarc, auth_control=True)
+                result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
             if result.acknowledged:
-                return Response(status=200)
+                data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                
+                return data, 201
             else:
                 abort(500)
 
@@ -350,7 +457,7 @@ class RecordFieldsList(Resource):
 
         response = ListResponse(
             'api_record_fields_list',
-            fields_list,
+            payload=fields_list,
             collection=collection,
             record_id=record.id,
         )
@@ -402,7 +509,7 @@ class RecordSubfieldsList(Resource):
 
         response = ListResponse(
             'api_record_subfields_list',
-            subfields_list,
+            payload=subfields_list,
             **route_params
         )
         
@@ -433,7 +540,7 @@ class RecordFieldList(Resource):
 
         response = ListResponse(
             'api_record_field_list',
-            field_places,
+            payload=field_places,
             **route_params
         )
 
@@ -449,7 +556,7 @@ class RecordFieldList(Resource):
         
         try:
             if field_tag[:2] == '00':
-                field_data = request.data.decode() # scalar value
+                field_data = request.data.decode() #     scalar value
             else:
                 field = Datafield.from_json(
                     record_type=cls.record_type, 
@@ -466,14 +573,22 @@ class RecordFieldList(Resource):
             
             record_data[field_tag].append(field_data)
                 
-            record = cls(record_data)
+            record = cls(record_data, auth_control=True)
         except Exception as e:
             abort(400, str(e))
         
         result = record.commit(user=user)
         
         if result.acknowledged:
-            return Response(status=200)
+            url = URL(
+                'api_record_field_place',
+                collection=collection,
+                record_id=record.id,
+                field_tag=field_tag,
+                field_place=len(record.get_fields(field_tag)) - 1
+            )
+
+            return {'result': url.to_str()}, 201
         else:
             abort(500)
     
@@ -483,33 +598,6 @@ class RecordFieldList(Resource):
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordFieldPlace(Resource):
-    '''
-    @ns.doc(description='Return a list of the subfield codes in the field')
-    def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-        field = record.get_field(field_tag, place=field_place) or abort(404)
-        
-        subfield_places = []
-
-        for sub in field.subfields:
-            route_params['subfield_code'] = sub.code
-
-            subfield_places.append(
-                URL('api_record_field_place_subfield_place_list', **route_params).to_str()
-            )
-
-        response = ListResponse(
-            'api_record_field_place',
-            subfield_places,
-            **route_params
-        )
-
-        return response.json()
-    '''
     @ns.doc(description='Return the field at the given place in the record')
     def get(self, collection, record_id, field_tag, field_place):
         route_params = locals()
@@ -546,12 +634,20 @@ class RecordFieldPlace(Resource):
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
             
-            result = cls(record_data).commit()
+            result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
 
         if result.acknowledged:
-            return Response(status=200)
+            url = URL(
+                'api_record_field_place',
+                collection=collection,
+                record_id=record.id,
+                field_tag=field_tag,
+                field_place=field_place
+            )
+
+            return {'result': url.to_str()}, 201
         else:
             abort(500)
     
@@ -606,7 +702,7 @@ class RecordFieldPlaceSubfieldList(Resource):
 
         response = ListResponse(
             'api_record_field_place_subfield_list',
-            subfields,
+            payload=subfields,
             **route_params
         )
 
@@ -639,7 +735,7 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 
         response = ListResponse(
             'api_record_field_place_subfield_place_list',
-            subfield_places,
+            payload=subfield_places,
             **route_params
         )
 
@@ -723,15 +819,18 @@ class Record(Resource):
             try:
                 jmarc = load_json(request.data)
                 
-                result = cls(jmarc).commit(user=user)
+                result = cls(jmarc, auth_control=True).commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
         if result.acknowledged:
-            return Response(status=200)
+            data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+            
+            return data, 201
         else:
             abort(500)
     
+    '''
     @ns.doc(description='Not functional', security='basic')
     @login_required
     def patch(self, collection, record_id):
@@ -743,6 +842,7 @@ class Record(Resource):
         record = cls.from_id(record_id) or abort(404)
         
         # todo
+    '''
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
@@ -758,5 +858,25 @@ class Record(Resource):
             return Response(status=200)
         else:
             abort(500)
+            
+###
+
+@ns.route('/<string:collection>/lookup/<string:field_tag>/<string:subfield_code>')
+@ns.param('subfield_code', 'The subfield code of the value to look up')
+@ns.param('field_tag', 'The tag of the field value to look up')
+@ns.param('collection', '"bibs" or "auths"')
+class Lookup(Resource):
+    @ns.doc(description='Return a list of authorities that match a string value')
+    #@ns.expect(list_argparser)
+    def get(self, collection, field_tag, subfield_code):
+        cls = ClassDispatch.by_collection(collection) or abort(404)
         
+        string = request.args.get('search')
         
+        if string:
+            results = Auth.partial_lookup(field_tag, subfield_code, string, record_type='bib')
+            
+            return jsonify([r.to_dict() for r in results])
+        else:
+            abort(404, '?search=<string> required')
+            

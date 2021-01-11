@@ -3,6 +3,7 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
+import json, requests
 #import dlx_dl
 
 #Local app imports
@@ -184,15 +185,94 @@ def delete_user(id):
 
     return redirect(url_for('list_users'))
 
-
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
 def get_records_list(coll):
-    return render_template('list_records.html', coll=coll)
+    '''Collect arguments'''
+    limit = request.args.get('limit', 10)
+    sort = request.args.get('sort', 'updated')
+    direction = request.args.get('direction', 'desc')
+    start = request.args.get('start', 0)
+    search = request.args.get('search', '')
+
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
+    data = requests.get(endpoint).json()
+    records = []
+    for r in data['results']:
+        if coll == 'bibs':
+            second_line = []
+            if len(r['symbol']) > 1:
+                second_line.append(r['symbol'])
+            if len(r['date']) > 1:
+                second_line.append(r['date'])
+            if len(r['types']) > 1:
+                second_line.append(r['types'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['title'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+        elif coll == 'auths':
+            second_line = []
+            if len(r['alt']) > 1:
+                second_line.append(r['alt'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['heading'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+    
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
+
+@app.route('/records/<coll>/search')
+def search_records(coll):
+    '''Collect arguments'''
+    limit = request.args.get('limit', 10)
+    sort = request.args.get('sort', 'updated')
+    direction = request.args.get('direction', 'desc')
+    start = request.args.get('start', 0)
+    q = request.args.get('q', '')
+
+    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+    print(endpoint)
+    data = requests.get(endpoint).json()
+    records = []
+    for r in data['results']:
+        if coll == 'bibs':
+            second_line = []
+            if len(r['symbol']) > 1:
+                second_line.append(r['symbol'])
+            if len(r['date']) > 1:
+                second_line.append(r['date'])
+            if len(r['types']) > 1:
+                second_line.append(r['types'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['title'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+        elif coll == 'auths':
+            second_line = []
+            if len(r['alt']) > 1:
+                second_line.append(r['alt'])
+            record = {
+                'id': r['_id'],
+                'title_line': r['heading'],
+                'second_line': " | ".join(second_line)
+            }
+            records.append(record)
+    
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q)
+
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
-    return render_template('record.html', coll=coll, record_id=id)
+    this_prefix = url_for('doc', _external=True)
+    #print(this_prefix)
+    return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
 @app.route('/records/<coll>/new')
 @login_required
