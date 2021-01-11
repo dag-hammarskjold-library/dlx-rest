@@ -34,7 +34,7 @@ jsonpatch==1.25
 jsonpickle==1.4.1
 jsonpointer==2.0
 jsonschema==3.2.0
-lxml==4.5.0
+lxml==4.6.2
 MarkupSafe==1.1.1
 mock==4.0.2
 mongoengine==0.20.0
