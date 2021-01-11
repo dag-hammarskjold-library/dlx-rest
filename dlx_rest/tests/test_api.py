@@ -283,21 +283,31 @@ def test_files(client, records):
     response = client.get(f'{API}/bibs/8')
     assert isinstance(json.loads(response.data)['files'], list)
 
-def test_list_templates(client, records):
+def test_list_templates(client, templates):
     # Auths
     response = client.get(f'{API}/auths/templates')
     assert response.status_code == 200
-
+    assert json.loads(response.data)['results'][0] == f'{API}/auths/templates/auth_template_1'
+    
     # Bibs
     response = client.get(f'{API}/bibs/templates')
     assert response.status_code == 200
+    assert json.loads(response.data)['results'][0] == f'{API}/bibs/templates/bib_template_1'
 
-def test_get_template(client, records):
-    # Auth Template 1
-    response = client.get(f'{API}/auths/templates/1')
+def test_create_read_update_template(client, templates):
+    response = client.get(f'{API}/auths/templates/auth_template_1')
     assert response.status_code == 200
 
-    # Bib Template 1
-    response = client.get(f'{API}/bibs/templates/1')
+    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Default value"}]}]}
+    data['name'] = 'auth_template_2'
+    response = client.post(f'{API}/auths/templates', headers={}, data=data)
+    assert response.status_code == 201
+    
+    response = client.get(f'{API}/auths/templates/auth_template_2')
     assert response.status_code == 200
+    
+    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Updated default value"}]}]}
+    response = client.get(f'{API}/auths/templates/auth_template_2')
+    assert response.status_code == 201
+    
     

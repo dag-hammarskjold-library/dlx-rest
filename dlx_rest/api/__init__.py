@@ -890,12 +890,13 @@ class TemplatesList(Resource):
     def get(self, collection):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
-        templates = DB.template_collection.find({})
+        templates = template_collection.find({})
     
         return ListResponse(
             'api_templates_list',
-            payload=[URL('api_template', t) for t in templates]
-        )
+            collection=collection,
+            payload=[URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
+        ).json()
         
     def post():
         pass
@@ -908,10 +909,11 @@ class Template(Resource):
     
     def get(self, collection, template_name):
         # interim implementation
+        cls = ClassDispatch.by_collection(collection) or abort(404)
         template_collection = DB.handle[f'{collection}_templates']
-        record = template_collection.find_one({'name': template_name})
+        record = cls(template_collection.find_one({'name': template_name}))
     
-        return RecordResponse('api_template', record)
+        return RecordResponse('api_template', record=record)
     
     def put():
         pass

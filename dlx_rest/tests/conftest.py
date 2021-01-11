@@ -82,7 +82,24 @@ def bibs():
         bibs.append(bib)
     
     return bibs
-  
+
+@pytest.fixture(scope='module')    
+def templates():
+    from dlx import DB
+    from dlx.marc import Bib, Auth
+    
+    template = Bib()
+    template.set('245', 'a', 'Title')
+    data = template.to_dict()
+    data['name'] = 'bib_template_1'
+    DB.handle['bibs_templates'].insert_one(data)
+    
+    template = Auth()
+    template.set('100', 'a', 'Name')
+    data = template.to_dict()
+    data['name'] = 'auth_template_1'
+    DB.handle['auths_templates'].insert_one(data)
+
 @pytest.fixture(scope='module')
 def users():
     from mongoengine import connect, disconnect
