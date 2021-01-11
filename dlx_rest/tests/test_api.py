@@ -282,4 +282,22 @@ def test_delete_field(client, records):
 def test_files(client, records):
     response = client.get(f'{API}/bibs/8')
     assert isinstance(json.loads(response.data)['files'], list)
+
+def test_list_templates(client, records):
+    # Auths
+    response = client.get(f'{API}/auths/templates')
+    assert response.status_code == 200
+
+    # Bibs
+    response = client.get(f'{API}/bibs/templates')
+    assert response.status_code == 200
+
+def test_get_template(client, records):
+    # Auth Template 1
+    response = client.get(f'{API}/auths/templates/1')
+    assert response.status_code == 200
+
+    # Bib Template 1
+    response = client.get(f'{API}/bibs/templates/1')
+    assert response.status_code == 200
     
