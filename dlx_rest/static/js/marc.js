@@ -23,7 +23,6 @@ class MarcRecord extends HTMLElement {
         this.tableNewRecordCreated = false;
         this.displayRecord = false;
         this.rowLineNewRecord = 0;
-        //this.prefixUrl = "https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api/";
         this.prefixUrl = this.getPrefix();
         this.editMode = "False";
         this.typeEditMode = "FULLRECORD"
@@ -1403,8 +1402,6 @@ class MarcRecord extends HTMLElement {
 
             // for loop avec le nombre de row 
             let myRowsOrigin = document.getElementById("tableData").rows;
-            //console.log(myRowsOrigin)
-
 
             // display the framework for the new record
             this.createFrameNewRecord();
@@ -1494,10 +1491,10 @@ class MarcRecord extends HTMLElement {
                                         ///////////////////////////////////////////////////////////////////////
                                         // xref Management if there is a value
                                         ///////////////////////////////////////////////////////////////////////
-
-                                        if (recupSubFieldValues1.includes("@@@")) {
-
-                                            let dataX = recupSubFieldValues1[y].substring(2).split("@@@");
+                                      
+                                        if (recupSubFieldValues1[1].includes("@@@")) {
+                                            let dataX = recupSubFieldValues1[1].split("@@@");
+                                            console.log("la valeur de dataX est : " + dataX)
                                             myValue.value = dataX[0].trim();
                                             myXref = document.getElementById("divXref" + i).lastChild.getElementsByTagName("INPUT")[0];
                                             myXref.value = parseInt(dataX[1].trim());
@@ -1997,7 +1994,7 @@ class MarcRecord extends HTMLElement {
 
                                             myValue = document.getElementById("divData1").lastChild.getElementsByTagName("INPUT")[0];
                                             // xref Management if there is a value
-                                            if (recupSubFieldValues.includes("@@@")) {
+                                            if (recupSubFieldValues[i].includes("@@@")) {
 
                                                 let dataX = recupSubFieldValues[i].substring(2).split("@@@");
                                                 myValue.value = dataX[0].trim();
