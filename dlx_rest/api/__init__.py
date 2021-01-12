@@ -1,6 +1,7 @@
 from datetime import datetime
 from json import loads as load_json, JSONDecodeError
 from copy import copy
+from uuid import uuid1
 from urllib.parse import unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
@@ -829,20 +830,6 @@ class Record(Resource):
             return data, 201
         else:
             abort(500)
-    
-    '''
-    @ns.doc(description='Not functional', security='basic')
-    @login_required
-    def patch(self, collection, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
-        
-        abort(501)
-        
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-        
-        # todo
-    '''
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
@@ -885,8 +872,7 @@ class Lookup(Resource):
 @ns.route('/<string:collection>/templates')
 @ns.param('collection', '"bibs" or "auths"')
 class TemplatesList(Resource):
-    @ns.doc(description='Return a list of teamplates for the given collection')
-    
+    @ns.doc(description='Return a list of templates for the given collection')
     def get(self, collection):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
@@ -897,9 +883,17 @@ class TemplatesList(Resource):
             collection=collection,
             payload=[URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
         ).json()
+    
+    @ns.doc(description='Create a new temaplate with the given data', security='basic')
+    @login_required
+    def post(self, collection):
+        # interim implementation
+        template_collection = DB.handle[f'{collection}_templates']
+        data = load_json(request.data) or abort(400, 'Invalid JSON')
+        data['_id'] = uuid1().int / 10 # not good
+        template_collection.insert_one(data) or abort(500)
         
-    def post():
-        pass
+        return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
 
 @ns.route('/<string:collection>/templates/<string:template_name>')
 @ns.param('collection', '"bibs" or "auths"')
@@ -911,9 +905,32 @@ class Template(Resource):
         # interim implementation
         cls = ClassDispatch.by_collection(collection) or abort(404)
         template_collection = DB.handle[f'{collection}_templates']
-        record = cls(template_collection.find_one({'name': template_name}))
+        template = template_collection.find_one({'name': template_name}) or abort(404)
+        
+        try:
+            record = cls(template)
+        except Exception as e:
+            abort(404, str(e))
+            
+        return RecordResponse('api_template', collection=collection, template_name=template_name, record=record).json()
     
-        return RecordResponse('api_template', record=record)
+    @ns.doc(description='Replace a template with the given name with the given data', security='basic')
+    @login_required
+    def put(self, collection, template_name):      
+        # interim implementation
+        template_collection = DB.handle[f'{collection}_templates']
+        old_data = template_collection.find_one({'name': template_name}) or abort(404)
+        new_data = load_json(request.data) or abort(400, 'Invalid JSON')
+        new_data['_id'], new_data['name'] = old_data['_id'], old_data['name']
+        result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
+        result.acknowledged or abort(500)
+
+        return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201
+
+    @ns.doc(description='Delete a template with the given name', security='basic')
+    @login_required
+    def delete(self, collection, template_name):
+        template_collection = DB.handle[f'{collection}_templates']
+        template_collection.find_one({'name': template_name}) or abort(404)
+        template_collection.delete_one({'name': template_name}) or abort(500)
     
-    def put():
-        pass

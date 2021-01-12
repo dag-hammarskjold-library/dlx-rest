@@ -294,20 +294,36 @@ def test_list_templates(client, templates):
     assert response.status_code == 200
     assert json.loads(response.data)['results'][0] == f'{API}/bibs/templates/bib_template_1'
 
-def test_create_read_update_template(client, templates):
+def test_template_CRUD(client, templates):   
+    # get
     response = client.get(f'{API}/auths/templates/auth_template_1')
     assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'Name'
 
-    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Default value"}]}]}
+    # post
+    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "New value"}]}]}
     data['name'] = 'auth_template_2'
-    response = client.post(f'{API}/auths/templates', headers={}, data=data)
+    response = client.post(f'{API}/auths/templates', headers={}, data=json.dumps(data))
     assert response.status_code == 201
+    assert json.loads(response.data)['result'] == f'{API}/auths/templates/auth_template_2'
     
     response = client.get(f'{API}/auths/templates/auth_template_2')
     assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'New value'
     
-    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Updated default value"}]}]}
-    response = client.get(f'{API}/auths/templates/auth_template_2')
+    # put
+    new_data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Updated value"}]}]}
+    response = client.put(f'{API}/auths/templates/auth_template_1', headers={}, data=json.dumps(new_data))
     assert response.status_code == 201
+    assert json.loads(response.data)['result'] == f'{API}/auths/templates/auth_template_1'
     
+    response = client.get(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'Updated value'
     
+    # delete 
+    response = client.delete(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 200
+    
+    response = client.get(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 404

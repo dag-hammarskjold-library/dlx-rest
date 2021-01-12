@@ -92,12 +92,14 @@ def templates():
     template.set('245', 'a', 'Title')
     data = template.to_dict()
     data['name'] = 'bib_template_1'
+    data['_id'] = 1
     DB.handle['bibs_templates'].insert_one(data)
     
     template = Auth()
     template.set('100', 'a', 'Name')
     data = template.to_dict()
     data['name'] = 'auth_template_1'
+    data['_id'] = 1
     DB.handle['auths_templates'].insert_one(data)
 
 @pytest.fixture(scope='module')
