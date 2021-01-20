@@ -282,4 +282,48 @@ def test_delete_field(client, records):
 def test_files(client, records):
     response = client.get(f'{API}/bibs/8')
     assert isinstance(json.loads(response.data)['files'], list)
+
+def test_list_templates(client, templates):
+    # Auths
+    response = client.get(f'{API}/auths/templates')
+    assert response.status_code == 200
+    assert json.loads(response.data)['results'][0] == f'{API}/auths/templates/auth_template_1'
     
+    # Bibs
+    response = client.get(f'{API}/bibs/templates')
+    assert response.status_code == 200
+    assert json.loads(response.data)['results'][0] == f'{API}/bibs/templates/bib_template_1'
+
+def test_template_CRUD(client, templates):   
+    # get
+    response = client.get(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'Name'
+
+    # post
+    data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "New value"}]}]}
+    data['name'] = 'auth_template_2'
+    response = client.post(f'{API}/auths/templates', headers={}, data=json.dumps(data))
+    assert response.status_code == 201
+    assert json.loads(response.data)['result'] == f'{API}/auths/templates/auth_template_2'
+    
+    response = client.get(f'{API}/auths/templates/auth_template_2')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'New value'
+    
+    # put
+    new_data = {"100": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Updated value"}]}]}
+    response = client.put(f'{API}/auths/templates/auth_template_1', headers={}, data=json.dumps(new_data))
+    assert response.status_code == 201
+    assert json.loads(response.data)['result'] == f'{API}/auths/templates/auth_template_1'
+    
+    response = client.get(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 200
+    assert json.loads(response.data)['result']['100'][0]['subfields'][0]['value'] == 'Updated value'
+    
+    # delete 
+    response = client.delete(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 200
+    
+    response = client.get(f'{API}/auths/templates/auth_template_1')
+    assert response.status_code == 404
