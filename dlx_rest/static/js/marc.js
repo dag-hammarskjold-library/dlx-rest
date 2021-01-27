@@ -33,6 +33,7 @@ class MarcRecord extends HTMLElement {
         this.tagRecordToUpdate = ""
         this.filesAvailable = [];
         this.leaderList = ['000', '001', '002', '003', '004', '005', '006', '007', '008', '009']
+        this.savePrefix=""
     };
 
     // create the hidden Modal form
@@ -71,6 +72,8 @@ class MarcRecord extends HTMLElement {
             let sizeResults = resultsList.length
 
             if  (document.getElementById("selectListTemplate")) { 
+
+
                 let dropdown = document.getElementById("selectListTemplate");
 
                 dropdown.length = 0;
@@ -119,7 +122,6 @@ class MarcRecord extends HTMLElement {
 
             this.typeEditMode = "INIT"
             this.manageDisplayButton();
-
             this.displayDataFromApi(resultsList, resultsSize, results);
         } else {
             return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong, HTTP-Error number : " + response.status + "</div>";
@@ -423,19 +425,33 @@ class MarcRecord extends HTMLElement {
             this.appendChild(divNewRecord);
 
             // adding the logic to change the value of the list of template according the value selected
-            let selectTypeRecord = document.getElementById("selectTypeRecord")
-            selectTypeRecord.addEventListener("change", () => {
 
-                if (selectTypeRecord.value==="bibs") {
-                    this.loadTemplate("bibs");
-                } 
-                if (selectTypeRecord.value==="auths") {
-                    this.loadTemplate("auths");
-                }
-            }); 
+            if (document.getElementById("selectTypeRecord")){
+                let selectTypeRecord = document.getElementById("selectTypeRecord")
+                selectTypeRecord.addEventListener("change", () => {
 
+                    if (selectTypeRecord.value==="bibs") {
+                        this.loadTemplate("bibs");
+                    } 
+                    if (selectTypeRecord.value==="auths") {
+                        this.loadTemplate("auths");
+                    }
+                }) 
+
+
+            }   
             // load the templates
             this.loadTemplate("bibs");
+
+            // adding the logic to display the data when you select a template
+            if (document.getElementById("selectListTemplate")){
+                let selectListTemplate=document.getElementById("selectListTemplate");
+                selectListTemplate.addEventListener("change", () => {
+                    this.displayFullRecordEditModeFromTemplate(selectTypeRecord.value);
+                })
+            }
+
+
         }
         setModalWindos(myClass, myTitle, MyContent, myBtnLbl) {
             document.getElementById("modalTitle").innerHTML = `<div class='"+${myClass}+"' role='alert'> "+${myTitle}+"</div>`;
@@ -708,6 +724,14 @@ class MarcRecord extends HTMLElement {
                 marcRecords["_id"] = this.idToUpdate;
             }
 
+            // Retrieving the checkbox value
+            let checkBoxTemplateValue=document.getElementById("checktemplate");
+            if (checkBoxTemplateValue.checked === true) {
+                let templateName=prompt("Please enter the name of the template");
+                marcRecords["name"] = templateName;
+                type=3;
+            }
+
             // Retrieving the table
             const myTable = document.getElementById("tableNewRecord");
 
@@ -820,9 +844,6 @@ class MarcRecord extends HTMLElement {
             // Build the json syntax    
             let data = JSON.stringify(marcRecords);
 
-            // Display the json generated
-            //console.log(data)
-
             // update
             if (type === 1) {
                 //  update the Data
@@ -842,6 +863,16 @@ class MarcRecord extends HTMLElement {
                 typeRecord = this.recordType;
                 this.cloneRecord(this.prefixUrl + typeRecord, data)
             }
+
+            // tempate 
+            if (type === 3) {
+                //  update the Data
+                let recup = this.getPrefix() + document.getElementById("selectTypeRecord").value + "/templates";
+
+                console.log(recup)
+                this.createRecord(recup,data);
+            }
+
         }
 
         // Update at the Full Record level
@@ -953,8 +984,6 @@ class MarcRecord extends HTMLElement {
 
             }
 
-            //console.log(mySpecialRecord)
-
             // Retrieving the value of the type of Record
             const typeRecord = this.typeRecordToUpdate;
 
@@ -972,10 +1001,6 @@ class MarcRecord extends HTMLElement {
 
             this.typeRecordToUpdate = "";
             this.idToUpdate = "";
-
-            // showing the save button
-            //var btn = document.getElementById("btnSaveRecord")
-            //btn.style.display = "block";
 
         }
 
@@ -1158,13 +1183,14 @@ class MarcRecord extends HTMLElement {
 
         // get the url of the record first load
         getUrlAPI() {
-            //return this.getAttribute('url')+"?format=jmarcnx";
             return this.getAttribute('url');
         }
 
         // get the API URL Prefix
         getPrefix() {
             var apiPrefix = this.getAttribute('prefix')
+            this.savePrefix=apiPrefix;
+            console.log("la preniere valeur est : " + apiPrefix)
             if (apiPrefix) {
                 return apiPrefix;
             } else {
@@ -1341,7 +1367,7 @@ class MarcRecord extends HTMLElement {
                     this.delNewSubFieldLine();
                 });
 
-                // save the record button
+                // save record button
 
                 let btnSaveRecord = document.createElement("BUTTON");
                 btnSaveRecord.className = "btn btn-success mr-2 mb-2";
@@ -1434,13 +1460,21 @@ class MarcRecord extends HTMLElement {
 
                 //Adding the dropdown list to List the templates available
                 let myTemplateList = document.createElement("DIV");
-                myTemplateList.innerHTML = `<select class="custom-select" id="selectListTemplate" style="width: 300px;">
-                                <option value="" selected>Option1</option>
-                        </select>`
+
+                // myTemplateList.innerHTML = `<select class="custom-select" id="selectListTemplate" style="width: 300px;">
+                //                 <option value="" selected>Option1</option>
+                //         </select>`
                 myTemplateList.id = "divListTemplate"
                 myTemplateList.className = "mr-2 mb-2";
-                divContentHeader.appendChild(myTemplateList);
+                
+                // create the select for the template
+                let selectListTemplate = document.createElement("select");
+                selectListTemplate.id = "selectListTemplate";
+                selectListTemplate.className="custom-select";
+                selectListTemplate.style.width="300px"
 
+                myTemplateList.appendChild(selectListTemplate);
+                divContentHeader.appendChild(myTemplateList);
 
                 // Adding a checkbox to define if the record as to be a template
                 let myCheckTemplate = document.createElement("DIV");
@@ -1471,6 +1505,30 @@ class MarcRecord extends HTMLElement {
                     };
                 }(table.rows[i]);
             }
+        }
+        // display the fullRecord when you select the template
+        async displayFullRecordEditModeFromTemplate(myCollection) {
+
+            let myString = this.getPrefix() + myCollection + "/templates/" + document.getElementById("selectListTemplate").value ;
+
+            console.log("The template to display is :   " + myString)
+            let response = await fetch(myString);
+            if (response.ok) {
+                   
+                let json = await response.json();
+                console.log(json)
+                let resultsList = json["result"];
+                let sizeResults = resultsList.length
+
+                // Display the value inside the table
+                
+    
+            }
+            else 
+            {
+                return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong, HTTP-Error number : " + response.status + "</div>";
+            }
+
         }
 
         // Display the full record in edit Mode
