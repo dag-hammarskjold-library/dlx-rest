@@ -1,14 +1,4 @@
 $(document).ready(function(){
-
-    var do_search = function(url) {
-        var data = $.getJSON(url, function(data) {
-            $.each(data, function(key, val) {
-                //console.log(val['100'][0])
-                $("#authsList").append(`<li>${JSON.stringify(val['100'][0]['subfields'])}</li>`);
-            })
-        })
-    }
-
     // Setup. We'll normally get this endpoint URL from somewhere else.
     var endpoint = '/api/bibs/lookup/700/';
     // Initialize the search object, which we'll parameterize
@@ -32,7 +22,7 @@ $(document).ready(function(){
             $.each(data, function(key, val) {
                 //console.log(val['100'][0])
                 //$("#authsList").append(`<li>${JSON.stringify(val['100'][0]['subfields'])}</li>`);
-                items.push( `<li id='${key}'>${JSON.stringify(val['100'][0]['subfields'])}</li>` );
+                items.push( `<li id='${key}'>${JSON.stringify(val)}</li>` );
             });
             $("#authsList").html(items)
         });
