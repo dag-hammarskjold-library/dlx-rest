@@ -1,0 +1,24 @@
+{% extends 'base.html' %} {% block content %}
+<script type="text/javascript" src="{{url_for('static', filename='js/lookup.js')}}"></script>
+<div>
+    <p id="search_url"></p>
+</div>
+<div>
+    <h3>700</h3>
+    <form id="live-search" action="" class="styled" method="post">
+        <fieldset>
+            <label for="subfield_a">Subfield a</label>
+            <input type="text" class="text-input lookup" id="a" value="" />
+        </fieldset>
+        <fieldset>
+            <label for="subfield_b">Subfield b</label>
+            <input type="text" class="text-input" id="b" value="" />
+        </fieldset>
+    </form>
+</div>
+<div>
+    <ol id="authsList">
+        
+    </ol>
+</div>
+{% endblock %}

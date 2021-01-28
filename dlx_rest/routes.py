@@ -285,3 +285,7 @@ def create_record(coll):
 def edit_record_by_id(coll, id):
     pass
 '''
+
+@app.route('/lookup')
+def lookup():
+    return render_template('lookup.html')
