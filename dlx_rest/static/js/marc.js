@@ -159,7 +159,6 @@ class MarcRecord extends HTMLElement {
 
     // call the API for creation
     async createRecord(url, data) {
-        //async createRecord(url){
 
         fetch(url, {
                 method: 'POST',
@@ -185,7 +184,6 @@ class MarcRecord extends HTMLElement {
     }
 
         async cloneRecord(url, data) {
-            //async createRecord(url){
 
             fetch(url, {
                     method: 'POST',
@@ -213,7 +211,6 @@ class MarcRecord extends HTMLElement {
 
         // update at the record level
         async updateFullRecord(url, data) {
-            //async createRecord(url){
 
             fetch(url, {
                     method: 'PUT',
@@ -402,7 +399,6 @@ class MarcRecord extends HTMLElement {
 
             let divContent = document.getElementById("divContent");
             if (divContent !== null) {
-                //this.removeDiv(divContent);
                 divContent.innerHTML = " ";
             }
 
@@ -1509,18 +1505,124 @@ class MarcRecord extends HTMLElement {
 
             let myString = this.getPrefix() + myCollection + "/templates/" + document.getElementById("selectListTemplate").value ;
 
-            console.log("The template to display is :   " + myString)
             let response = await fetch(myString);
             if (response.ok) {
                    
                 let json = await response.json();
-                console.log(json)
-                let resultsList = json["result"];
-                let sizeResults = resultsList.length
+                let resultsList = Object.keys(json["result"]);
+                let results=json["result"]
+                resultsList=resultsList.sort()
+                console.log(resultsList)
+                let sizeResults = (resultsList.length - 1);
 
-                // Display the value inside the table
-                
-    
+                //check if the divNewRecord is already displayed
+                let myDiv = document.getElementById("divNewRecord");
+                if (myDiv) {
+                    this.removeDiv(myDiv);
+                    this.tableNewRecordCreated = false;
+                    this.rowLineNewRecord = 0;
+                }
+
+                let sizeTotal=0;
+
+                // sizeTotal of the array 
+                for (let indexArray = 0; indexArray < sizeResults; indexArray++) {
+                    sizeTotal+=results[resultsList[indexArray]].length
+                }
+
+                // Clean and rebuild the table
+                this.createFrameNewRecord()
+            
+                let indexList=0;
+
+                for (let indexArray = 1; indexArray <= sizeTotal; indexArray++) {
+
+                    if ((parseInt(resultsList[indexList])<10) && (resultsList[indexList]!=="_id") && (resultsList[indexList]!=="undefined")){
+                        // leader management
+
+                        // TAG
+                        document.getElementById("tagCol" + indexArray).value = resultsList[indexList];
+
+                        // IND1
+                        document.getElementById("ind1Col" + indexArray ).value = "N/A";
+
+                        // IND2
+                        document.getElementById("ind2Col" + indexArray ).value = "N/A";
+
+                        // Code
+                        document.getElementById("code" + indexArray ).value = "N/A";
+
+                        // Value
+                        document.getElementById("value" + indexArray ).value = results[resultsList[indexList]];
+                        
+                    
+                    }
+
+                    if (resultsList[indexList]>=10 && (resultsList[indexList]!=="_id") && (resultsList[indexList]!=="undefined"))  {
+                        // TAG
+                        document.getElementById("tagCol" + indexArray).value = resultsList[indexList];       
+                        
+                        // retrieve size of the array
+                        let sizeData1=results[resultsList[indexList]].length;
+
+                        // Loop data1
+                        for (let indexRecord = 0; indexRecord < sizeData1; indexRecord++) {
+
+                            // Adding the indicators
+                            document.getElementById("tagCol" + indexArray).value = resultsList[indexList];  
+                            document.getElementById("ind1Col" + indexArray).value = results[resultsList[indexList]][indexRecord]["indicators"][0]
+                            document.getElementById("ind2Col" + indexArray).value = results[resultsList[indexList]][indexRecord]["indicators"][1]
+
+                            // Management of the subfields
+                            
+                            // retrieve size of the array
+                            let sizeSubfields= results[resultsList[indexList]][indexRecord]["subfields"].length
+
+                            for (let indexSubfields = 0; indexSubfields  < sizeSubfields; indexSubfields++) {
+
+                                if (indexSubfields===0) {
+                                    document.getElementById("code" + indexArray).value=results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["code"]
+                                    document.getElementById("value" + indexArray).value = results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["value"]
+                                    if (results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["xref"]){
+                                        document.getElementById("inputXref" + indexArray).value = results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["xref"]
+                                    } else {
+                                        document.getElementById("inputXref" + indexArray).value = "";
+                                    }
+
+                                } else {
+                                    let myBox = document.getElementById("checkboxCol" + indexArray);
+                                    myBox.checked = true;
+                                    this.addNewSubFieldLine();
+                                    document.getElementById("divData" + indexArray).lastChild.getElementsByTagName("SELECT")[0].value=results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["code"];
+                                    document.getElementById("divData" + indexArray).lastChild.getElementsByTagName("INPUT")[0].value=results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["value"];
+                                    if (results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["xref"]){
+                                        document.getElementById("divXref" + indexArray).lastChild.getElementsByTagName("INPUT")[0].value=results[resultsList[indexList]][indexRecord]["subfields"][indexSubfields]["xref"];
+                                    }else{
+                                        document.getElementById("divXref" + indexArray).lastChild.getElementsByTagName("INPUT")[0].value="";
+                                    }
+                                    myBox.checked = false;
+
+                                }
+
+                            }                            
+
+                            // Management of the index of the whole array
+                            if (indexRecord!==sizeData1-1){
+                                indexArray+=1;
+                                this.addNewLineRecord();
+                            }
+                            
+
+                        }
+                        
+                    }
+
+                    indexList+=1;
+                    if (indexArray != sizeTotal) {
+                        this.addNewLineRecord();
+                    }
+                }
+
             }
             else 
             {
