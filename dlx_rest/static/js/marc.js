@@ -90,8 +90,8 @@ class MarcRecord extends HTMLElement {
                 for (let i = 0; i < sizeResults; i++) {
                   option = document.createElement('option');
                   let recup=resultsList[i].split("/")
-                  option.text = recup[6];
-                  option.value = recup[6];
+                  option.text = recup[recup.length - 1];
+                  option.value = recup[recup.length - 1];
                   dropdown.add(option);
                 }
             
