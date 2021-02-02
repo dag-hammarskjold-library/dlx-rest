@@ -60,7 +60,6 @@ class MarcRecord extends HTMLElement {
     }
 
 
-
     // function loading the templates 
     async loadTemplate(myCollection){
         this.url = this.getPrefix() + myCollection + "/templates";
@@ -74,6 +73,8 @@ class MarcRecord extends HTMLElement {
             let sizeResults = resultsList.length
 
             if  (document.getElementById("selectListTemplate")) { 
+
+
 
                 let dropdown = document.getElementById("selectListTemplate");
 
@@ -422,6 +423,7 @@ class MarcRecord extends HTMLElement {
             this.appendChild(divNewRecord);
 
             // adding the logic to change the value of the list of template according the value selected
+
             if (document.getElementById("selectTypeRecord")){
                 let selectTypeRecord = document.getElementById("selectTypeRecord")
                 selectTypeRecord.addEventListener("change", () => {
@@ -1455,6 +1457,7 @@ class MarcRecord extends HTMLElement {
 
                 //Adding the dropdown list to List the templates available
                 let myTemplateList = document.createElement("DIV");
+
                 // myTemplateList.innerHTML = `<select class="custom-select" id="selectListTemplate" style="width: 300px;">
                 //                 <option value="" selected>Option1</option>
                 //         </select>`
@@ -1505,10 +1508,12 @@ class MarcRecord extends HTMLElement {
 
             let myString = this.getPrefix() + myCollection + "/templates/" + document.getElementById("selectListTemplate").value ;
 
+
             let response = await fetch(myString);
             if (response.ok) {
                    
                 let json = await response.json();
+
                 let resultsList = Object.keys(json["result"]);
                 let results=json["result"]
                 resultsList=resultsList.sort()
