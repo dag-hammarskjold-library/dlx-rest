@@ -327,3 +327,14 @@ def test_template_CRUD(client, templates):
     
     response = client.get(f'{API}/auths/templates/auth_template_1')
     assert response.status_code == 404
+
+def test_auth_lookup(client, recordset_2):  
+    response = client.get(f'{API}/bibs/lookup/610?a=giant&b=sub')
+    assert response.status_code == 200
+    assert json.loads(response.data)[0]['subfields'][0]['value'] == 'Giant organization'
+    assert json.loads(response.data)[0]['subfields'][0]['xref']
+    
+    response = client.get(f'{API}/bibs/lookup/610?a=small&b=sub')
+    assert response.status_code == 200
+    assert json.loads(response.data)[0]['subfields'][0]['value'] == 'Small organization'
+    assert json.loads(response.data)[0]['subfields'][0]['xref']
