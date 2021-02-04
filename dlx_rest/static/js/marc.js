@@ -59,7 +59,57 @@ class MarcRecord extends HTMLElement {
             "        </div> ";
     }
 
-
+    // create the search modal form
+    createSearchModalForm(){
+        this.innerHTML+=`<div id='modalSearch' class="modal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title">Authorities search form</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body">
+                <div>
+                    <p id="search_url"></p>
+                </div>
+                <div>
+                    <h3>991</h3>
+                    <form id="live-search" action="" class="styled" method="post">
+                        <fieldset>
+                            <label for="a">Subfield a</label>
+                            <input type="text" class="text-input lookup" id="a"  value="" />
+                        </fieldset>
+                        <fieldset>
+                            <label for="b">Subfield b</label>
+                            <input type="text" class="text-input lookup" id="b" value="" />
+                        </fieldset>
+                        <fieldset>
+                            <label for="c">Subfield c</label>
+                            <input type="text" class="text-input lookup" id="c" value="" />
+                        </fieldset>
+                        <fieldset>
+                            <label for="d">Subfield d</label>
+                            <input type="text" class="text-input lookup" id="d" value="" />
+                        </fieldset>
+                    </form>
+                </div>
+                <div>
+                    <ol id="authsList">
+                        
+                    </ol>
+                </div>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-primary">Create this authority (not implemented yet)</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Exit </button>
+                </div>
+            </div>
+            </div>
+        </div>`;
+        this.implementSearchAuthorities();
+    }
 
     // function loading the templates 
     async loadTemplate(myCollection){
@@ -336,6 +386,73 @@ class MarcRecord extends HTMLElement {
             }
         }
 
+        // implement the call of the modal for the authority search
+        implementDblClick(){
+            // adding the logic of the double click on the tag 
+            let elements = document.getElementsByClassName("tagClass");
+
+            let myDisplayModal =()=> {
+                // creation de la modal
+                $('#modalSearch').modal('show'); 
+            };
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].addEventListener('dblclick', myDisplayModal, false);
+            } 
+        }
+
+        implementSearchAuthorities(){
+            // adding the logic of the double click on the tag 
+            let elements = document.getElementsByClassName("lookup");
+
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].addEventListener('dblclick', this.searchAuthorities, false);
+            } 
+        }
+        
+        // searching authorities using modal
+        searchAuthorities(){ 
+
+            // Setup. We'll normally get this endpoint URL from somewhere else.
+            let endpoint = '/api/bibs/lookup/991';
+            // Initialize the search object, which we'll parameterize
+            let search_obj = {};
+            // Construct the parameterized URL to start with
+            var search_url = endpoint + $.param(search_obj);
+            // Display the URL in its own div/p
+            $("#search_url").text(search_url);
+            // Define a timer
+            var timer;
+
+            /////////////////////////////////////////////////
+            let field_id = $(this).attr('id');
+            let filter_text = $(this).val();
+            // Don't do anything if field is blank
+            if (! filter_text) return;
+            // Cancel any queued timer 
+            clearTimeout(timer);
+            // Runs after timer delay
+            timer = setTimeout(function () {
+                search_obj[field_id] = filter_text;
+                search_url = endpoint + '?' + $.param(search_obj);
+                $("#search_url").text(search_url);
+            
+                console.log('Executing ' + search_url)
+                
+                let data = $.getJSON(search_url, function(data) {
+                    let t = Date.now()
+                    let items = [];
+                    
+                    $.each(data, function(key, val) {
+                        items.push( `<li id='${key}'>${JSON.stringify(val)}</li>` );
+                    });
+                
+                    $("#authsList").html(items);
+                    
+                    console.log('Ran in ' + (Date.now() - t) + ' seconds');
+                });
+            }, 800);
+        }
+
         // create the record form
         createFrameNewRecord() {
 
@@ -369,7 +486,7 @@ class MarcRecord extends HTMLElement {
             // creation of the header of the table
 
             tbl += '<tr id="' + row_id + '">';
-            tbl += '<td><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div></td>';
+            tbl += '<td><div style="display: table;" class="checkClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div></td>';
             tbl += '<td><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
             tbl += '<td><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
             tbl += '<td><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
@@ -447,7 +564,11 @@ class MarcRecord extends HTMLElement {
                 })
             }
 
+        this.implementDblClick()
+  
         }
+
+
         setModalWindos(myClass, myTitle, MyContent, myBtnLbl) {
             document.getElementById("modalTitle").innerHTML = `<div class='"+${myClass}+"' role='alert'> "+${myTitle}+"</div>`;
             document.getElementById("modalContent").innerHTML = `<div class='form-group'><label for='modalUrl'>"+${myBtnLbl}+"</label><input type='text' class='form-control' id='modalUrl'></div>`;
@@ -469,13 +590,15 @@ class MarcRecord extends HTMLElement {
                 let cell3 = NewRow.insertCell(3);
                 let cell4 = NewRow.insertCell(4);
                 let cell5 = NewRow.insertCell(5);
-                cell0.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div>';
+                cell0.innerHTML = '<div style="display: table;" class="checkClass mt-0" col_name="tagCol" contenteditable="true"> <input class="myCheckbox" id="checkboxCol' + row_id + '" type="checkbox" placeholder="Tag" maxlength="3" size="3"></div>';
                 cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text" min="001" max="999" placeholder="Tag" maxlength="3" size="3"></div>';
                 cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
                 cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
                 cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="25" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
                 cell5.innerHTML = '<div id="divXref' + row_id + '" ><div><input size="8" id="inputXref' + row_id + '" type="text" placeholder="xref"></div></div>';
                 this.updateNumberOfLineRecord();
+                this.implementDblClick();
+
             } else {
                 alert("Please create a new record first!!!");
             }
@@ -2282,6 +2405,7 @@ class MarcRecord extends HTMLElement {
         connectedCallback() {
             this.typeEditMode = "INIT";
             this.createhiddenModalForm();
+            this.createSearchModalForm();
             this.createHeaderComponent();
             if (this.getUrlAPI()) {
                 this.getDataFromApi(this.getUrlAPI());
