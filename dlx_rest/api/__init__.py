@@ -6,15 +6,16 @@ from urllib.parse import unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
 from flask_login import login_required, current_user
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from flask_cors import CORS
 from base64 import b64decode
-from dlx import DB
-from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, InvalidAuthValue, InvalidAuthXref
+from dlx import DB, Config as Dconfig
+from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, Condition, InvalidAuthValue, InvalidAuthXref
 from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
+from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from bson import Regex
 
 #authorizations  
 authorizations = {
@@ -848,24 +849,41 @@ class Record(Resource):
             
 ### auth lookup
 
-@ns.route('/<string:collection>/lookup/<string:field_tag>/<string:subfield_code>')
+@ns.route('/<string:collection>/lookup/<string:field_tag>')
 @ns.param('subfield_code', 'The subfield code of the value to look up')
 @ns.param('field_tag', 'The tag of the field value to look up')
 @ns.param('collection', '"bibs" or "auths"')
 class Lookup(Resource):
     @ns.doc(description='Return a list of authorities that match a string value')
     #@ns.expect(list_argparser)
-    def get(self, collection, field_tag, subfield_code):
+    def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         
-        string = request.args.get('search')
+        conditions = []
         
-        if string:
-            results = Auth.partial_lookup(field_tag, subfield_code, string, record_type='bib')
+        for code in request.args.keys():
+            val = request.args[code]
             
-            return jsonify([r.to_dict() for r in results])
-        else:
-            abort(404, '?search=<string> required')
+            auth_tag = Dconfig.authority_source_tag(collection[:-1], field_tag, code)
+            
+            if not auth_tag:
+                continue
+            
+            conditions.append(
+                Condition(auth_tag, {code: Regex(val, 'i')})
+            )
+            
+        processed = []
+        
+        for auth in AuthSet.from_query(conditions, projection=dict.fromkeys(Dconfig.auth_heading_tags(), 1), limit=25):
+            field = Datafield(record_type=collection[:-1], tag=field_tag)
+            
+            for sub in auth.heading_field.subfields:
+                field.set(sub.code, auth.id)
+            
+            processed.append(field.to_dict())
+            
+        return jsonify(processed)
             
 ### templates
 

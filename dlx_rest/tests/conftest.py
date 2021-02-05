@@ -18,6 +18,18 @@ def db():
     # ?
     
 @pytest.fixture(scope='module')
+def users():
+    from mongoengine import connect, disconnect
+    from dlx_rest.models import User
+
+    disconnect()
+    connect('dbtest', host=Config.connect_string)
+    
+    user = User(email = 'test_user@un.org', created=datetime.now())
+    user.set_password('password')
+    user.save()
+    
+@pytest.fixture(scope='module')
 def records():
     from dlx import DB
     from dlx.marc import Bib, Auth
@@ -101,15 +113,23 @@ def templates():
     data['name'] = 'auth_template_1'
     data['_id'] = 1
     DB.handle['auths_templates'].insert_one(data)
-
-@pytest.fixture(scope='module')
-def users():
-    from mongoengine import connect, disconnect
-    from dlx_rest.models import User
-
-    disconnect()
-    connect('dbtest', host=Config.connect_string)
     
-    user = User(email = 'test_user@un.org', created=datetime.now())
-    user.set_password('password')
-    user.save()
+@pytest.fixture(scope='module')
+def recordset_2():
+    from dlx import DB
+    from dlx.marc import Bib, Auth
+    
+    DB.handle['bibs'].drop()
+    DB.handle['auths'].drop()
+    
+    auth = Auth()
+    auth.set('110', 'a', 'Giant organization')
+    auth.set('110', 'b', 'subsidiary')
+    auth.commit()
+    
+    auth = Auth()
+    auth.set('110', 'a', 'Small organization')
+    auth.set('110', 'b', 'subsidiary')
+    auth.commit()
+    
+    

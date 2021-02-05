@@ -34,6 +34,7 @@ class MarcRecord extends HTMLElement {
         this.filesAvailable = [];
         this.leaderList = ['000', '001', '002', '003', '004', '005', '006', '007', '008', '009']
         this.savePrefix=""
+        this.numRowCallingEvent=0;
     };
 
     // create the hidden Modal form
@@ -75,8 +76,12 @@ class MarcRecord extends HTMLElement {
                     <p id="search_url"></p>
                 </div>
                 <div>
-                    <h3>991</h3>
+                    <h3>Please fill your criterias!!! </h3>
                     <form id="live-search" action="" class="styled" method="post">
+                        <fieldset>
+                            <label for="tagToSearch">Tag</label>
+                            <input type="text" class="text-input" id="tagToSearch"  value="" />
+                        </fieldset>
                         <fieldset>
                             <label for="a">Subfield a</label>
                             <input type="text" class="text-input lookup" id="a"  value="" />
@@ -139,8 +144,8 @@ class MarcRecord extends HTMLElement {
                 for (let i = 0; i < sizeResults; i++) {
                   option = document.createElement('option');
                   let recup=resultsList[i].split("/")
-                  option.text = recup[6];
-                  option.value = recup[6];
+                  option.text = recup[recup.length - 1];
+                  option.value = recup[recup.length - 1];
                   dropdown.add(option);
                 }
             
@@ -403,55 +408,137 @@ class MarcRecord extends HTMLElement {
         implementSearchAuthorities(){
             // adding the logic of the double click on the tag 
             let elements = document.getElementsByClassName("lookup");
-
-            for (var i = 0; i < elements.length; i++) {
+            for (var i = 0; i < elements.length; i++) {                       
                 elements[i].addEventListener('dblclick', this.searchAuthorities, false);
+            } 
+        }
+
+        implementDisplaySelectedResult(){
+            // adding the logic of the double click on the tag 
+            let elements = document.getElementsByClassName("myResult");
+            for (var i = 0; i < elements.length; i++) {                       
+                elements[i].addEventListener('dblclick', this.diplayRecordSelectInEditMode(myTag), false);
             } 
         }
         
         // searching authorities using modal
         searchAuthorities(){ 
 
+            let that=this;
+
+            // retrieve the tag value
+            let myTag=document.getElementById("tagToSearch").value;
+            
             // Setup. We'll normally get this endpoint URL from somewhere else.
-            let endpoint = '/api/bibs/lookup/991';
+            let endpoint = '/api/bibs/lookup/'+myTag;
+            
             // Initialize the search object, which we'll parameterize
             let search_obj = {};
+            
             // Construct the parameterized URL to start with
-            var search_url = endpoint + $.param(search_obj);
+            let search_url = endpoint + $.param(search_obj);
+            
             // Display the URL in its own div/p
             $("#search_url").text(search_url);
+            
             // Define a timer
-            var timer;
+            let timer;
 
-            /////////////////////////////////////////////////
+            // get the list of input fields
+            let listInput=document.getElementsByClassName("lookup");
+            let listInputSize=listInput.length;
+            let queryString="";
+
+            // generation of the list of parameters
+            for (let index=0; index<listInputSize;index++){
+                if ((listInput[index].value!==" ") && (listInput[index].value!=="")) {
+                    queryString+=`${listInput[index].getAttribute("id")}=${listInput[index].value}`;  
+                    if (index!==(listInputSize-1)){
+                        queryString+="&"
+                    }
+                }
+            }
+
+            if (queryString.endsWith("&")){
+                queryString=queryString.slice(0,-1);
+            }
+
             let field_id = $(this).attr('id');
             let filter_text = $(this).val();
+            
             // Don't do anything if field is blank
             if (! filter_text) return;
+            
             // Cancel any queued timer 
             clearTimeout(timer);
+            
             // Runs after timer delay
             timer = setTimeout(function () {
                 search_obj[field_id] = filter_text;
-                search_url = endpoint + '?' + $.param(search_obj);
-                $("#search_url").text(search_url);
-            
-                console.log('Executing ' + search_url)
+                //search_url = endpoint + '?' + $.param(search_obj);
+                search_url = endpoint + '?' + queryString;
                 
-                let data = $.getJSON(search_url, function(data) {
+                //$("#search_url").text("Query to execute :  "+ search_url);
+                console.log("Query to execute :  "+ search_url)
+                
+                let data = $.getJSON(search_url, data=> {
                     let t = Date.now()
                     let items = [];
+                    items.push( `<hr>` );
+                    let myJson="";
                     
-                    $.each(data, function(key, val) {
-                        items.push( `<li id='${key}'>${JSON.stringify(val)}</li>` );
+                    $.each(data, (key, val)=> {
+                        myJson=JSON.stringify(val)
+                        items.push( `<li id='${key}' class="myResult">${myJson}</li>` );
+                        items.push( `<hr>` );
                     });
                 
                     $("#authsList").html(items);
                     
+                    // include the event behaviour after a double click
+                    let myRecup=document.getElementsByClassName("myResult")
+                    let myRecupSize =myRecup.length;
+                    
+                    for (let index=0;index<myRecupSize;index++){
+                        myRecup[index].addEventListener('dblclick', ()=>{
+                            // close the modal form
+                            $('#modalSearch').modal('hide'); 
+
+                            // display the record inside the editor table
+                            alert(myTag+"/"+myRecup[index].innerHTML)
+
+                            // displaying the data inside the editor table
+                            ///////////////////////////////////////////////////////
+
+                            let myRows=document.getElementsByTagName("TR");
+                            let myRowsSize=myRows.length;
+
+                            console.log(myRowsSize)
+
+                            // browse the table in order to reach the line checked
+                            for (let index=1;index<myRowsSize;index++){
+                                let myRecup=document.getElementById("checkBoxCol"+index);
+                                console.log(myRecup)
+                                if (document.getElementById("checkBoxCol"+index).checked==true){
+                                    console.log("valeur de la checkbox: "+ index)
+                                }
+                                
+                            }
+
+
+
+
+
+                        });
+                    }
+
+
                     console.log('Ran in ' + (Date.now() - t) + ' seconds');
                 });
             }, 800);
         }
+
+
 
         // create the record form
         createFrameNewRecord() {
