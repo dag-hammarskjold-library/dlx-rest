@@ -413,14 +413,22 @@ class MarcRecord extends HTMLElement {
             } 
         }
 
-        implementDisplaySelectedResult(){
-            // adding the logic of the double click on the tag 
-            let elements = document.getElementsByClassName("myResult");
-            for (var i = 0; i < elements.length; i++) {                       
-                elements[i].addEventListener('dblclick', this.diplayRecordSelectInEditMode(myTag), false);
-            } 
-        }
-        
+        // implementDisplaySelectedResult(){
+        //     // adding the logic of the double click on the tag 
+        //     let elements = document.getElementsByClassName("myResult");
+        //     for (var i = 0; i < elements.length; i++) {                       
+        //         elements[i].addEventListener('dblclick', this.diplayRecordSelectInEditMode(myTag), false);
+        //     } 
+        //}
+
+        // implementDisplaySelectedResult(){
+        //     // adding the logic of the double click on the tag 
+        //     let elements = document.getElementsByClassName("myResult");
+        //     for (var i = 0; i < elements.length; i++) {                       
+        //         elements[i].addEventListener('dblclick', this.displayAuthInEditor(elements[i].getAttribute("id")), false);
+        //     } 
+        // }
+
         // searching authorities using modal
         searchAuthorities(){ 
 
@@ -464,7 +472,8 @@ class MarcRecord extends HTMLElement {
             }
 
             let field_id = $(this).attr('id');
-            let filter_text = $(this).val();
+            // let filter_text = $(this).val();
+            let filter_text =queryString;
             
             // Don't do anything if field is blank
             if (! filter_text) return;
@@ -473,7 +482,7 @@ class MarcRecord extends HTMLElement {
             clearTimeout(timer);
             
             // Runs after timer delay
-            timer = setTimeout(function () {
+            timer = setTimeout(()=> {
                 search_obj[field_id] = filter_text;
                 //search_url = endpoint + '?' + $.param(search_obj);
                 search_url = endpoint + '?' + queryString;
@@ -492,46 +501,122 @@ class MarcRecord extends HTMLElement {
                         items.push( `<li id='${key}' class="myResult">${myJson}</li>` );
                         items.push( `<hr>` );
                     });
-                
+
+                    // items.push(`<script> function test(){ alert("juste un test")} </script>`)
                     $("#authsList").html(items);
                     
                     // include the event behaviour after a double click
                     let myRecup=document.getElementsByClassName("myResult")
                     let myRecupSize =myRecup.length;
-                    
-                    for (let index=0;index<myRecupSize;index++){
-                        myRecup[index].addEventListener('dblclick', ()=>{
-                            // close the modal form
-                            $('#modalSearch').modal('hide'); 
+                    for (let index0=0;index0<myRecupSize;index0++){
+                        myRecup[index0].addEventListener('dblclick', () =>{
 
                             // display the record inside the editor table
-                            alert(myTag+"/"+myRecup[index].innerHTML)
-
-                            // displaying the data inside the editor table
-                            ///////////////////////////////////////////////////////
-
+                            $('#modalSearch').modal('hide'); 
+                            
+                            let myJson=myRecup[index0].innerHTML;
+                            let indexSelected=myRecup[index0].getAttribute("id");
                             let myRows=document.getElementsByTagName("TR");
                             let myRowsSize=myRows.length;
+                            let myTable0 = document.getElementById("tableNewRecord");
+                            let myCheckbox0 = myTable0.getElementsByClassName("myCheckbox");
 
-                            console.log(myRowsSize)
-
-                            // browse the table in order to reach the line checked
-                            for (let index=1;index<myRowsSize;index++){
-                                let myRecup=document.getElementById("checkBoxCol"+index);
-                                console.log(myRecup)
-                                if (document.getElementById("checkBoxCol"+index).checked==true){
-                                    console.log("valeur de la checkbox: "+ index)
+                            // clean the display
+                            for (let index=0;index<myRowsSize;index++){
+                                if (index>0){
+                                    if (myCheckbox0[index-1].checked) {
+                                        let row = myCheckbox0[index-1].parentNode.parentNode.parentNode;
+                                        let myId = "divData" + row.rowIndex;
+                                        let myIdXref = "divXref" + row.rowIndex;
+                                        let myTd = document.getElementById(myId);
+                                        let myTdXref = document.getElementById(myIdXref);
+                
+                                        while (myTd.childElementCount > 1) {
+                                            myTd.removeChild(myTd.lastElementChild);
+                                        } 
+                                        while (myTdXref.childElementCount > 1) {
+                                            myTdXref.removeChild(myTdXref.lastElementChild);
+                                        }
+                                    }
                                 }
-                                
                             }
 
 
+                            // browse the table in order to reach the line checked
+                            for (let index=0;index<myRowsSize;index++){
+                                if (index>0){
+                                    if (document.getElementById("checkboxCol"+index).checked==true) {
+
+                                    // Adding TAG value
+                                    document.getElementById("tagCol"+index).value=myTag;
+
+                                    // Adding Subfield value
+                                    let myData=JSON.parse(myJson)
+                                    let myDataSize=myData["subfields"].length;
+
+                                    for (let index1=0;index1<myDataSize;index1++){
+                                        if (index1==0){
+                                            document.getElementById("code"+index).value=myData["subfields"][index1]["code"];
+                                            document.getElementById("value"+index).value=myData["subfields"][index1]["value"];
+                                            if (myData["subfields"][index1]["xref"]){
+                                                document.getElementById("inputXref"+index).value=myData["subfields"][index1]["xref"];
+                                            }else{
+                                                document.getElementById("inputXref"+index).value="";
+                                            }
+                                        }else{
+
+                                            let myBox = document.getElementById("checkboxCol" + index);
+                                            myBox.checked = true;
+                                            ////////////////////////////// Adding a new line for the subfields
+                                          
+                                                let checkButton = false;
+                                
+                                                // Retrieving the table
+                                                const myTable = document.getElementById("tableNewRecord");
+                                
+                                                // Retrieving all the checkbox
+                                                const myCheckbox = myTable.getElementsByClassName("myCheckbox");
+                                
+                                                //Loop through the CheckBoxes.
+                                                for (var i = 0; i < myCheckbox.length; i++) {
+                                                    if (myCheckbox[i].checked) {
+                                                        checkButton = true;
+                                                        let row = myCheckbox[i].parentNode.parentNode.parentNode;
+                                
+                                                        let myId = "divData" + row.rowIndex;
+                                                        let myTd = document.getElementById(myId);
+                                                        myTd.insertAdjacentHTML('beforeend', '<div><select class="mr-2"><option value=" "> </option><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="xref">xref</option></select><input size="25" type="text" placeholder="Value"></div>');
+                                
+                                                        // Management of the xref
+                                                        let myXref = "divXref" + row.rowIndex;
+                                                        let myTdXref = document.getElementById(myXref);
+                                                        myTdXref.insertAdjacentHTML('beforeend', '<div><input size="8" type="text" placeholder="xref"></div>');
+                                
+                                                    }
+                                                }
+                                                if (checkButton == false) {
+                                                    divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Please check a tag first!!!</div>";
+                                                }
+                                            
+                                            //////////////////////////////
+                                            document.getElementById("divData" + index).lastChild.getElementsByTagName("SELECT")[0].value=myData["subfields"][index1]["code"];
+                                            document.getElementById("divData" + index).lastChild.getElementsByTagName("INPUT")[0].value=myData["subfields"][index1]["value"];
+                                            if (myData["subfields"][index1]["xref"]){
+                                                document.getElementById("divXref" + index).lastChild.getElementsByTagName("INPUT")[0].value=myData["subfields"][index1]["xref"];
+                                            }else{
+                                                document.getElementById("divXref" + index).lastChild.getElementsByTagName("INPUT")[0].value="";
+                                            }
+                                            myBox.checked = false;
+                                        }
+                                    }
 
 
-
+                                }
+                            }
+                                
+                            }
                         });
                     }
-
 
                     console.log('Ran in ' + (Date.now() - t) + ' seconds');
                 });
