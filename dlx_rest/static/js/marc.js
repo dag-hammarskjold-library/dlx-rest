@@ -413,6 +413,7 @@ class MarcRecord extends HTMLElement {
             } 
         }
 
+
         // implementDisplaySelectedResult(){
         //     // adding the logic of the double click on the tag 
         //     let elements = document.getElementsByClassName("myResult");
@@ -428,6 +429,7 @@ class MarcRecord extends HTMLElement {
         //         elements[i].addEventListener('dblclick', this.displayAuthInEditor(elements[i].getAttribute("id")), false);
         //     } 
         // }
+
 
         // searching authorities using modal
         searchAuthorities(){ 
@@ -472,8 +474,10 @@ class MarcRecord extends HTMLElement {
             }
 
             let field_id = $(this).attr('id');
+
             // let filter_text = $(this).val();
             let filter_text =queryString;
+
             
             // Don't do anything if field is blank
             if (! filter_text) return;
@@ -482,6 +486,7 @@ class MarcRecord extends HTMLElement {
             clearTimeout(timer);
             
             // Runs after timer delay
+
             timer = setTimeout(()=> {
                 search_obj[field_id] = filter_text;
                 //search_url = endpoint + '?' + $.param(search_obj);
@@ -502,12 +507,15 @@ class MarcRecord extends HTMLElement {
                         items.push( `<hr>` );
                     });
 
+
                     // items.push(`<script> function test(){ alert("juste un test")} </script>`)
+
                     $("#authsList").html(items);
                     
                     // include the event behaviour after a double click
                     let myRecup=document.getElementsByClassName("myResult")
                     let myRecupSize =myRecup.length;
+
                     for (let index0=0;index0<myRecupSize;index0++){
                         myRecup[index0].addEventListener('dblclick', () =>{
 
@@ -617,6 +625,7 @@ class MarcRecord extends HTMLElement {
                             }
                         });
                     }
+
 
                     console.log('Ran in ' + (Date.now() - t) + ' seconds');
                 });
