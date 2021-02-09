@@ -440,7 +440,10 @@ class MarcRecord extends HTMLElement {
             let myTag=document.getElementById("tagToSearch").value;
             
             // Setup. We'll normally get this endpoint URL from somewhere else.
-            let endpoint = '/api/bibs/lookup/'+myTag;
+            let component=document.getElementsByTagName("marc-record")[0];
+            let prefix=component.getAttribute("prefix");
+            let endpoint = prefix+ 'bibs/lookup/'+myTag;
+
             
             // Initialize the search object, which we'll parameterize
             let search_obj = {};
@@ -625,7 +628,6 @@ class MarcRecord extends HTMLElement {
                             }
                         });
                     }
-
 
                     console.log('Ran in ' + (Date.now() - t) + ' seconds');
                 });
@@ -1489,7 +1491,7 @@ class MarcRecord extends HTMLElement {
         getPrefix() {
             var apiPrefix = this.getAttribute('prefix')
             this.savePrefix=apiPrefix;
-            console.log("la preniere valeur est : " + apiPrefix)
+
             if (apiPrefix) {
                 return apiPrefix;
             } else {
