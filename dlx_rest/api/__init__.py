@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from flask_cors import CORS
 from base64 import b64decode
 from dlx import DB, Config as Dconfig
-from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, Condition, InvalidAuthValue, InvalidAuthXref
+from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, Query, Condition, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
