@@ -840,7 +840,10 @@ class Record(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
-        result = record.delete(user=user)
+        try:
+            result = record.delete(user=user)
+        except AuthInUse as e:
+            abort(403, 'Authority record in use')
         
         if result.acknowledged:
             return Response(status=200)
