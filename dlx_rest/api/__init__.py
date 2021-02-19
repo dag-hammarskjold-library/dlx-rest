@@ -193,7 +193,7 @@ class BatchResponse(ListResponse):
             return {
                 '_id': record.id,
                 'url': URL('api_record', collection=self.collection, record_id=record.id).to_str(),
-                'heading': record.heading_value('a'),
+                'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
                 'alt': '; '.join(record.get_values(alt_tag, 'a'))
             }
             
