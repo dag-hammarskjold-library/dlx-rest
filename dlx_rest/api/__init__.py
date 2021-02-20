@@ -123,7 +123,7 @@ def brief_bib(record):
         'date': record.get_value('269', 'a'),
         'types': '; '.join(ctypes)
     }
-    
+
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
@@ -134,9 +134,6 @@ def brief_auth(record):
         'heading': record.heading_value('a'),
         'alt': '; '.join(record.get_values(alt_tag, 'a'))
     }
-
-    def json_raw(self):
-        return jsonify(self.field.to_dict())
 
 ### Request parsers
 
