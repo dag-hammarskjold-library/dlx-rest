@@ -32,7 +32,6 @@ DB.connect(Config.connect_string)
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
-    
     if not auth_header:
         return None
 
@@ -40,25 +39,19 @@ def request_loader(request):
         # Try a token first
         token = auth_header.replace('Bearer ','',1)
         user = User.verify_auth_token(token)
-    
         if user:
             return user
-    
         return None
     elif 'Basic ' in auth_header:
         # Now try username and password in basic http auth
-        email,password = b64decode(auth_header.replace('Basic ', '', 1)).decode('utf-8').split(':')
-    
+        email,password = b64decode(auth_header.replace('Basic ','',1)).decode('utf-8').split(':')
         try:
             user = User.objects.get(email=email)
-    
             if not user.check_password(password):
                 return None
         except:
             return None
-    
         g.user = user
-    
         return user
 
 # Custom error messages
@@ -131,7 +124,7 @@ def brief_auth(record):
     return {
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
-        'heading': record.heading_value('a'),
+        'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
         'alt': '; '.join(record.get_values(alt_tag, 'a'))
     }
 
@@ -162,6 +155,54 @@ class AuthToken(Resource):
         
         return jsonify({ 'token': token.decode('ascii') })
 
+# Schemas
+@ns.route('/schemas')
+class SchemasList(Resource):
+    @ns.doc(description='Las schemas')
+    def get(self):
+        return jsonify(
+            {
+                '_links': {
+                    'self': URL('api_schemas_list').to_str()
+                },
+                '_meta': {
+                    'name': 'api_schemas_list',
+                    'payload_datatype': 'array'
+                },
+                'payload': [
+                    URL('api_schema', schema_name=name).to_str() for name in ('JMARC', 'JFILE', 'JMARC.controlfield', 'JMARC.datafield')
+                ]
+            }
+        )
+
+@ns.route('/schemas/<string:schema_name>')
+class Schema(Resource):
+    @ns.doc(description='Una schema')
+    def get(self, schema_name):
+        if schema_name == 'JMARC':
+            payload = Dconfig.jmarc_schema
+        elif schema_name == 'JMARC.controlfield':
+            payload = Dconfig.jmarc_schema['subschemas']['controlfield']
+        elif schema_name == 'JMARC.datafield':
+            payload = Dconfig.jmarc_schema['subschemas']['datafield']
+        elif schema_name == 'JFILE':
+            payload = Dconfig.jfile_schema
+        else:
+            abort(404)
+        
+        return jsonify(
+            {
+                '_links': {
+                    'self': URL('api_schema', schema_name=schema_name).to_str()
+                },
+                '_meta': {
+                    'name': 'api_schema',
+                    'payload_datatype': 'object'
+                },
+                'payload': payload
+            }
+        )
+        
 # Main API routes
 @ns.route('/collections')
 class CollectionsList(Resource):
@@ -182,7 +223,9 @@ class CollectionsList(Resource):
                     'next': None
                 },
                 '_meta': {
-                    'name': 'api_collections_list'
+                    'name': 'api_collections_list',
+                    'payload_datatype': 'array',
+                    
                 },
                 'payload': payload
             }
@@ -200,11 +243,12 @@ class Collection(Resource):
                     'endpoints': {
                         'records': URL('api_records_list', collection=collection).to_str(),
                         'templates': URL('api_templates_list', collection=collection).to_str(),
-                        'lookup': 'todo'
+                        'lookup': URL('api_lookup', collection=collection).to_str()
                     },
                 },
                 '_meta': {
-                    'name': 'api_collection'
+                    'name': 'api_collection',
+                    'payload_datatype': None,
                 },
                 'payload': None
             }
@@ -237,7 +281,8 @@ class RecordsList(Resource):
         # start
         if start:
             start -= 1
-            
+          
+        # limit  
         if int(limit) > 1000:
             abort(404, 'Maximum limit is 1000')
             
@@ -249,13 +294,10 @@ class RecordsList(Resource):
         
         # format
         if fmt == 'brief':
-            if collection == 'bibs':
-                project = dict.fromkeys(('191', '245', '269', '700', '710', '791', '989'), True)
-            elif collection == 'auths':
-                project = dict.fromkeys(
-                    ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491'),
-                    True
-                )
+            tags = ('191', '245', '269', '700', '710', '791', '989') if collection == 'bibs' \
+                else ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491')
+            
+            project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
         else:
@@ -282,8 +324,14 @@ class RecordsList(Resource):
                 '_links': {
                     'self': URL('api_records_list', start=start+1, limit=limit, **route_params).to_str(),
                     'next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit).to_str(),
-                    'prev': URL('api_records_list', collection=collection, start=start-limit if start-limit>0 else 1, limit=limit).to_str() \
+                    'prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit).to_str() \
                         if start > 1 else URL('api_collection', **route_params).to_str() 
+                },
+                '_meta': {
+                    'name': 'api_records_list',
+                    'payload_dataype': {
+                        'array': URL('api_schema', schema_name='JMARC').to_str()
+                    }
                 },
                 'payload': payload
             }
@@ -322,6 +370,95 @@ class RecordsList(Resource):
             else:
                 abort(500)
 
+@ns.route('/collections/<string:collection>/records/<int:record_id>')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class Record(Resource):
+    @ns.doc(description='Return the record with the given identifier')
+    @ns.expect(resource_argparser)
+    def get(self, collection, record_id):
+        args = resource_argparser.parse_args()
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+        fmt = args.get('format')
+        
+        if fmt == 'xml':
+            return Response(record.to_xml(), mimetype='text/xml')
+        elif fmt == 'mrk':
+            return Response(record.to_mrk(), mimetype='text/plain')
+        elif fmt == 'mrc':
+            return Response(record.to_mrc(), mimetype='text/plain')
+            
+        return jsonify(
+            {
+                '_links': {
+                    'endpoints': {
+                        'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
+                        'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
+                    },
+                    'self': URL('api_record', collection=collection, record_id=record_id).to_str(),
+                    'prev': URL('api_records_list', collection=collection).to_str(),
+                },
+                '_meta': {
+                    'name': 'api_record',
+                    'payload_datatype': {
+                        'object': URL('api_schema', schema_name='JMARC').to_str()
+                    }
+                },
+                'payload': record.to_dict()
+            }
+        )
+
+    @ns.doc(description='Replace the record with the given data.', security='basic')
+    @ns.expect(post_put_argparser)
+    @login_required
+    def put(self, collection, record_id):
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        args = post_put_argparser.parse_args()
+        
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+
+        if args.format == 'mrk':
+            try:
+                record = cls.from_mrk(request.data.decode())
+                record.id = record_id
+                result = record.commit(user=user)
+            except Exception as e:
+                abort(400, str(e))
+        else:
+            try:
+                jmarc = load_json(request.data)
+                
+                result = cls(jmarc, auth_control=True).commit(user=user)
+            except Exception as e:
+                abort(400, str(e))
+        
+        if result.acknowledged:
+            data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+            
+            return data, 201
+        else:
+            abort(500)
+
+    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
+    @login_required
+    def delete(self, collection, record_id):
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+
+        try:
+            result = record.delete(user=user)
+        except AuthInUse as e:
+            abort(403, 'Authority record in use')
+        
+        if result.acknowledged:
+            return Response(status=200)
+        else:
+            abort(500)
+
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -352,6 +489,15 @@ class RecordFieldsList(Resource):
                 '_links': {
                     'self': URL('api_record_fields_list', **route_params).to_str(),
                     'prev': URL('api_record', **route_params).to_str()
+                },
+                '_meta': {
+                    'name': 'api_record_fields_list',
+                    'payload_dataype': {
+                        'array': [
+                            URL('api_schema', schema_name='JMARC.controlfield').to_str(),
+                            URL('api_schema', schema_name='JMARC.datafield').to_str()
+                        ]
+                    }
                 },
                 'payload': fields_list
             }
@@ -503,6 +649,7 @@ class RecordFieldPlace(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
+        df = True if isinstance(field, Datafield) else False
         
         return jsonify(
             {
@@ -513,7 +660,13 @@ class RecordFieldPlace(Resource):
                     'self': URL('api_record_field_place', **route_params).to_str(),
                     'prev': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str()
                 },
-                'payload': field.to_dict()
+                '_meta': {
+                    'name': 'api_record_field_place',
+                    'payload_datatype': {
+                        'object': URL('api_schema', schema_name='JMARC.datafield' if df else 'JMARC.controlfield').to_str()
+                    }
+                },
+                'payload': field.to_dict() if df else field.value
             }
         )
 
@@ -693,105 +846,45 @@ class RecordFieldSubfieldValue(Resource):
                 'payload': value
             }
         )
-
-@ns.route('/collections/<string:collection>/records/<int:record_id>')
-@ns.param('record_id', 'The record identifier')
-@ns.param('collection', '"bibs" or "auths"')
-class Record(Resource):
-    @ns.doc(description='Return the record with the given identifier')
-    @ns.expect(resource_argparser)
-    def get(self, collection, record_id):
-        args = resource_argparser.parse_args()
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-        fmt = args.get('format')
-        
-        if fmt == 'xml':
-            return Response(record.to_xml(), mimetype='text/xml')
-        elif fmt == 'mrk':
-            return Response(record.to_mrk(), mimetype='text/plain')
-        elif fmt == 'mrc':
-            return Response(record.to_mrc(), mimetype='text/plain')
             
+# Auth lookup
+
+@ns.route('/collections/<string:collection>/lookup')
+@ns.param('collection', '"bibs" or "auths"')
+class Lookup(Resource):
+    @ns.doc(description='Return a list of field tags that are authority-controlled')
+    def get(self, collection):
+        amap = Dconfig.bib_authority_controlled if collection == 'bibs' else Dconfig.auth_authority_controlled
+        
         return jsonify(
-            {
+            {   
                 '_links': {
                     'endpoints': {
-                        'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                        'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
+                        'map': URL('api_lookup_map', collection=collection).to_str()
                     },
-                    'self': URL('api_record', collection=collection, record_id=record_id).to_str(),
-                    'prev': URL('api_records_list', collection=collection).to_str(),
+                    'self': URL('api_lookup', collection=collection).to_str(),
+                    'prev': URL('api_collection', collection=collection).to_str(),
                 },
-                'payload': record.to_dict()
+                'payload': [URL('api_lookup_field', collection=collection, field_tag=tag).to_str() for tag in amap.keys()]
             }
         )
-
-    @ns.doc(description='Replace the record with the given data.', security='basic')
-    @ns.expect(post_put_argparser)
-    @login_required
-    def put(self, collection, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
-        args = post_put_argparser.parse_args()
         
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-
-        if args.format == 'mrk':
-            try:
-                record = cls.from_mrk(request.data.decode())
-                record.id = record_id
-                result = record.commit(user=user)
-            except Exception as e:
-                abort(400, str(e))
-        else:
-            try:
-                jmarc = load_json(request.data)
-                
-                result = cls(jmarc, auth_control=True).commit(user=user)
-            except Exception as e:
-                abort(400, str(e))
-        
-        if result.acknowledged:
-            data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
-            
-            return data, 201
-        else:
-            abort(500)
-
-    @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
-    @login_required
-    def delete(self, collection, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
-        
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-
-        try:
-            result = record.delete(user=user)
-        except AuthInUse as e:
-            abort(403, 'Authority record in use')
-        
-        if result.acknowledged:
-            return Response(status=200)
-        else:
-            abort(500)
-            
-### auth lookup
-
 @ns.route('/collections/<string:collection>/lookup/<string:field_tag>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
-class Lookup(Resource):
+class LookupField(Resource):
     @ns.doc(description='Return a list of authorities that match a string value')
     #@ns.expect(list_argparser)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         
         conditions = []
+        codes = filter(lambda x: len(x) == 1, request.args.keys())
+        sparams = {}
         
-        for code in request.args.keys():
+        for code in codes:
             val = request.args[code]
+            sparams[code] = val
             
             auth_tag = Dconfig.authority_source_tag(collection[:-1], field_tag, code)
             
@@ -802,9 +895,14 @@ class Lookup(Resource):
                 Condition(auth_tag, {code: Regex(val, 'i')})
             )
             
+        if not conditions:
+            abort(400, 'Request parameters required')
+            
         processed = []
+        start = int(request.args.get('start', 0))
+        auths = AuthSet.from_query(conditions, projection=dict.fromkeys(Dconfig.auth_heading_tags(), 1), limit=25, skip=start)
         
-        for auth in AuthSet.from_query(conditions, projection=dict.fromkeys(Dconfig.auth_heading_tags(), 1), limit=25):
+        for auth in auths:
             field = Datafield(record_type=collection[:-1], tag=field_tag)
             
             for sub in auth.heading_field.subfields:
@@ -812,9 +910,35 @@ class Lookup(Resource):
             
             processed.append(field.to_dict())
             
-        return jsonify(processed)
-            
-### templates
+        return jsonify(
+            {
+                '_links': {
+                    'self': URL('api_lookup_field', collection=collection, field_tag=field_tag).to_str(),
+                    'next': URL('api_lookup_field', collection=collection, start=start+25, field_tag=field_tag, **sparams).to_str(),
+                    'prev': URL('api_lookup_field', collection=collection, start=start-25 if start-25>1 else 1, field_tag=field_tag, **sparams).to_str()
+                },
+                'payload': processed
+            }
+        )
+
+@ns.route('/collections/<string:collection>/lookup/map')
+@ns.param('collection', '"bibs" or "auths"')
+class LookupMap(Resource):
+    @ns.doc(description='Return a list of field tags that are authority-controlled')
+    def get(self, collection):
+        amap = Dconfig.bib_authority_controlled if collection == 'bibs' else Dconfig.auth_authority_controlled
+        
+        return jsonify(
+            {   
+                '_links': {
+                    'self': URL('api_lookup_map', collection=collection).to_str(),
+                    'prev': URL('api_lookup', collection=collection).to_str()
+                },
+                'payload': amap
+            }
+        )
+        
+# Templates
 
 @ns.route('/collections/<string:collection>/templates')
 @ns.param('collection', '"bibs" or "auths"')
