@@ -24,7 +24,7 @@ authorizations = {
     }
 }
 
-DB.connect(Config.connect_string)
+
 
 api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')

@@ -13,7 +13,7 @@ from dlx_rest.models import User, SyncLog
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
 from dlx_rest.utils import is_safe_url
 
-connect(host=Config.connect_string,db=Config.dbname)
+
 
 
 
