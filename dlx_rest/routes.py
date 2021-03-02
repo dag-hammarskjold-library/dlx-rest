@@ -9,7 +9,7 @@ import json, requests
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import User, SyncLog
+from dlx_rest.models import User, SyncLog, permission_required
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
 from dlx_rest.utils import is_safe_url
 
@@ -92,6 +92,7 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
+#@permission_required(('admin','all'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
