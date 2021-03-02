@@ -11,10 +11,26 @@ from dlx_rest.config import Config
 
 ## Setup some models for use
 
+class Permission(Document):
+    #role = ReferenceField('Role')
+    action = StringField()
+
+class Role(Document):
+    name = StringField()
+    permissions = ListField(ReferenceField(Permission))
+
+    def has_permission(self, action):
+        return any (
+            [
+                action == perm.action
+                for perm in self.permissions
+            ]
+        )
+
 class User(UserMixin, Document):
     email = StringField(max_lengt=200, required=True, unique=True)
     password_hash = StringField(max_length=200)
-    roles = ListField()
+    roles = ListField(ReferenceField(Role))
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
 
@@ -42,22 +58,6 @@ class User(UserMixin, Document):
         user = User.objects.get(id=data['id'])
         return user
 
-class Permission(Document):
-    role = ReferenceField('Role')
-    action = StringField()
-
-class Role(Document):
-    name = StringField()
-    permissions = ListField()
-
-    def has_permission(self, role, action):
-        return any (
-            [
-                role == perm.role.name and action == perm.action
-                for perm in self.permissions
-            ]
-        )
-
 class SyncLog(Document):
     time = DateTimeField(default=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
     record_type = StringField(max_length=200)
@@ -83,12 +83,13 @@ def permission_required(permissions):
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            roles = Permission.objects.distinct('role')
+            print(permissions)
             if hasattr(current_user, 'roles'):
-                if set(current_user.roles) & set(roles):
-                    for role, action in permissions:
+                if set(current_user.roles):
+                    for perm in permissions:
                         for user_role in current_user.roles:
-                            if user_role.has_permission(role, action):
+                            print(user_role.name)
+                            if user_role.has_permission(perm):
                                 return func(*args, **kwargs)
             abort(403)
 

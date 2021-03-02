@@ -56,7 +56,9 @@
                     {% if current_user.is_authenticated %}
                     <li class="nav-item"><span class="navbar-text">Welcome back {{current_user.email}} <a href="{{url_for('logout')}}">Logout</a></span></li>
                     <li class="nav-item"><span class="navbar-text mx-1">|</span></li>
-                    <li class="nav-item"><span class="navbar-text"><a href="{{url_for('admin_index')}}">Admin</a></span></li>
+                        {% if 'admin' in current_user.roles %}
+                            <li class="nav-item"><span class="navbar-text"><a href="{{url_for('admin_index')}}">Admin</a></span></li>
+                        {% endif %}
                     {% else %}
                     <li class="nav-item"><a class="nav-link" href="{{url_for('login')}}">Login</a></li>
                     {% endif %}

@@ -92,12 +92,13 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
-#@permission_required(('admin','all'))
+@permission_required(('admin','admin'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
+@permission_required(('admin', 'all'))
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
@@ -111,17 +112,20 @@ def get_sync_log():
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
+@permission_required(('admin', 'readUser'))
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
+@permission_required([('admin', 'createUser')])
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
     if request.method == 'POST':
         email = request.form.get('email')
+        roles = request.form.get('roles')
         password = request.form.get('password')
         created = datetime.now()
 
@@ -140,6 +144,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
+@permission_required(('admin', 'updateUser'))
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -152,16 +157,12 @@ def update_user(id):
     if request.method == 'POST':
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
-        password = request.form.get('password')
-        admin = request.form.get('admin', user.admin)
+        roles = request.form.getlist('roles')
+        print(roles)
 
         user.email = email  #unsure if this is a good idea
+        user.roles = roles
         user.updated = datetime.now()
-        if admin:
-            user.admin = True
-        else:
-            user.admin = False
-        user.set_password(password)
 
         try:
             user.save(validate=True)
@@ -176,6 +177,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
+@permission_required(('admin', 'deleteUser'))
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -185,6 +187,10 @@ def delete_user(id):
         flash("The user could not be found.")
 
     return redirect(url_for('list_users'))
+
+'''Roles and permissions admin'''
+
+
 
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
