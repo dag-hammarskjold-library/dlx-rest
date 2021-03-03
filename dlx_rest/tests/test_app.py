@@ -36,7 +36,7 @@ def login(client, username, password):
 def logout(client):
     return client.get(PRE + '/logout', follow_redirects=True)
 
-def test_login(client, app_context, users):
+def test_login(client, users):
     # Get the login form
     response = client.get(PRE + '/login')
     assert response.status_code == 200
