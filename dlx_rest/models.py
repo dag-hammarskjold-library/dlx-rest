@@ -52,9 +52,14 @@ class User(UserMixin, Document):
         except:
             raise
 
+    def has_role(self, role_name):
+        for role in self.roles:
+            if role.name == role_name:
+                return True
+        return False
+
     @staticmethod
     def verify_auth_token(token):
-        print("Token: {}".format(token))
         s = Serializer(Config.JWT_SECRET_KEY)
         try:
             data = s.loads(token)
@@ -90,12 +95,10 @@ def permission_required(permissions):
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            print(permissions)
             if hasattr(current_user, 'roles'):
                 if set(current_user.roles):
                     for perm in permissions:
                         for user_role in current_user.roles:
-                            print(user_role.name)
                             if user_role.has_permission(perm):
                                 return func(*args, **kwargs)
             abort(403)

@@ -31,20 +31,6 @@ def load_user(id):
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
 
-def submit_login(form, next_url):
-    with app.app_context():
-        user = User.objects(email=form.email.data).first()
-        password = form.password.data
-        if user and user.check_password(password):
-            login_user(user, remember=form.remember_me.data)
-            if not is_safe_url(request, next_url):
-                return abort(400)
-            flash('Logged in successfully.')
-            return redirect(next_url or url_for('index'), code=302)
-        else:
-            flash('Invalid username or password.')
-            return redirect(url_for('login'), code=302)
-
 @app.route('/login', methods=['GET','POST'])
 def login():
     next_url = request.args.get('next')
@@ -58,15 +44,34 @@ def login():
     if request.method == 'POST':
         next_url = request.args.get('next')
         if Config.TESTING:
-            # Special case in case we're in a test environment
-            # We should review this to ensure security best practices
-            submit_login(form, next_url)
+            # Special case for testing environments. 
+            user = User.objects(email=form.email.data).first()
+            password = form.password.data
+            if user and user.check_password(password):
+                login_user(user, remember=form.remember_me.data)
+                if not is_safe_url(request, next_url):
+                    return abort(400)
+                flash('Logged in successfully.')
+                return redirect(next_url or url_for('index'), code=302)
+            else:
+                flash('Invalid username or password.')
+                return redirect(url_for('login'), code=302)
         if form.validate_on_submit():
-            submit_login(form, next_url)
+            user = User.objects(email=form.email.data).first()
+            password = form.password.data
+            if user and user.check_password(password):
+                login_user(user, remember=form.remember_me.data)
+                if not is_safe_url(request, next_url):
+                    return abort(400)
+                flash('Logged in successfully.')
+                return redirect(next_url or url_for('index'), code=302)
+            else:
+                flash('Invalid username or password.')
+                return redirect(url_for('login'), code=302)
         else:
             flash("Unable to validate the form.")
             return redirect(url_for('login'), code=302)
-    flash("Login first.")
+    #flash("Login first.")
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
@@ -107,7 +112,7 @@ def list_users():
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
-@permission_required([('admin', 'createUser')])
+@permission_required(('admin', 'createUser'))
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -146,7 +151,6 @@ def update_user(id):
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
         roles = request.form.getlist('roles')
-        print(roles)
 
         user.email = email  #unsure if this is a good idea
         user.roles = roles
@@ -231,7 +235,6 @@ def search_records(coll):
     q = request.args.get('q', '')
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-    print(endpoint)
     data = requests.get(endpoint).json()
     records = []
     for r in data['results']:
@@ -266,7 +269,6 @@ def search_records(coll):
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
     this_prefix = url_for('doc', _external=True)
-    #print(this_prefix)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
 @app.route('/records/<coll>/new')

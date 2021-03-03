@@ -32,4 +32,5 @@ from dlx_rest.routes import *
 # Load the API route
 from dlx_rest.api import api
 
-
+# Load the commands
+from dlx_rest.commands import *
