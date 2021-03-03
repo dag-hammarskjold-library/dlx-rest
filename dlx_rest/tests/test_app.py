@@ -36,20 +36,21 @@ def login(client, username, password):
 def logout(client):
     return client.get(PRE + '/logout', follow_redirects=True)
 
-def test_login(client, users):
+def test_login(client, users, default_users):
     # Get the login form
     response = client.get(PRE + '/login')
     assert response.status_code == 200
 
-    rv = login(client, Config.username, Config.password)
+    user = default_users['admin']
+    rv = login(client, user['email'], user['password'])
     assert rv.status_code == 200
-    print(rv.data)
     assert b'Logged in successfully' in rv.data
 
     logout(client)
 
     # Incorrect login
-    rv = login(client, 'invalid-user@un.org', 'password')
+    user = default_users['invalid']
+    rv = login(client, user['email'], user['password'])
     assert rv.status_code == 200
     assert b'Invalid username or password' in rv.data
 
@@ -63,8 +64,7 @@ def test_logout(client):
 
 # Administration
 # All of these should work only if authenticated.
-# Authentication is disabled during unit testing
-def test_admin(client):
+def test_admin(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
     response = client.get(PRE + '/admin')
     assert response.status_code == 403
@@ -77,32 +77,71 @@ def test_admin(client):
     logout(client)
 
     # Authenticated, admin user
-    login(client, Config.username, Config.password)
+    admin_user = default_users['admin']
+    login(client, admin_user['email'], admin_user['password'])
     response = client.get(PRE + '/admin')
     assert response.status_code == 200
 
-'''
-def test_list_users(client):
+    logout(client)
+
+def test_list_users(client, default_users):
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/users')
+    assert response.status_code == 403
+
+    # Authenticated, non-admin user
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/users')
+    assert response.status_code == 403
+
+    logout(client)
+
+    # Authenticated, admin user
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
     response = client.get(PRE + '/admin/users')
     assert response.status_code == 200
 
-def test_create_user(client):
+    logout(client)
+
+def test_create_user(client, default_users):
     from dlx_rest.models import User
 
+    # Unauthenticated. This should give a 403 for unauthorized users.
     response = client.get(PRE + '/admin/users/new')
-    assert response.status_code == 200
+    assert response.status_code == 403
 
     response = client.post(PRE + '/admin/users/new', data={
         'email': 'new_test_user@un.org', 'password': 'password'
     })
-    assert response.status_code == 302
+    assert response.status_code == 403
+
+    # Authenticated, unauthorized user.
+    login(client, 'user@un.org', 'password')
+    response = client.get(PRE + '/admin/users/new')
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/users/new', data={
+        'email': 'new_test_user@un.org', 'password': 'password'
+    })
+    assert response.status_code == 403
+
+    logout(client)
+
+    # Authenticated, authorized user
+
+    admin_user = default_users['admin']
+    '''
     user = User.objects.first()
     assert user.email == 'new_test_user@un.org'
+    '''
 
 def test_update_user(client, users):
     from dlx_rest.models import User
     user = User.objects.first()
 
+    # Unauthenticated. This should give a 403 for unauthorized users.
     response = client.get(PRE + '/admin/users/{}/edit'.format(str(user.id)))
     assert response.status_code == 200
 
@@ -116,12 +155,13 @@ def test_update_user(client, users):
 def test_delete_user(client, users):
     from dlx_rest.models import User
     user = User.objects.first()
+    current_user_count = len(User.objects)
 
+    # Unauthenticated. This should give a 403 for unauthorized users.
     response = client.get(PRE + '/admin/users/{}/delete'.format(str(user.id)))
     assert response.status_code == 302
 
-    assert len(User.objects) == 0
-'''
+    assert len(User.objects) == current_user_count - 1
 
 #def test_sync(client):
 

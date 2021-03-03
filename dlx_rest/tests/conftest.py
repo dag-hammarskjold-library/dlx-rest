@@ -8,6 +8,31 @@ from dlx_rest.config import Config
 # Move fixtures here so they can be reused in all tests.
 
 @pytest.fixture(scope='module')
+def default_users():
+    return {
+        'admin': {
+            'email':'test_user@un.org',
+            'password': 'password',
+            'role': 'admin'
+        },
+        'non-admin': {
+            'email':'user@un.org',
+            'password': 'password',
+            'role': 'user'
+        },
+        'invalid': {
+            'email':'invalid@un.org',
+            'password': 'password'
+        },
+        'new': {
+            'email': 'new_test_user@un.org',
+            'password': 'password',
+            'role': 'user'
+        }
+    }
+
+
+@pytest.fixture(scope='module')
 def app_context():
     from dlx_rest.app import app
     with app.app_context():
@@ -47,20 +72,17 @@ def roles(permissions):
     return Role
     
 @pytest.fixture(scope='module')
-def users(roles):
+def users(roles, default_users):
     from dlx_rest.models import User
     
-    # First user, admin
-    user = User(email = Config.username, created=datetime.now())
-    user.set_password(Config.password)
-    user.add_role_by_name('admin')
-    user.save()
+    for utype in ['admin','non-admin']:
+        u = default_users[utype]
+        user = User(email = u['email'], created=datetime.now())
+        user.set_password(u['password'])
+        user.add_role_by_name(u['role'])
+        user.save()
 
-    # Second user, non-admin
-    user = User(email='user@un.org', created=datetime.now())
-    user.set_password('password')
-    user.add_role_by_name('user')
-    user.save()
+    return User
     
 @pytest.fixture(scope='module')
 def records():
