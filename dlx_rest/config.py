@@ -13,6 +13,8 @@ class Config(object):
         LOGIN_DISABLED = True
         dbname = 'dlx'
         sync_log_collection = 'sync_log'
+        username='test_user@un.org'
+        password='password'
     elif 'DLX_REST_DEV' in os.environ:
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']

@@ -45,6 +45,13 @@ class User(UserMixin, Document):
         s = Serializer(Config.JWT_SECRET_KEY, expires_in = expiration)
         return s.dumps({ 'id': str(self.id) })
 
+    def add_role_by_name(self, role_name):
+        try:
+            role = Role.objects.get(name=role_name)
+            self.roles.append(role)
+        except:
+            raise
+
     @staticmethod
     def verify_auth_token(token):
         print("Token: {}".format(token))

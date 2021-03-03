@@ -8,6 +8,12 @@ from dlx_rest.config import Config
 # Move fixtures here so they can be reused in all tests.
 
 @pytest.fixture(scope='module')
+def app_context():
+    from dlx_rest.app import app
+    with app.app_context():
+        yield
+
+@pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
     return app.test_client()
@@ -16,17 +22,44 @@ def client():
 def db():
     from dlx import DB
     # ?
+
+@pytest.fixture(scope='module')
+def permissions():
+    from dlx_rest.models import Permission
+    for perm in ['readAdmin','readUser','createUser','updateUser','deleteUser']:
+        p = Permission(action=perm)
+        p.save()
+    
+    return Permission
+
+@pytest.fixture(scope='module')
+def roles(permissions):
+    from dlx_rest.models import Role
+
+    r = Role(name='admin')
+    r.permissions = permissions.objects()
+    r.save()
+
+    r = Role(name='user')
+    r.permissions = []
+    r.save()
+
+    return Role
     
 @pytest.fixture(scope='module')
-def users():
-    from mongoengine import connect, disconnect
+def users(roles):
     from dlx_rest.models import User
-
-    disconnect()
-    connect('dbtest', host=Config.connect_string)
     
-    user = User(email = 'test_user@un.org', created=datetime.now())
+    # First user, admin
+    user = User(email = Config.username, created=datetime.now())
+    user.set_password(Config.password)
+    user.add_role_by_name('admin')
+    user.save()
+
+    # Second user, non-admin
+    user = User(email='user@un.org', created=datetime.now())
     user.set_password('password')
+    user.add_role_by_name('user')
     user.save()
     
 @pytest.fixture(scope='module')

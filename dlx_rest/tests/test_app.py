@@ -3,6 +3,8 @@ os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import json, re
 from dlx_rest.config import Config
+from dlx_rest.forms import LoginForm
+from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 
 PRE = 'http://localhost/'
 
@@ -28,24 +30,58 @@ def test_post_register_data(client):
         'email'
     })
 '''
+def login(client, username, password):
+    return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
 
-def test_get_login_page(client):
+def logout(client):
+    return client.get(PRE + '/logout', follow_redirects=True)
+
+def test_login(client, app_context, users):
     # Get the login form
     response = client.get(PRE + '/login')
     assert response.status_code == 200
 
+    rv = login(client, Config.username, Config.password)
+    assert rv.status_code == 200
+    print(rv.data)
+    assert b'Logged in successfully' in rv.data
+
+    logout(client)
+
+    # Incorrect login
+    rv = login(client, 'invalid-user@un.org', 'password')
+    assert rv.status_code == 200
+    assert b'Invalid username or password' in rv.data
+
 def test_logout(client):
-    response = client.get(PRE + '/logout')
+    #response = client.get(PRE + '/logout')
     # Logout should always redirect
-    assert response.status_code == 302
+    #assert response.status_code == 302
+    rv = logout(client)
+    assert rv.status_code == 200
+    assert b'Logged out successfully' in rv.data
 
 # Administration
 # All of these should work only if authenticated.
 # Authentication is disabled during unit testing
 def test_admin(client):
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin')
+    assert response.status_code == 403
+
+    # Authenticated, non-admin user
+    login(client, 'user@un.org', 'password')
+    response = client.get(PRE + '/admin')
+    assert response.status_code == 403
+
+    logout(client)
+
+    # Authenticated, admin user
+    login(client, Config.username, Config.password)
     response = client.get(PRE + '/admin')
     assert response.status_code == 200
 
+'''
 def test_list_users(client):
     response = client.get(PRE + '/admin/users')
     assert response.status_code == 200
@@ -85,6 +121,7 @@ def test_delete_user(client, users):
     assert response.status_code == 302
 
     assert len(User.objects) == 0
+'''
 
 #def test_sync(client):
 

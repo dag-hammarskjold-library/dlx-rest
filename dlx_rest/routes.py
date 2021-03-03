@@ -13,10 +13,12 @@ from dlx_rest.models import User, SyncLog, permission_required
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
 from dlx_rest.utils import is_safe_url
 
+# Main app routes
+@app.route('/')
+def index():
+    return render_template('index.html', title="Home")
 
-
-
-
+# Authentication
 @login_manager.user_loader
 def load_user(id):
     # To do: make an init script that creates an admin user
@@ -29,70 +31,56 @@ def load_user(id):
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
 
-
-# Main app routes
-@app.route('/')
-def index():
-    return render_template('index.html', title="Home")
-
-# Users
-# Registration in case we need it.
-'''
-@app.route('/register', methods=['GET','POST'])
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        email = request.form.get('email')
-        password = request.form.get('password')
-        created = datetime.now()
-        user = User(email=email, created=created)
-        user.set_password(password)
-        try:
-            user.save(validate=True)
-            flash("Registration was successful.")
-            return redirect(url_for('login'))
-        except:
-            flash("An error occurred during registration. Please review the information and try again.")
-            return redirect(url_for('register'))
-    return render_template('register.html', title="Register", form=form)
-'''
+def submit_login(form, next_url):
+    with app.app_context():
+        user = User.objects(email=form.email.data).first()
+        password = form.password.data
+        if user and user.check_password(password):
+            login_user(user, remember=form.remember_me.data)
+            if not is_safe_url(request, next_url):
+                return abort(400)
+            flash('Logged in successfully.')
+            return redirect(next_url or url_for('index'), code=302)
+        else:
+            flash('Invalid username or password.')
+            return redirect(url_for('login'), code=302)
 
 @app.route('/login', methods=['GET','POST'])
 def login():
     next_url = request.args.get('next')
+    form = LoginForm()
+
     if current_user.is_authenticated:
         if not is_safe_url(request, next_url):
             return abort(400)
-        return redirect(next_url or url_for('index'))
-    form = LoginForm()
+        flash("Already authenticated")
+        return redirect(next_url or url_for('index'), code=302)
     if request.method == 'POST':
         next_url = request.args.get('next')
+        if Config.TESTING:
+            # Special case in case we're in a test environment
+            # We should review this to ensure security best practices
+            submit_login(form, next_url)
         if form.validate_on_submit():
-            user = User.objects(email=form.email.data).first()
-            password = form.password.data
-            if user and user.check_password(password):
-                login_user(user, remember=form.remember_me.data)
-                flash('Logged in successfully.')
-                print(next_url)
-                if not is_safe_url(request, next_url):
-                    return abort(400)
-                return redirect(next_url or url_for('index'))
-            else:
-                flash('Invalid username or password.')
-                return render_template('login.html', title='Sign In', form=form)
+            submit_login(form, next_url)
+        else:
+            flash("Unable to validate the form.")
+            return redirect(url_for('login'), code=302)
+    flash("Login first.")
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
 #@login_required
 def logout():
     logout_user()
+    flash("Logged out successfully.")
     return redirect(url_for('login'))
 
 
 # Admin section
 @app.route('/admin')
 @login_required
-@permission_required(('admin','admin'))
+@permission_required(('admin','readAdmin'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
