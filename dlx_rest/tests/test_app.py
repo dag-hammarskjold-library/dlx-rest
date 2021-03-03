@@ -135,16 +135,18 @@ def test_create_user(client, default_users):
     response = client.get(PRE + '/admin/users/new')
     assert response.status_code == 200
 
+    new_user = default_users['new']
     response = client.post(PRE + '/admin/users/new', data={
-        'email': 'new_test_user@un.org', 'password': 'password'
+        'email': new_user['email'], 'password': new_user['password']
     })
     assert response.status_code == 302
 
     logout(client)
-    '''
-    user = User.objects.first()
-    assert user.email == 'new_test_user@un.org'
-    '''
+
+    # Verify our newly created user
+    from dlx_rest.models import User
+    user = User.objects.filter(email=new_user['email'])
+    assert len(user) > 0
 
 '''
 def test_update_user(client, users):
