@@ -1534,6 +1534,9 @@ class MarcRecord extends HTMLElement {
             // create the div for the data
             let divContentHeader = document.createElement("DIV");
             divContentHeader.id = "divContentHeader";
+            // adding the css for always display when scrolling
+            divContentHeader.style.position="sticky";
+            divContentHeader.style.top="10px";
             this.appendChild(divContentHeader);
 
             // create the div for the mail
