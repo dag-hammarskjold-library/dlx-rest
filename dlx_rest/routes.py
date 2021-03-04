@@ -9,14 +9,16 @@ import json, requests
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import User, SyncLog
+from dlx_rest.models import User, SyncLog, permission_required
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
 from dlx_rest.utils import is_safe_url
 
+# Main app routes
+@app.route('/')
+def index():
+    return render_template('index.html', title="Home")
 
-
-
-
+# Authentication
 @login_manager.user_loader
 def load_user(id):
     # To do: make an init script that creates an admin user
@@ -29,74 +31,67 @@ def load_user(id):
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
 
-
-# Main app routes
-@app.route('/')
-def index():
-    return render_template('index.html', title="Home")
-
-# Users
-# Registration in case we need it.
-'''
-@app.route('/register', methods=['GET','POST'])
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        email = request.form.get('email')
-        password = request.form.get('password')
-        created = datetime.now()
-        user = User(email=email, created=created)
-        user.set_password(password)
-        try:
-            user.save(validate=True)
-            flash("Registration was successful.")
-            return redirect(url_for('login'))
-        except:
-            flash("An error occurred during registration. Please review the information and try again.")
-            return redirect(url_for('register'))
-    return render_template('register.html', title="Register", form=form)
-'''
-
 @app.route('/login', methods=['GET','POST'])
 def login():
     next_url = request.args.get('next')
+    form = LoginForm()
+
     if current_user.is_authenticated:
         if not is_safe_url(request, next_url):
             return abort(400)
-        return redirect(next_url or url_for('index'))
-    form = LoginForm()
+        flash("Already authenticated")
+        return redirect(next_url or url_for('index'), code=302)
     if request.method == 'POST':
         next_url = request.args.get('next')
+        if Config.TESTING:
+            # Special case for testing environments. 
+            user = User.objects(email=form.email.data).first()
+            password = form.password.data
+            if user and user.check_password(password):
+                login_user(user, remember=form.remember_me.data)
+                if not is_safe_url(request, next_url):
+                    return abort(400)
+                flash('Logged in successfully.')
+                return redirect(next_url or url_for('index'), code=302)
+            else:
+                flash('Invalid username or password.')
+                return redirect(url_for('login'), code=302)
         if form.validate_on_submit():
             user = User.objects(email=form.email.data).first()
             password = form.password.data
             if user and user.check_password(password):
                 login_user(user, remember=form.remember_me.data)
-                flash('Logged in successfully.')
-                print(next_url)
                 if not is_safe_url(request, next_url):
                     return abort(400)
-                return redirect(next_url or url_for('index'))
+                flash('Logged in successfully.')
+                return redirect(next_url or url_for('index'), code=302)
             else:
                 flash('Invalid username or password.')
-                return render_template('login.html', title='Sign In', form=form)
+                return redirect(url_for('login'), code=302)
+        else:
+            flash("Unable to validate the form.")
+            return redirect(url_for('login'), code=302)
+    #flash("Login first.")
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
 #@login_required
 def logout():
     logout_user()
+    flash("Logged out successfully.")
     return redirect(url_for('login'))
 
 
 # Admin section
 @app.route('/admin')
 @login_required
+@permission_required(('admin','readAdmin'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
+@permission_required(('admin', 'all'))
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
@@ -110,17 +105,20 @@ def get_sync_log():
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
+@permission_required(('admin', 'readUser'))
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
+@permission_required(('admin', 'createUser'))
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
     if request.method == 'POST':
         email = request.form.get('email')
+        roles = request.form.get('roles')
         password = request.form.get('password')
         created = datetime.now()
 
@@ -139,6 +137,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
+@permission_required(('admin', 'updateUser'))
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -151,16 +150,11 @@ def update_user(id):
     if request.method == 'POST':
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
-        password = request.form.get('password')
-        admin = request.form.get('admin', user.admin)
+        roles = request.form.getlist('roles')
 
         user.email = email  #unsure if this is a good idea
+        user.roles = roles
         user.updated = datetime.now()
-        if admin:
-            user.admin = True
-        else:
-            user.admin = False
-        user.set_password(password)
 
         try:
             user.save(validate=True)
@@ -175,6 +169,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
+@permission_required(('admin', 'deleteUser'))
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -184,6 +179,10 @@ def delete_user(id):
         flash("The user could not be found.")
 
     return redirect(url_for('list_users'))
+
+'''Roles and permissions admin'''
+
+
 
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
@@ -236,7 +235,6 @@ def search_records(coll):
     q = request.args.get('q', '')
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-    print(endpoint)
     data = requests.get(endpoint).json()
     records = []
     for r in data['results']:
@@ -271,7 +269,6 @@ def search_records(coll):
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
     this_prefix = url_for('doc', _external=True)
-    #print(this_prefix)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
 @app.route('/records/<coll>/new')
