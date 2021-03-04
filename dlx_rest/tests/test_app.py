@@ -147,54 +147,74 @@ def test_create_user(client, default_users):
     from dlx_rest.models import User
     user = User.objects.filter(email=new_user['email'])
     assert len(user) > 0
+    assert user[0].email == new_user['email']
 
-'''
-def test_update_user(client, users):
+
+def test_update_user(client, users, default_users):
     from dlx_rest.models import User
-    user = User.objects.first()
+    admin_user = default_users['admin']
+    edited_user = User.objects.get(email=default_users['non-admin']['email'])
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users/{}/edit'.format(str(user.id)))
+    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
+        'email':'foo@bar.com', 'password': 'password'
+    })
+    assert response.status_code == 403
+
+    # Authenticated, but unauthorized.
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
+        'email':'foo@bar.com', 'password': 'password'
+    })
+    assert response.status_code == 403
+    logout(client)
+
+    # Authenticated, authorized
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
     assert response.status_code == 200
 
-    response = client.post(PRE + '/admin/users/{}/edit'.format(str(user.id)), data={
+    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
         'email':'foo@bar.com', 'password': 'password'
     })
     assert response.status_code == 302
-    user = User.objects.first()
-    assert user.email == 'foo@bar.com' 
+    logout(client)
 
-def test_delete_user(client, users):
+    user = User.objects.filter(email='foo@bar.com')
+    assert len(user) > 0
+    assert user[0].email == 'foo@bar.com'
+
+def test_delete_user(client, users, default_users):
     from dlx_rest.models import User
-    user = User.objects.first()
+    deleted_user = User.objects.get(email=default_users['new']['email'])
     current_user_count = len(User.objects)
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users/{}/delete'.format(str(user.id)))
+    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
+    assert response.status_code == 403
+
+    # Authenticated, unauthorized
+    user = default_users['new']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
+    assert response.status_code == 403
+    logout(client)
+
+    # Authenticated, authorized
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
     assert response.status_code == 302
+    logout(client)
 
     assert len(User.objects) == current_user_count - 1
-'''
-
-#def test_sync(client):
-
-# Records
-'''
-def test_get_records_list(client):
-    for col in ['bibs','auths']:
-        response = client.get(PRE + '/records/{}'.format(col))
-        assert response.status_code == 200
-
-def test_get_record(client, coll):
-    for col in ['bibs','auths']:
-        response = client.get(PRE + '/records/{}/{}'.format(coll, 1))
-        assert response.status_code == 200
-'''
-
-# This should behave differently, unless we don't need this route.
-'''
-def test_edit_record(client):
-    for col in ['bibs','auths']:
-        response = client.get(PRE + '/records/{}/{}'.format(coll, 1))
-        assert response.status_code == 200
-'''
+    user = User.objects.filter(email=deleted_user['email'])
+    assert len(user) == 0
