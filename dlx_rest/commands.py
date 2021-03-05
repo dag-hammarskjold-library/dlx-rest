@@ -1,5 +1,6 @@
 from dlx_rest.app import app
 from dlx_rest.models import User, Role, Permission
+from bson.objectid import ObjectId
 import click
 import string
 import secrets
@@ -18,7 +19,7 @@ def create_user(email):
     try:
         user = User(email=email)
         user.set_password(my_password)
-        user.add_role_by_name()
+        user.add_role_by_name('user')
         user.save()
         print(f"User {email} has been created. Password: {my_password}")
         print("Copy the password from here, because this is the only time it will be displayed.")
@@ -30,6 +31,11 @@ def create_user(email):
 def make_admin(email):
     try:
         user = User.objects.get(email=email)
+
+        user.roles = []
+        # All users should start with this role.
+        user.add_role_by_name('user')
+        # But only admins should have this one.
         user.add_role_by_name('admin')
         user.save()
     except:
@@ -37,6 +43,21 @@ def make_admin(email):
 
 @app.cli.command('init-roles')
 def init_roles():
+    print("Collecting existing user roles.")
+    user_roles = []
+    for user in User.objects():
+        print(user.email)
+        user_role = {'email': user.email, 'roles': []}
+        if len(user.roles) > 0:
+            for role in user.roles:
+                user_role['roles'].append(role.name)
+        else:
+            user_role['roles'].append('user')
+        if 'user' not in user_role['roles']:
+            user_role['roles'].append('user')
+        user_roles.append(user_role)
+
+
     print("Dropping Role and Permission collections.")
     Permission.drop_collection()
     Role.drop_collection()
@@ -54,4 +75,17 @@ def init_roles():
     r.permissions = []
     r.save()
 
-    print("Done. You should use the make-admin command to associate at least one user with an admin account.")
+    print("Resetting roles for existing users.")
+    for user_role in user_roles:
+        user = User.objects.get(email=user_role['email'])
+        user.roles = []
+        user.save()
+        user.reload()
+        for role in user_role['roles']:
+            user.add_role_by_name(role)
+        user.save()
+
+    print('''
+Done. If none of the original users were admin users, you should use the make-admin 
+command to associate at least one user with an admin account.
+    ''')
