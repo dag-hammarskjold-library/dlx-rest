@@ -44,3 +44,29 @@ class Config(object):
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", os.urandom(24))
     BIB_COLLECTION = 'bibs'
     AUTH_COLLECTION = 'auths'
+    
+    # Instances of JSON Schema
+    URLLIST_SCHEMA = {'type': 'array', 'items': {'type': 'string', 'format': 'uri'}}
+    RESPONSE_SCHEMA = {
+        'required' : ['_links', '_meta', 'data'],
+    	'additionalProperties': False,
+        'properties' : {
+            '_links': {
+                'properties': {
+                    '_next': {'type': 'string', 'format': 'uri'},
+                    '_prev': {'type': 'string', 'format': 'uri'},
+                    '_self': {'type': 'string', 'format': 'uri'},
+                    'related': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}},
+                    'format': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}}
+                }
+            },
+            '_meta': {
+                'properties': {
+                    'name': {'type': 'string'},
+                    'returns': {'type': 'string', 'format': 'uri'},
+                    'timestamp': {'bsonType': 'date'}
+                }
+            },
+            'data': {}
+        },
+    }

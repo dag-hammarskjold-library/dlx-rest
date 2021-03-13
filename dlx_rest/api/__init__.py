@@ -1,22 +1,28 @@
-from datetime import datetime
+'''
+DLX REST API
+'''
+from dlx_rest.config import Config
+from dlx_rest.app import app, login_manager
+from dlx_rest.models import User
+
+from datetime import datetime, timezone
 from json import loads as load_json, JSONDecodeError
 from copy import copy
 from uuid import uuid1
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
 from flask_login import login_required, current_user
 from flask_cors import CORS
 from base64 import b64decode
-from dlx import DB, Config as Dconfig
+from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.file import File, Identifier
-from dlx_rest.config import Config
-from dlx_rest.app import app, login_manager
-from dlx_rest.models import User
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from bson import Regex
+from dlx_rest.api.util import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth
+import jsonschema
 
 # Init
 authorizations = {
@@ -54,96 +60,6 @@ def request_loader(request):
         g.user = user
         return user
 
-# Custom error messages
-def abort(code, message=None):
-    msgs = {
-        400: 'Bad request',
-        404: 'Requested resource not found'
-    }
-
-    flask_abort(code, message or msgs.get(code, None))
-
-### Utilities
-
-class ClassDispatch():
-    index = {
-        Config.BIB_COLLECTION: Bib,
-        Config.AUTH_COLLECTION: Auth
-    }
-    
-    batch_index = {
-        Config.BIB_COLLECTION: BibSet,
-        Config.AUTH_COLLECTION: AuthSet
-    }
-    
-    @classmethod
-    def list_names(cls):
-        return cls.index.keys()
-
-    @classmethod
-    def by_collection(cls, name):
-        return cls.index.get(name)
-        
-    @classmethod
-    def batch_by_collection(cls, name):
-        return cls.batch_index.get(name)
-
-class URL():
-    def __init__(self, endpoint, **kwargs):
-        self.endpoint = endpoint
-        self.kwargs = kwargs
-
-    def to_str(self, **kwargs):
-        self.kwargs.setdefault('_external', True)
-        return url_for(self.endpoint, **self.kwargs)
-
-def brief_bib(record):
-    ctypes = ['::'.join(field.get_values('a', 'b', 'c')) for field in record.get_fields('989')]
-    
-    if record.get_value('245', 'a'):
-        head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
-    else:
-        head, member = record.get_value('700', 'a'), record.get_value('710', 'a')
-
-        if member:
-            head += f' ({member})'
-
-    return {
-        '_id': record.id,
-        'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
-        'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
-        'title': head or '[No Title]',
-        'date': record.get_value('269', 'a'),
-        'types': '; '.join(ctypes)
-    }
-
-def brief_auth(record):
-    digits = record.heading_field.tag[1:3]
-    alt_tag = '4' + digits
-    
-    return {
-        '_id': record.id,
-        'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
-        'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
-        'alt': '; '.join(record.get_values(alt_tag, 'a'))
-    }
-
-### Request parsers
-
-list_argparser = reqparse.RequestParser()
-list_argparser.add_argument('start', type=int, help='Number of record results to skip for pagination. Default is 0.')
-list_argparser.add_argument('limit', type=int, help='Number of results to return. Default is 100 for record lists and 0 (unlimited) for field and subfield lists.')
-list_argparser.add_argument('sort', type=str, help='Valid strings are "updated"')
-list_argparser.add_argument('direction', type=str, help='Valid strings are "asc", "desc". Default is "desc"')
-list_argparser.add_argument('format', type=str, help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk", "brief"')
-list_argparser.add_argument('search', type=str, help='Consult documentation for query syntax')
-
-resource_argparser = reqparse.RequestParser()
-resource_argparser.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk", "txt"')
-
-post_put_argparser = reqparse.RequestParser()
-post_put_argparser.add_argument('format', help="The format of the data being sent through the HTTP request")
-
 ### Routes
 
 # Authentication
@@ -158,141 +74,168 @@ class AuthToken(Resource):
 # Schemas
 @ns.route('/schemas')
 class SchemasList(Resource):
-    @ns.doc(description='Las schemas')
+    @ns.doc(description='The schemas of the API\'s JSON resources')
     def get(self):
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_schemas_list').to_str()
-                },
-                '_meta': {
-                    'name': 'api_schemas_list',
-                    'payload_datatype': 'array'
-                },
-                'payload': [
-                    URL('api_schema', schema_name=name).to_str() for name in ('JMARC', 'JFILE', 'JMARC.controlfield', 'JMARC.datafield')
-                ]
-            }
+        names = (
+            'api.response',
+            'api.urllist',
+            'jmarc',
+            'jmarc.template', 
+            'jfile', 
+            'jmarc.controlfield', 
+            'jmarc.datafield', 
+            'jmarc.subfield', 
+            'jmarc.subfield.value',
+            'api.null'
         )
+        
+        links = {
+            '_self': URL('api_schemas_list').to_str(),
+            '_next': None,
+            '_prev': None,
+            'related': {
+                'collections': URL('api_collections_list').to_str()
+            },
+            'format': None
+        }
+        meta = {
+            'name': 'api_schemas_list',
+            'returns': URL('api_schema', schema_name='api.urllist').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        response = ApiResponse(links=links, meta=meta, data=[URL('api_schema', schema_name=name).to_str() for name in names])
+        
+        return response.jsonify()
 
+# Schema
 @ns.route('/schemas/<string:schema_name>')
 class Schema(Resource):
-    @ns.doc(description='Una schema')
+    @ns.doc(description='Returns an instance of JSON Schema')
     def get(self, schema_name):
-        if schema_name == 'JMARC':
-            payload = Dconfig.jmarc_schema
-        elif schema_name == 'JMARC.controlfield':
-            payload = Dconfig.jmarc_schema['subschemas']['controlfield']
-        elif schema_name == 'JMARC.datafield':
-            payload = Dconfig.jmarc_schema['subschemas']['datafield']
-        elif schema_name == 'JFILE':
-            payload = Dconfig.jfile_schema
+        if schema_name == 'api.urllist':
+            data = Config.URLLIST_SCHEMA
+        elif schema_name == 'api.response':
+            data = Config.RESPONSE_SCHEMA
+        elif schema_name == 'jmarc':
+            data = DlxConfig.jmarc_schema
+            data['properties']['files'] = {
+                'type': 'array', 
+                'items': {
+                    'type': 'object', 
+                    'properties': {
+                        'mimetype': {'type': 'string', 'pattern': '^(text|application)/'}, 
+                        'language': {'type': 'string', 'pattern': '^[a-z]{2}$'},
+                        'url': {'type': 'string', 'format': 'uri'}
+                    }
+                }
+            }
+        elif schema_name == 'jmarc.template':
+            data = DlxConfig.jmarc_schema
+            data['required'] = ['name']
+            data['properties'].pop('_id')
+            data['properties']['name'] = {'type': 'string'}
+        elif schema_name == 'jmarc.controlfield':
+            data = DlxConfig.jmarc_schema['.controlfield']
+        elif schema_name == 'jmarc.datafield':
+            data = DlxConfig.jmarc_schema['.datafield']
+        elif schema_name == 'jmarc.subfield':
+            data = DlxConfig.jmarc_schema['.subfield']
+        elif schema_name == 'jmarc.subfield.value':
+            data = DlxConfig.jmarc_schema['.subfield']['properties']['value']
+        elif schema_name == 'jfile':
+            data = DlxConfig.jfile_schema
+        elif schema_name == 'api.null':
+            data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
         else:
             abort(404)
         
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_schema', schema_name=schema_name).to_str()
-                },
-                '_meta': {
-                    'name': 'api_schema',
-                    'payload_datatype': 'object'
-                },
-                'payload': payload
-            }
-        )
+        return jsonify(data)
         
-# Main API routes
+# Collections
 @ns.route('/collections')
 class CollectionsList(Resource):
     @ns.doc(description='Return a list of the collection endpoints.')
     def get(self):
-        collections = ClassDispatch.list_names()
-
-        payload = [
-            URL('api_collection', collection=col).to_str() for col in collections
-        ]
-
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_collections_list').to_str(),
-                    'endpoints': None,
-                    'prev': None,
-                    'next': None
-                },
-                '_meta': {
-                    'name': 'api_collections_list',
-                    'payload_datatype': 'array',
-                    
-                },
-                'payload': payload
-            }
-        )
+        meta = {
+            'name': 'api_collections_list',
+            'returns': URL('api_schema', schema_name='api.urllist').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_self': URL('api_collections_list').to_str(),
+            '_prev': None,
+            '_next': None,
+            'related': {'schemas': URL('api_schemas_list', _internal=True).to_str()},
+            'format': None
+        }
+        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths')])
         
+        return response.jsonify()
+
+# Collection        
 @ns.route('/collections/<string:collection>')
 class Collection(Resource):
     @ns.doc(description='')
     def get(self, collection):
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_collection', collection=collection).to_str(),
-                    'prev': URL('api_collections_list').to_str(),
-                    'endpoints': {
-                        'records': URL('api_records_list', collection=collection).to_str(),
-                        'templates': URL('api_templates_list', collection=collection).to_str(),
-                        'lookup': URL('api_lookup', collection=collection).to_str()
-                    },
-                },
-                '_meta': {
-                    'name': 'api_collection',
-                    'payload_datatype': None,
-                },
-                'payload': None
+        collection in ClassDispatch.list_names() or abort(404)
+        
+        meta = {
+            'name': 'api_collection',
+            'returns': URL('api_schema', schema_name='api.null').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_next': None,
+            '_prev': None,
+            '_self': URL('api_collection', collection=collection).to_str(),
+            'format': None,
+            'related': {
+                'records': URL('api_records_list', collection=collection).to_str(),
+                'templates': URL('api_templates_list', collection=collection).to_str(),
+                'lookup': URL('api_lookup', collection=collection).to_str()
             }
-        )
+        }
+        response = ApiResponse(links=links, meta=meta, data={})
+        
+        return response.jsonify()
 
+# Records
 @ns.route('/collections/<string:collection>/records')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
-    @ns.expect(list_argparser)
+    @ns.expect(RecordsListArgs.args)
     def get(self, collection):
         route_params = locals()
         route_params.pop('self')
-        
-        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
-        args = list_argparser.parse_args()
-        search = args['search']
-        start = args['start'] or 0
-        limit = args['limit'] or 100
-        sort_by = args['sort']
-        direction = args['direction'] or ''
-        fmt = args['format'] or ''
+        args = RecordsListArgs.args.parse_args()
+        collection in ClassDispatch.list_names() or abort(404)
         
         # search
-        if search:
-            search = unquote(search)
-                
+        search = unquote(search) if args.search else None
         query = Query.from_string(search) if search else {}
         
         # start
-        if start:
-            start -= 1
+        start = 0 if args.start is None else args.start-1
           
         # limit  
-        if int(limit) > 1000:
+        if int(args.limit or 0) > 1000:
             abort(404, 'Maximum limit is 1000')
+        elif args.limit is None:
+            limit = 100
+        else:
+            limit = args.limit
             
         # sort
-        if sort_by == 'updated':
-            sort = [('updated', ASC)] if direction.lower() == 'asc' else [('updated', DESC)]
+        if args['sort'] == 'updated':
+            sort_by = 'updated'
+            sort = [('updated', ASC)] if (args['direction'] or '').lower() == 'asc' else [('updated', DESC)]
         else:
-            sort = None
+            sort_by = sort = None
         
         # format
+        fmt = args['format'] or None
+        
         if fmt == 'brief':
             tags = ('191', '245', '269', '700', '710', '791', '989') if collection == 'bibs' \
                 else ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491')
@@ -305,44 +248,53 @@ class RecordsList(Resource):
 
         ###
         
+        cls = ClassDispatch.batch_by_collection(collection) 
         recordset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
         
         ###
         
         if fmt == 'xml':
-            return Response(self.recordset.to_xml(), mimetype='text/xml')
+            return Response(recordset.to_xml(), mimetype='text/xml')
         elif fmt == 'mrk':
             return Response(recordset.to_mrk(), mimetype='text/plain')
         elif fmt == 'brief':
+            schema_name='api.brief'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
-            payload = [make_brief(r) for r in recordset]
-        else:    
-            payload = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
-
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_records_list', start=start+1, limit=limit, **route_params).to_str(),
-                    'next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit).to_str(),
-                    'prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit).to_str() \
-                        if start > 1 else URL('api_collection', **route_params).to_str() 
-                },
-                '_meta': {
-                    'name': 'api_records_list',
-                    'payload_dataype': {
-                        'array': URL('api_schema', schema_name='JMARC').to_str()
-                    }
-                },
-                'payload': payload
+            data = [make_brief(r) for r in recordset]
+        else:
+            schema_name='api.urllist'
+            data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
+            
+        meta = {
+            'name': 'api_records_list',
+            'returns': URL('api_schema', schema_name=schema_name).to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_self': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort=sort_by).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit, search=search, format=fmt, sort=sort_by).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit, search=search, format=fmt, sort=sort_by).to_str() if start > 1 else None,
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str()
+            },
+            'format': {
+                'brief': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format='brief', sort=sort_by).to_str(),
+                'list': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, **route_params).to_str(),
+                'XML': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, format='xml', **route_params).to_str(),
+                'MRK': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, format='mrk', **route_params).to_str(),
+            },
+            'sort': {
+                'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated').to_str()
             }
-        )
+        }
+        response = ApiResponse(links=links, meta=meta, data=data)
+        
+        return response.jsonify()
     
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
-    @ns.expect(post_put_argparser)
     @login_required
     def post(self, collection):
         user = 'testing' if current_user.is_anonymous else current_user.email
-        args = post_put_argparser.parse_args()
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
     
@@ -370,18 +322,21 @@ class RecordsList(Resource):
             else:
                 abort(500)
 
+# Record
+record_args = reqparse.RequestParser()
+record_args.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk"')
 @ns.route('/collections/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class Record(Resource):
     @ns.doc(description='Return the record with the given identifier')
-    @ns.expect(resource_argparser)
+    @ns.expect(record_args)
     def get(self, collection, record_id):
-        args = resource_argparser.parse_args()
+        args = record_args.parse_args()
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         fmt = args.get('format')
-        
+
         if fmt == 'xml':
             return Response(record.to_xml(), mimetype='text/xml')
         elif fmt == 'mrk':
@@ -389,33 +344,48 @@ class Record(Resource):
         elif fmt == 'mrc':
             return Response(record.to_mrc(), mimetype='text/plain')
             
-        return jsonify(
-            {
-                '_links': {
-                    'endpoints': {
-                        'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                        'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
-                    },
-                    'self': URL('api_record', collection=collection, record_id=record_id).to_str(),
-                    'prev': URL('api_records_list', collection=collection).to_str(),
-                },
-                '_meta': {
-                    'name': 'api_record',
-                    'payload_datatype': {
-                        'object': URL('api_schema', schema_name='JMARC').to_str()
-                    }
-                },
-                'payload': record.to_dict()
+        files = []
+        
+        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
+            f = File.latest_by_identifier_language(
+                Identifier('symbol', record.get_value('191', 'a') or record.get_value('791', 'a')), lang
+            )
+            
+            if f:
+                files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': 'https://' + f.uri})
+        
+        data = record.to_dict()
+        data['updated'] = record.updated
+        data['files'] = files
+        
+        meta = {
+            'name': 'api_record',
+            'returns':  URL('api_schema', schema_name='jmarc').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_next': None,
+            '_prev': None,
+            '_self': URL('api_record', collection=collection, record_id=record_id).to_str(),
+            'format': {
+                'XML': URL('api_record', collection=collection, record_id=record_id, format='xml').to_str(),
+                'MRK': URL('api_record', collection=collection, record_id=record_id, format='mrk').to_str()
+            },
+            'related': {
+                'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
+                'records': URL('api_records_list', collection=collection).to_str(),
+                'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
-        )
+        }
+
+        response = ApiResponse(links=links, meta=meta, data=data)
+        
+        return response.jsonify()
 
     @ns.doc(description='Replace the record with the given data.', security='basic')
-    @ns.expect(post_put_argparser)
     @login_required
     def put(self, collection, record_id):
         user = 'testing' if current_user.is_anonymous else current_user.email
-        args = post_put_argparser.parse_args()
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
@@ -459,11 +429,12 @@ class Record(Resource):
         else:
             abort(500)
 
+# Fields
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordFieldsList(Resource):
-    @ns.doc(description='Return a list of the Fields in the Record with the record')
+    @ns.doc(description='Return a list of the fields in the record with the given record ID')
     def get(self, collection, record_id):
         route_params = locals()
         route_params.pop('self')
@@ -492,69 +463,13 @@ class RecordFieldsList(Resource):
                 },
                 '_meta': {
                     'name': 'api_record_fields_list',
-                    'payload_dataype': {
-                        'array': [
-                            URL('api_schema', schema_name='JMARC.controlfield').to_str(),
-                            URL('api_schema', schema_name='JMARC.datafield').to_str()
-                        ]
-                    }
+                    'returns': 'array'
                 },
-                'payload': fields_list
+                'data': fields_list
             }
         )
-        
-@ns.route('/collections/<string:collection>/records/<int:record_id>/subfields')
-@ns.param('record_id', 'The record identifier')
-@ns.param('collection', '"bibs" or "auths"')
-class RecordSubfieldsList(Resource):
-    @ns.doc(description='Return a list of all the subfields in the record with the given record')
-    def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
-        
-        cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
-        
-        subfields = []
-        
-        for tag in record.get_tags(): 
-            for field_place, field in enumerate(record.get_fields(tag)):        
-                if type(field) == Controlfield:
-                    # todo: do something with Datafields
-                    continue
-                    
-                subfield_place = 0
-                seen = {}
-                
-                for subfield in field.subfields:
-                    if subfield.code in seen:
-                        subfield_place = seen[subfield.code]
-                        seen[subfield.code] += 1
-                    else:
-                        subfield_place = 0
-                        seen[subfield.code] = 1
-                    
-                    subfields.append(
-                        URL(
-                            'api_record_field_subfield_value',
-                            field_tag=field.tag,
-                            field_place=field_place,
-                            subfield_code=subfield.code,
-                            subfield_place=subfield_place,
-                            **route_params
-                        ).to_str()
-                    )
-                    
-        return jsonify(
-            {
-                '_links': {
-                    'self': URL('api_record_subfields_list', **route_params).to_str(),
-                    'prev': URL('api_record', **route_params).to_str()
-                },
-                'payload': subfields
-            }
-        )
-    
+   
+# Field places
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
@@ -584,7 +499,7 @@ class RecordFieldPlaceList(Resource):
                     'self': URL('api_record_field_place_list', **route_params).to_str(),
                     'prev': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str() 
                 },
-                'payload': field_places
+                'data': field_places
                 
             }
         )
@@ -634,7 +549,8 @@ class RecordFieldPlaceList(Resource):
             return {'result': url.to_str()}, 201
         else:
             abort(500)
-    
+
+# Field    
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
@@ -654,7 +570,7 @@ class RecordFieldPlace(Resource):
         return jsonify(
             {
                 '_links': {
-                    'endpoints': {
+                    'related': {
                         'subfields': URL('api_record_field_place_subfield_list', **route_params).to_str()
                     },
                     'self': URL('api_record_field_place', **route_params).to_str(),
@@ -662,11 +578,9 @@ class RecordFieldPlace(Resource):
                 },
                 '_meta': {
                     'name': 'api_record_field_place',
-                    'payload_datatype': {
-                        'object': URL('api_schema', schema_name='JMARC.datafield' if df else 'JMARC.controlfield').to_str()
-                    }
+                    'returns': URL('api_schema', schema_name='jmarc.datafield' if df else 'jmarc.controlfield').to_str()
                 },
-                'payload': field.to_dict() if df else field.value
+                'data': field.to_dict() if df else field.value
             }
         )
 
@@ -728,6 +642,56 @@ class RecordFieldPlace(Resource):
         else:
             abort(500)
 
+# Record subfields        
+@ns.route('/collections/<string:collection>/records/<int:record_id>/subfields')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordSubfieldsList(Resource):
+    @ns.doc(description='Return a list of all the subfields in the record with the given record')
+    def get(self, collection, record_id):
+        route_params = locals()
+        route_params.pop('self')
+        
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+        
+        subfields = []
+
+        for tag in filter(lambda x: x[0:2] != '00', record.get_tags()): 
+            for field_place, field in enumerate(record.get_fields(tag)):        
+                subfield_place = 0
+                seen = {}
+                
+                for subfield in field.subfields:
+                    if subfield.code in seen:
+                        subfield_place = seen[subfield.code]
+                        seen[subfield.code] += 1
+                    else:
+                        subfield_place = 0
+                        seen[subfield.code] = 1
+                    
+                    subfields.append(
+                        URL(
+                            'api_record_field_subfield_value',
+                            field_tag=field.tag,
+                            field_place=field_place,
+                            subfield_code=subfield.code,
+                            subfield_place=subfield_place,
+                            **route_params
+                        ).to_str()
+                    )
+                    
+        return jsonify(
+            {
+                '_links': {
+                    'self': URL('api_record_subfields_list', **route_params).to_str(),
+                    'prev': URL('api_record', **route_params).to_str()
+                },
+                'data': subfields
+            }
+        )
+
+# Field subfields
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
@@ -767,10 +731,11 @@ class RecordFieldPlaceSubfieldList(Resource):
                     'self': URL('api_record_field_place_subfield_list', **route_params).to_str(),
                     'prev': URL('api_record_field_place', **route_params).to_str(),
                 },
-                'payload': subfields
+                'data': subfields
             }
         )
 
+# Subfield places
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
@@ -808,12 +773,11 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
                         field_place=field_place
                     ).to_str(),
                 },
-                'payload': subfield_places
+                'data': subfield_places
             }
         )
 
-# Single records
-
+# Subfields
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>/<int:subfield_place>')
 @ns.param('subfield_place', 'The incidence number of the subfield code in the field, starting wtih 0')
 @ns.param('subfield_code', 'The subfield code')
@@ -843,32 +807,32 @@ class RecordFieldSubfieldValue(Resource):
                         field_place=field_place
                     ).to_str()
                 },
-                'payload': value
+                'data': value
             }
         )
             
-# Auth lookup
-
+# Auth lookup fields
 @ns.route('/collections/<string:collection>/lookup')
 @ns.param('collection', '"bibs" or "auths"')
 class Lookup(Resource):
     @ns.doc(description='Return a list of field tags that are authority-controlled')
     def get(self, collection):
-        amap = Dconfig.bib_authority_controlled if collection == 'bibs' else Dconfig.auth_authority_controlled
+        amap = DlxConfig.bib_authority_controlled if collection == 'bibs' else DlxConfig.auth_authority_controlled
         
         return jsonify(
             {   
                 '_links': {
-                    'endpoints': {
+                    'related': {
                         'map': URL('api_lookup_map', collection=collection).to_str()
                     },
                     'self': URL('api_lookup', collection=collection).to_str(),
                     'prev': URL('api_collection', collection=collection).to_str(),
                 },
-                'payload': [URL('api_lookup_field', collection=collection, field_tag=tag).to_str() for tag in amap.keys()]
+                'data': [URL('api_lookup_field', collection=collection, field_tag=tag).to_str() for tag in amap.keys()]
             }
         )
         
+# Auth lookup
 @ns.route('/collections/<string:collection>/lookup/<string:field_tag>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
@@ -886,7 +850,7 @@ class LookupField(Resource):
             val = request.args[code]
             sparams[code] = val
             
-            auth_tag = Dconfig.authority_source_tag(collection[:-1], field_tag, code)
+            auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
             
             if not auth_tag:
                 continue
@@ -900,7 +864,7 @@ class LookupField(Resource):
             
         processed = []
         start = int(request.args.get('start', 0))
-        auths = AuthSet.from_query(conditions, projection=dict.fromkeys(Dconfig.auth_heading_tags(), 1), limit=25, skip=start)
+        auths = AuthSet.from_query(conditions, projection=dict.fromkeys(DlxConfig.auth_heading_tags(), 1), limit=25, skip=start)
         
         for auth in auths:
             field = Datafield(record_type=collection[:-1], tag=field_tag)
@@ -917,16 +881,17 @@ class LookupField(Resource):
                     'next': URL('api_lookup_field', collection=collection, start=start+25, field_tag=field_tag, **sparams).to_str(),
                     'prev': URL('api_lookup_field', collection=collection, start=start-25 if start-25>1 else 1, field_tag=field_tag, **sparams).to_str()
                 },
-                'payload': processed
+                'data': processed
             }
         )
 
+# Auth xref map
 @ns.route('/collections/<string:collection>/lookup/map')
 @ns.param('collection', '"bibs" or "auths"')
 class LookupMap(Resource):
     @ns.doc(description='Return a list of field tags that are authority-controlled')
     def get(self, collection):
-        amap = Dconfig.bib_authority_controlled if collection == 'bibs' else Dconfig.auth_authority_controlled
+        amap = DlxConfig.bib_authority_controlled if collection == 'bibs' else DlxConfig.auth_authority_controlled
         
         return jsonify(
             {   
@@ -934,12 +899,11 @@ class LookupMap(Resource):
                     'self': URL('api_lookup_map', collection=collection).to_str(),
                     'prev': URL('api_lookup', collection=collection).to_str()
                 },
-                'payload': amap
+                'data': amap
             }
         )
         
 # Templates
-
 @ns.route('/collections/<string:collection>/templates')
 @ns.param('collection', '"bibs" or "auths"')
 class TemplatesList(Resource):
@@ -955,7 +919,7 @@ class TemplatesList(Resource):
                     'self': URL('api_templates_list', collection=collection).to_str(),
                     'prev': URL('api_collection', collection=collection).to_str()
                 },
-                'payload': [URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
+                'data': [URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
             }
         )
     
@@ -965,17 +929,23 @@ class TemplatesList(Resource):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         data = load_json(request.data) or abort(400, 'Invalid JSON')
-        data['_id'] = uuid1().int / 10 # not good
+        schema = json.loads(requests.get('api_schema', schema_name='jmarc.template').content)
+        
+        try:
+            jsonschema.validate(schema=schema, instance=data, format_checker=jsonschema.FormatChecker())
+        except:
+            abort(400)
+        
         template_collection.insert_one(data) or abort(500)
         
         return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
 
+# Template
 @ns.route('/collections/<string:collection>/templates/<string:template_name>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('template_name', 'The name of the template')
 class Template(Resource):
     @ns.doc(description='Return the the template with the given name for the given collection')
-    
     def get(self, collection, template_name):
         # interim implementation
         cls = ClassDispatch.by_collection(collection) or abort(404)
@@ -987,13 +957,17 @@ class Template(Resource):
         except Exception as e:
             abort(404, str(e))
             
+        data = record.to_dict()
+        data.pop('_id')
+        data['name'] = template_name
+            
         return jsonify(
             {
                 '_links': {
                     'self': URL('api_template', collection=collection, template_name=template_name).to_str(),
                     'prev': URL('api_templates_list', collection=collection).to_str()
                 },
-                'payload': record.to_dict()
+                'data': data
             }
         )
 
@@ -1004,6 +978,13 @@ class Template(Resource):
         template_collection = DB.handle[f'{collection}_templates']
         old_data = template_collection.find_one({'name': template_name}) or abort(404)
         new_data = load_json(request.data) or abort(400, 'Invalid JSON')
+        schema = json.loads(requests.get('api_schema', schema_name='jmarc.template').content)
+        
+        try:
+            jsonschema.validate(schema=schema, instance=data, format_checker=jsonschema.FormatChecker())
+        except:
+            abort(400)
+
         new_data['_id'], new_data['name'] = old_data['_id'], old_data['name']
         result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
         result.acknowledged or abort(500)

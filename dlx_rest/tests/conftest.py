@@ -7,15 +7,17 @@ from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
 
+assert Config.TESTING == True
+assert Config.connect_string == 'mongomock://localhost'
+    
 @pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
-    return app.test_client()
     
-@pytest.fixture(scope='module')
-def db():
-    from dlx import DB
-    # ?
+    client = app.test_client()
+    assert type(client).__name__ == 'FlaskClient'
+    
+    return client
     
 @pytest.fixture(scope='module')
 def users():
