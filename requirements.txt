@@ -1,6 +1,6 @@
 git+https://github.com/dag-hammarskjold-library/dlx
 Flask
-Flask-Cors
+flask-cors
 Flask-Login
 flask-mongoengine
 flask-restx

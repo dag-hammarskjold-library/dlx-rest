@@ -2,6 +2,7 @@ from flask import Flask, Response, url_for, jsonify, abort as flask_abort
 from flask_restx import Resource, Api, reqparse
 from flask_login import LoginManager
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from mongoengine import connect, disconnect
 from flask_cors import CORS
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
@@ -17,6 +18,9 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
+connect(host=Config.connect_string,db=Config.dbname)
+DB.connect(Config.connect_string)
+
 try:
     app.secret_key=Config.secret_key
 except AttributeError:
@@ -28,4 +32,5 @@ from dlx_rest.routes import *
 # Load the API route
 from dlx_rest.api import api
 
-
+# Load the commands
+from dlx_rest.commands import *

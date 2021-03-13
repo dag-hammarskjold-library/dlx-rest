@@ -11,6 +11,37 @@ assert Config.TESTING == True
 assert Config.connect_string == 'mongomock://localhost'
     
 @pytest.fixture(scope='module')
+def default_users():
+    return {
+        'admin': {
+            'email':'test_user@un.org',
+            'password': 'password',
+            'role': 'admin'
+        },
+        'non-admin': {
+            'email':'user@un.org',
+            'password': 'password',
+            'role': 'user'
+        },
+        'invalid': {
+            'email':'invalid@un.org',
+            'password': 'password'
+        },
+        'new': {
+            'email': 'new_test_user@un.org',
+            'password': 'password',
+            'role': 'user'
+        }
+    }
+
+
+@pytest.fixture(scope='module')
+def app_context():
+    from dlx_rest.app import app
+    with app.app_context():
+        yield
+
+@pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
     
@@ -18,18 +49,47 @@ def client():
     assert type(client).__name__ == 'FlaskClient'
     
     return client
+
+@pytest.fixture(scope='module')
+def db():
+    from dlx import DB
+    # ?
+
+@pytest.fixture(scope='module')
+def permissions():
+    from dlx_rest.models import Permission
+    for perm in ['readAdmin','readUser','createUser','updateUser','deleteUser']:
+        p = Permission(action=perm)
+        p.save()
+    
+    return Permission
+
+@pytest.fixture(scope='module')
+def roles(permissions):
+    from dlx_rest.models import Role
+
+    r = Role(name='admin')
+    r.permissions = permissions.objects()
+    r.save()
+
+    r = Role(name='user')
+    r.permissions = []
+    r.save()
+
+    return Role
     
 @pytest.fixture(scope='module')
-def users():
-    from mongoengine import connect, disconnect
+def users(roles, default_users):
     from dlx_rest.models import User
-
-    disconnect()
-    connect('dbtest', host=Config.connect_string)
     
-    user = User(email = 'test_user@un.org', created=datetime.now())
-    user.set_password('password')
-    user.save()
+    for utype in ['admin','non-admin']:
+        u = default_users[utype]
+        user = User(email = u['email'], created=datetime.now())
+        user.set_password(u['password'])
+        user.add_role_by_name(u['role'])
+        user.save()
+
+    return User
     
 @pytest.fixture(scope='module')
 def records():

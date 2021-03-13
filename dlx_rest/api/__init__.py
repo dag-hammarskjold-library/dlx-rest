@@ -30,6 +30,7 @@ authorizations = {
         'type': 'basic'
     }
 }
+
 api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
 DB.connect(Config.connect_string)

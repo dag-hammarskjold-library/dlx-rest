@@ -1,5 +1,5 @@
 import os
-from dlx import DB
+#from dlx import DB
 from dlx.marc import Bib, Auth
 import boto3
 
