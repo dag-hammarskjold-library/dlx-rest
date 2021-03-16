@@ -53,10 +53,12 @@ class User(UserMixin, Document):
             raise
 
     def has_role(self, role_name):
-        for role in self.roles:
-            if role.name == role_name:
-                return True
-        return False
+        return any (
+            [
+                role_name == role.name
+                for role in self.roles
+            ]
+        )
 
     @staticmethod
     def verify_auth_token(token):
