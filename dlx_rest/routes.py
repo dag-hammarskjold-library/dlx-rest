@@ -181,7 +181,21 @@ def delete_user(id):
     return redirect(url_for('list_users'))
 
 '''Roles and permissions admin'''
+@app.route('/admin/roles', methods=['GET','POST'])
+def get_roles():
+    if request.method == 'GET':
+        pass
+    elif request.method == 'POST':
+        pass
 
+@app.route('/admin/roles/<id>', methods=['GET', 'PUT', 'DELETE'])
+def update_rold(role_id):
+    if request.method == 'GET':
+        pass
+    elif request.method == 'PUT':
+        pass
+    elif request.method == 'DELETE':
+        pass
 
 
 # Records: Need a list of the routes necessary.
