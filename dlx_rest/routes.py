@@ -4,13 +4,12 @@ from flask_login import LoginManager, current_user, login_user, login_required, 
 from mongoengine import connect, disconnect
 from datetime import datetime
 import json, requests
-#import dlx_dl
 
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import User, SyncLog, permission_required
-from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm
+from dlx_rest.models import User, SyncLog, Permission, Role, has_permission_to, register_permission
+from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
 # Main app routes
@@ -75,7 +74,6 @@ def login():
     return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/logout')
-#@login_required
 def logout():
     logout_user()
     flash("Logged out successfully.")
@@ -85,34 +83,29 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
-@permission_required(('admin','readAdmin'))
+@has_permission_to(register_permission('readAdmin'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
-@permission_required(('admin', 'all'))
+@has_permission_to(register_permission('readSync'))
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
-
-'''
-@app.route('/admin/_sync')
-@login_required
-'''
 
 # Users Admin
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
-@permission_required(('admin', 'readUser'))
+@has_permission_to(register_permission('readUser'))
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
-@permission_required(('admin', 'createUser'))
+@has_permission_to(register_permission('createUser'))
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -137,7 +130,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
-@permission_required(('admin', 'updateUser'))
+@has_permission_to(register_permission('updateUser'))
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -169,7 +162,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
-@permission_required(('admin', 'deleteUser'))
+@has_permission_to(register_permission('deleteUser'))
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -182,6 +175,8 @@ def delete_user(id):
 
 '''Roles and permissions admin'''
 @app.route('/admin/roles', methods=['GET','POST'])
+@login_required
+#@role_required('admin')
 def get_roles():
     if request.method == 'GET':
         pass
@@ -189,7 +184,9 @@ def get_roles():
         pass
 
 @app.route('/admin/roles/<id>', methods=['GET', 'PUT', 'DELETE'])
-def update_rold(role_id):
+@login_required
+#@role_required('admin')
+def update_role(role_id):
     if request.method == 'GET':
         pass
     elif request.method == 'PUT':
@@ -197,6 +194,25 @@ def update_rold(role_id):
     elif request.method == 'DELETE':
         pass
 
+@app.route('/admin/permissions', methods=['GET', 'POST'])
+@login_required
+#@role_required('admin')
+def get_permmissions():
+    if request.method == 'GET':
+        pass
+    elif request.method == 'POST':
+        pass
+
+@app.route('/admin/permissions/<id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+#@role_required('admin')
+def update_permission(permission_id):
+    if request.method == 'GET':
+        pass
+    elif request.method == 'PUT':
+        pass
+    elif request.method == 'DELETE':
+        pass
 
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')

@@ -52,6 +52,8 @@ class User(UserMixin, Document):
         except:
             raise
 
+    # For determining admin or not admin, has_role() should
+    # be sufficient. Admin should get all permissions anyway
     def has_role(self, role_name):
         return any (
             [
@@ -85,26 +87,37 @@ class SyncLog(Document):
         'strict': False
     }
 
-
-def permission_required(permissions):
-    """
-    Check if a user has permission to a resource.
-    :param permissions: List of permissions consistent with tuples. E.g.
-    [('user', 'read'), ('admin', 'create')]
-    :return: a function or raise 403
-    """
-
+def has_permission_to(action):
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
             if hasattr(current_user, 'roles'):
                 if set(current_user.roles):
-                    for perm in permissions:
-                        for user_role in current_user.roles:
-                            if user_role.has_permission(perm):
-                                return func(*args, **kwargs)
+                    for user_role in current_user.roles:
+                        if user_role.has_permission(action):
+                            return func(*args, **kwargs)
             abort(403)
-
         return wrapped
-
     return wrapper
+
+def register_role(name):
+    role = Role.objects(name=name)
+    if len(role) == 0:
+        r = Role(name=name)
+        r.save()
+        return r
+    return role[0]
+
+
+def register_permission(action):
+    permission = Permission.objects(action=action)
+    if len(permission) == 0:
+        p = Permission(action=action)
+        p.save()
+        # Add to admin role automatically if not already existing
+        r = register_role('admin')
+        if not r.has_permission(action):
+            r.permissions.append(p)
+            r.save()
+        return p.action
+    return permission[0].action

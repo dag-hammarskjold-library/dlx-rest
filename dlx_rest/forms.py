@@ -30,3 +30,15 @@ class UpdateUserForm(FlaskForm):
     # To do: Make this list come from the database.
     roles = SelectMultipleField('Roles', choices=[('user', 'User'),('admin','Administrator')])
     submit = SubmitField('Update')
+
+class CreateRoleForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    # To do: Make this list come from the database.
+    permissions = SelectMultipleField('Permissions', choices=[('foo', 'Foo'), ('bar', 'Bar')])
+    submit = SubmitField('Create')
+
+class UpdateRoleForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    # To do: Make this list come from the database.
+    permissions = SelectMultipleField('Permissions', choices=[('foo', 'Foo'), ('bar', 'Bar')])
+    submit = SubmitField('Update')

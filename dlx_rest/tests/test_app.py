@@ -18,18 +18,6 @@ def test_index(client):
     assert response.status_code == 200
 
 # User session management
-'''
-def test_get_register_page(client):
-    response = client.get(PRE + '/register')
-    assert response.status_code == 200
-'''
-'''
-def test_post_register_data(client):
-    email
-    response = client.post(PRE + '/register', data={
-        'email'
-    })
-'''
 def login(client, username, password):
     return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
 
@@ -218,3 +206,24 @@ def test_delete_user(client, users, default_users):
     assert len(User.objects) == current_user_count - 1
     user = User.objects.filter(email=deleted_user['email'])
     assert len(user) == 0
+
+def test_list_roles(client, default_users):
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 403
+
+    # Authenticated, non-admin user
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 403
+
+    logout(client)
+
+    # Authenticated, admin user
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 200
+
+    logout(client)
