@@ -87,7 +87,7 @@ class SyncLog(Document):
         'strict': False
     }
 
-def has_permission_to(action):
+def requires_permission(action):
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):

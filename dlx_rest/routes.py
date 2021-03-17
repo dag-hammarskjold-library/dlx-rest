@@ -8,7 +8,7 @@ import json, requests
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import User, SyncLog, Permission, Role, has_permission_to, register_permission
+from dlx_rest.models import User, SyncLog, Permission, Role, requires_permission, register_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
@@ -83,13 +83,13 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
-@has_permission_to(register_permission('readAdmin'))
+@requires_permission(register_permission('readAdmin'))
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
-@has_permission_to(register_permission('readSync'))
+@requires_permission(register_permission('readSync'))
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
@@ -98,14 +98,14 @@ def get_sync_log():
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
-@has_permission_to(register_permission('readUser'))
+@requires_permission(register_permission('readUser'))
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
-@has_permission_to(register_permission('createUser'))
+@requires_permission(register_permission('createUser'))
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -130,7 +130,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
-@has_permission_to(register_permission('updateUser'))
+@requires_permission(register_permission('updateUser'))
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -162,7 +162,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
-@has_permission_to(register_permission('deleteUser'))
+@requires_permission(register_permission('deleteUser'))
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -174,25 +174,63 @@ def delete_user(id):
     return redirect(url_for('list_users'))
 
 '''Roles and permissions admin'''
-@app.route('/admin/roles', methods=['GET','POST'])
+@app.route('/admin/roles', methods=['GET'])
 @login_required
-#@role_required('admin')
+@requires_permission(register_permission('readRole'))
 def get_roles():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        pass
+    roles = Role.objects
+    return render_template('admin/roles.html', title="Roles", roles=roles)
+
+@app.route('/admin/roles/new', methods=['GET', 'POST'])
+@login_required
+@requires_permission(register_permission('createRole'))
+def create_role():
+    form = CreateRoleForm()
+    if request.method == 'POST':
+        name = request.form.get('name')
+        permissions = request.form.get('permissions')
+
+        role = Role(name=name, permissions=permissions)
+        try:
+            role.save(validate=True)
+            flash("The role was created successfully.")
+            return redirect(url_for('get_roles'))
+        except:
+            flash("An error occurred trying to create the role. Please review the information and try again.")
+            return redirect(url_for('create_role'))
+    else:
+        return render_template('admin/createrole.html', title="Create Role", form=form)
+
 
 @app.route('/admin/roles/<id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-#@role_required('admin')
-def update_role(role_id):
+@requires_permission(register_permission('updateRole'))
+def update_role(id):
+
+    @requires_permission(register_permission('deleteRole'))
+    def delete_role(id):
+        role = Role.objects.get(id=id)
+        if role:
+            role.delete()
+            flash("Role was deleted successfully.")
+        else:
+            flash("The role could not be found.")
+
+        return redirect(url_for('get_roles'))
+
+    try:
+        role = Role.objects.get(id=id)
+    except IndexError:
+        flash("The role was not found.")
+        return redirect(url_for('get_roles'))
+
+    form = UpdateRoleForm()
     if request.method == 'GET':
-        pass
+        return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
     elif request.method == 'PUT':
         pass
     elif request.method == 'DELETE':
-        pass
+        delete_role(id)
 
 @app.route('/admin/permissions', methods=['GET', 'POST'])
 @login_required
