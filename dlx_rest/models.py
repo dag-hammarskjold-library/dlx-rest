@@ -12,11 +12,10 @@ from dlx_rest.config import Config
 ## Setup some models for use
 
 class Permission(Document):
-    #role = ReferenceField('Role')
-    action = StringField()
+    action = StringField(primary_key=True)
 
 class Role(Document):
-    name = StringField()
+    name = StringField(primary_key=True)
     permissions = ListField(ReferenceField(Permission))
 
     def has_permission(self, action):
@@ -57,7 +56,7 @@ class User(UserMixin, Document):
     def has_role(self, role_name):
         return any (
             [
-                role_name == role.name
+                role_name == role.id
                 for role in self.roles
             ]
         )
@@ -101,23 +100,27 @@ def requires_permission(action):
     return wrapper
 
 def register_role(name):
-    role = Role.objects(name=name)
-    if len(role) == 0:
-        r = Role(name=name)
-        r.save()
-        return r
-    return role[0]
-
-
+    try:
+        role = Role.objects.get(name=name)
+    except DoesNotExist:
+        role = Role(name=name)
+        role.save()
+    return role
+    
 def register_permission(action):
-    permission = Permission.objects(action=action)
-    if len(permission) == 0:
-        p = Permission(action=action)
-        p.save()
-        # Add to admin role automatically if not already existing
+    try:
+        permission = Permission.objects.get(action=action)
+        # Permission exists, so let's make sure it's added to the admin role automatically.
         r = register_role('admin')
         if not r.has_permission(action):
-            r.permissions.append(p)
+            r.permissions.append(permission)
             r.save()
-        return p.action
-    return permission[0].action
+        return permission.action
+    except DoesNotExist:
+        permission = Permission(action=action)
+        permission.save()
+        r = register_role('admin')
+        if not r.has_permission(action):
+            r.permissions.append(permission)
+            r.save()
+        return permission.action
