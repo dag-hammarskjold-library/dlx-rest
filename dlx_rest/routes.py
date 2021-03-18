@@ -109,20 +109,29 @@ def list_users():
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
+    form.roles.choices = [(r.id, r.id) for r in Role.objects()]
     if request.method == 'POST':
         email = request.form.get('email')
-        roles = request.form.get('roles')
+        roles = form.roles.data
         password = request.form.get('password')
         created = datetime.now()
 
         user = User(email=email, created=created)
         user.set_password(password)
+        for role in roles:
+            print(role)
+            try:
+                r = Role.objects.get(name=role)
+                user.roles.append(r)
+            except:
+                pass
         # This still allows submission of a blank user document. We need more validation.
         try:
             user.save(validate=True)
             flash("The user was created successfully.")
             return redirect(url_for('list_users'))
         except:
+            raise
             flash("An error occurred trying to create the user. Please review the information and try again.")
             return redirect(url_for('create_user'))
     else:
@@ -139,6 +148,8 @@ def update_user(id):
         return redirect(url_for('list_users'))
 
     form = UpdateUserForm()
+    form.roles.choices = [(r.id, r.id) for r in Role.objects()]
+    form.roles.process_data([r.id for r in user.roles])
 
     if request.method == 'POST':
         user = User.objects.get(id=id)
@@ -146,9 +157,16 @@ def update_user(id):
         roles = request.form.getlist('roles')
 
         user.email = email  #unsure if this is a good idea
-        user.roles = roles
+        user.roles = []
+        for role in roles:
+            print(role)
+            try:
+                r = Role.objects.get(name=role)
+                user.roles.append(r)
+            except:
+                pass
         user.updated = datetime.now()
-
+        
         try:
             user.save(validate=True)
             flash("The user was updated successfully.")

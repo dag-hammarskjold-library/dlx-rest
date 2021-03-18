@@ -45,11 +45,12 @@ class User(UserMixin, Document):
         return s.dumps({ 'id': str(self.id) })
 
     def add_role_by_name(self, role_name):
-        try:
-            role = Role.objects.get(name=role_name)
-            self.roles.append(role)
-        except:
-            raise
+        if role not in self.roles:
+            try:
+                role = Role.objects.get(name=role_name)
+                self.roles.append(role)
+            except:
+                raise
 
     # For determining admin or not admin, has_role() should
     # be sufficient. Admin should get all permissions anyway

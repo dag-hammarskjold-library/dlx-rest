@@ -21,14 +21,14 @@ class CreateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
-    roles = SelectMultipleField('Roles', choices=[('user', 'User'),('admin','Administrator')])
+    roles = SelectMultipleField('Roles')
     submit = SubmitField('Create')
 
 class UpdateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
-    roles = SelectMultipleField('Roles', choices=[('user', 'User'),('admin','Administrator')])
+    roles = SelectMultipleField('Roles')
     submit = SubmitField('Update')
 
 class CreateRoleForm(FlaskForm):
