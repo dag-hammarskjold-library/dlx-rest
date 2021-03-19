@@ -12,11 +12,10 @@ from dlx_rest.config import Config
 ## Setup some models for use
 
 class Permission(Document):
-    #role = ReferenceField('Role')
-    action = StringField()
+    action = StringField(primary_key=True)
 
 class Role(Document):
-    name = StringField()
+    name = StringField(primary_key=True)
     permissions = ListField(ReferenceField(Permission))
 
     def has_permission(self, action):
@@ -26,6 +25,14 @@ class Role(Document):
                 for perm in self.permissions
             ]
         )
+
+    def add_permission_by_name(self, action):
+        # We'll use the register_permission method just to make sure it's available
+        if action not in self.permissions:
+            permission = register_permission(action)
+            this_p = Permission.objects.get(action=permission)
+            self.permissions.append(this_p)
+            self.save()
 
 class User(UserMixin, Document):
     email = StringField(max_lengt=200, required=True, unique=True)
@@ -46,16 +53,20 @@ class User(UserMixin, Document):
         return s.dumps({ 'id': str(self.id) })
 
     def add_role_by_name(self, role_name):
-        try:
-            role = Role.objects.get(name=role_name)
-            self.roles.append(role)
-        except:
-            raise
+        if role_name not in self.roles:
+            try:
+                role = Role.objects.get(name=role_name)
+                self.roles.append(role)
+                self.save()
+            except:
+                raise
 
+    # For determining admin or not admin, has_role() should
+    # be sufficient. Admin should get all permissions anyway
     def has_role(self, role_name):
         return any (
             [
-                role_name == role.name
+                role_name == role.id
                 for role in self.roles
             ]
         )
@@ -85,26 +96,41 @@ class SyncLog(Document):
         'strict': False
     }
 
-
-def permission_required(permissions):
-    """
-    Check if a user has permission to a resource.
-    :param permissions: List of permissions consistent with tuples. E.g.
-    [('user', 'read'), ('admin', 'create')]
-    :return: a function or raise 403
-    """
-
+def requires_permission(action):
     def wrapper(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
             if hasattr(current_user, 'roles'):
                 if set(current_user.roles):
-                    for perm in permissions:
-                        for user_role in current_user.roles:
-                            if user_role.has_permission(perm):
-                                return func(*args, **kwargs)
+                    for user_role in current_user.roles:
+                        if user_role.has_permission(action):
+                            return func(*args, **kwargs)
             abort(403)
-
         return wrapped
-
     return wrapper
+
+def register_role(name):
+    try:
+        role = Role.objects.get(name=name)
+    except DoesNotExist:
+        role = Role(name=name)
+        role.save()
+    return role
+    
+def register_permission(action):
+    try:
+        permission = Permission.objects.get(action=action)
+        # Permission exists, so let's make sure it's added to the admin role automatically.
+        r = register_role('admin')
+        if not r.has_permission(action):
+            r.permissions.append(permission)
+            r.save()
+        return permission.action
+    except DoesNotExist:
+        permission = Permission(action=action)
+        permission.save()
+        r = register_role('admin')
+        if not r.has_permission(action):
+            r.permissions.append(permission)
+            r.save()
+        return permission.action

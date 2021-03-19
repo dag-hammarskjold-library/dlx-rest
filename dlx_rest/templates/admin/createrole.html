@@ -8,18 +8,18 @@
 </style>
 
 <div class="container customize shadow">
-    <h1>Update User</h1>
+    <h1>Create Role</h1>
     <hr>
-    <form action="{{url_for('update_user', id=user.id)}}" method="POST" novalidate>
+    <form action="{{url_for('create_role')}}" method="POST" novalidate>
         {{ form.hidden_tag() }}
         <div class="form-group">
             <p>
-                {{ form.email.label }}<br> {{ form.email(size=32,class="form-control", value=user.email) }}
+                {{ form.name.label }}<br> {{ form.name(size=32,class="form-control") }}
             </p>
         </div>
         <div class="form-group">
             <p>
-                {{ form.roles.label }}<br> {{ form.roles(class="form-control", value=user.roles) }}
+                {{ form.permissions.label }}<br> {{ form.permissions(class="form-control") }}
             </p>
         </div>
         <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>

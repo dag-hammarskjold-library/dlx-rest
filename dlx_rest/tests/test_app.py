@@ -18,18 +18,6 @@ def test_index(client):
     assert response.status_code == 200
 
 # User session management
-'''
-def test_get_register_page(client):
-    response = client.get(PRE + '/register')
-    assert response.status_code == 200
-'''
-'''
-def test_post_register_data(client):
-    email
-    response = client.post(PRE + '/register', data={
-        'email'
-    })
-'''
 def login(client, username, password):
     return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
 
@@ -218,3 +206,144 @@ def test_delete_user(client, users, default_users):
     assert len(User.objects) == current_user_count - 1
     user = User.objects.filter(email=deleted_user['email'])
     assert len(user) == 0
+
+def test_list_roles(client, default_users):
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 403
+
+    # Authenticated, non-admin user
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 403
+
+    logout(client)
+
+    # Authenticated, admin user
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles')
+    assert response.status_code == 200
+
+    logout(client)
+
+def test_create_role(client, default_users):
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/roles/new')
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/roles/new', data={
+        'name': 'testRole'
+    })
+    assert response.status_code == 403
+
+    # Authenticated, unauthorized user.
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/new')
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/roles/new', data={
+        'name': 'testRole'
+    })
+    assert response.status_code == 403
+
+
+    logout(client)
+
+    # Authenticated, authorized user
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/new')
+    assert response.status_code == 200
+
+    response = client.post(PRE + '/admin/roles/new', data={
+        'name': 'testRole'
+    })
+    assert response.status_code == 302
+
+    logout(client)
+
+    # Verify our newly created role
+    from dlx_rest.models import Role, Permission
+    role = Role.objects.filter(name='testRole')
+    assert len(role) > 0
+    assert len(role[0].permissions) == 0
+    role[0].add_permission_by_name('testPermission')
+    assert len(role[0].permissions) == 1
+
+def test_update_role(client, default_users):
+    from dlx_rest.models import Role
+    admin_user = default_users['admin']
+    edited_role = Role.objects.get(name='testRole')
+
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+        'name':'testRole', 'permissions': []
+    })
+    assert response.status_code == 403
+
+    # Authenticated, but unauthorized.
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    assert response.status_code == 403
+
+    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+        'name':'testRole', 'permissions': []
+    })
+    assert response.status_code == 403
+    logout(client)
+
+    # Authenticated, authorized
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    assert response.status_code == 200
+
+    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+        'name':'testRole', 'permissions': []
+    })
+    assert response.status_code == 302
+    logout(client)
+
+    role = Role.objects.filter(name='testRole')
+    assert len(role[0].permissions) == 0
+
+def test_delete_role(client, default_users):
+    from dlx_rest.models import Role
+    deleted_role = Role.objects.get(name='testRole')
+    current_role_count = len(Role.objects)
+
+    # Unauthenticated. This should give a 403 for unauthorized users.
+    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    assert response.status_code == 403
+
+    # Authenticated, unauthorized
+    user = default_users['new']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    assert response.status_code == 403
+    logout(client)
+
+    # Authenticated, authorized
+    user = default_users['admin']
+    login(client, user['email'], user['password'])
+    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    assert response.status_code == 302
+    logout(client)
+
+    assert len(Role.objects) == current_role_count - 1
+    role = Role.objects.filter(name='testRole')
+    assert len(role) == 0
+
+'''
+Because the permissions aren't directly accessible/manageable from the UI, they
+are not tested here from a CRUD perspective. Ideally we should be testing the 
+creation of permissions when the system initializes, as well as the effect of 
+assigning and unassigning permissions.
+'''

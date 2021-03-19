@@ -14,20 +14,22 @@
         {{ form.hidden_tag() }}
         <div class="form-group">
             <p>
-                {{ form.email.label }}<br> {{ form.email(size=32,class="form-control") }}
+                {{ form.email.label }}<br> {{ form.email(class="form-control") }}
             </p>
         </div>
         <div class="form-group">
             <p>
-                {{ form.password.label }}<br> {{ form.password(size=32,class="form-control") }}
+                {{ form.password.label }}<br> {{ form.password(class="form-control") }}
             </p>
         </div>
         <div class="form-group">
             <p>
-                {{ form.roles.label }}<br> {{ form.roles(size=32,class="form-control") }}
+                {{ form.roles.label }}<br> {{ form.roles(class="form-control") }}
             </p>
         </div>
-        <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>
+        <div class="form-group">
+            <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>
+        </div>
     </form>
     <hr>
 </div>
