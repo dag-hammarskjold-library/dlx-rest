@@ -34,11 +34,11 @@ class UpdateUserForm(FlaskForm):
 class CreateRoleForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     # To do: Make this list come from the database.
-    permissions = SelectMultipleField('Permissions', choices=[('foo', 'Foo'), ('bar', 'Bar')])
+    permissions = SelectMultipleField('Permissions')
     submit = SubmitField('Create')
 
 class UpdateRoleForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     # To do: Make this list come from the database.
-    permissions = SelectMultipleField('Permissions', choices=[('foo', 'Foo'), ('bar', 'Bar')])
+    permissions = SelectMultipleField('Permissions')
     submit = SubmitField('Update')

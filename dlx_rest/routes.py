@@ -204,11 +204,21 @@ def get_roles():
 @requires_permission(register_permission('createRole'))
 def create_role():
     form = CreateRoleForm()
+    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
     if request.method == 'POST':
         name = request.form.get('name')
-        permissions = request.form.get('permissions')
+        permissions = request.form.getlist('permissions')
 
-        role = Role(name=name, permissions=permissions)
+        role = Role(name=name)
+        role.permissions = []
+        for permission in permissions:
+            print(permission)
+            try:
+                p = Permission.objects.get(action=permission)
+                role.permissions.append(p)
+            except:
+                pass
+
         try:
             role.save(validate=True)
             flash("The role was created successfully.")
@@ -231,10 +241,31 @@ def update_role(id):
         return redirect(url_for('list_rolees'))
 
     form = UpdateRoleForm()
-    form.permissions.choices = [(p.id, p.id) for p in role.permissions]
+    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
+    form.permissions.process_data([p.action for p in role.permissions])
 
-    if request.method == 'PUT':
-        return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
+    if request.method == 'POST':
+        role = Role.objects.get(name=id)
+        name = request.form.get('name', role.name)
+        permissions = request.form.getlist('permissions')
+
+        role.permissions = []
+        for permission in permissions:
+            try:
+                p = Permission.objects.get(action=permission)
+                role.permissions.append(p)
+            except:
+                pass
+        
+        try:
+            role.save(validate=True)
+            print("I am here")
+            flash("The role was updated successfully.")
+            return redirect(url_for('get_roles'), 302)
+        except:
+            flash("An error occurred trying to update the role. Please review the information and try again.")
+            raise
+            return render_template('admin/editrole.html', title="Update Role", role=role, form=form)
     else:
         return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
 
@@ -347,10 +378,3 @@ def get_record_by_id(coll,id):
 @login_required
 def create_record(coll):
     return render_template('record.html')
-
-'''
-@app.route('/records/<coll>/<id>/edit', methods=['GET'])
-#@login_required
-def edit_record_by_id(coll, id):
-    pass
-'''

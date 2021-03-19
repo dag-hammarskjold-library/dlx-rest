@@ -308,11 +308,11 @@ def test_update_role(client, default_users):
     response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
         'name':'testRole', 'permissions': []
     })
-    assert response.status_code == 200
+    assert response.status_code == 302
     logout(client)
 
     role = Role.objects.filter(name='testRole')
-    assert len(role[0].permissions) == 1
+    assert len(role[0].permissions) == 0
 
 def test_delete_role(client, default_users):
     from dlx_rest.models import Role
