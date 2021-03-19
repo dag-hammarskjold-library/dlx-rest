@@ -10,7 +10,7 @@
 <div class="container customize shadow">
     <h1>Update Role</h1>
     <hr>
-    <form action="{{url_for('update_role', id=role.id)}}" method="PUT" novalidate>
+    <form action="{{url_for('update_role', id=role.name)}}" method="POST" novalidate>
         {{ form.hidden_tag() }}
         <div class="form-group">
             <p>

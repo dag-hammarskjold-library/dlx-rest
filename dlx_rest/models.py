@@ -26,6 +26,14 @@ class Role(Document):
             ]
         )
 
+    def add_permission_by_name(self, action):
+        # We'll use the register_permission method just to make sure it's available
+        if action not in self.permissions:
+            permission = register_permission(action)
+            this_p = Permission.objects.get(action=permission)
+            self.permissions.append(this_p)
+            self.save()
+
 class User(UserMixin, Document):
     email = StringField(max_lengt=200, required=True, unique=True)
     password_hash = StringField(max_length=200)
@@ -45,10 +53,11 @@ class User(UserMixin, Document):
         return s.dumps({ 'id': str(self.id) })
 
     def add_role_by_name(self, role_name):
-        if role not in self.roles:
+        if role_name not in self.roles:
             try:
                 role = Role.objects.get(name=role_name)
                 self.roles.append(role)
+                self.save()
             except:
                 raise
 

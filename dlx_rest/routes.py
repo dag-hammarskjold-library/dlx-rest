@@ -220,55 +220,41 @@ def create_role():
         return render_template('admin/createrole.html', title="Create Role", form=form)
 
 
-@app.route('/admin/roles/<id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/admin/roles/<id>', methods=['GET', 'POST'])
 @login_required
 @requires_permission(register_permission('updateRole'))
 def update_role(id):
-
-    @requires_permission(register_permission('deleteRole'))
-    def delete_role(id):
-        role = Role.objects.get(id=id)
-        if role:
-            role.delete()
-            flash("Role was deleted successfully.")
-        else:
-            flash("The role could not be found.")
-
-        return redirect(url_for('get_roles'))
-
     try:
-        role = Role.objects.get(id=id)
+        role = Role.objects.get(name=id)
     except IndexError:
         flash("The role was not found.")
-        return redirect(url_for('get_roles'))
+        return redirect(url_for('list_rolees'))
 
     form = UpdateRoleForm()
-    if request.method == 'GET':
+    form.permissions.choices = [(p.id, p.id) for p in role.permissions]
+
+    if request.method == 'PUT':
         return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
-    elif request.method == 'PUT':
-        pass
-    elif request.method == 'DELETE':
-        delete_role(id)
+    else:
+        return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
 
-@app.route('/admin/permissions', methods=['GET', 'POST'])
+@app.route('/admin/roles/<id>/delete')
 @login_required
-#@role_required('admin')
-def get_permmissions():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        pass
+@requires_permission(register_permission('deleteRole'))
+def delete_role(id):
+    role = Role.objects.get(name=id)
+    if role:
+        role.delete()
+        flash("Role was deleted successfully.")
+    else:
+        flash("The role could not be found.")
+    return redirect(url_for('get_roles'))
 
-@app.route('/admin/permissions/<id>', methods=['GET', 'PUT', 'DELETE'])
-@login_required
-#@role_required('admin')
-def update_permission(permission_id):
-    if request.method == 'GET':
-        pass
-    elif request.method == 'PUT':
-        pass
-    elif request.method == 'DELETE':
-        pass
+'''
+Permissions aren't included here because they are created in the course of 
+defining new routes. Their only purpose in the database is to be visibile to the
+user interface and for assignment to specific roles.
+'''
 
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')

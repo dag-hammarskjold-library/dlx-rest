@@ -16,8 +16,8 @@
                     {% endfor %}
                 </td>
                 <td>
-                    <i class="fas fa-edit"><a href="{{url_for('update_role', id=role.id)}}" method="PUT"> Edit</a></i> |
-                    <i class="fas fa-trash-alt"><a href="{{url_for('update_role', id=role.id)}}" method="DELETE"> Delete</a></i></td>
+                    <i class="fas fa-edit"><a href="{{url_for('update_role', id=role.name)}}"> Edit</a></i> |
+                    <i class="fas fa-trash-alt"><a href="{{url_for('delete_role', id=role.name)}}"> Delete</a></i></td>
             </tr>
             {% endfor %}
             <tr>
