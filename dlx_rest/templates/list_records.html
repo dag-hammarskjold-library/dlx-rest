@@ -9,10 +9,34 @@
         </form>
     </div>
     <div class="row">
-        <p>Start: {{start}}</p> |
-        <p>Limit: {{limit}}</p> |
-        <p>Sort: {{sort}}</p> |
-        <p>Direction: {{direction}}</p>
+        <p>
+            {% set rpp = [10,50,100,500,1000] %}
+            Results:
+            
+            {% if limit|int in rpp %}
+                {% for o in rpp %}
+                    {% if limit|int == o %}
+                        {{o}}
+                    {% else %}
+                        <a href="{{url_for('search_records', coll=coll, q=q, limit=o, sort=sort, direction=direction)}}">{{o}}</a>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {{limit}}
+                {% for o in rpp %}
+                    <a href="{{url_for('search_records', coll=coll, q=q, limit=o, sort=sort, direction=direction)}}">{{o}}</a>
+                {% endfor %}
+            {% endif %}
+            &nbsp;|&nbsp;
+            Sort: updated 
+            {% for o in ["asc","desc"] %}
+                {% if direction == o %}
+                    {{o}}
+                {% else %}
+                    <a href="{{url_for('search_records', coll=coll, q=q, limit=limit, sort=sort, direction=o)}}">{{o}}</a>
+                {% endif %}
+            {% endfor %}
+        </p>
     </div>
     {% for record in records %}
     <div class="row pt-2 border-bottom">
