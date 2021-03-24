@@ -52,5 +52,20 @@
         </div>
     </div>
     {% endfor %}
+    <nav>
+        <ul class="pagination pagination-md justify-content-center">
+            {% for k,v in [("Previous", prev_page), ("Next", next_page)] %}
+                {% if v is not none %}
+                <li class="page-item">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
 </div>
 {% endblock %}

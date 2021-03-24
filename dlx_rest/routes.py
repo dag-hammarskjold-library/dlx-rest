@@ -3,6 +3,7 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 import json, requests
 
 #Local app imports
@@ -287,6 +288,42 @@ defining new routes. Their only purpose in the database is to be visibile to the
 user interface and for assignment to specific roles.
 '''
 
+def build_pagination(page_link, coll, q, start, limit, sort, direction):
+    parsed_link = urlparse(page_link)
+    params = parse_qs(parsed_link.query)
+
+    try:
+        start = params['start']
+    except:
+        start = 0 
+
+    try:
+        limit = params['limit']
+    except:
+        limit = 10
+
+    try:
+        sort = params['sort']
+    except:
+        sort = 'updated'
+
+    try:
+        direction = params['direction']
+    except:
+        direction = 'desc'
+
+    return_page = url_for(
+        'search_records', 
+        coll=coll, 
+        q=q, 
+        start=start, 
+        limit=limit, 
+        sort=sort, 
+        direction=direction
+    )
+
+    return return_page
+
 # Records: Need a list of the routes necessary.
 @app.route('/records/<coll>')
 def get_records_list(coll):
@@ -294,7 +331,7 @@ def get_records_list(coll):
     limit = request.args.get('limit', 10)
     sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 0)
+    start = request.args.get('start', 1)
     search = request.args.get('search', '')
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
@@ -325,8 +362,16 @@ def get_records_list(coll):
                 'second_line': " | ".join(second_line)
             }
             records.append(record)
+
+    prev_page = None
+    next_page = None
     
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
+    if not len(records) < int(limit):
+        next_page = build_pagination(data['_links']['next'], coll, search, start, limit, sort, direction)
+    if int(start) > int(limit):
+        prev_page = build_pagination(data['_links']['prev'], coll, search, start, limit, sort, direction)
+    
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search, next_page=next_page, prev_page=prev_page)
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
@@ -334,7 +379,7 @@ def search_records(coll):
     limit = request.args.get('limit', 10)
     sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 0)
+    start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
@@ -365,8 +410,16 @@ def search_records(coll):
                 'second_line': " | ".join(second_line)
             }
             records.append(record)
-    
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q)
+
+    prev_page = None
+    next_page = None
+
+    if not len(records) < int(limit):
+        next_page = build_pagination(data['_links']['next'], coll, q, start, limit, sort, direction)
+    if int(start) > int(limit):
+        prev_page = build_pagination(data['_links']['prev'], coll, q, start, limit, sort, direction)
+        
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page)
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
