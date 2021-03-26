@@ -33,12 +33,6 @@ def default_users():
 
 
 @pytest.fixture(scope='module')
-def app_context():
-    from dlx_rest.app import app
-    with app.app_context():
-        yield
-
-@pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
     return app.test_client()
