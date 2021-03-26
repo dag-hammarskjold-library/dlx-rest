@@ -288,6 +288,7 @@ defining new routes. Their only purpose in the database is to be visibile to the
 user interface and for assignment to specific roles.
 '''
 
+
 '''
 The following functions probably should go into another file, perhaps a utils.py?
 Idea for future refactor, but not essential now.
@@ -343,7 +344,7 @@ def build_head(coll, record_data):
 def get_records_list(coll):
     # This is just a passthrough route
     return redirect(url_for('search_records', coll=coll))
-    
+
 @app.route('/records/<coll>/search')
 def search_records(coll):
     '''Collect arguments'''
