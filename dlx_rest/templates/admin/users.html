@@ -11,7 +11,11 @@
             {% for user in users %}
             <tr>
                 <td>{{user.email}}</td>
-                <td>{{user.roles}}</td>
+                <td>
+                    {% for role in user.roles %}
+                        {{role.name}}{{ ", " if not loop.last else "" }}
+                    {% endfor %}
+                </td>
                 <td>
                     <i class="fas fa-edit"><a href="{{url_for('update_user', id=user.id)}}"> Edit</a></i> |
                     <i class="fas fa-trash-alt"><a href="{{url_for('delete_user', id=user.id)}}"> Delete</a></i></td>

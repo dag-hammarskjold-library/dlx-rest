@@ -1,0 +1,32 @@
+{% extends 'admin/base.html' %} {% block admin %}
+
+<div class="container">
+    <table class="table">
+        <thead>
+            <th>Name</th>
+            <th>Permissions</th>
+        </thead>
+        <tbody>
+            {% for role in roles %}
+            <tr>
+                <td>{{role.name}}</td>
+                <td>
+                    {% for permission in role.permissions %}
+                        {{permission.action}}{{ ", " if not loop.last else "" }}
+                    {% endfor %}
+                </td>
+                <td>
+                    <i class="fas fa-edit"><a href="{{url_for('update_role', id=role.name)}}"> Edit</a></i> |
+                    <i class="fas fa-trash-alt"><a href="{{url_for('delete_role', id=role.name)}}"> Delete</a></i></td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td></td>
+                <td></td>
+                <td><a href="{{url_for('create_role')}}">Create New Role</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
