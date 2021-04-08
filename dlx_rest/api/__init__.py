@@ -21,7 +21,7 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
 from dlx.file import File, Identifier
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from bson import Regex
-from dlx_rest.api.util import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth
+from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth
 import jsonschema
 
 # Init
@@ -114,9 +114,32 @@ class Schema(Resource):
     @ns.doc(description='Returns an instance of JSON Schema')
     def get(self, schema_name):
         if schema_name == 'api.urllist':
-            data = Config.URLLIST_SCHEMA
+            data = {'type': 'array', 'items': {'type': 'string', 'format': 'uri'}}
+            print(data)
         elif schema_name == 'api.response':
-            data = Config.RESPONSE_SCHEMA
+            data = {
+                'required' : ['_links', '_meta', 'data'],
+            	'additionalProperties': False,
+                'properties' : {
+                    '_links': {
+                        'properties': {
+                            '_next': {'type': 'string', 'format': 'uri'},
+                            '_prev': {'type': 'string', 'format': 'uri'},
+                            '_self': {'type': 'string', 'format': 'uri'},
+                            'related': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}},
+                            'format': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}}
+                        }
+                    },
+                    '_meta': {
+                        'properties': {
+                            'name': {'type': 'string'},
+                            'returns': {'type': 'string', 'format': 'uri'},
+                            'timestamp': {'bsonType': 'date'}
+                        }
+                    },
+                    'data': {}
+                },
+            }
         elif schema_name == 'jmarc':
             data = DlxConfig.jmarc_schema
             data['properties']['files'] = {
@@ -213,7 +236,7 @@ class RecordsList(Resource):
         collection in ClassDispatch.list_names() or abort(404)
         
         # search
-        search = unquote(search) if args.search else None
+        search = unquote(args.search) if args.search else None
         query = Query.from_string(search) if search else {}
         
         # start
@@ -266,26 +289,29 @@ class RecordsList(Resource):
             schema_name='api.urllist'
             data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
             
+        new_direction = 'desc' if args.direction in (None, 'asc') else 'asc'
+        
         meta = {
             'name': 'api_records_list',
             'returns': URL('api_schema', schema_name=schema_name).to_str(),
             'timestamp': datetime.now(timezone.utc)
         }
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort=sort_by).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit, search=search, format=fmt, sort=sort_by).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit, search=search, format=fmt, sort=sort_by).to_str() if start > 1 else None,
+            '_self': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start > 1 else None,
             'related': {
                 'collection': URL('api_collection', collection=collection).to_str()
             },
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format='brief', sort=sort_by).to_str(),
-                'list': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, format='xml', **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, format='mrk', **route_params).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
+                'list': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'XML': URL('api_records_list', start=start+1, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'MRK': URL('api_records_list', start=start+1, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated').to_str()
+                
+                'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             }
         }
         response = ApiResponse(links=links, meta=meta, data=data)

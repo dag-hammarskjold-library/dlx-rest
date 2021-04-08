@@ -39,7 +39,8 @@ def default_users():
 def client():
     from dlx_rest.app import app
     
-    client = app.test_client()
+    return app.test_client()
+    
     assert type(client).__name__ == 'FlaskClient'
     
     return client
