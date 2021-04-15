@@ -2601,6 +2601,9 @@ class MarcRecord extends HTMLElement {
             if (this.getUrlAPI()) {
                 this.getDataFromApi(this.getUrlAPI());
                 this.getRecordType(this.getUrlAPI());
+            } else {
+                let btn = document.getElementById("btnCreateNewRecord")
+                btn.click()
             }
         }
 

@@ -4,11 +4,7 @@
     <marc-record url="{{ coll }}/{{ record_id }}" token="{{current_user.is_active}}" prefix="{{prefix}}"></marc-record>
     {% else %}
     <marc-record url="" token="{{current_user.is_active}}" prefix="{{prefix}}"></marc-record>
-    <script type="text/javascript">
-        $(function() {
-            $('#btnCreateNewRecord').click();
-        });
-    </script>
+
     {% endif %}
 </div>
 
