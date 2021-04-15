@@ -221,6 +221,11 @@ class MarcRecord extends HTMLElement {
             })
             .then(response => {
                 if (response.ok) {
+                    response.text().then(function(p) {
+                        let record_url = JSON.parse(p)["result"].split('/api')[1];
+                        window.history.pushState("object or string", "Title", "/records" + record_url);
+                    });
+                    
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
                 }
                 if (!response.ok) {
