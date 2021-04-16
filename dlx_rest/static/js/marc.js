@@ -19,6 +19,9 @@ class MarcRecord extends HTMLElement {
         this.id = "marc-record";
         this.recordNumber = "";
         this.recordType = "";
+        if(this.hasAttribute("coll")) {
+            this.recordType = this.getAttribute("coll")
+        }
         this.url = ""
         this.tableNewRecordCreated = false;
         this.displayRecord = false;
@@ -221,6 +224,11 @@ class MarcRecord extends HTMLElement {
             })
             .then(response => {
                 if (response.ok) {
+                    response.text().then(function(p) {
+                        let record_url = JSON.parse(p)["result"].split('/api')[1];
+                        window.history.pushState("object or string", "Title", "/records" + record_url);
+                    });
+                    
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
                 }
                 if (!response.ok) {
@@ -1586,25 +1594,58 @@ class MarcRecord extends HTMLElement {
                     let divRecordType = document.getElementById("divRecordType");
 
                 // create the dropdown list for selecting the type of record    
+                    //this.recordType = this.getRecordType(this.url)
+                    console.log(this.recordType)
+                    let recordTypeSelectElement = document.createElement("select");
+                    recordTypeSelectElement.className = "custom-select";
+                    recordTypeSelectElement.id = "selectTypeRecord";
+                    recordTypeSelectElement.style = "width: 300px;";
+
+                    let bibsOption = document.createElement("option");
+                    bibsOption.value = "bibs";
+                    bibsOption.innerText = "Bibliographic record";
+
+                    let authsOption = document.createElement("option");
+                    authsOption.value = "auths";
+                    authsOption.innerText = "Authority record";
+
+                    if(this.recordType == "bibs") {
+                        bibsOption.selected = true
+                    } else if (this.recordType == "auths") {
+                        authsOption.selected = true
+                    }
+                    
+                    recordTypeSelectElement.appendChild(bibsOption);
+                    recordTypeSelectElement.appendChild(authsOption);
+                    //divContentHeader.appendChild(recordTypeSelectElement);
+
+                    /*
+                    `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
+                            
+                    <option value="bibs" selected>Bibliographic record</option>
+                    <option value="auths">Authority Record</option>
+            </select>`
+                    */
+
                     if (divRecordType == null) {
                         let myHtml = document.createElement("DIV");
-                        myHtml.innerHTML = `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
-                                        <!--<option selected>Please select the record type</option>->
-                                        <option value="bibs" selected>Bibliographic record</option>
-                                        <option value="auths">Authority Record</option>
-                                </select>`
+                        myHtml.appendChild(recordTypeSelectElement)
                         myHtml.id = "divRecordType"
                         myHtml.className = "mr-2 mb-2";
                         divContentHeader.appendChild(myHtml);
+                    } else if (divRecordType !== null) {
+                        divRecordType.innerHTML = ''
+                        console.log(recordTypeSelectElement)
+                        divRecordType.appendChild(recordTypeSelectElement)
                     }
 
+                    // How do we make the record type selected based on divRecordType?
+                    /*
                     if (divRecordType !== null) {
-                        divRecordType.innerHTML = `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
-                            
-                                        <option value="bibs" selected>Bibliographic record</option>
-                                        <option value="auths">Authority Record</option>
-                                </select>`
+                        console.log(recordTypeSelectElement)
+                        divRecordType.innerHTML = recordTypeSelectElement
                     }
+                    */
 
                     const myDiv = document.getElementById("divNewRecord");
                     if (myDiv) {
@@ -2596,6 +2637,9 @@ class MarcRecord extends HTMLElement {
             if (this.getUrlAPI()) {
                 this.getDataFromApi(this.getUrlAPI());
                 this.getRecordType(this.getUrlAPI());
+            } else {
+                let btn = document.getElementById("btnCreateNewRecord")
+                btn.click()
             }
         }
 

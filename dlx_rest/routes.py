@@ -382,4 +382,5 @@ def get_record_by_id(coll,id):
 @app.route('/records/<coll>/new')
 @login_required
 def create_record(coll):
-    return render_template('record.html')
+    this_prefix = url_for('doc', _external=True)
+    return render_template('record.html', coll=coll, prefix=this_prefix)
