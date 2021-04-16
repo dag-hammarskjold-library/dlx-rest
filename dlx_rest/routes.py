@@ -383,4 +383,4 @@ def get_record_by_id(coll,id):
 @login_required
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
-    return render_template('record.html', prefix=this_prefix)
+    return render_template('record.html', coll=coll, prefix=this_prefix)
