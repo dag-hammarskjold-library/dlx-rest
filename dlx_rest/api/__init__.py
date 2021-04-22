@@ -865,12 +865,18 @@ class Record(Resource):
         args = post_put_argparser.parse_args()
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
+
+        if collection == 'files':
+            rid = str(record_id)
+        else:
+            rid = int(record_id)
+
+        record = cls.from_id(rid) or abort(404)
 
         if args.format == 'mrk':
             try:
                 record = cls.from_mrk(request.data.decode())
-                record.id = record_id
+                record.id = rid
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -895,7 +901,10 @@ class Record(Resource):
         user = 'testing' if current_user.is_anonymous else current_user.email
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        record = cls.from_id(record_id) or abort(404)
+        if collection == 'files':
+            record = cls.from_id(str(record_id) or abort(404))
+        else:
+            record = cls.from_id(int(record_id)) or abort(404)
 
         try:
             result = record.delete(user=user)
