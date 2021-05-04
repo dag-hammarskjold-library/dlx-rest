@@ -347,3 +347,16 @@ are not tested here from a CRUD perspective. Ideally we should be testing the
 creation of permissions when the system initializes, as well as the effect of 
 assigning and unassigning permissions.
 '''
+
+# Test search listings sort ascending/descending
+def test_sort(client):
+    pass
+
+# Test changing number of results per page in search listings
+def test_rpp(client):
+    pass
+
+# Test page forward and backward
+# Also test that pagination preserves other options (namely sort direction)
+def test_pagination(client):
+    pass

@@ -3,6 +3,7 @@ from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_t
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 import json, requests
 
 #Local app imports
@@ -287,86 +288,90 @@ defining new routes. Their only purpose in the database is to be visibile to the
 user interface and for assignment to specific roles.
 '''
 
-# Records: Need a list of the routes necessary.
+
+'''
+The following functions probably should go into another file, perhaps a utils.py?
+Idea for future refactor, but not essential now.
+'''
+def build_pagination(page_link, coll, q, start, limit, sort, direction):
+    parsed_link = urlparse(page_link)
+    params = parse_qs(parsed_link.query)
+
+    try:
+        return_page = url_for(
+            'search_records', 
+            coll=coll, 
+            q=q, 
+            start=params['start'], 
+            limit=limit, 
+            sort=sort, 
+            direction=direction
+        )
+
+        return return_page
+    except:
+        raise
+
+def build_head(coll, record_data):
+    if coll == 'bibs':
+        second_line = []
+        if len(record_data['symbol']) > 1:
+            second_line.append(record_data['symbol'])
+        if len(record_data['date']) > 1:
+            second_line.append(record_data['date'])
+        if len(record_data['types']) > 1:
+            second_line.append(record_data['types'])
+        record = {
+            'id': record_data['_id'],
+            'title_line': record_data['title'],
+            'second_line': " | ".join(second_line)
+        }
+        return record
+    elif coll == 'auths':
+        second_line = []
+        if len(record_data['alt']) > 1:
+            second_line.append(record_data['alt'])
+        record = {
+            'id': record_data['_id'],
+            'title_line': record_data['heading'],
+            'second_line': " | ".join(second_line)
+        }
+        return record
+
+
+# Records Routes
 @app.route('/records/<coll>')
 def get_records_list(coll):
-    '''Collect arguments'''
-    limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 0)
-    search = request.args.get('search', '')
-
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=search, _external=True, format='brief')
-    data = requests.get(endpoint).json()
-    records = []
-    for r in data['results']:
-        if coll == 'bibs':
-            second_line = []
-            if len(r['symbol']) > 1:
-                second_line.append(r['symbol'])
-            if len(r['date']) > 1:
-                second_line.append(r['date'])
-            if len(r['types']) > 1:
-                second_line.append(r['types'])
-            record = {
-                'id': r['_id'],
-                'title_line': r['title'],
-                'second_line': " | ".join(second_line)
-            }
-            records.append(record)
-        elif coll == 'auths':
-            second_line = []
-            if len(r['alt']) > 1:
-                second_line.append(r['alt'])
-            record = {
-                'id': r['_id'],
-                'title_line': r['heading'],
-                'second_line': " | ".join(second_line)
-            }
-            records.append(record)
-    
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, search=search)
+    # This is just a passthrough route
+    return redirect(url_for('search_records', coll=coll))
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
     '''Collect arguments'''
+    #print(f"Args: {request.args}")
     limit = request.args.get('limit', 10)
     sort = request.args.get('sort', 'updated')
     direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 0)
+    start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
     endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+    print(f"Endpoint: {endpoint}")
     data = requests.get(endpoint).json()
     records = []
     for r in data['results']:
-        if coll == 'bibs':
-            second_line = []
-            if len(r['symbol']) > 1:
-                second_line.append(r['symbol'])
-            if len(r['date']) > 1:
-                second_line.append(r['date'])
-            if len(r['types']) > 1:
-                second_line.append(r['types'])
-            record = {
-                'id': r['_id'],
-                'title_line': r['title'],
-                'second_line': " | ".join(second_line)
-            }
-            records.append(record)
-        elif coll == 'auths':
-            second_line = []
-            if len(r['alt']) > 1:
-                second_line.append(r['alt'])
-            record = {
-                'id': r['_id'],
-                'title_line': r['heading'],
-                'second_line': " | ".join(second_line)
-            }
-            records.append(record)
-    
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q)
+        record = build_head(coll, r)
+        records.append(record)
+
+    prev_page = None
+    next_page = None
+
+    if not len(records) < int(limit):
+        next_page = build_pagination(data['_links']['next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
+    if int(start) > int(limit):
+        prev_page = build_pagination(data['_links']['prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
+        
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page)
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
@@ -377,4 +382,5 @@ def get_record_by_id(coll,id):
 @app.route('/records/<coll>/new')
 @login_required
 def create_record(coll):
-    return render_template('record.html')
+    this_prefix = url_for('doc', _external=True)
+    return render_template('record.html', coll=coll, prefix=this_prefix)

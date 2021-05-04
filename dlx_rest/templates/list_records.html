@@ -1,19 +1,53 @@
 {% extends 'base.html' %} {% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
+    <form class="form-inline mr-auto col-lg-10" action="{{url_for('search_records', coll=coll)}}">
+        {% if q %}
+        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search {{coll}} collection" value="{{q}}"> {% else %}
+        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search {{coll}} collection" aria-label="Search this collection"> {% endif %}
+        <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
+    </form>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
+    <div class="collapse navbar-collapse" id="navbarToggler">
+        <ul class="navbar-nav">
+            {% if current_user.is_authenticated %}
+            <li class="nav-item"><a class="nav-link" href="{{url_for('create_record', coll=coll)}}">Create Record</a></li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+<nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
+    <div class="collapse navbar-collapse" id="resultsNavbarToggle">
+        <ul class="navbar-nav mr-auto">
+            {% set rpp = [10,50,100,500,1000] %}
+            <li class="nav-item"><a class="nav-link disabled">Results per page:</a></li>
+            
+            {% if limit|int in rpp %}
+                {% for o in rpp %}
+                    {% if limit|int == o %}
+                        <a class="nav-link disabled">{{o}}</a>
+                    {% else %}
+                        <a class="nav-link" href="{{url_for('search_records', coll=coll, q=q, limit=o, sort=sort, direction=direction)}}">{{o}}</a>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {{limit}}
+                {% for o in rpp %}
+                    <a class="nav-link" href="{{url_for('search_records', coll=coll, q=q, limit=o, sort=sort, direction=direction)}}">{{o}}</a>
+                {% endfor %}
+            {% endif %}
+            <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
+            <a class="nav-link disabled">Sort: updated </a>
+            {% for o in ["asc","desc"] %}
+                {% if direction == o %}
+                    <a class="nav-link disabled">{{o}}</a>
+                {% else %}
+                    <a class="nav-link" href="{{url_for('search_records', coll=coll, q=q, limit=limit, sort=sort, direction=o)}}">{{o}}</a>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</nav>
 <div class="container">
-    <div class="row">
-        <form class="form-inline" action="{{url_for('search_records', coll=coll)}}">
-            {% if q %}
-            <input id="q" name="q" class="form-control mr-sm-2" type="search" aria-label="Search {{coll}} collection" value="{{q}}"> {% else %}
-            <input id="q" name="q" class="form-control mr-sm-2" type="search" placeholder="Search {{coll}} collection" aria-label="Search this collection"> {% endif %}
-            <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
-        </form>
-    </div>
-    <div class="row">
-        <p>Start: {{start}}</p> |
-        <p>Limit: {{limit}}</p> |
-        <p>Sort: {{sort}}</p> |
-        <p>Direction: {{direction}}</p>
-    </div>
     {% for record in records %}
     <div class="row pt-2 border-bottom">
         <div class="container">
@@ -28,5 +62,20 @@
         </div>
     </div>
     {% endfor %}
+    <nav>
+        <ul class="pagination pagination-md justify-content-center">
+            {% for k,v in [("Previous", prev_page), ("Next", next_page)] %}
+                {% if v is not none %}
+                <li class="page-item">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
 </div>
 {% endblock %}
