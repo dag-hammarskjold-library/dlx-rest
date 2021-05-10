@@ -104,13 +104,14 @@ class MarcRecord extends HTMLElement {
                     </form>
                 </div>
                 <div>
-                    <ol id="authsList">
+                    <ul id="authsList">
                         
-                    </ol>
+                    </ul>
                 </div>
                 </div>
                 <div class="modal-footer">
                 <button type="button" class="btn btn-primary">Create this authority (not implemented yet)</button>
+                <button id="executeQuery" type="button" class="btn btn-primary">Execute the query</button>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Exit </button>
                 </div>
             </div>
@@ -514,10 +515,24 @@ class MarcRecord extends HTMLElement {
                     
                     $.each(data, (key, val)=> {
                         myJson=JSON.stringify(val)
-                        items.push( `<li id='${key}' class="myResult">${myJson}</li>` );
-                        items.push( `<hr>` );
+                        let myJsonNew=JSON.parse(myJson)
+                        let myJsonIndic=myJsonNew.indicators;
+                        let myJsonSubfields=myJsonNew.subfields;
+                        let myJsonSubfieldsLen=myJsonSubfields.length;
+                        console.log("the type of: " + typeof(myJsonNew))
+                        console.log(myJsonSubfieldsLen)
+                        items.push(`<div id="${key}" class="myResult"><span style="display:none;">${myJson}</span></div><br>`);
+                        items.push(`<div class="alert alert-secondary" role="alert"><span> <h4>Record Details </h4></span><br>`); 
+                        items.push(`<span> Indicators 1: ${myJsonIndic[0]}</span><br>` );
+                        items.push(`<span> Indicators 2: ${myJsonIndic[1]}</span><br>`);
+                        for (let index=0; index<myJsonSubfieldsLen;index++){
+                            items.push(`<span class="badge bg-warning"> Subfields Details </span><br>` );
+                            items.push(`<span> Code: ${myJsonSubfields[0]["code"]}</span><br>`);
+                            items.push(`<span> Value: ${myJsonSubfields[0]["value"]}</span><br>`);
+                            items.push(`<span> xref: ${myJsonSubfields[0]["xref"]}</span></div>`);
+                        }
+                        items.push(`<hr>`);
                     });
-
 
                     // items.push(`<script> function test(){ alert("juste un test")} </script>`)
 
@@ -1050,28 +1065,30 @@ class MarcRecord extends HTMLElement {
                 // Retrieving the leader data
                 // Here we will just fill the tagRecord with the value of the divData 
                 if (this.leaderList.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                    
+                    // cloning case 
+                    if (type !== 2) {
+                        // Retrieving the data of the leader field
+                        tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
 
-                    // Retrieving the data of the leader field
-                    tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
+                        // Case where the tag is already in the list, we should add a new value to this array
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                            marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        }
 
-                    // Case where the tag is already in the list, we should add a new value to this array
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
-                        marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        // Case where the tag is not in the list
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
+
+                            // Inserting the value of this tag in the marcRecord
+                            marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
+
+                            // Insert the tag in the list of tag already processed
+                            myLeaderField.push(document.getElementById("tagCol" + i).value)
+                        }
+
+                        // Cleaning the tagRecord
+                        tagRecord = []
                     }
-
-                    // Case where the tag is not in the list
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
-
-                        // Inserting the value of this tag in the marcRecord
-                        marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
-
-                        // Insert the tag in the list of tag already processed
-                        myLeaderField.push(document.getElementById("tagCol" + i).value)
-                    }
-
-                    // Cleaning the tagRecord
-                    tagRecord = []
-
                 }
                 // Extracting the "normal" fields 
                 else {
@@ -1168,7 +1185,7 @@ class MarcRecord extends HTMLElement {
 
             // clone
             if (type === 2) {
-                //  save the data
+                //  clone the data
                 typeRecord = this.recordType;
                 this.cloneRecord(this.prefixUrl + typeRecord, data)
             }
