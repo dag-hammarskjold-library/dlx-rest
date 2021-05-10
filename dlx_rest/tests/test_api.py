@@ -4,6 +4,7 @@ os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import json, re
 from dlx_rest.config import Config
+from dlx.marc import Bib, Auth
 
 API = 'http://localhost/api'
 
@@ -177,13 +178,14 @@ def test_create_record(client, records):
     assert response.status_code == 201
     assert client.get(f'{API}/bibs/11').status_code == 200
     
-    data = '{"000": ["leader"], "710": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
+    
+    data = '{"000": ["leader"], "245": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Title"}]}], "710": [{"indicators": [" ", " "], "subfields": [{"code": "a", "value": "Name"}]}]}'
     response = client.post(f'{API}/bibs', headers={}, data=data)
     assert response.status_code == 201
     
     response = client.get(f'{API}/bibs/12?format=mrk')
     assert response.status_code == 200
-    assert response.data.decode() == '=000  leader\n=710  \\\\$aName\n'
+    assert response.data.decode() == '=000  leader\n=245  \\\\$aTitle\n=710  \\\\$aName\n'
 
 def test_create_record_mrk(client, records):
     data = 'invalid'
@@ -338,3 +340,15 @@ def test_auth_lookup(client, recordset_2):
     assert response.status_code == 200
     assert json.loads(response.data)[0]['subfields'][0]['value'] == 'Small organization'
     assert json.loads(response.data)[0]['subfields'][0]['xref']
+    
+def test_data_validation(client):
+    bib = Bib()
+    bib.set('246', 'a', 'No 245')
+    response = client.post(f'{API}/bibs', headers={}, data=bib.to_json())
+    assert response.status_code == 400
+    
+    auth = Auth()
+    auth.set('400', 'a', 'No heading field')
+    response = client.post(f'{API}/auths', headers={}, data=bib.to_json())
+    assert response.status_code == 400
+    
