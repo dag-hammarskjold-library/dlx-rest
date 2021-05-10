@@ -447,9 +447,13 @@ class RecordsList(Resource):
                 jmarc = load_json(request.data)
                 
                 if '_id' in jmarc:
-                    abort(400, '"_id" field is invalid for a new record')
+                    if jmarc['_id'] is None:
+                        del jmarc['_id']
+                    else:
+                        abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
+                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -601,11 +605,11 @@ class RecordFieldList(Resource):
                 record_data[field_tag] = []
             
             record_data[field_tag].append(field_data)
-                
             record = cls(record_data, auth_control=True)
         except Exception as e:
             abort(400, str(e))
         
+        validate_data(record)
         result = record.commit(user=user)
         
         if result.acknowledged:
@@ -662,7 +666,7 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-            
+            validate_data(record)
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
@@ -849,7 +853,7 @@ class Record(Resource):
         args = resource_argparser.parse_args()
             
         fmt = args.get('format', None)
-
+        
         if fmt:
             try:
                 return getattr(response, fmt)()
@@ -1047,4 +1051,4 @@ def validate_data(record):
             abort(400, 'Bib field 245 is required')
     else:
         if record.heading_field is None:
-            abort(400, 'Auth header field is required') 
+            abort(400, 'Auth heading field is required') 

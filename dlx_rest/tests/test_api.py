@@ -346,9 +346,13 @@ def test_data_validation(client):
     bib.set('246', 'a', 'No 245')
     response = client.post(f'{API}/bibs', headers={}, data=bib.to_json())
     assert response.status_code == 400
+    assert 'Bib field 245 is required' in json.loads(response.data)['message']
     
     auth = Auth()
     auth.set('400', 'a', 'No heading field')
-    response = client.post(f'{API}/auths', headers={}, data=bib.to_json())
+    response = client.post(f'{API}/auths', headers={}, data=auth.to_json())
     assert response.status_code == 400
+    assert 'Auth heading field is required' in json.loads(response.data)['message']
+    
+
     
