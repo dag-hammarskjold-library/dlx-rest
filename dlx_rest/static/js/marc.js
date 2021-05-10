@@ -1065,28 +1065,30 @@ class MarcRecord extends HTMLElement {
                 // Retrieving the leader data
                 // Here we will just fill the tagRecord with the value of the divData 
                 if (this.leaderList.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                    
+                    // cloning case 
+                    if (type !== 2) {
+                        // Retrieving the data of the leader field
+                        tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
 
-                    // Retrieving the data of the leader field
-                    tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
+                        // Case where the tag is already in the list, we should add a new value to this array
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                            marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        }
 
-                    // Case where the tag is already in the list, we should add a new value to this array
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
-                        marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        // Case where the tag is not in the list
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
+
+                            // Inserting the value of this tag in the marcRecord
+                            marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
+
+                            // Insert the tag in the list of tag already processed
+                            myLeaderField.push(document.getElementById("tagCol" + i).value)
+                        }
+
+                        // Cleaning the tagRecord
+                        tagRecord = []
                     }
-
-                    // Case where the tag is not in the list
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
-
-                        // Inserting the value of this tag in the marcRecord
-                        marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
-
-                        // Insert the tag in the list of tag already processed
-                        myLeaderField.push(document.getElementById("tagCol" + i).value)
-                    }
-
-                    // Cleaning the tagRecord
-                    tagRecord = []
-
                 }
                 // Extracting the "normal" fields 
                 else {
@@ -1183,7 +1185,7 @@ class MarcRecord extends HTMLElement {
 
             // clone
             if (type === 2) {
-                //  save the data
+                //  clone the data
                 typeRecord = this.recordType;
                 this.cloneRecord(this.prefixUrl + typeRecord, data)
             }
