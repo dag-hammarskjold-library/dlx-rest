@@ -260,10 +260,13 @@ class RecordResponse():
                 if f:
                     filename = f.filename
                     identifiers = []
+                    
                     for idx in f.identifiers:
                         identifiers.append(idx.value)
+                    
                     if f.filename is None:
                         filename = File.encode_fn(identifiers,lang,'pdf')
+                    
                     files.append(
                         {
                             'id': f.id,
@@ -376,7 +379,7 @@ class RecordsList(Resource):
             start -= 1
             
         if int(limit) > 1000:
-            abort(404, 'Maximum limit is 1000')
+            abort(406, 'Maximum limit is 1000')
             
         # sort
         if sort_by == 'updated':
@@ -444,9 +447,13 @@ class RecordsList(Resource):
                 jmarc = load_json(request.data)
                 
                 if '_id' in jmarc:
-                    abort(400, '"_id" field is invalid for a new record')
+                    if jmarc['_id'] is None:
+                        del jmarc['_id']
+                    else:
+                        abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
+                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -456,7 +463,7 @@ class RecordsList(Resource):
                 
                 return data, 201
             else:
-                abort(500)
+                abort(500, 'POST request failed for unknown reasons')
 
 @ns.route('/<string:collection>/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
@@ -598,11 +605,11 @@ class RecordFieldList(Resource):
                 record_data[field_tag] = []
             
             record_data[field_tag].append(field_data)
-                
             record = cls(record_data, auth_control=True)
         except Exception as e:
             abort(400, str(e))
         
+        validate_data(record)
         result = record.commit(user=user)
         
         if result.acknowledged:
@@ -616,7 +623,7 @@ class RecordFieldList(Resource):
 
             return {'result': url.to_str()}, 201
         else:
-            abort(500)
+            abort(500, 'POST request failed for unknown reasons')
     
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
@@ -659,7 +666,7 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-            
+            validate_data(record)
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
@@ -675,7 +682,7 @@ class RecordFieldPlace(Resource):
 
             return {'result': url.to_str()}, 201
         else:
-            abort(500)
+            abort(500, 'PUT request failed for unknown reasons')
     
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
@@ -691,7 +698,7 @@ class RecordFieldPlace(Resource):
         if record.commit(user=user):
             return Response(status=200)
         else:
-            abort(500)
+            abort(500, 'DELETE request failed for unknown reasons')
 
 @ns.route('/<string:collection>/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
@@ -802,34 +809,35 @@ class Record(Resource):
     @ns.expect(resource_argparser)
     def get(self, collection, record_id):
         cls = ClassDispatch.by_collection(collection) or abort(404)
+        
         if collection == 'files':
             record = cls.from_id(str(record_id)) or abort(404)
+            
             if record.filename is None:
                 ids = []
+                
                 for idx in record.identifiers:
                     ids.append(idx.value)
                 
                 langs = []
+                
                 for lang in record.languages:
                     langs.append(lang)
 
-                    
-
                 extension = mimetypes.guess_extension(record.mimetype)
-                print(extension)
-
                 record.filename = File.encode_fn(ids, langs, extension)
+            
             args = resource_argparser.parse_args()
-
             action = args.get('action', None)
+            
             if action == 'download':
                 output_filename = record.filename
                 s3 = boto3.client('s3')
+                
                 try:
                     s3_file = s3.get_object(Bucket=Config.bucket, Key=record_id)
-                except:
-                    raise
-                    abort(404)
+                except Exception as e:
+                    abort(500, str(e))
 
                 return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
         else:
@@ -845,17 +853,16 @@ class Record(Resource):
         args = resource_argparser.parse_args()
             
         fmt = args.get('format', None)
+        
         if fmt:
             try:
                 return getattr(response, fmt)()
             except AttributeError:
-                abort(422)
-            except:
-                abort(500)
+                abort(422, f'Invalid format "{fmt}"')
+            except excpetipn as e:
+                abort(500, str(e))
         else:
             return response.json()
-
-        
 
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @ns.expect(post_put_argparser)
@@ -883,17 +890,18 @@ class Record(Resource):
         else:
             try:
                 jmarc = load_json(request.data)
-                
-                result = cls(jmarc, auth_control=True).commit(user=user)
+                record = cls(jmarc, auth_control=True)
+                validate_data(cls(jmarc))
+                result =  record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
-        
+
         if result.acknowledged:
             data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
             
             return data, 201
         else:
-            abort(500)
+            abort(500, 'PUT request failed for unknown reasons')
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
@@ -914,7 +922,21 @@ class Record(Resource):
         if result.acknowledged:
             return Response(status=200)
         else:
-            abort(500)
+            abort(500, 'DELETE request failed for unknown reasons')
+            
+### history
+
+@ns.route('/<string:collection>/<int:record_id>/history')
+@ns.param('collection', '"bibs" or "auths"')
+@ns.param('record_id', 'The record identifier')
+class RecordHistory(Resource):
+    pass
+    
+@ns.route('/<string:collection>/<int:record_id>/history/<int:instance>')
+@ns.param('collection', '"bibs" or "auths"')
+@ns.param('record_id', 'The record identifier')
+class RecordHistoryEvent(Resource):
+    pass
             
 ### auth lookup
 
@@ -978,7 +1000,7 @@ class TemplatesList(Resource):
         template_collection = DB.handle[f'{collection}_templates']
         data = load_json(request.data) or abort(400, 'Invalid JSON')
         data['_id'] = uuid1().int / 10 # not good
-        template_collection.insert_one(data) or abort(500)
+        template_collection.insert_one(data) or abort(500, 'POST request failed for unknown reasons')
         
         return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
 
@@ -1010,7 +1032,7 @@ class Template(Resource):
         new_data = load_json(request.data) or abort(400, 'Invalid JSON')
         new_data['_id'], new_data['name'] = old_data['_id'], old_data['name']
         result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
-        result.acknowledged or abort(500)
+        result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
         return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201
 
@@ -1019,4 +1041,14 @@ class Template(Resource):
     def delete(self, collection, template_name):
         template_collection = DB.handle[f'{collection}_templates']
         template_collection.find_one({'name': template_name}) or abort(404)
-        template_collection.delete_one({'name': template_name}) or abort(500)
+        template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
+        
+# move this later
+
+def validate_data(record):
+    if type(record) == Bib:
+        if record.get_field('245') is None:
+            abort(400, 'Bib field 245 is required')
+    else:
+        if record.heading_field is None:
+            abort(400, 'Auth heading field is required') 
