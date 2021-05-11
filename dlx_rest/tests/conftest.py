@@ -39,11 +39,11 @@ def default_users():
 def client():
     from dlx_rest.app import app
     
+    app.TESTING = True
+    
+    #app.config.update(SERVER_NAME='0.0.0.0:80')
+    
     return app.test_client()
-    
-    assert type(client).__name__ == 'FlaskClient'
-    
-    return client
 
 @pytest.fixture(scope='module')
 def db():

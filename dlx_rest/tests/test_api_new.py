@@ -15,25 +15,37 @@ if Config.connect_string != 'mongomock://localhost':
     
 @pytest.fixture
 def records_new():
+    auths = []
+    
     for i in range(1, 3):
         auth = Auth()
         auth.id = i
         auth.set('100', 'a', f'Heading {i}')
         auth.commit()
+        auths.append(auth)
     
-    
+    bibs = []
     for i in range(1, 3):
         bib = Bib()
         bib.id = i
         bib.set('245', 'a', 'Title').set('700', 'a', i)
         bib.commit()
-    
-    yield
-    
+        bibs.append(bib)
+        
     for col in ('bibs', 'auths'):
+        template = Bib() if col == 'bibs' else Auth()
+        template.id = 1
+        template.set('035', 'a', 'ID')   
+        d = template.to_dict()
+        d['name'] = 'test'
+        DB.handle[f'{col}_templates'].insert_one(d)
+        
+    yield {'auths': auths, 'bibs': bibs}
+    
+    for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates'):
         Auth._cache = {}
-        getattr(DB, col).drop()
-
+        DB.handle[col].drop()
+        
 # tests
 
 def test_testing():
@@ -60,9 +72,6 @@ def test_api_collection(client):
         assert data['data'] == {}
         
 def test_api_records_list(client, records_new):
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/collections/{col}/records')
         data = check_response(res)
@@ -106,16 +115,6 @@ def test_api_record_field_place(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.datafield'
                 
-def test_api_record_subfield_list(client, records_new):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/subfields')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-                
 def test_api_record_field_place_subfield_list(client, records_new):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
@@ -146,6 +145,50 @@ def test_api_record_field_subfield_value(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.subfield.value'
                 
+def test_api_record_subfield_list(client, records_new):
+    for col in ('bibs', 'auths'):
+        tags = ['245', '700'] if col == 'bibs' else ['100']
+        
+        for i in (1, 2):
+            for tag in tags:
+                res = client.get(f'{API}/collections/{col}/records/{i}/subfields')
+                data = check_response(res)
+                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+                
+def test_api_lookup_field_list(client, records_new):
+    res = client.get(f'{API}/collections/bibs/lookup')
+    data = check_response(res)
+    assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+    
+def test_api_lookup_field(client, records_new):
+    res = client.get(f'{API}/collections/bibs/lookup/700')
+    assert res.status_code == 400
+    
+    res = client.get(f'{API}/collections/bibs/lookup/700?a=heading')
+    data = check_response(res)
+    assert data['_meta']['returns'] == f'{API}/schemas/jmarc.batch'
+    
+    for r in records_new['auths']:
+        assert r.to_dict() in data['data']
+        
+def test_api_lookup_map(client, records_new):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/collections/{col}/lookup/map')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.authmap'
+        
+def test_api_template_list(client, records_new):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/collections/bibs/templates')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+        
+def test_api_template(client, records_new):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/collections/bibs/templates/test')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/jmarc.template'
+        
 # util
 
 def check_response(response):

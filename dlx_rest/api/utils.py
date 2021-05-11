@@ -3,6 +3,8 @@ DLX REST API utilities
 '''
 
 import requests, json, jsonschema
+from datetime import datetime, timezone
+from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
@@ -89,17 +91,21 @@ class ApiResponse():
         self.meta = meta
         self.data = data
         
-        for _ in ('_prev', '_next', '_self', 'related', 'format'):
-            assert _ in self.links
+        for _ in ('_prev', '_next', '_self', 'related', 'format', 'sort'):
+            self.links.setdefault(_, None)
             
-        for _ in ('name', 'returns', 'timestamp'):
+        for _ in ('name', 'returns'):
             assert _ in self.meta
             
-        #print(self.meta['returns'])
-    
-        schema = json.loads(requests.get(self.meta['returns']).content)
+        self.meta.setdefault('timestamp', datetime.now(timezone.utc))
+
+        if Config.TESTING:
+            schema = {}
+        else:
+            schema = json.loads(requests.get(self.meta['returns']).content)
+
         jsonschema.validate(instance=self.data, schema=schema, format_checker=jsonschema.FormatChecker())
-    
+
     def jsonify(self):
         return jsonify(
             {
