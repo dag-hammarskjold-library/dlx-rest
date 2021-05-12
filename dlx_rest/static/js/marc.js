@@ -19,6 +19,9 @@ class MarcRecord extends HTMLElement {
         this.id = "marc-record";
         this.recordNumber = "";
         this.recordType = "";
+        if(this.hasAttribute("coll")) {
+            this.recordType = this.getAttribute("coll")
+        }
         this.url = ""
         this.tableNewRecordCreated = false;
         this.displayRecord = false;
@@ -62,7 +65,7 @@ class MarcRecord extends HTMLElement {
 
     // create the search modal form
     createSearchModalForm(){
-        this.innerHTML+=`<div id='modalSearch' class="modal" tabindex="-1" role="dialog">
+        this.innerHTML+=`<div id='modalSearch' class="modal" tabindex="-1" role="dialog" style="height:800px;width:850px">
             <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -72,42 +75,46 @@ class MarcRecord extends HTMLElement {
                 </button>
                 </div>
                 <div class="modal-body">
-                <div>
+
+                    <div>
+                        <form id="live-search" action="" class="styled ml-5" method="post">
+                            <fieldset>
+                                <label for="tagToSearch">Tag</label>
+                                <input type="text" class="text-input" id="tagToSearch"  value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="a">Subfield a</label>
+                                <input type="text" class="text-input lookup" id="a"  value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="b">Subfield b</label>
+                                <input type="text" class="text-input lookup" id="b" value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="c">Subfield c</label>
+                                <input type="text" class="text-input lookup" id="c" value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="d">Subfield d</label>
+                                <input type="text" class="text-input lookup" id="d" value="" />
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div class="mt-2 ml-5 text-primary">
                     <p id="search_url"></p>
-                </div>
+                    </div>
+                    <div class="mt-2 ml-5 text-primary">
+                    <p id="nb_results"></p>
+                    </div>
                 <div>
-                    <h3>Please fill your criterias!!! </h3>
-                    <form id="live-search" action="" class="styled" method="post">
-                        <fieldset>
-                            <label for="tagToSearch">Tag</label>
-                            <input type="text" class="text-input" id="tagToSearch"  value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="a">Subfield a</label>
-                            <input type="text" class="text-input lookup" id="a"  value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="b">Subfield b</label>
-                            <input type="text" class="text-input lookup" id="b" value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="c">Subfield c</label>
-                            <input type="text" class="text-input lookup" id="c" value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="d">Subfield d</label>
-                            <input type="text" class="text-input lookup" id="d" value="" />
-                        </fieldset>
-                    </form>
-                </div>
-                <div>
-                    <ol id="authsList">
+                    <ul id="authsList">
                         
-                    </ol>
+                    </ul>
                 </div>
                 </div>
                 <div class="modal-footer">
-                <button type="button" class="btn btn-primary">Create this authority (not implemented yet)</button>
+
+                <button id="executeQuery" type="button" class="btn btn-primary">Execute the query</button>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Exit </button>
                 </div>
             </div>
@@ -221,6 +228,12 @@ class MarcRecord extends HTMLElement {
             })
             .then(response => {
                 if (response.ok) {
+                    response.text().then(function(p) {
+                        let record_prefix = JSON.parse(p)["result"].split('/api')[0]
+                        let record_url = JSON.parse(p)["result"].split('/api')[1];
+                        window.history.pushState("object or string", "Title", record_prefix + "/records" + record_url);
+                    });
+                    
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
                 }
                 if (!response.ok) {
@@ -405,31 +418,19 @@ class MarcRecord extends HTMLElement {
             } 
         }
 
-        implementSearchAuthorities(){
-            // adding the logic of the double click on the tag 
-            let elements = document.getElementsByClassName("lookup");
-            for (var i = 0; i < elements.length; i++) {                       
-                elements[i].addEventListener('dblclick', this.searchAuthorities, false);
-            } 
-        }
-
-
-        // implementDisplaySelectedResult(){
+        // implementSearchAuthorities(){
         //     // adding the logic of the double click on the tag 
-        //     let elements = document.getElementsByClassName("myResult");
+        //     let elements = document.getElementsByClassName("lookup");
         //     for (var i = 0; i < elements.length; i++) {                       
-        //         elements[i].addEventListener('dblclick', this.diplayRecordSelectInEditMode(myTag), false);
-        //     } 
-        //}
-
-        // implementDisplaySelectedResult(){
-        //     // adding the logic of the double click on the tag 
-        //     let elements = document.getElementsByClassName("myResult");
-        //     for (var i = 0; i < elements.length; i++) {                       
-        //         elements[i].addEventListener('dblclick', this.displayAuthInEditor(elements[i].getAttribute("id")), false);
+        //         elements[i].addEventListener('dblclick', this.searchAuthorities, false);
         //     } 
         // }
 
+        implementSearchAuthorities(){
+            // adding the logic of the double click on the tag 
+            let element = document.getElementById("executeQuery");
+            element.addEventListener('click', this.searchAuthorities, false);
+        }
 
         // searching authorities using modal
         searchAuthorities(){ 
@@ -449,10 +450,10 @@ class MarcRecord extends HTMLElement {
             let search_obj = {};
             
             // Construct the parameterized URL to start with
-            let search_url = endpoint + $.param(search_obj);
+            let search_url = "Query sent to the server " + endpoint + $.param(search_obj);
             
             // Display the URL in its own div/p
-            $("#search_url").text(search_url);
+            //$("#search_url").text(search_url);
             
             // Define a timer
             let timer;
@@ -492,11 +493,9 @@ class MarcRecord extends HTMLElement {
 
             timer = setTimeout(()=> {
                 search_obj[field_id] = filter_text;
-                //search_url = endpoint + '?' + $.param(search_obj);
                 search_url = endpoint + '?' + queryString;
-                
-                //$("#search_url").text("Query to execute :  "+ search_url);
-                console.log("Query to execute :  "+ search_url)
+
+                $("#search_url").text("Query to execute :  "+ search_url);
                 
                 let data = $.getJSON(search_url, data=> {
                     let t = Date.now()
@@ -506,17 +505,29 @@ class MarcRecord extends HTMLElement {
                     
                     $.each(data, (key, val)=> {
                         myJson=JSON.stringify(val)
-                        items.push( `<li id='${key}' class="myResult">${myJson}</li>` );
-                        items.push( `<hr>` );
+                        let myJsonNew=JSON.parse(myJson)
+                        let myJsonIndic=myJsonNew.indicators;
+                        let myJsonSubfields=myJsonNew.subfields;
+                        let myJsonSubfieldsLen=myJsonSubfields.length;
+
+                        items.push(`<div><span class="mt-2 badge badge-secondary"> <h3>Detailed information </h3></span><br>`); 
+                        items.push(`<span> Indicators 1: ${myJsonIndic[0]}</span><br>` );
+                        items.push(`<span> Indicators 2: ${myJsonIndic[1]}</span><br>`);
+                        for (let index=0; index<myJsonSubfieldsLen;index++){
+                            items.push(`<span><strong> Subfields Details </strong></span><br>` );
+                            items.push(`<span> Code: ${myJsonSubfields[0]["code"]}</span><br>`);
+                            items.push(`<span> Value: ${myJsonSubfields[0]["value"]}</span><br>`);
+                            items.push(`<span> xref: ${myJsonSubfields[0]["xref"]}</span><br></div>`);
+                        }
+                        items.push(`<div><span class="mt-2 badge badge-secondary"> <h3>JSON information </h3><br><h6>Double click on the data to select the record </h6></span></div><br>`); 
+                        items.push(`<div id="${key}" class="myResult">${myJson}</div>`);
+                        items.push(`<hr>`);
                     });
-
-
-                    // items.push(`<script> function test(){ alert("juste un test")} </script>`)
 
                     $("#authsList").html(items);
                     
                     // include the event behaviour after a double click
-                    let myRecup=document.getElementsByClassName("myResult")
+                    let myRecup=document.getElementsByClassName("myResult");
                     let myRecupSize =myRecup.length;
 
                     for (let index0=0;index0<myRecupSize;index0++){
@@ -562,6 +573,7 @@ class MarcRecord extends HTMLElement {
                                     document.getElementById("tagCol"+index).value=myTag;
 
                                     // Adding Subfield value
+                                    console.log(myJson)
                                     let myData=JSON.parse(myJson)
                                     let myDataSize=myData["subfields"].length;
 
@@ -629,7 +641,7 @@ class MarcRecord extends HTMLElement {
                         });
                     }
 
-                    console.log('Ran in ' + (Date.now() - t) + ' seconds');
+                    $("#nb_results").text("Duration :  "+ (Date.now() - t) + ' seconds');
                 });
             }, 800);
         }
@@ -1003,7 +1015,6 @@ class MarcRecord extends HTMLElement {
         // Update at the Full Record level
         generateDataFullRecordToUpdateNewVersion(type) {
 
-            //console.log(type)
             // Retrieving the value of the type of Record
             let typeRecord = this.typeRecordToUpdate;
 
@@ -1042,28 +1053,32 @@ class MarcRecord extends HTMLElement {
                 // Retrieving the leader data
                 // Here we will just fill the tagRecord with the value of the divData 
                 if (this.leaderList.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                    
+                    // cloning case 
+                    if (type !== 2) {
+                        // Retrieving the data of the leader field
+                        tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
 
-                    // Retrieving the data of the leader field
-                    tagRecord.push(document.getElementById("divData" + i).getElementsByTagName("DIV")[0].getElementsByTagName("INPUT")[0].value);
+                        // Case where the tag is already in the list, we should add a new value to this array
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
+                            marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        }
 
-                    // Case where the tag is already in the list, we should add a new value to this array
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) !== -1) {
-                        marcRecords[document.getElementById("tagCol" + i).value] = recup.push(tagRecord);
+                        // Case where the tag is not in the list
+                        if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
+
+
+                            // Inserting the value of this tag in the marcRecord
+                            marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
+
+
+                            // Insert the tag in the list of tag already processed
+                            myLeaderField.push(document.getElementById("tagCol" + i).value)
+                        }
+
+                        // Cleaning the tagRecord
+                        tagRecord = []
                     }
-
-                    // Case where the tag is not in the list
-                    if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
-
-                        // Inserting the value of this tag in the marcRecord
-                        marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
-
-                        // Insert the tag in the list of tag already processed
-                        myLeaderField.push(document.getElementById("tagCol" + i).value)
-                    }
-
-                    // Cleaning the tagRecord
-                    tagRecord = []
-
                 }
                 // Extracting the "normal" fields 
                 else {
@@ -1160,7 +1175,7 @@ class MarcRecord extends HTMLElement {
 
             // clone
             if (type === 2) {
-                //  save the data
+                //  clone the data
                 typeRecord = this.recordType;
                 this.cloneRecord(this.prefixUrl + typeRecord, data)
             }
@@ -1586,25 +1601,58 @@ class MarcRecord extends HTMLElement {
                     let divRecordType = document.getElementById("divRecordType");
 
                 // create the dropdown list for selecting the type of record    
+                    //this.recordType = this.getRecordType(this.url)
+                    console.log(this.recordType)
+                    let recordTypeSelectElement = document.createElement("select");
+                    recordTypeSelectElement.className = "custom-select";
+                    recordTypeSelectElement.id = "selectTypeRecord";
+                    recordTypeSelectElement.style = "width: 300px;";
+
+                    let bibsOption = document.createElement("option");
+                    bibsOption.value = "bibs";
+                    bibsOption.innerText = "Bibliographic record";
+
+                    let authsOption = document.createElement("option");
+                    authsOption.value = "auths";
+                    authsOption.innerText = "Authority record";
+
+                    if(this.recordType == "bibs") {
+                        bibsOption.selected = true
+                    } else if (this.recordType == "auths") {
+                        authsOption.selected = true
+                    }
+                    
+                    recordTypeSelectElement.appendChild(bibsOption);
+                    recordTypeSelectElement.appendChild(authsOption);
+                    //divContentHeader.appendChild(recordTypeSelectElement);
+
+                    /*
+                    `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
+                            
+                    <option value="bibs" selected>Bibliographic record</option>
+                    <option value="auths">Authority Record</option>
+            </select>`
+                    */
+
                     if (divRecordType == null) {
                         let myHtml = document.createElement("DIV");
-                        myHtml.innerHTML = `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
-                                        <!--<option selected>Please select the record type</option>->
-                                        <option value="bibs" selected>Bibliographic record</option>
-                                        <option value="auths">Authority Record</option>
-                                </select>`
+                        myHtml.appendChild(recordTypeSelectElement)
                         myHtml.id = "divRecordType"
                         myHtml.className = "mr-2 mb-2";
                         divContentHeader.appendChild(myHtml);
+                    } else if (divRecordType !== null) {
+                        divRecordType.innerHTML = ''
+                        console.log(recordTypeSelectElement)
+                        divRecordType.appendChild(recordTypeSelectElement)
                     }
 
+                    // How do we make the record type selected based on divRecordType?
+                    /*
                     if (divRecordType !== null) {
-                        divRecordType.innerHTML = `<select class="custom-select" id="selectTypeRecord" style="width: 300px;">
-                            
-                                        <option value="bibs" selected>Bibliographic record</option>
-                                        <option value="auths">Authority Record</option>
-                                </select>`
+                        console.log(recordTypeSelectElement)
+                        divRecordType.innerHTML = recordTypeSelectElement
                     }
+                    */
 
                     const myDiv = document.getElementById("divNewRecord");
                     if (myDiv) {
@@ -2266,16 +2314,36 @@ class MarcRecord extends HTMLElement {
             // create the files framework
             if (this.filesAvailable.length > 0) {
                 // adding the logic
+                // console.log(this.filesAvailable)
                 let myHeader = document.createElement("H5");
-                myHeader.innerHTML = "<span class='badge badge-pill badge-success'>" + this.filesAvailable.length + "</span> File(s) available , Click the file path to display the file!!! ";
+                myHeader.innerHTML = "<span class='badge badge-pill badge-success'>" + this.filesAvailable.length + "</span> file(s) available.";
                 let myTable = document.createElement("TABLE");
                 myTable.className = "table table-striped"
                 myTable.innerHTML += "<div>"
-                myTable.innerHTML += "<table><thead> <tr><th>Language</th><th>File path</th></tr></thead><tbody>";
+                myTable.innerHTML += "<table><thead> <tr><th>Language</th><th>Links</th></tr></thead><tbody>";
                 let i;
                 let myTableContent = "";
                 for (i = 0; i < this.filesAvailable.length; i++) {
-                    myTableContent += "<tr><td><span class='text-center ml-2'>" + this.filesAvailable[i]['language'] + "</span></td><td><a href='" + this.filesAvailable[i]['url'] + "' target='_blank'>" + this.filesAvailable[i]['url'] + "</a></td></tr>"
+                    let myTr = document.createElement("TR")
+                    let myTdLangs = document.createElement("TD")
+                    myTdLangs.innerText = this.filesAvailable[i]['language']
+                    let myTdLinks = document.createElement("TD")
+                    let myA_newTab = document.createElement("A")
+                    myA_newTab.href = this.filesAvailable[i]['url']
+                    myA_newTab.target = "_blank"
+                    myA_newTab.innerText = "Open in New Tab"
+                    myTdLinks.appendChild(myA_newTab)
+                    let mySpan = document.createElement("span")
+                    mySpan.classList.add('p-4')
+                    myTdLinks.appendChild(mySpan)
+                    let myA_download = document.createElement("A")
+                    myA_download.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['id'] + "?action=download"
+                    myA_download.innerText = 'Download'
+                    //myA_download.dispatchEvent(new MouseEvent('click'));                
+                    myTdLinks.appendChild(myA_download)
+                    myTr.appendChild(myTdLangs)
+                    myTr.appendChild(myTdLinks)
+                    myTable.appendChild(myTr)
                 }
                 myTable.innerHTML += myTableContent + "</tbody></table></div>"
                 divContent.appendChild(myHeader);
@@ -2596,6 +2664,9 @@ class MarcRecord extends HTMLElement {
             if (this.getUrlAPI()) {
                 this.getDataFromApi(this.getUrlAPI());
                 this.getRecordType(this.getUrlAPI());
+            } else {
+                let btn = document.getElementById("btnCreateNewRecord")
+                btn.click()
             }
         }
 

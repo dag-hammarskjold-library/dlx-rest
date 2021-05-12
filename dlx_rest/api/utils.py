@@ -158,3 +158,11 @@ def brief_auth(record):
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
         'alt': '; '.join(record.get_values(alt_tag, 'a'))
     }
+
+def validate_data(record):
+    if type(record) == Bib:
+        if record.get_field('245') is None:
+            abort(400, 'Bib field 245 is required')
+    else:
+        if record.heading_field is None:
+            abort(400, 'Auth heading field is required')

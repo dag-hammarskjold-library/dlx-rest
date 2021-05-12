@@ -10,7 +10,7 @@ from json import loads as load_json, JSONDecodeError
 from copy import copy, deepcopy
 from uuid import uuid1
 from urllib.parse import quote, unquote
-from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort
+from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort, send_file
 from flask_restx import Resource, Api, reqparse
 from flask_login import login_required, current_user
 from flask_cors import CORS
@@ -21,8 +21,12 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
 from dlx.file import File, Identifier
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from bson import Regex
+import boto3
+import mimetypes
+import re
 from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth
 import jsonschema
+
 
 # Init
 authorizations = {
@@ -68,8 +72,7 @@ def request_loader(request):
 class AuthToken(Resource):
     @login_required
     def get(self):
-        token = g.user.generate_auth_token()
-        
+        token = g.user.generate_auth_token()        
         return jsonify({ 'token': token.decode('ascii') })
 
 # Schemas
@@ -187,13 +190,14 @@ class Schema(Resource):
 # Collections
 @ns.route('/collections')
 class CollectionsList(Resource):
-    @ns.doc(description='Return a list of the collection endpoints.')
+    @ns.doc(description='Return a list of the collection endpoints')
     def get(self):
         meta = {
             'name': 'api_collections_list',
             'returns': URL('api_schema', schema_name='api.urllist').to_str(),
             'timestamp': datetime.now(timezone.utc)
         }
+
         links = {
             '_self': URL('api_collections_list').to_str(),
             '_prev': None,
@@ -201,7 +205,8 @@ class CollectionsList(Resource):
             'related': {'schemas': URL('api_schemas_list', _internal=True).to_str()},
             'format': None
         }
-        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths')])
+        
+        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths', 'files')])
         
         return response.jsonify()
 
@@ -344,9 +349,13 @@ class RecordsList(Resource):
                 jmarc = load_json(request.data)
                 
                 if '_id' in jmarc:
-                    abort(400, '"_id" field is invalid for a new record')
+                    if jmarc['_id'] is None:
+                        del jmarc['_id']
+                    else:
+                        abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
+                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -356,11 +365,12 @@ class RecordsList(Resource):
                 
                 return data, 201
             else:
-                abort(500)
+                abort(500, 'POST request failed for unknown reasons')
 
 # Record
 record_args = reqparse.RequestParser()
 record_args.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk"')
+
 @ns.route('/collections/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -570,11 +580,11 @@ class RecordFieldPlaceList(Resource):
                 record_data[field_tag] = []
             
             record_data[field_tag].append(field_data)
-                
             record = cls(record_data, auth_control=True)
         except Exception as e:
             abort(400, str(e))
         
+        validate_data(record)
         result = record.commit(user=user)
         
         if result.acknowledged:
@@ -588,7 +598,7 @@ class RecordFieldPlaceList(Resource):
 
             return {'result': url.to_str()}, 201
         else:
-            abort(500)
+            abort(500, 'POST request failed for unknown reasons')
 
 # Field    
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
@@ -646,7 +656,7 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-            
+            validate_data(record)
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
@@ -662,7 +672,7 @@ class RecordFieldPlace(Resource):
 
             return {'result': url.to_str()}, 201
         else:
-            abort(500)
+            abort(500, 'PUT request failed for unknown reasons')
     
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
@@ -678,7 +688,7 @@ class RecordFieldPlace(Resource):
         if record.commit(user=user):
             return Response(status=200)
         else:
-            abort(500)  
+            abort(500, 'DELETE request failed for unknown reasons')
 
 # Field subfields
 @ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
@@ -876,7 +886,7 @@ class LookupFieldsList(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
-
+                      
 # Auth lookup
 @ns.route('/collections/<string:collection>/lookup/<string:field_tag>')
 @ns.param('collection', '"bibs" or "auths"')
@@ -958,7 +968,20 @@ class LookupMap(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
-        
+
+# History
+@ns.route('/collections/<string:collection>/<int:record_id>/history')
+@ns.param('collection', '"bibs" or "auths"')
+@ns.param('record_id', 'The record identifier')
+class RecordHistory(Resource):
+    pass
+    
+@ns.route('/collections/<string:collection>/<int:record_id>/history/<int:instance>')
+@ns.param('collection', '"bibs" or "auths"')
+@ns.param('record_id', 'The record identifier')
+class RecordHistoryEvent(Resource):
+    pass
+  
 # Templates
 @ns.route('/collections/<string:collection>/templates')
 @ns.param('collection', '"bibs" or "auths"')
@@ -1053,7 +1076,7 @@ class Template(Resource):
 
         new_data['_id'], new_data['name'] = old_data['_id'], old_data['name']
         result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
-        result.acknowledged or abort(500)
+        result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
         return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201
 
@@ -1062,5 +1085,55 @@ class Template(Resource):
     def delete(self, collection, template_name):
         template_collection = DB.handle[f'{collection}_templates']
         template_collection.find_one({'name': template_name}) or abort(404)
-        template_collection.delete_one({'name': template_name}) or abort(500)
+        template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
+
+# Files list
+# File
+@ns.route('/collections/files')
+class FileRecordsList(Resource):
+    def get(self):
+        data = {
+            'data': [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, limit=10)]
+        }
+        
+        return jsonify(data)
     
+# File
+@ns.route('/collections/files/<string:record_id>')
+class FileRecord(Resource):
+    file_record_args = reqparse.RequestParser()
+    file_record_args.add_argument('action', type=str, help='Valid actions are "download"')
+    
+    def get(self, record_id):
+        record = File.from_id(str(record_id)) or abort(404)
+            
+        if record.filename is None:
+            ids = []
+        
+            for idx in record.identifiers:
+                ids.append(idx.value)
+        
+            langs = []
+        
+            for lang in record.languages:
+                langs.append(lang)
+
+            extension = mimetypes.guess_extension(record.mimetype)
+            extension = extension[1:]
+            record.filename = File.encode_fn(ids, langs, extension)
+        
+        args = FileRecord.file_record_args.parse_args()
+        action = args.get('action', None)
+        
+        if action == 'download':
+            output_filename = record.filename
+            s3 = boto3.client('s3')
+        
+            try:
+                s3_file = s3.get_object(Bucket=Config.bucket, Key=record_id)
+            except Exception as e:
+                abort(500, str(e))
+
+            return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
+            
+        return 
