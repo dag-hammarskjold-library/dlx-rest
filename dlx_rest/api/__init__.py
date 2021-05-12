@@ -24,7 +24,7 @@ from bson import Regex
 import boto3
 import mimetypes
 import re
-from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth
+from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
 import jsonschema
 
 
@@ -94,13 +94,7 @@ class SchemasList(Resource):
         )
         
         links = {
-            '_self': URL('api_schemas_list').to_str(),
-            '_next': None,
-            '_prev': None,
-            'related': {
-                'collections': URL('api_collections_list').to_str()
-            },
-            'format': None
+            '_self': URL('api_schemas_list').to_str()
         }
         meta = {
             'name': 'api_schemas_list',
@@ -186,9 +180,10 @@ class Schema(Resource):
             abort(404)
         
         return jsonify(data)
-        
+ 
+       
 # Collections
-@ns.route('/collections')
+@ns.route('/marc')
 class CollectionsList(Resource):
     @ns.doc(description='Return a list of the collection endpoints')
     def get(self):
@@ -199,19 +194,15 @@ class CollectionsList(Resource):
         }
 
         links = {
-            '_self': URL('api_collections_list').to_str(),
-            '_prev': None,
-            '_next': None,
-            'related': {'schemas': URL('api_schemas_list', _internal=True).to_str()},
-            'format': None
+            '_self': URL('api_collections_list').to_str()
         }
         
-        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths', 'files')])
+        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths')])
         
         return response.jsonify()
 
 # Collection        
-@ns.route('/collections/<string:collection>')
+@ns.route('/marc/<string:collection>')
 class Collection(Resource):
     @ns.doc(description='')
     def get(self, collection):
@@ -223,10 +214,7 @@ class Collection(Resource):
             'timestamp': datetime.now(timezone.utc)
         }
         links = {
-            '_next': None,
-            '_prev': None,
             '_self': URL('api_collection', collection=collection).to_str(),
-            'format': None,
             'related': {
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'templates': URL('api_templates_list', collection=collection).to_str(),
@@ -238,7 +226,7 @@ class Collection(Resource):
         return response.jsonify()
 
 # Records
-@ns.route('/collections/<string:collection>/records')
+@ns.route('/marc/<string:collection>/records')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
@@ -254,15 +242,13 @@ class RecordsList(Resource):
         query = Query.from_string(search) if search else {}
         
         # start
-        start = 0 if args.start is None else args.start-1
+        start = 1 if args.start is None else int(args.start)
           
         # limit  
-        if int(args.limit or 0) > 1000:
+        limit = int(args.limit or 100)
+        
+        if limit > 1000:
             abort(404, 'Maximum limit is 1000')
-        elif args.limit is None:
-            limit = 100
-        else:
-            limit = args.limit
             
         # sort
         if args['sort'] == 'updated':
@@ -287,7 +273,7 @@ class RecordsList(Resource):
         ###
         
         cls = ClassDispatch.batch_by_collection(collection) 
-        recordset = cls.from_query(query, projection=project, skip=start, limit=limit, sort=sort)
+        recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort)
         
         ###
         
@@ -311,12 +297,9 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+1+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start+1-limit if start-limit>0 else 1, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start > 1 else None,
-            'related': {
-                'collection': URL('api_collection', collection=collection).to_str()
-            },
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start - limit > 0 else None,
             'format': {
                 'brief': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
                 'list': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
@@ -371,7 +354,7 @@ class RecordsList(Resource):
 record_args = reqparse.RequestParser()
 record_args.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk"')
 
-@ns.route('/collections/<string:collection>/records/<int:record_id>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class Record(Resource):
@@ -445,8 +428,9 @@ class Record(Resource):
         else:
             try:
                 jmarc = load_json(request.data)
-                
-                result = cls(jmarc, auth_control=True).commit(user=user)
+                record = cls(jmarc, auth_control=True)
+                validate_data(record)
+                result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
@@ -476,7 +460,7 @@ class Record(Resource):
             abort(500)
 
 # Fields
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordFieldsList(Resource):
@@ -518,7 +502,7 @@ class RecordFieldsList(Resource):
         return ApiResponse(links=links, meta=meta, data=fields_list).jsonify()
    
 # Field places
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields/<string:field_tag>')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -601,7 +585,7 @@ class RecordFieldPlaceList(Resource):
             abort(500, 'POST request failed for unknown reasons')
 
 # Field    
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
@@ -691,7 +675,7 @@ class RecordFieldPlace(Resource):
             abort(500, 'DELETE request failed for unknown reasons')
 
 # Field subfields
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
 @ns.param('record_id', 'The record identifier')
@@ -739,7 +723,7 @@ class RecordFieldPlaceSubfieldList(Resource):
         return ApiResponse(links=links, meta=meta, data=subfields).jsonify()
 
 # Subfield places
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
 @ns.param('field_tag', 'The MARC tag identifying the field')
@@ -767,7 +751,7 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         links = {
             '_self':  URL('api_record_field_place_subfield_place_list', **route_params).to_str(),
             'related': {
-                'subfields': URL('api_record_field_place_subfield_list', **route_params).to_str()
+                'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             }
         }
         
@@ -779,7 +763,7 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         return ApiResponse(links=links, meta=meta, data=subfield_places).jsonify()
 
 # Subfield value
-@ns.route('/collections/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>/<int:subfield_place>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/fields/<string:field_tag>/<int:field_place>/subfields/<string:subfield_code>/<int:subfield_place>')
 @ns.param('subfield_place', 'The incidence number of the subfield code in the field, starting wtih 0')
 @ns.param('subfield_code', 'The subfield code')
 @ns.param('field_place', 'The incidence number of the field in the record, starting with 0')
@@ -799,6 +783,7 @@ class RecordFieldSubfieldValue(Resource):
         links = {
             '_self': URL('api_record_field_subfield_value', **route_params).to_str(),
             'related': {
+                #'record':URL('api_record', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id,field_tag=field_tag, field_place=field_place).to_str()
             }
         }
@@ -811,7 +796,7 @@ class RecordFieldSubfieldValue(Resource):
         return ApiResponse(links=links, meta=meta, data=value).jsonify()
 
 # Record subfields        
-@ns.route('/collections/<string:collection>/records/<int:record_id>/subfields')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/subfields')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordSubfieldsList(Resource):
@@ -864,7 +849,7 @@ class RecordSubfieldsList(Resource):
         return ApiResponse(links=links, meta=meta, data=subfields).jsonify()
             
 # Auth lookup fields
-@ns.route('/collections/<string:collection>/lookup')
+@ns.route('/marc/<string:collection>/lookup')
 @ns.param('collection', '"bibs" or "auths"')
 class LookupFieldsList(Resource):
     @ns.doc(description='Return a list of field tags that are authority-controlled')
@@ -874,7 +859,6 @@ class LookupFieldsList(Resource):
         
         links = {
             '_self': URL('api_lookup_fields_list', collection=collection).to_str(),
-            '_prev': URL('api_collection', collection=collection).to_str(),
             'related': {
                 'map': URL('api_lookup_map', collection=collection).to_str()
             }
@@ -888,7 +872,7 @@ class LookupFieldsList(Resource):
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
                       
 # Auth lookup
-@ns.route('/collections/<string:collection>/lookup/<string:field_tag>')
+@ns.route('/marc/<string:collection>/lookup/<string:field_tag>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
@@ -932,7 +916,7 @@ class LookupField(Resource):
             processed.append(new.to_dict())
             
         links = {
-            '_self': URL('api_lookup_field', collection=collection, field_tag=field_tag, **sparams).to_str(),
+            '_self': URL('api_lookup_field', collection=collection, field_tag=field_tag, start=start, **sparams).to_str(),
             '_next': URL('api_lookup_field', collection=collection, start=start+25, field_tag=field_tag, **sparams).to_str(),
             '_prev': URL('api_lookup_field', collection=collection, start=start-25 if (start - 25) > 1 else 1, field_tag=field_tag, **sparams).to_str(),
             'related': {
@@ -948,7 +932,7 @@ class LookupField(Resource):
         return ApiResponse(links=links, meta=meta, data=processed).jsonify()
 
 # Auth xref map
-@ns.route('/collections/<string:collection>/lookup/map')
+@ns.route('/marc/<string:collection>/lookup/map')
 @ns.param('collection', '"bibs" or "auths"')
 class LookupMap(Resource):
     @ns.doc(description='Return a list of field tags that are authority-controlled')
@@ -970,20 +954,20 @@ class LookupMap(Resource):
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
 # History
-@ns.route('/collections/<string:collection>/<int:record_id>/history')
+@ns.route('/marc/<string:collection>/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistory(Resource):
     pass
     
-@ns.route('/collections/<string:collection>/<int:record_id>/history/<int:instance>')
+@ns.route('/marc/<string:collection>/<int:record_id>/history/<int:instance>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistoryEvent(Resource):
     pass
   
 # Templates
-@ns.route('/collections/<string:collection>/templates')
+@ns.route('/marc/<string:collection>/templates')
 @ns.param('collection', '"bibs" or "auths"')
 class TemplatesList(Resource):
     @ns.doc(description='Return a list of templates for the given collection')
@@ -994,10 +978,7 @@ class TemplatesList(Resource):
         data = [URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
         
         links = {
-            '_self': URL('api_templates_list', collection=collection).to_str(),
-            'related': {
-                'collection': URL('api_collection', collection=collection).to_str()
-            }
+            '_self': URL('api_templates_list', collection=collection).to_str()
         }
         
         meta = {
@@ -1025,7 +1006,7 @@ class TemplatesList(Resource):
         return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
 
 # Template
-@ns.route('/collections/<string:collection>/templates/<string:template_name>')
+@ns.route('/marc/<string:collection>/templates/<string:template_name>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('template_name', 'The name of the template')
 class Template(Resource):
@@ -1048,7 +1029,7 @@ class Template(Resource):
         links = {
             '_self': URL('api_template', collection=collection, template_name=template_name).to_str(),
             'related': {
-                'collection': URL('api_collection', collection=collection).to_str(),
+                
                 'templates': URL('api_templates_list', collection=collection).to_str()
             }
         }
@@ -1087,22 +1068,67 @@ class Template(Resource):
         template_collection.find_one({'name': template_name}) or abort(404)
         template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
 
-# Files list
-# File
-@ns.route('/collections/files')
-class FileRecordsList(Resource):
+'''
+# Files
+@ns.route('/files')
+class Files(Resource):
     def get(self):
-        data = {
-            'data': [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, limit=10)]
+        links = {
+            '_self': URL('api_files').to_str(),
+            'related': {
+                'records': URL('api_files_records_list').to_str()
+            }
         }
         
-        return jsonify(data)
+        meta = {
+            'name': 'api_files',
+            'returns': URL('api_schema', schema_name='api.null').to_str()
+        }
+        
+        data = {}
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+'''
+
+# Files records list
+@ns.route('/files')
+class FilesRecordsList(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument('start')
+    args.add_argument('limit')
     
+    def get(self):
+        args = FilesRecordsList.args.parse_args()
+        
+        # start
+        start = 1 if args.start is None else int(args.start)
+          
+        # limit
+        limit = int(args.limit or 100)
+        
+        if limit > 1000:
+            abort(404, 'Maximum limit is 1000')
+
+        data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
+        
+        links = {
+            '_self': URL('api_files_records_list', start=start, limit=limit).to_str(),
+            '_next': URL('api_files_records_list', start=start + limit, limit=limit).to_str(),
+            '_prev': URL('api_files_records_list', start=start - limit, limit=limit).to_str() if start - limit > 0 else None
+        }
+        
+        meta = {
+            'name': 'api_files_records_list',
+            'returns': URL('api_schema', schema_name='api.urllist').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+        
 # File
-@ns.route('/collections/files/<string:record_id>')
+@ns.route('/files/<string:record_id>')
 class FileRecord(Resource):
-    file_record_args = reqparse.RequestParser()
-    file_record_args.add_argument('action', type=str, help='Valid actions are "download"')
+    args = reqparse.RequestParser()
+    args.add_argument('action', type=str, help='Valid actions are "download"')
     
     def get(self, record_id):
         record = File.from_id(str(record_id)) or abort(404)
@@ -1122,7 +1148,7 @@ class FileRecord(Resource):
             extension = extension[1:]
             record.filename = File.encode_fn(ids, langs, extension)
         
-        args = FileRecord.file_record_args.parse_args()
+        args = FileRecord.args.parse_args()
         action = args.get('action', None)
         
         if action == 'download':
@@ -1136,4 +1162,16 @@ class FileRecord(Resource):
 
             return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
             
-        return 
+        links = {
+            '_self': URL('api_file_record', record_id=record_id).to_str(),
+            'related': {
+                'download': URL('api_file_record', record_id=record_id, action='download').to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_file_record',
+            'returns': URL('api_schema', schema_name='api.null').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data={}).jsonify()

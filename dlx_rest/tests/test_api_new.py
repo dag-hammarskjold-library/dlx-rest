@@ -54,43 +54,43 @@ def test_testing():
     
 def test_app(client):
     assert type(client).__name__ == 'FlaskClient'
-    
+
 def test_api_collections_list(client):
-    res = client.get(f'{API}/collections')
+    res = client.get(f'{API}/marc')
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
     assert data['data'] == [
-        f'{API}/collections/bibs',
-        f'{API}/collections/auths'
+        f'{API}/marc/bibs',
+        f'{API}/marc/auths'
     ]
     
 def test_api_collection(client):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/collections/{col}')
+        res = client.get(f'{API}/marc/{col}')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
         
 def test_api_records_list(client, records_new):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/collections/{col}/records')
+        res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
         for i in (1, 2):
-            assert f'{API}/collections/{col}/records/{i}' in data['data']
+            assert f'{API}/marc/{col}/records/{i}' in data['data']
         
 def test_api_record(client, records_new):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
-            res = client.get(f'{API}/collections/{col}/records/{i}')
+            res = client.get(f'{API}/marc/{col}/records/{i}')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
             
 def test_api_record_fields_list(client, records_new):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
-            res = client.get(f'{API}/collections/{col}/records/{i}/fields')
+            res = client.get(f'{API}/marc/{col}/records/{i}/fields')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
@@ -100,10 +100,9 @@ def test_api_record_field_place_list(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/fields/{tag}')
+                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-            
 
 def test_api_record_field_place(client, records_new):
     for col in ('bibs', 'auths'):
@@ -111,7 +110,7 @@ def test_api_record_field_place(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/fields/{tag}/0')
+                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.datafield'
                 
@@ -121,7 +120,7 @@ def test_api_record_field_place_subfield_list(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/fields/{tag}/0/subfields')
+                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
@@ -131,7 +130,7 @@ def test_api_record_field_place_subfield_place_list(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/fields/{tag}/0/subfields/a')
+                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields/a')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
@@ -141,7 +140,7 @@ def test_api_record_field_subfield_value(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/fields/{tag}/0/subfields/a/0')
+                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields/a/0')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.subfield.value'
                 
@@ -151,20 +150,20 @@ def test_api_record_subfield_list(client, records_new):
         
         for i in (1, 2):
             for tag in tags:
-                res = client.get(f'{API}/collections/{col}/records/{i}/subfields')
+                res = client.get(f'{API}/marc/{col}/records/{i}/subfields')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
 def test_api_lookup_field_list(client, records_new):
-    res = client.get(f'{API}/collections/bibs/lookup')
+    res = client.get(f'{API}/marc/bibs/lookup')
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
     
 def test_api_lookup_field(client, records_new):
-    res = client.get(f'{API}/collections/bibs/lookup/700')
+    res = client.get(f'{API}/marc/bibs/lookup/700')
     assert res.status_code == 400
     
-    res = client.get(f'{API}/collections/bibs/lookup/700?a=heading')
+    res = client.get(f'{API}/marc/bibs/lookup/700?a=heading')
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/jmarc.batch'
     
@@ -173,19 +172,19 @@ def test_api_lookup_field(client, records_new):
         
 def test_api_lookup_map(client, records_new):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/collections/{col}/lookup/map')
+        res = client.get(f'{API}/marc/{col}/lookup/map')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.authmap'
         
 def test_api_template_list(client, records_new):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/collections/bibs/templates')
+        res = client.get(f'{API}/marc/bibs/templates')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
 def test_api_template(client, records_new):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/collections/bibs/templates/test')
+        res = client.get(f'{API}/marc/bibs/templates/test')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc.template'
         

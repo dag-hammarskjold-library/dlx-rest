@@ -91,7 +91,9 @@ class ApiResponse():
         self.meta = meta
         self.data = data
         
-        for _ in ('_prev', '_next', '_self', 'related', 'format', 'sort'):
+        assert '_self' in links 
+        
+        for _ in ('_prev', '_next', 'related', 'format', 'sort'):
             self.links.setdefault(_, None)
             
         for _ in ('name', 'returns'):
