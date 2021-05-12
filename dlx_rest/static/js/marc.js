@@ -113,6 +113,7 @@ class MarcRecord extends HTMLElement {
                 </div>
                 </div>
                 <div class="modal-footer">
+
                 <button id="executeQuery" type="button" class="btn btn-primary">Execute the query</button>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Exit </button>
                 </div>
@@ -228,8 +229,9 @@ class MarcRecord extends HTMLElement {
             .then(response => {
                 if (response.ok) {
                     response.text().then(function(p) {
+                        let record_prefix = JSON.parse(p)["result"].split('/api')[0]
                         let record_url = JSON.parse(p)["result"].split('/api')[1];
-                        window.history.pushState("object or string", "Title", "/records" + record_url);
+                        window.history.pushState("object or string", "Title", record_prefix + "/records" + record_url);
                     });
                     
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
@@ -507,6 +509,7 @@ class MarcRecord extends HTMLElement {
                         let myJsonIndic=myJsonNew.indicators;
                         let myJsonSubfields=myJsonNew.subfields;
                         let myJsonSubfieldsLen=myJsonSubfields.length;
+
                         items.push(`<div><span class="mt-2 badge badge-secondary"> <h3>Detailed information </h3></span><br>`); 
                         items.push(`<span> Indicators 1: ${myJsonIndic[0]}</span><br>` );
                         items.push(`<span> Indicators 2: ${myJsonIndic[1]}</span><br>`);
@@ -1064,8 +1067,10 @@ class MarcRecord extends HTMLElement {
                         // Case where the tag is not in the list
                         if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
 
+
                             // Inserting the value of this tag in the marcRecord
                             marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
+
 
                             // Insert the tag in the list of tag already processed
                             myLeaderField.push(document.getElementById("tagCol" + i).value)
