@@ -65,7 +65,7 @@ class MarcRecord extends HTMLElement {
 
     // create the search modal form
     createSearchModalForm(){
-        this.innerHTML+=`<div id='modalSearch' class="modal" tabindex="-1" role="dialog">
+        this.innerHTML+=`<div id='modalSearch' class="modal" tabindex="-1" role="dialog" style="height:800px;width:850px">
             <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -75,34 +75,37 @@ class MarcRecord extends HTMLElement {
                 </button>
                 </div>
                 <div class="modal-body">
-                <div>
+
+                    <div>
+                        <form id="live-search" action="" class="styled ml-5" method="post">
+                            <fieldset>
+                                <label for="tagToSearch">Tag</label>
+                                <input type="text" class="text-input" id="tagToSearch"  value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="a">Subfield a</label>
+                                <input type="text" class="text-input lookup" id="a"  value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="b">Subfield b</label>
+                                <input type="text" class="text-input lookup" id="b" value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="c">Subfield c</label>
+                                <input type="text" class="text-input lookup" id="c" value="" />
+                            </fieldset>
+                            <fieldset>
+                                <label for="d">Subfield d</label>
+                                <input type="text" class="text-input lookup" id="d" value="" />
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div class="mt-2 ml-5 text-primary">
                     <p id="search_url"></p>
-                </div>
-                <div>
-                    <h3>Please fill your criterias!!! </h3>
-                    <form id="live-search" action="" class="styled" method="post">
-                        <fieldset>
-                            <label for="tagToSearch">Tag</label>
-                            <input type="text" class="text-input" id="tagToSearch"  value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="a">Subfield a</label>
-                            <input type="text" class="text-input lookup" id="a"  value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="b">Subfield b</label>
-                            <input type="text" class="text-input lookup" id="b" value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="c">Subfield c</label>
-                            <input type="text" class="text-input lookup" id="c" value="" />
-                        </fieldset>
-                        <fieldset>
-                            <label for="d">Subfield d</label>
-                            <input type="text" class="text-input lookup" id="d" value="" />
-                        </fieldset>
-                    </form>
-                </div>
+                    </div>
+                    <div class="mt-2 ml-5 text-primary">
+                    <p id="nb_results"></p>
+                    </div>
                 <div>
                     <ul id="authsList">
                         
@@ -110,7 +113,7 @@ class MarcRecord extends HTMLElement {
                 </div>
                 </div>
                 <div class="modal-footer">
-                <button type="button" class="btn btn-primary">Create this authority (not implemented yet)</button>
+
                 <button id="executeQuery" type="button" class="btn btn-primary">Execute the query</button>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Exit </button>
                 </div>
@@ -415,31 +418,19 @@ class MarcRecord extends HTMLElement {
             } 
         }
 
-        implementSearchAuthorities(){
-            // adding the logic of the double click on the tag 
-            let elements = document.getElementsByClassName("lookup");
-            for (var i = 0; i < elements.length; i++) {                       
-                elements[i].addEventListener('dblclick', this.searchAuthorities, false);
-            } 
-        }
-
-
-        // implementDisplaySelectedResult(){
+        // implementSearchAuthorities(){
         //     // adding the logic of the double click on the tag 
-        //     let elements = document.getElementsByClassName("myResult");
+        //     let elements = document.getElementsByClassName("lookup");
         //     for (var i = 0; i < elements.length; i++) {                       
-        //         elements[i].addEventListener('dblclick', this.diplayRecordSelectInEditMode(myTag), false);
-        //     } 
-        //}
-
-        // implementDisplaySelectedResult(){
-        //     // adding the logic of the double click on the tag 
-        //     let elements = document.getElementsByClassName("myResult");
-        //     for (var i = 0; i < elements.length; i++) {                       
-        //         elements[i].addEventListener('dblclick', this.displayAuthInEditor(elements[i].getAttribute("id")), false);
+        //         elements[i].addEventListener('dblclick', this.searchAuthorities, false);
         //     } 
         // }
 
+        implementSearchAuthorities(){
+            // adding the logic of the double click on the tag 
+            let element = document.getElementById("executeQuery");
+            element.addEventListener('click', this.searchAuthorities, false);
+        }
 
         // searching authorities using modal
         searchAuthorities(){ 
@@ -459,10 +450,10 @@ class MarcRecord extends HTMLElement {
             let search_obj = {};
             
             // Construct the parameterized URL to start with
-            let search_url = endpoint + $.param(search_obj);
+            let search_url = "Query sent to the server " + endpoint + $.param(search_obj);
             
             // Display the URL in its own div/p
-            $("#search_url").text(search_url);
+            //$("#search_url").text(search_url);
             
             // Define a timer
             let timer;
@@ -502,11 +493,9 @@ class MarcRecord extends HTMLElement {
 
             timer = setTimeout(()=> {
                 search_obj[field_id] = filter_text;
-                //search_url = endpoint + '?' + $.param(search_obj);
                 search_url = endpoint + '?' + queryString;
-                
-                //$("#search_url").text("Query to execute :  "+ search_url);
-                console.log("Query to execute :  "+ search_url)
+
+                $("#search_url").text("Query to execute :  "+ search_url);
                 
                 let data = $.getJSON(search_url, data=> {
                     let t = Date.now()
@@ -520,27 +509,25 @@ class MarcRecord extends HTMLElement {
                         let myJsonIndic=myJsonNew.indicators;
                         let myJsonSubfields=myJsonNew.subfields;
                         let myJsonSubfieldsLen=myJsonSubfields.length;
-                        console.log("the type of: " + typeof(myJsonNew))
-                        console.log(myJsonSubfieldsLen)
-                        items.push(`<div id="${key}" class="myResult"><span style="display:none;">${myJson}</span></div><br>`);
-                        items.push(`<div class="alert alert-secondary" role="alert"><span> <h4>Record Details </h4></span><br>`); 
+
+                        items.push(`<div><span class="mt-2 badge badge-secondary"> <h3>Detailed information </h3></span><br>`); 
                         items.push(`<span> Indicators 1: ${myJsonIndic[0]}</span><br>` );
                         items.push(`<span> Indicators 2: ${myJsonIndic[1]}</span><br>`);
                         for (let index=0; index<myJsonSubfieldsLen;index++){
-                            items.push(`<span class="badge bg-warning"> Subfields Details </span><br>` );
+                            items.push(`<span><strong> Subfields Details </strong></span><br>` );
                             items.push(`<span> Code: ${myJsonSubfields[0]["code"]}</span><br>`);
                             items.push(`<span> Value: ${myJsonSubfields[0]["value"]}</span><br>`);
-                            items.push(`<span> xref: ${myJsonSubfields[0]["xref"]}</span></div>`);
+                            items.push(`<span> xref: ${myJsonSubfields[0]["xref"]}</span><br></div>`);
                         }
+                        items.push(`<div><span class="mt-2 badge badge-secondary"> <h3>JSON information </h3><br><h6>Double click on the data to select the record </h6></span></div><br>`); 
+                        items.push(`<div id="${key}" class="myResult">${myJson}</div>`);
                         items.push(`<hr>`);
                     });
-
-                    // items.push(`<script> function test(){ alert("juste un test")} </script>`)
 
                     $("#authsList").html(items);
                     
                     // include the event behaviour after a double click
-                    let myRecup=document.getElementsByClassName("myResult")
+                    let myRecup=document.getElementsByClassName("myResult");
                     let myRecupSize =myRecup.length;
 
                     for (let index0=0;index0<myRecupSize;index0++){
@@ -586,6 +573,7 @@ class MarcRecord extends HTMLElement {
                                     document.getElementById("tagCol"+index).value=myTag;
 
                                     // Adding Subfield value
+                                    console.log(myJson)
                                     let myData=JSON.parse(myJson)
                                     let myDataSize=myData["subfields"].length;
 
@@ -653,7 +641,7 @@ class MarcRecord extends HTMLElement {
                         });
                     }
 
-                    console.log('Ran in ' + (Date.now() - t) + ' seconds');
+                    $("#nb_results").text("Duration :  "+ (Date.now() - t) + ' seconds');
                 });
             }, 800);
         }
@@ -1027,7 +1015,6 @@ class MarcRecord extends HTMLElement {
         // Update at the Full Record level
         generateDataFullRecordToUpdateNewVersion(type) {
 
-            //console.log(type)
             // Retrieving the value of the type of Record
             let typeRecord = this.typeRecordToUpdate;
 
@@ -1080,8 +1067,10 @@ class MarcRecord extends HTMLElement {
                         // Case where the tag is not in the list
                         if (myLeaderField.indexOf(document.getElementById("tagCol" + i).value) === -1) {
 
+
                             // Inserting the value of this tag in the marcRecord
                             marcRecords[document.getElementById("tagCol" + i).value] = tagRecord
+
 
                             // Insert the tag in the list of tag already processed
                             myLeaderField.push(document.getElementById("tagCol" + i).value)
