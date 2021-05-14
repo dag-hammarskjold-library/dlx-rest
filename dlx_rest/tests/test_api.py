@@ -14,60 +14,7 @@ API = 'http://localhost/api'
 # make sure the db is mocked before committing test data
 if Config.connect_string != 'mongomock://localhost':
     raise Exception
-    
-@pytest.fixture
-def marc():
-    auths = []
-    
-    for i in range(1, 3):
-        auth = Auth()
-        auth.id = i
-        auth.set('100', 'a', f'Heading {i}')
-        auth.commit()
-        auths.append(auth)
-    
-    bibs = []
-    for i in range(1, 3):
-        bib = Bib()
-        bib.id = i
-        bib.set('245', 'a', 'Title').set('700', 'a', i)
-        bib.commit()
-        bibs.append(bib)
-        
-    for col in ('bibs', 'auths'):
-        template = Bib() if col == 'bibs' else Auth()
-        template.id = 1
-        template.set('035', 'a', 'ID')   
-        d = template.to_dict()
-        d['name'] = 'test'
-        DB.handle[f'{col}_templates'].insert_one(d)
-        
-    yield {'auths': auths, 'bibs': bibs}
-    
-    # TODO handle test data in dlx
-    for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates', 'bib_history', 'auth_history'):
-        Auth._cache = {}
-        DB.handle[col].drop()
-     
-@pytest.fixture 
-def files():
-    with mock_s3():
-        S3.connect(bucket='mock_bucket')
-        S3.client.create_bucket(Bucket=S3.bucket)
-        
-        File.import_from_handle(
-            io.BytesIO(b'test file'),
-            filename='test.txt',
-            identifiers=[Identifier('isbn', 'x')],
-            languages=['en'],
-            mimetype='text/plain',
-            source='test'
-        )
-        
-        yield
-        
-        DB.files.drop()
-    
+
 # tests
 # TODO test put, post, delete reqs
 
