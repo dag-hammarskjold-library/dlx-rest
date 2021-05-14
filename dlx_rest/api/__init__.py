@@ -955,13 +955,63 @@ class LookupMap(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistory(Resource):
-    pass
+    def get(self, collection, record_id):
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        cls.from_id(record_id) or abort(404)
+        
+        # temporary implemention
+        hcol = collection[:-1] + '_history'
+        hrec = DB.handle[hcol].find_one({'_id': record_id}) or {}
+        history = hrec.get('history')
+        
+        if history:
+            data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
+        
+        links = {
+            '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
+            'related': {
+                'record': URL('api_record', collection=collection, record_id=record_id).to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_record_history',
+            'returns': URL('api_schema', schema_name='api.urllist').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
     
-@ns.route('/marc/<string:collection>/<int:record_id>/history/<int:instance>')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/history/<int:instance>')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistoryEvent(Resource):
-    pass
+    def get(self, collection, record_id, instance):
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        cls.from_id(record_id) or abort(404)
+        
+        # temporary implemention
+        hcol = collection[:-1] + '_history'
+        hrec = DB.handle[hcol].find_one({'_id': record_id})
+        ins = hrec['history'][instance]
+        marc = cls(ins)
+        
+        data = marc.to_dict()
+        data['updated'] = marc.updated
+        
+        links = {
+            '_self': URL('api_record_history_event', collection=collection, record_id=record_id, instance=instance).to_str(),
+            'related': {
+                'record': URL('api_record', collection=collection, record_id=record_id).to_str(),
+                'history': URL('api_record_history', collection=collection, record_id=record_id).to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_record_history_event',
+            'returns': URL('api_schema', schema_name='jmarc').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
   
 # Templates
 @ns.route('/marc/<string:collection>/templates')

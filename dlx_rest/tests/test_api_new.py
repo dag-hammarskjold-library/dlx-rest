@@ -44,7 +44,8 @@ def marc():
         
     yield {'auths': auths, 'bibs': bibs}
     
-    for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates'):
+    # TODO handle test data in dlx
+    for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates', 'bib_history', 'auth_history'):
         Auth._cache = {}
         DB.handle[col].drop()
      
@@ -197,7 +198,19 @@ def test_api_lookup_map(client, marc):
         res = client.get(f'{API}/marc/{col}/lookup/map')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.authmap'
-        
+
+def test_api_record_history(client, marc):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/marc/{col}/records/1/history')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+    
+def test_api_record_history(client, marc):
+    for col in ('bibs', 'auths'):    
+        res = client.get(f'{API}/marc/{col}/records/1/history/0')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
+
 def test_api_template_list(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/bibs/templates')
