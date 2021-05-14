@@ -1,11 +1,13 @@
-import os
+import io, os
 os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest, json, re
 from dlx import DB
 from dlx.marc import Bib, Auth
+from dlx.file import File, Identifier, S3
 from dlx_rest.app import app
 from dlx_rest.config import Config
+from moto import mock_s3
 
 API = 'http://localhost/api'
 
@@ -14,7 +16,7 @@ if Config.connect_string != 'mongomock://localhost':
     raise Exception
     
 @pytest.fixture
-def records_new():
+def marc():
     auths = []
     
     for i in range(1, 3):
@@ -45,8 +47,28 @@ def records_new():
     for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates'):
         Auth._cache = {}
         DB.handle[col].drop()
+     
+@pytest.fixture 
+def files():
+    with mock_s3():
+        S3.connect(bucket='mock_bucket')
+        S3.client.create_bucket(Bucket=S3.bucket)
         
+        File.import_from_handle(
+            io.BytesIO(b'test file'),
+            filename='test.txt',
+            identifiers=[Identifier('isbn', 'x')],
+            languages=['en'],
+            mimetype='text/plain',
+            source='test'
+        )
+        
+        yield
+        
+        DB.files.drop()
+    
 # tests
+# TODO test put, post, delete reqs
 
 def test_testing():
     assert Config.TESTING == True
@@ -71,7 +93,7 @@ def test_api_collection(client):
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
         
-def test_api_records_list(client, records_new):
+def test_api_records_list(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
@@ -80,21 +102,21 @@ def test_api_records_list(client, records_new):
         for i in (1, 2):
             assert f'{API}/marc/{col}/records/{i}' in data['data']
         
-def test_api_record(client, records_new):
+def test_api_record(client, marc):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
             res = client.get(f'{API}/marc/{col}/records/{i}')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
             
-def test_api_record_fields_list(client, records_new):
+def test_api_record_fields_list(client, marc):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
             res = client.get(f'{API}/marc/{col}/records/{i}/fields')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
-def test_api_record_field_place_list(client, records_new):
+def test_api_record_field_place_list(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -104,7 +126,7 @@ def test_api_record_field_place_list(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
-def test_api_record_field_place(client, records_new):
+def test_api_record_field_place(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -114,7 +136,7 @@ def test_api_record_field_place(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.datafield'
                 
-def test_api_record_field_place_subfield_list(client, records_new):
+def test_api_record_field_place_subfield_list(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -124,7 +146,7 @@ def test_api_record_field_place_subfield_list(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
-def test_api_record_field_place_subfield_place_list(client, records_new):
+def test_api_record_field_place_subfield_place_list(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -134,7 +156,7 @@ def test_api_record_field_place_subfield_place_list(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
-def test_api_record_field_subfield_value(client, records_new):
+def test_api_record_field_subfield_value(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -144,7 +166,7 @@ def test_api_record_field_subfield_value(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.subfield.value'
                 
-def test_api_record_subfield_list(client, records_new):
+def test_api_record_subfield_list(client, marc):
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -154,12 +176,12 @@ def test_api_record_subfield_list(client, records_new):
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
-def test_api_lookup_field_list(client, records_new):
+def test_api_lookup_field_list(client, marc):
     res = client.get(f'{API}/marc/bibs/lookup')
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
     
-def test_api_lookup_field(client, records_new):
+def test_api_lookup_field(client, marc):
     res = client.get(f'{API}/marc/bibs/lookup/700')
     assert res.status_code == 400
     
@@ -167,26 +189,38 @@ def test_api_lookup_field(client, records_new):
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/jmarc.batch'
     
-    for r in records_new['auths']:
+    for r in marc['auths']:
         assert r.to_dict() in data['data']
         
-def test_api_lookup_map(client, records_new):
+def test_api_lookup_map(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/lookup/map')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.authmap'
         
-def test_api_template_list(client, records_new):
+def test_api_template_list(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/bibs/templates')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
-def test_api_template(client, records_new):
+def test_api_template(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/bibs/templates/test')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc.template'
+     
+def test_api_files(client, files):
+    res = client.get(f'{API}/files')
+    data = check_response(res)
+    assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
+
+def test_api_file(client, files):
+    res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3')
+    data = check_response(res)
+    
+    res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=download')
+    assert res.status_code == 200
         
 # util
 

@@ -1,32 +1,28 @@
 '''
 DLX REST API
 '''
-from dlx_rest.config import Config
-from dlx_rest.app import app, login_manager
-from dlx_rest.models import User
 
+# external
+import os, json, re, boto3, mimetypes
 from datetime import datetime, timezone
-from json import loads as load_json, JSONDecodeError
 from copy import copy, deepcopy
-from uuid import uuid1
 from urllib.parse import quote, unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort, send_file
 from flask_restx import Resource, Api, reqparse
 from flask_login import login_required, current_user
-from flask_cors import CORS
 from base64 import b64decode
+from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.file import File, Identifier
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
-from bson import Regex
-import boto3
-import mimetypes
-import re
-from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
-import jsonschema
 
+# internal
+from dlx_rest.config import Config
+from dlx_rest.app import app, login_manager
+from dlx_rest.models import User
+from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
 
 # Init
 authorizations = {
@@ -319,8 +315,8 @@ class RecordsList(Resource):
     @login_required
     def post(self, collection):
         user = 'testing' if current_user.is_anonymous else current_user.email
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
+        args = RecordsListArgs.args.parse_args()
     
         if args.format == 'mrk':
             try:
@@ -329,7 +325,7 @@ class RecordsList(Resource):
                 abort(400, str(e))
         else:
             try:
-                jmarc = load_json(request.data)
+                jmarc = json.loads(request.data)
                 
                 if '_id' in jmarc:
                     if jmarc['_id'] is None:
@@ -417,7 +413,8 @@ class Record(Resource):
         user = 'testing' if current_user.is_anonymous else current_user.email
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-
+        args = record_args.parse_args()
+        
         if args.format == 'mrk':
             try:
                 record = cls.from_mrk(request.data.decode())
@@ -427,7 +424,7 @@ class Record(Resource):
                 abort(400, str(e))
         else:
             try:
-                jmarc = load_json(request.data)
+                jmarc = json.loads(request.data)
                 record = cls(jmarc, auth_control=True)
                 validate_data(record)
                 result = record.commit(user=user)
@@ -954,7 +951,7 @@ class LookupMap(Resource):
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
 # History
-@ns.route('/marc/<string:collection>/<int:record_id>/history')
+@ns.route('/marc/<string:collection>/records/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistory(Resource):
@@ -993,7 +990,7 @@ class TemplatesList(Resource):
     def post(self, collection):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
-        data = load_json(request.data) or abort(400, 'Invalid JSON')
+        data = json.loads(request.data) or abort(400, 'Invalid JSON')
         schema = json.loads(requests.get('api_schema', schema_name='jmarc.template').content)
         
         try:
@@ -1047,7 +1044,7 @@ class Template(Resource):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         old_data = template_collection.find_one({'name': template_name}) or abort(404)
-        new_data = load_json(request.data) or abort(400, 'Invalid JSON')
+        new_data = json.loads(request.data) or abort(400, 'Invalid JSON')
         schema = json.loads(requests.get('api_schema', schema_name='jmarc.template').content)
         
         try:
@@ -1067,28 +1064,6 @@ class Template(Resource):
         template_collection = DB.handle[f'{collection}_templates']
         template_collection.find_one({'name': template_name}) or abort(404)
         template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
-
-'''
-# Files
-@ns.route('/files')
-class Files(Resource):
-    def get(self):
-        links = {
-            '_self': URL('api_files').to_str(),
-            'related': {
-                'records': URL('api_files_records_list').to_str()
-            }
-        }
-        
-        meta = {
-            'name': 'api_files',
-            'returns': URL('api_schema', schema_name='api.null').to_str()
-        }
-        
-        data = {}
-        
-        return ApiResponse(links=links, meta=meta, data=data).jsonify()
-'''
 
 # Files records list
 @ns.route('/files')
@@ -1154,9 +1129,10 @@ class FileRecord(Resource):
         if action == 'download':
             output_filename = record.filename
             s3 = boto3.client('s3')
+            bucket = 'mock_bucket' if 'DLX_REST_TESTING' in os.environ else Config.bucket
         
             try:
-                s3_file = s3.get_object(Bucket=Config.bucket, Key=record_id)
+                s3_file = s3.get_object(Bucket=bucket, Key=record_id)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1165,6 +1141,7 @@ class FileRecord(Resource):
         links = {
             '_self': URL('api_file_record', record_id=record_id).to_str(),
             'related': {
+                'files': URL('api_files_records_list').to_str(),
                 'download': URL('api_file_record', record_id=record_id, action='download').to_str()
             }
         }
