@@ -1,8 +1,12 @@
 import os
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
-import json, re
+import io, json, re
 from datetime import datetime
+from moto import mock_s3
+from dlx import DB
+from dlx.marc import Bib, Auth
+from dlx.file import File, Identifier, S3
 from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
@@ -40,7 +44,6 @@ def client():
     from dlx_rest.app import app
     
     app.TESTING = True
-    
     #app.config.update(SERVER_NAME='0.0.0.0:80')
     
     return app.test_client()
@@ -85,108 +88,57 @@ def users(roles, default_users):
         user.save()
 
     return User
-    
-@pytest.fixture(scope='module')
-def records():
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    from random import randrange
 
-    for x in range(1, 11):
-        auth = Auth({'_id': x})
-        auth.set('100', 'a', str(randrange(1, 100))),
-        auth.set('400', 'a', '1x'),
-        auth.set('400', 'a', '2x', address=['+'])
-        auth.set('400', 'a', '3x', address=[1, '+'])
-        auth.set('900', 'a', str(x)).set('900', 'b', str(x))
-        auth.commit()
-        
-        Auth({'_id': 11}).set('110', 'a', 'Name').commit(),
-        
-        bib = Bib({'_id': x})
-        bib.set('245', 'a', str(randrange(1, 100)))
-        bib.set('500', 'a', '1x')
-        bib.set('610', 'a', 'Name')
-        bib.set('500', 'a', '2x', address=['+'])
-        bib.set('500', 'a', '3x', address=[1, '+'])
-        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
-        bib.commit()
-        
-@pytest.fixture(scope='module')
-def auths():
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    from random import randrange
-    
+@pytest.fixture
+def marc():
     auths = []
-    auths.append(Auth({'_id': 11}).set('110', 'a', 'Name'))
-
-    for x in range(1, 11):
-        auth = Auth({'_id': x})
-        auth.set('100', 'a', str(randrange(1, 100))),
-        auth.set('400', 'a', '1x'),
-        auth.set('400', 'a', '2x', address=['+'])
-        auth.set('400', 'a', '3x', address=[1, '+'])
-        auth.set('900', 'a', str(x)).set('900', 'b', str(x))
+    
+    for i in range(1, 3):
+        auth = Auth()
+        auth.id = i
+        auth.set('100', 'a', f'Heading {i}')
+        auth.commit()
         auths.append(auth)
-        
-    return auths
-
-@pytest.fixture(scope='module')
-def bibs():
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    from random import randrange
     
     bibs = []
-    
-    for x in range(1, 11):
-        bib = Bib({'_id': x})
-        bib.set('245', 'a', str(randrange(1, 100)))
-        bib.set('500', 'a', '1x')
-        bib.set('610', 'a', 'Name')
-        bib.set('500', 'a', '2x', address=['+'])
-        bib.set('500', 'a', '3x', address=[1, '+'])
-        bib.set('900', 'a', str(x)).set('900', 'b', str(x))
+    for i in range(1, 3):
+        bib = Bib()
+        bib.id = i
+        bib.set('245', 'a', 'Title').set('700', 'a', i)
+        bib.commit()
         bibs.append(bib)
+        
+    for col in ('bibs', 'auths'):
+        template = Bib() if col == 'bibs' else Auth()
+        template.id = 1
+        template.set('035', 'a', 'ID')   
+        d = template.to_dict()
+        d['name'] = 'test'
+        DB.handle[f'{col}_templates'].insert_one(d)
+        
+    yield {'auths': auths, 'bibs': bibs}
     
-    return bibs
-
-@pytest.fixture(scope='module')    
-def templates():
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    
-    template = Bib()
-    template.set('245', 'a', 'Title')
-    data = template.to_dict()
-    data['name'] = 'bib_template_1'
-    data['_id'] = 1
-    DB.handle['bibs_templates'].insert_one(data)
-    
-    template = Auth()
-    template.set('100', 'a', 'Name')
-    data = template.to_dict()
-    data['name'] = 'auth_template_1'
-    data['_id'] = 1
-    DB.handle['auths_templates'].insert_one(data)
-    
-@pytest.fixture(scope='module')
-def recordset_2():
-    from dlx import DB
-    from dlx.marc import Bib, Auth
-    
-    DB.handle['bibs'].drop()
-    DB.handle['auths'].drop()
-    
-    auth = Auth()
-    auth.set('110', 'a', 'Giant organization')
-    auth.set('110', 'b', 'subsidiary')
-    auth.commit()
-    
-    auth = Auth()
-    auth.set('110', 'a', 'Small organization')
-    auth.set('110', 'b', 'subsidiary')
-    auth.commit()
-    
-    
+    # TODO handle test data in dlx
+    for col in ('bibs', 'auths', 'bibs_templates', 'auths_templates', 'bib_history', 'auth_history'):
+        Auth._cache = {}
+        DB.handle[col].drop()
+     
+@pytest.fixture 
+def files():
+    with mock_s3():
+        S3.connect(bucket='mock_bucket')
+        S3.client.create_bucket(Bucket=S3.bucket)
+        
+        File.import_from_handle(
+            io.BytesIO(b'test file'),
+            filename='test.txt',
+            identifiers=[Identifier('isbn', 'x')],
+            languages=['en'],
+            mimetype='text/plain',
+            source='test'
+        )
+        
+        yield
+        
+        DB.files.drop()
+  
