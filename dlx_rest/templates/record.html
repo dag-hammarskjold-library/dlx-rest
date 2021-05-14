@@ -1,7 +1,7 @@
 {% extends 'base.html' %} {% block content %}
 <div class="container shadow text-left border border-success rounded mt-3">
     {% if record_id %}
-    <marc-record url="{{ coll }}/{{ record_id }}" token="{{current_user.is_active}}" prefix="{{prefix}}"></marc-record>
+    <marc-record url="marc/{{ coll }}/records/{{ record_id }}" token="{{current_user.is_active}}" prefix="{{prefix}}"></marc-record>
     {% else %}
     <marc-record url="" token="{{current_user.is_active}}" prefix="{{prefix}}" coll="{{coll}}"></marc-record>
 
