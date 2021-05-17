@@ -2340,7 +2340,9 @@ class MarcRecord extends HTMLElement {
                     mySpan.classList.add('p-4')
                     myTdLinks.appendChild(mySpan)
                     let myA_download = document.createElement("A")
-                    myA_download.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['id'] + "?action=download"
+                    let file_parts = this.filesAvailable[i]['url'].split('/');
+                    let file_id = file_parts[file_parts.length - 1];
+                    myA_download.href = this.prefixUrl + 'files/' + file_id + "?action=download"
                     myA_download.innerText = 'Download'
                     //myA_download.dispatchEvent(new MouseEvent('click'));                
                     myTdLinks.appendChild(myA_download)
