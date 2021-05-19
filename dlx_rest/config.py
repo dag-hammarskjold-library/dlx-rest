@@ -47,3 +47,4 @@ class Config(object):
     BIB_COLLECTION = 'bibs'
     AUTH_COLLECTION = 'auths'
     FILE_COLLECTION = 'files'
+

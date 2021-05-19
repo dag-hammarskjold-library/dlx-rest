@@ -124,13 +124,14 @@ class MarcRecord extends HTMLElement {
 
     // function loading the templates 
     async loadTemplate(myCollection){
-        this.url = this.getPrefix() + myCollection + "/templates";
+        this.url = this.getPrefix() + 'marc/' + myCollection + "/templates";
+
         let response = await fetch(this.url);
         if (response.ok) {
                
             let json = await response.json();
   
-            let resultsList = json["results"];
+            let resultsList = json["data"];
 
             let sizeResults = resultsList.length
 
@@ -166,19 +167,21 @@ class MarcRecord extends HTMLElement {
     // function fetching the data from the API
     async getDataFromApi(value) {
         this.url = this.prefixUrl + value;
+		
         let response = await fetch(this.url);
         if (response.ok) {
 
             let json = await response.json();
-            let resultsList = Object.keys(json["result"]);
-
+            let resultsList = Object.keys(json["data"]);
+			
             // check if the files are available
-            if (Object.keys(json["files"])) {
-                this.filesAvailable = json["files"]
+            //if (Object.keys(json["files"])) {
+			if ("files" in json["data"]) { 
+			    this.filesAvailable = json["data"]["files"]
             }
 
             let resultsSize = resultsList.length;
-            let results = json["result"];
+            let results = json["data"];
             divMailHeader.innerHTML = "";
             this.displayRecord = true
 
@@ -193,13 +196,13 @@ class MarcRecord extends HTMLElement {
     // call the API for deletion
     async deleteDataFromApi(recordType, recordID) {
 
-        let myString = this.prefixUrl + recordType + '/' + recordID;
+        let myString = this.prefixUrl + "marc/" + recordType + "/records/" + recordID;
 
         fetch(myString, {
                 method: 'DELETE'
             })
             .then(response => {
-                if (response.ok) {
+                if (response.ok) {	
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record deleted!</div>";
                 }
 
@@ -228,8 +231,11 @@ class MarcRecord extends HTMLElement {
             .then(response => {
                 if (response.ok) {
                     response.text().then(function(p) {
-                        let record_url = JSON.parse(p)["result"].split('/api')[1];
-                        window.history.pushState("object or string", "Title", "/records" + record_url);
+						let parsed = new URL(JSON.parse(p)["result"]);
+						let parts = parsed.pathname.split('/');
+						let newUrl = '/records/' + parts[3] + '/' + parts[5];
+						
+                        window.history.pushState("object or string", "Title", newUrl);
                     });
                     
                     divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Record created!</div>";
@@ -277,12 +283,15 @@ class MarcRecord extends HTMLElement {
 
         // update at the record level
         async updateFullRecord(url, data) {
+			
+			console.log(data)
 
             fetch(url, {
                     method: 'PUT',
                     body: data
                 })
                 .then(response => {
+					console.log('Response:', response)
                     if (response.ok) {
                         divMailHeader.innerHTML = "<div class='alert alert-success mt-2 alert-dismissible fade show' role='alert'>Full Record updated!</div>";
                     }
@@ -441,8 +450,8 @@ class MarcRecord extends HTMLElement {
             // Setup. We'll normally get this endpoint URL from somewhere else.
             let component=document.getElementsByTagName("marc-record")[0];
             let prefix=component.getAttribute("prefix");
-            let endpoint = prefix+ 'bibs/lookup/'+myTag;
-
+            //let endpoint = prefix+ 'bibs/lookup/'+myTag;
+			let endpoint = prefix + "marc/bibs/lookup/" + myTag 
             
             // Initialize the search object, which we'll parameterize
             let search_obj = {};
@@ -733,20 +742,13 @@ class MarcRecord extends HTMLElement {
             // adding the logic to change the value of the list of template according the value selected
             if (document.getElementById("selectTypeRecord")){
                 let selectTypeRecord = document.getElementById("selectTypeRecord")
-                selectTypeRecord.addEventListener("change", () => {
-
-                    if (selectTypeRecord.value==="bibs") {
-                        this.loadTemplate("bibs");
-                    } 
-                    if (selectTypeRecord.value==="auths") {
-                        this.loadTemplate("auths");
-                    }
-                }) 
-
-
+				this.loadTemplate(selectTypeRecord.value === "bibs" ? "bibs" : "auths");
+				
+                selectTypeRecord.addEventListener("change", () => {	
+		            this.loadTemplate(selectTypeRecord.value === "bibs" ? "bibs" : "auths");
+				})
             }   
-            // load the templates
-            this.loadTemplate("bibs");
+            
 
             // adding the logic to display the data when you select a template
             if (document.getElementById("selectListTemplate")){
@@ -1002,7 +1004,7 @@ class MarcRecord extends HTMLElement {
             alert(data)
 
             // Call the method to create the record
-            this.createRecord(this.prefixUrl + typeRecord, data)
+            this.createRecord(this.prefixUrl + "marc/" + typeRecord, data)
 
             // Restauring the init edit mode
             this.typeEditMode = "INIT"
@@ -1151,36 +1153,34 @@ class MarcRecord extends HTMLElement {
 
                 }
             }
-
+			
             // Build the json syntax    
             let data = JSON.stringify(marcRecords);
 
             // update
             if (type === 1) {
                 //  update the Data
-                this.updateFullRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data);
+                let res = this.updateFullRecord(this.prefixUrl + "marc/" + typeRecord + "/records/" + this.idToUpdate, data);
             }
 
             // create
             if (type === 0) {
                 //  save the data
                 typeRecord = document.getElementById("selectTypeRecord").value;
-                this.createRecord(this.prefixUrl + typeRecord, data)
+                this.createRecord(this.prefixUrl + "marc/" + typeRecord + "/records", data)
             }
 
             // clone
             if (type === 2) {
                 //  clone the data
                 typeRecord = this.recordType;
-                this.cloneRecord(this.prefixUrl + typeRecord, data)
+                this.cloneRecord(this.prefixUrl + "marc/" + typeRecord + "/records", data)
             }
 
             // tempate 
             if (type === 3) {
                 //  update the Data
-                let recup = this.getPrefix() + document.getElementById("selectTypeRecord").value + "/templates";
-
-                console.log(recup)
+                let recup = this.getPrefix() + "marc/" + document.getElementById("selectTypeRecord").value + "/templates";
                 this.createRecord(recup,data);
             }
 
@@ -1307,7 +1307,7 @@ class MarcRecord extends HTMLElement {
 
             this.typeEditMode = "INIT"
 
-            this.updateFullRecord(this.prefixUrl + typeRecord + "/" + this.idToUpdate, data);
+            this.updateFullRecord(this.prefixUrl + "marc/" + typeRecord + "/records/" + this.idToUpdate, data);
             //this.updateRecord(this.prefixUrl + typeRecord + "/1", data) not good
 
             this.typeRecordToUpdate = "";
@@ -1446,7 +1446,7 @@ class MarcRecord extends HTMLElement {
             let data = mySpecialRecord;
 
             //var myUrl1=this.prefixUrl + this.recordType + "/" + this.idToUpdate +"/fields/" + this.tagRecordToUpdate +"/"+ (this.indexRecordToUpdate-1)+"?format=jmarcnx";
-            var myUrl1 = this.prefixUrl + this.recordType + "/" + this.idToUpdate + "/fields/" + this.tagRecordToUpdate + "/" + (this.indexRecordToUpdate - 1);
+            var myUrl1 = this.prefixUrl + "marc/" + this.recordType + "/records/" + this.idToUpdate + "/fields/" + this.tagRecordToUpdate + "/" + (this.indexRecordToUpdate - 1);
 
             this.updateTagRecord(myUrl1, data)
 
@@ -1855,14 +1855,16 @@ class MarcRecord extends HTMLElement {
         // display the fullRecord when you select the template
         async displayFullRecordEditModeFromTemplate(myCollection) {
 
-            let myString = this.getPrefix() + myCollection + "/templates/" + document.getElementById("selectListTemplate").value ;
-
+            let myString = this.getPrefix() + "marc/" + myCollection + "/templates/" + document.getElementById("selectListTemplate").value;
+			
+			console.log(document.getElementById("selectListTemplate").value)
+			
             let response = await fetch(myString);
             if (response.ok) {
                    
                 let json = await response.json();
-                let resultsList = Object.keys(json["result"]);
-                let results=json["result"]
+                let resultsList = Object.keys(json["data"]);
+                let results=json["data"]
                 resultsList=resultsList.sort()
                 console.log(resultsList)
                 let sizeResults = (resultsList.length - 1);

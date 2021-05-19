@@ -359,7 +359,7 @@ def search_records(coll):
     print(f"Endpoint: {endpoint}")
     data = requests.get(endpoint).json()
     records = []
-    for r in data['results']:
+    for r in data['data']:
         record = build_head(coll, r)
         records.append(record)
 
@@ -367,9 +367,9 @@ def search_records(coll):
     next_page = None
 
     if not len(records) < int(limit):
-        next_page = build_pagination(data['_links']['next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
+        next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
     if int(start) > int(limit):
-        prev_page = build_pagination(data['_links']['prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
+        prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
         
     return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page)
 
