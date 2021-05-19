@@ -2315,29 +2315,37 @@ class MarcRecord extends HTMLElement {
                 let myTable = document.createElement("TABLE");
                 myTable.className = "table table-striped"
                 myTable.innerHTML += "<div>"
-                myTable.innerHTML += "<table><thead> <tr><th>Language</th><th>Links</th></tr></thead><tbody>";
+                myTable.innerHTML += "<table><thead> <tr><th>Language(s)</th><th>Link(s) (Open in New Table)</th><th>Download(s)</th></tr></thead><tbody>";
                 let i;
                 let myTableContent = "";
                 for (i = 0; i < this.filesAvailable.length; i++) {
+                    // creation of the line
                     let myTr = document.createElement("TR")
+
+                    //creation of the first column
                     let myTdLangs = document.createElement("TD")
                     myTdLangs.innerText = this.filesAvailable[i]['language']
+
+                    // creation of the second column
                     let myTdLinks = document.createElement("TD")
                     let myA_newTab = document.createElement("A")
                     myA_newTab.href = this.filesAvailable[i]['url']
                     myA_newTab.target = "_blank"
-                    myA_newTab.innerText = "Open in New Tab"
+                    myA_newTab.innerHTML ='<span class="badge badge-secondary text-center"><i class="fas fa-file"></i></span>'
                     myTdLinks.appendChild(myA_newTab)
-                    let mySpan = document.createElement("span")
-                    mySpan.classList.add('p-4')
-                    myTdLinks.appendChild(mySpan)
-                    let myA_download = document.createElement("A")
-                    myA_download.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['id'] + "?action=download"
-                    myA_download.innerText = 'Download'
-                    //myA_download.dispatchEvent(new MouseEvent('click'));                
-                    myTdLinks.appendChild(myA_download)
+
+                    // creation of the third column
+                    let myTdDownloads = document.createElement("TD")
+                    let mySpan = document.createElement("A")
+                    mySpan.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['id'] + "?action=download"
+                    mySpan.target = "_blank"
+                    mySpan.innerHTML = '<span class="badge badge-secondary text-center"><i class="fas fa-cloud-download-alt"></i></span>'
+                    myTdDownloads.appendChild(mySpan)          
+                    
+                    // assignments  
                     myTr.appendChild(myTdLangs)
                     myTr.appendChild(myTdLinks)
+                    myTr.appendChild(myTdDownloads)
                     myTable.appendChild(myTr)
                 }
                 myTable.innerHTML += myTableContent + "</tbody></table></div>"
