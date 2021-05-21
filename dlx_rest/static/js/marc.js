@@ -2296,12 +2296,12 @@ class MarcRecord extends HTMLElement {
             // create the links for other formats
             let displayMarc = document.createElement("A");
             displayMarc.id = "btnDisplayMarc";
-            displayMarc.innerHTML = `<a href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=mrk" target="_blank" aria-pressed="true">MARC format</a>`
+            displayMarc.innerHTML = `<a href="${this.prefixUrl + 'marc/' + this.recordType + "/records/" + this.getRecordID()}?format=mrk" target="_blank" aria-pressed="true">MARC format</a>`
             divContent.appendChild(displayMarc);
 
             let displayXML = document.createElement("A");
             displayXML.id = "btnDisplayXML";
-            displayXML.innerHTML = `<a class="ml-2" href="${this.prefixUrl + this.recordType + "/" + this.getRecordID()}?format=xml" target="_blank" aria-pressed="true">XML format</a>`
+            displayXML.innerHTML = `<a class="ml-2" href="${this.prefixUrl + 'marc/' + this.recordType + "/records/" + this.getRecordID()}?format=xml" target="_blank" aria-pressed="true">XML format</a>`
             divContent.appendChild(displayXML);
 
             // create the hr 
