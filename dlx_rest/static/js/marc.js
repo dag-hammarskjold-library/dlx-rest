@@ -35,6 +35,7 @@ class MarcRecord extends HTMLElement {
         this.indexRecordToUpdate = "";
         this.tagRecordToUpdate = ""
         this.filesAvailable = [];
+        this.history = [];
         this.leaderList = ['000', '001', '002', '003', '004', '005', '006', '007', '008', '009']
         this.savePrefix=""
         this.numRowCallingEvent=0;
@@ -167,15 +168,18 @@ class MarcRecord extends HTMLElement {
     // function fetching the data from the API
     async getDataFromApi(value) {
         this.url = this.prefixUrl + value;
-		
+        this.url1=this.url + "/history";
+    	
         let response = await fetch(this.url);
+        let response1 = await fetch(this.url1);  
+        
+        // process to fecth data for the full record
         if (response.ok) {
 
             let json = await response.json();
             let resultsList = Object.keys(json["data"]);
 			
             // check if the files are available
-            //if (Object.keys(json["files"])) {
 			if ("files" in json["data"]) { 
 			    this.filesAvailable = json["data"]["files"]
             }
@@ -188,9 +192,23 @@ class MarcRecord extends HTMLElement {
             this.typeEditMode = "INIT"
             this.manageDisplayButton();
             this.displayDataFromApi(resultsList, resultsSize, results);
+
+            // process to fecth data for the full record
+            if (response1.ok) {
+                let json1 = await response1.json();
+                if (json1["data"]) {
+                    this.history= json1["data"];    
+                }
+            }
+
         } else {
             return divMailHeader.innerHTML = "<div class='alert alert-danger mt-2 alert-dismissible fade show' role='alert'>Something is wrong, HTTP-Error number : " + response.status + "</div>";
         }
+    }
+
+    // function fetching the data of one specific field from the API
+    async getDataFromApiForOneField (myUrl,myField){
+
     }
 
     // call the API for deletion
@@ -2238,6 +2256,11 @@ class MarcRecord extends HTMLElement {
 
             divDetail.innerHTML = "<h3 class='text-dark'>Record ID : " + myData["_id"] + "  </h3>  <span class='text-dark'>Record Type:  " + this.recordType + "</span>";
 
+            // Adding the last update value
+            if (myData["updated"]!==""){
+                divDetail.innerHTML+="<br><span class='text-left text-success'>Last update:  " + myData["updated"] + "</span>"
+            }
+
             // Adding the ID
             divDetail.id = "divDetail";
 
@@ -2311,7 +2334,6 @@ class MarcRecord extends HTMLElement {
             // create the files framework
             if (this.filesAvailable.length > 0) {
                 // adding the logic
-                // console.log(this.filesAvailable)
                 let myHeader = document.createElement("H5");
                 myHeader.innerHTML = "<span class='badge badge-pill badge-success'>" + this.filesAvailable.length + "</span> file(s) available.";
                 let myTable = document.createElement("TABLE");
@@ -2321,6 +2343,10 @@ class MarcRecord extends HTMLElement {
                 let i;
                 let myTableContent = "";
                 for (i = 0; i < this.filesAvailable.length; i++) {
+
+                    // just a test
+                    console.log("the data is : "+this.filesAvailable[i]['id'])
+
                     // creation of the line
                     let myTr = document.createElement("TR")
 
@@ -2339,7 +2365,10 @@ class MarcRecord extends HTMLElement {
                     // creation of the third column
                     let myTdDownloads = document.createElement("TD")
                     let mySpan = document.createElement("A")
-                    mySpan.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['id'] + "?action=download"
+                    //mySpan.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['url'] + "?action=download"
+                    //mySpan.href = this.filesAvailable[i]['url'] + "?action=download"
+                    mySpan.href = this.filesAvailable[i]['url'] 
+                    console.log("value : "+ this.filesAvailable[i]['url'])
                     mySpan.target = "_blank"
                     mySpan.innerHTML = '<span class="badge badge-secondary text-center"><i class="fas fa-cloud-download-alt"></i></span>'
                     myTdDownloads.appendChild(mySpan)          
@@ -2359,6 +2388,36 @@ class MarcRecord extends HTMLElement {
             // adding a new hr 
             let hr2 = document.createElement("HR");
             divContent.appendChild(hr2);
+
+            // adding the space for the history feature
+            let btnHistoryRecord = document.createElement("BUTTON");
+            btnHistoryRecord.className = "btn btn-success mr-2";
+            btnHistoryRecord.id = "btnHistoryRecord";
+            btnHistoryRecord.innerHTML = "History of this record";
+
+            btnHistoryRecord.setAttribute('data-toggle', 'modal');
+            btnHistoryRecord.setAttribute('data-target', '#myModal');
+
+            divContent.appendChild(btnHistoryRecord);
+
+            // adding the logic to delete a record
+            btnHistoryRecord.addEventListener("click", () => {
+                if (this.history.length===0){
+                    alert("No history available for this record")
+                }else{
+                    document.getElementById("modalTitle").innerHTML = "<div class='alert alert-success mt-2' role='alert'>History of the record</div>";
+                    document.getElementById("modalContent").innerHTML="<h3> Link(s) available </h3>"
+                    for (let i = 0; i < this.history.length; i++) {
+                        document.getElementById("modalContent").innerHTML += "<a href=" + this.history[i]+" target=_blank>"+this.history[i]+"</a><br>"; 
+                    }
+                    let myButton = document.getElementById("modalButton");
+                    myButton.style.visibility="hidden"
+                }
+            })
+
+            // adding a new hr 
+            let hr3 = document.createElement("HR");
+            divContent.appendChild(hr3);
 
             /////////////////////////////////////////////////////////////////////////////////
             // creation of the header of the table
