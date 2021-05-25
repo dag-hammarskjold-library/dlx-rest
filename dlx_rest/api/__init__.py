@@ -1187,6 +1187,17 @@ class FileRecord(Resource):
                 abort(500, str(e))
 
             return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
+        elif action == 'open':
+            output_filename = record.filename
+            s3 = boto3.client('s3')
+            bucket = 'mock_bucket' if 'DLX_REST_TESTING' in os.environ else Config.bucket
+        
+            try:
+                s3_file = s3.get_object(Bucket=bucket, Key=record_id)
+            except Exception as e:
+                abort(500, str(e))
+
+            return send_file(s3_file['Body'], as_attachment=False, attachment_filename=output_filename)
             
         links = {
             '_self': URL('api_file_record', record_id=record_id).to_str(),
