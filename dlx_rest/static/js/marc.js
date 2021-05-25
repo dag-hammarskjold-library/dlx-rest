@@ -2339,7 +2339,7 @@ class MarcRecord extends HTMLElement {
                 let myTable = document.createElement("TABLE");
                 myTable.className = "table table-striped"
                 myTable.innerHTML += "<div>"
-                myTable.innerHTML += "<table><thead> <tr><th>Language(s)</th><th>Link(s) (Open in New Table)</th><th>Download(s)</th></tr></thead><tbody>";
+                myTable.innerHTML += "<table><thead> <tr><th>Language(s)</th><th>Link(s) (Open in New Tab)</th><th>Download(s)</th></tr></thead><tbody>";
                 let i;
                 let myTableContent = "";
                 for (i = 0; i < this.filesAvailable.length; i++) {
@@ -2359,7 +2359,7 @@ class MarcRecord extends HTMLElement {
                     // creation of the second column
                     let myTdLinks = document.createElement("TD")
                     let myA_newTab = document.createElement("A")
-                    myA_newTab.href = this.filesAvailable[i]['url']
+                    myA_newTab.href = this.filesAvailable[i]['url'] + "?action=open"
                     myA_newTab.target = "_blank"
                     myA_newTab.innerHTML ='<span class="badge badge-secondary text-center"><i class="fas fa-file"></i></span>'
                     myTdLinks.appendChild(myA_newTab)
@@ -2368,9 +2368,7 @@ class MarcRecord extends HTMLElement {
                     let myTdDownloads = document.createElement("TD")
                     let mySpan = document.createElement("A")
 
-                    //mySpan.href = this.prefixUrl + 'files/' + this.filesAvailable[i]['url'] + "?action=download"
-                    //mySpan.href = this.filesAvailable[i]['url'] + "?action=download"
-                    mySpan.href = this.filesAvailable[i]['url'] 
+                    mySpan.href = this.filesAvailable[i]['url']  + "?action=download"
                     console.log("value : "+ this.filesAvailable[i]['url'])
 
                     mySpan.target = "_blank"
