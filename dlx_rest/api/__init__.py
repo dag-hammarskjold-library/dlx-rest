@@ -373,11 +373,11 @@ class Record(Resource):
         
         for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
             f = File.latest_by_identifier_language(
-                Identifier('symbol', record.get_value('191', 'a') or record.get_value('791', 'a')), lang
+                Identifier('symbol', record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')), lang
             )
             
             if f:
-                files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': 'https://' + f.uri})
+                files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': URL('api_file_record', record_id=f.id).to_str()})
         
         data = record.to_dict()
         data['updated'] = record.updated
