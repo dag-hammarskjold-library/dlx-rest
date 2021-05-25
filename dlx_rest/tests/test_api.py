@@ -181,7 +181,10 @@ def test_api_file(client, files):
     
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=download')
     assert res.status_code == 200
-        
+
+    res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=open')
+    assert res.status_code == 200
+    
 # util
 
 def check_response(response):
