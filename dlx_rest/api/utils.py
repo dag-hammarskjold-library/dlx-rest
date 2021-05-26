@@ -76,6 +76,16 @@ class RecordsListArgs():
         help='Consult documentation for query syntax' # todo
     )
 
+class FileRecordArgs():
+    args = reqparse.RequestParser()
+
+    args.add_argument(
+        'action', 
+        type=str, 
+        choices=['open', 'download'],
+        help='Choose whether to open the file link in your browser or download it to your computer.'
+    )
+
 class URL():
     def __init__(self, endpoint, **kwargs):
         self.endpoint = endpoint

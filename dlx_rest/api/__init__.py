@@ -22,7 +22,7 @@ from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
-from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, FileRecordArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
 
 # Init
 authorizations = {
@@ -1153,7 +1153,8 @@ class FilesRecordsList(Resource):
 @ns.route('/files/<string:record_id>')
 class FileRecord(Resource):
     args = reqparse.RequestParser()
-    args.add_argument('action', type=str, help='Valid actions are "download"')
+    #args.add_argument('action', type=str, help='Valid actions are "download"')
+    @ns.expect(FileRecordArgs.args)
     
     def get(self, record_id):
         record = File.from_id(str(record_id)) or abort(404)
@@ -1203,7 +1204,8 @@ class FileRecord(Resource):
             '_self': URL('api_file_record', record_id=record_id).to_str(),
             'related': {
                 'files': URL('api_files_records_list').to_str(),
-                'download': URL('api_file_record', record_id=record_id, action='download').to_str()
+                'download': URL('api_file_record', record_id=record_id, action='download').to_str(),
+                'open': URL('api_file_record', record_id=record_id, action='open').to_str(),
             }
         }
         
