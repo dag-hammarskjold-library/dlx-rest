@@ -38,60 +38,6 @@ class URL():
         self.kwargs = kwargs
 
     def to_str(self, **kwargs):
-        self.kwargs.setdefault('_external', False)
-        return url_for(self.endpoint, **self.kwargs)
-
-class RecordsListArgs():
-    args = reqparse.RequestParser()
-    
-    args.add_argument(
-        'start', 
-        type=int, 
-        help='Number of record results to skip for pagination. Default is 0'
-    )
-    args.add_argument(
-        'limit', type=int,
-        help='Number of results to return. Default is 100. Max is 1000'
-    )
-    args.add_argument(
-        'sort',
-        type=str,
-        choices=['updated'],
-        help='Valid strings are "updated"'
-    )
-    args.add_argument(
-        'direction', type=str, 
-        choices=['asc', 'desc'],
-        help='Valid strings are "asc", "desc". Default is "desc"', 
-    )
-    args.add_argument(
-        'format', 
-        type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief'],
-        help='Formats the list as a batch of records instead of URLs. Valid formats are "json", "xml", "mrc", "mrk", "brief"'
-    )
-    args.add_argument(
-        'search', 
-        type=str, 
-        help='Consult documentation for query syntax' # todo
-    )
-
-class FileRecordArgs():
-    args = reqparse.RequestParser()
-
-    args.add_argument(
-        'action', 
-        type=str, 
-        choices=['open', 'download'],
-        help='Choose whether to open the file link in your browser or download it to your computer.'
-    )
-
-class URL():
-    def __init__(self, endpoint, **kwargs):
-        self.endpoint = endpoint
-        self.kwargs = kwargs
-
-    def to_str(self, **kwargs):
         self.kwargs.setdefault('_external', True)
         return url_for(self.endpoint, **self.kwargs)
 
