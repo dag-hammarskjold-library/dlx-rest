@@ -1250,8 +1250,7 @@ class FileRecord(Resource):
             '_self': URL('api_file_record', record_id=record_id).to_str(),
             'related': {
                 'files': URL('api_files_records_list').to_str(),
-                'download': URL('api_file_record', record_id=record_id, action='download').to_str(),
-                'open': URL('api_file_record', record_id=record_id, action='open').to_str(),
+                'download': URL('api_file_record', record_id=record_id, action='download').to_str()
             }
         }
         
