@@ -22,7 +22,7 @@ from dlx.file import File, Identifier
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User
-from dlx_rest.api.utils import ClassDispatch, URL, RecordsListArgs, ApiResponse, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, abort, brief_bib, brief_auth, validate_data
 
 # Init
 authorizations = {
@@ -176,8 +176,7 @@ class Schema(Resource):
             abort(404)
         
         return jsonify(data)
- 
-       
+
 # Collections
 @ns.route('/marc')
 class CollectionsList(Resource):
@@ -225,12 +224,46 @@ class Collection(Resource):
 @ns.route('/marc/<string:collection>/records')
 @ns.param('collection', '"bibs" or "auths"')
 class RecordsList(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'start', 
+        type=int, 
+        help='Result to start list at',
+        default=1
+    )
+    args.add_argument(
+        'limit', type=int,
+        help='Number of results to return. Max is 1000',
+        default=100,
+    )
+    args.add_argument(
+        'sort',
+        type=str,
+        choices=['updated'],
+    )
+    args.add_argument(
+        'direction', type=str, 
+        choices=['asc', 'desc'],
+        help='Sort direction', 
+    )
+    args.add_argument(
+        'format', 
+        type=str, 
+        choices=['json', 'xml', 'mrk', 'mrc', 'brief'],
+        help='Formats the list as a batch of records in the specified format'
+    )
+    args.add_argument(
+        'search', 
+        type=str, 
+        help='Consult documentation for query syntax' # todo
+    )
+    
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
-    @ns.expect(RecordsListArgs.args)
+    @ns.expect(args)
     def get(self, collection):
         route_params = locals()
         route_params.pop('self')
-        args = RecordsListArgs.args.parse_args()
+        args = RecordsList.args.parse_args()
         collection in ClassDispatch.list_names() or abort(404)
         
         # search
@@ -297,10 +330,10 @@ class RecordsList(Resource):
             '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
             '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
-                'list': URL('api_records_list', start=start+1, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start+1, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start+1, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
+                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
             },
             'sort': {
                 'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
@@ -347,17 +380,21 @@ class RecordsList(Resource):
                 abort(500, 'POST request failed for unknown reasons')
 
 # Record
-record_args = reqparse.RequestParser()
-record_args.add_argument('format', type=str, help='Valid formats are "json", "xml", "mrc", "mrk"')
-
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
 class Record(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'format', 
+        type=str, 
+        choices=['xml', 'mrk', 'mrc']
+    )
+    
     @ns.doc(description='Return the record with the given identifier')
-    @ns.expect(record_args)
+    @ns.expect(args)
     def get(self, collection, record_id):
-        args = record_args.parse_args()
+        args = Record.args.parse_args()
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         fmt = args.get('format')
@@ -955,6 +992,7 @@ class LookupMap(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistory(Resource):
+    @ns.doc(description='Returns a list of the record with the given ID\'s previous states')
     def get(self, collection, record_id):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         cls.from_id(record_id) or abort(404)
@@ -985,6 +1023,7 @@ class RecordHistory(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('record_id', 'The record identifier')
 class RecordHistoryEvent(Resource):
+    @ns.doc(description='Returns the record from the given record ID in a previous state')
     def get(self, collection, record_id, instance):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         cls.from_id(record_id) or abort(404)
@@ -1122,6 +1161,7 @@ class FilesRecordsList(Resource):
     args.add_argument('start')
     args.add_argument('limit')
     
+    @ns.doc(description='Return a list of file records')
     def get(self):
         args = FilesRecordsList.args.parse_args()
         
@@ -1151,11 +1191,19 @@ class FilesRecordsList(Resource):
         
 # File
 @ns.route('/files/<string:record_id>')
+@ns.param('record_id', "The file ID")
 class FileRecord(Resource):
     args = reqparse.RequestParser()
-    args.add_argument('action', type=str, help='Valid actions are "download"')
+    args.add_argument(
+        'format', 
+        type=str, 
+        choices=['open', 'download']
+    )
     
+    @ns.doc(description='Return the file record for the given ID')
+    @ns.expect(args)
     def get(self, record_id):
+        args = FileRecord.args.parse_args()
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1173,7 +1221,6 @@ class FileRecord(Resource):
             extension = extension[1:]
             record.filename = File.encode_fn(ids, langs, extension)
         
-        args = FileRecord.args.parse_args()
         action = args.get('action', None)
         
         if action == 'download':
