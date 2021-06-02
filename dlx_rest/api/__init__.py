@@ -349,7 +349,7 @@ class RecordsList(Resource):
     def post(self, collection):
         user = 'testing' if current_user.is_anonymous else current_user.email
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        args = RecordsListArgs.args.parse_args()
+        args = RecordsList.args.parse_args()
     
         if args.format == 'mrk':
             try:
@@ -450,7 +450,7 @@ class Record(Resource):
         user = 'testing' if current_user.is_anonymous else current_user.email
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-        args = record_args.parse_args()
+        args = Record.args.parse_args()
         
         if args.format == 'mrk':
             try:
@@ -471,7 +471,7 @@ class Record(Resource):
         if result.acknowledged:
             data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
             
-            return data, 201
+            return data, 200
         else:
             abort(500)
 
@@ -489,7 +489,7 @@ class Record(Resource):
             abort(403, 'Authority record in use')
         
         if result.acknowledged:
-            return Response(status=200)
+            return Response(status=204)
         else:
             abort(500)
 
@@ -600,6 +600,7 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
             record = cls(record_data, auth_control=True)
         except Exception as e:
+            print(record.to_dict())
             abort(400, str(e))
         
         validate_data(record)
@@ -688,7 +689,7 @@ class RecordFieldPlace(Resource):
                 field_place=field_place
             )
 
-            return {'result': url.to_str()}, 201
+            return {'result': url.to_str()}, 200
         else:
             abort(500, 'PUT request failed for unknown reasons')
     
@@ -704,7 +705,7 @@ class RecordFieldPlace(Resource):
         record.delete_field(field_tag, place=field_place)
         
         if record.commit(user=user):
-            return Response(status=200)
+            return Response(status=204)
         else:
             abort(500, 'DELETE request failed for unknown reasons')
 
