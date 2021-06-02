@@ -3,7 +3,7 @@ os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest, json, re
 from dlx import DB
-from dlx.marc import Bib, Auth
+from dlx.marc import Bib, Auth, Datafield
 from dlx.file import File, Identifier, S3
 from dlx_rest.app import app
 from dlx_rest.config import Config
@@ -42,6 +42,8 @@ def test_api_collection(client):
         assert data['data'] == {}
         
 def test_api_records_list(client, marc):
+    from dlx.marc import Bib, Auth
+    
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
@@ -49,6 +51,20 @@ def test_api_records_list(client, marc):
         
         for i in (1, 2):
             assert f'{API}/marc/{col}/records/{i}' in data['data']
+            
+        # post
+        if col == 'bibs':    
+            cls = Bib
+            bib = Bib()
+            bib.set('245', 'a', 'Title')
+            res = client.post(f'{API}/marc/{col}/records', data=bib.to_json())
+        else:
+            cls = Auth
+            auth = Auth()
+            auth.set('100', 'a', 'Heading')
+            res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
+            
+        assert res.status_code == 201
         
 def test_api_record(client, marc):
     for col in ('bibs', 'auths'):
@@ -57,6 +73,32 @@ def test_api_record(client, marc):
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
             
+    # put
+    if col == 'bibs':    
+        cls = Bib
+        bib = Bib()
+        bib.id = 1
+        bib.set('245', 'a', 'Title')
+        res = client.put(f'{API}/marc/{col}/records/{bib.id}', data=bib.to_json())
+    else:
+        cls = Auth
+        auth = Auth()
+        auth.id = 1
+        auth.set('100', 'a', 'Heading 2')
+        res = client.put(f'{API}/marc/{col}/records/{auth.id}', data=auth.to_json())
+        
+    assert res.status_code == 200
+    
+    # delete
+    res = client.delete(f'{API}/marc/bibs/records/1')
+    assert res.status_code == 204
+    
+    res = client.delete(f'{API}/marc/auths/records/2')
+    assert res.status_code == 403 # auth in use
+    
+    res = client.delete(f'{API}/marc/auths/records/1')
+    assert res.status_code == 204
+             
 def test_api_record_fields_list(client, marc):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
@@ -73,6 +115,18 @@ def test_api_record_field_place_list(client, marc):
                 res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+                
+        # post
+        if col == 'bibs':    
+            field = Datafield(record_type="bib", tag="245")
+            field.set("a", "Edited")
+            res = client.post(f'{API}/marc/{col}/records/1/fields/245', data=field.to_json())
+        else:
+            field = Datafield(record_type="auth", tag="100")
+            field.set("a", "Heading 2")
+            res = client.post(f'{API}/marc/{col}/records/1/fields/100', data=field.to_json())
+            
+        assert res.status_code == 201
 
 def test_api_record_field_place(client, marc):
     for col in ('bibs', 'auths'):
@@ -83,6 +137,25 @@ def test_api_record_field_place(client, marc):
                 res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0')
                 data = check_response(res)
                 assert data['_meta']['returns'] == f'{API}/schemas/jmarc.datafield'
+                
+        # put
+        if col == 'bibs':    
+            field = Datafield(record_type="bib", tag="245")
+            field.set("a", "Edited")
+            res = client.put(f'{API}/marc/{col}/records/1/fields/245/0', data=field.to_json())
+        else:
+            field = Datafield(record_type="auth", tag="100")
+            field.set("a", "Heading 2")
+            res = client.put(f'{API}/marc/{col}/records/1/fields/100/0', data=field.to_json())
+            
+        assert res.status_code == 200
+        
+    # delete
+    res = client.delete(f'{API}/marc/bibs/records/1/fields/245/0')
+    assert res.status_code == 204
+    
+    res = client.delete(f'{API}/marc/auths/records/1/fields/100/0')
+    assert res.status_code == 204
                 
 def test_api_record_field_place_subfield_list(client, marc):
     for col in ('bibs', 'auths'):
