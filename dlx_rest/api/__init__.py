@@ -172,6 +172,8 @@ class Schema(Resource):
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':
             data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
+        elif schema_name == 'api.count':
+            data = {'type': 'integer'}
         else:
             abort(404)
         
@@ -394,7 +396,17 @@ class RecordsListCount(Resource):
         else:
             query = {}
         
-        return jsonify({'count': cls.from_query(query).count})
+        links = {
+            '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
+            'related': {
+                'records': URL('api_records_list', collection=collection, search=search).to_str()
+            }
+        }
+        
+        meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
+        data = cls.from_query(query).count
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
