@@ -384,3 +384,8 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
+    
+@app.route('/jmarc-test')
+@login_required
+def jmarc_test():
+    return render_template('SpecRunner.html')
