@@ -399,7 +399,7 @@ class RecordsListCount(Resource):
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
             'related': {
-                'records': URL('api_records_list', collection=collection, search=search).to_str()
+                'records': URL('api_records_list', collection=collection, search=args.search).to_str()
             }
         }
         
