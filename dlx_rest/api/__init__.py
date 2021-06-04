@@ -172,6 +172,8 @@ class Schema(Resource):
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':
             data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
+        elif schema_name == 'api.count':
+            data = {'type': 'integer'}
         else:
             abort(404)
         
@@ -333,7 +335,10 @@ class RecordsList(Resource):
                 'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+            },
+            'related': {
+                'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
         }
         
@@ -391,7 +396,17 @@ class RecordsListCount(Resource):
         else:
             query = {}
         
-        return jsonify({'count': cls.from_query(query).count})
+        links = {
+            '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
+            'related': {
+                'records': URL('api_records_list', collection=collection, search=args.search).to_str()
+            }
+        }
+        
+        meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
+        data = cls.from_query(query).count
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
