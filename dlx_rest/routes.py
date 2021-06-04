@@ -366,12 +366,14 @@ def search_records(coll):
     prev_page = None
     next_page = None
 
+    record_count_url = data['_links']['related']['count']
+
     if not len(records) < int(limit):
         next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
     if int(start) > int(limit):
         prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
         
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page)
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url)
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
