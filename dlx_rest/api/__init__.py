@@ -333,7 +333,10 @@ class RecordsList(Resource):
                 'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start+1, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+            },
+            'related': {
+                'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
         }
         
