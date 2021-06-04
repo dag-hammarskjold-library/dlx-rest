@@ -263,13 +263,13 @@ class RecordsList(Resource):
     def get(self, collection):
         route_params = locals()
         route_params.pop('self')
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
-        collection in ClassDispatch.list_names() or abort(404)
         
         # search
         search = unquote(args.search) if args.search else None
         query = Query.from_string(search) if search else {}
-        
+
         # start
         start = 1 if args.start is None else int(args.start)
           
@@ -299,13 +299,10 @@ class RecordsList(Resource):
         else:
             project = {'_id': 1}
 
-        ###
-        
-        cls = ClassDispatch.batch_by_collection(collection) 
+        # exec query
         recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort)
         
-        ###
-        
+        # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
         elif fmt == 'mrk':
@@ -378,6 +375,23 @@ class RecordsList(Resource):
                 return data, 201
             else:
                 abort(500, 'POST request failed for unknown reasons')
+
+# Records list count
+@ns.route('/marc/<string:collection>/records/count')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordsListCount(Resource):
+    @ns.expect(RecordsList.args)
+    def get(self, collection):
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
+        args = RecordsList.args.parse_args()
+
+        if args.search:
+            search = unquote(args.search)
+            query = Query.from_string(search)
+        else:
+            query = {}
+        
+        return jsonify({'count': cls.from_query(query).count})
 
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')

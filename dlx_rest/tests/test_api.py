@@ -65,6 +65,12 @@ def test_api_records_list(client, marc):
             res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
             
         assert res.status_code == 201
+
+def test_api_records_list_count(client, marc):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/marc/{col}/records/count')
+        data = json.loads(res.data)
+        assert data['count'] == 2
         
 def test_api_record(client, marc):
     for col in ('bibs', 'auths'):
