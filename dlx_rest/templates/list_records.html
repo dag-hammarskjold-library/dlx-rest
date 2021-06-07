@@ -48,6 +48,26 @@
     </div>
 </nav>
 <div class="container">
+    <nav>
+        <ul class="pagination pagination-md justify-content-center">
+            <li id="count" class="page-item invisible">
+                <span class="page-link">
+                    <result-count data-start="{{start}}" data-limit="{{limit}}" data-url="{{count}}"></result-count> 
+                </span>
+            </li>
+            {% for k,v in [("Previous", prev_page), ("Next", next_page)] %}
+                {% if v is not none %}
+                <li class="page-item">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="{{v}}">{{k}}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
     {% for record in records %}
     <div class="row pt-2 border-bottom">
         <div class="container">
