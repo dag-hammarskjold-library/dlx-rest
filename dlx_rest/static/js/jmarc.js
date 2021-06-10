@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-const nodejs = typeof window === 'undefined' ? true : false;
+const nodejs = typeof window === "undefined" ? true : false;
 
 if (nodejs) {
 	// fetch is not built into node
@@ -15,11 +15,17 @@ if (nodejs) {
 				this.code = code;
 				this.value = value;
 				this.xref = xref;
+				
+				this.saved = false;
 			}
 		}
 		
 		class ControlField {
 			constructor(tag, value) {
+				if (tag) {
+					! tag.match(/^00/) && function() {throw new Error("invalid Control Field tag")};
+				}
+				
 				this.tag = tag;
 				this.value = value;
 			}
@@ -27,9 +33,24 @@ if (nodejs) {
 		
 		class DataField {
 			constructor(tag, indicators, subfields) {
+				if (tag) {
+					tag.match(/^00/) && function() {throw new Error("invalid Data Field tag")};
+				}
+				
+				indicators ||= [" ", " "];
+				
 				this.tag = tag;
 				this.indicators = indicators || [];
 				this.subfields = subfields || [];
+			}
+			
+			createSubfield(code) {
+				code || function() {throw new Error("subfield code required")};
+				
+				let subfield = new Subfield(code);
+				this.subfields.push(subfield);
+				
+				return subfield;
 			}
 			
 			getSubfields(code) {
@@ -64,18 +85,135 @@ if (nodejs) {
 				this.collectionUrl = Jmarc.apiUrl + `/marc/${collection}`;
 				this.recordId = null;
 				this.fields = [];
+				this.saved = false;
 			}
 			
-			static fromId(collection, recordId) {
+			static get(collection, recordId) {
 				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+				
 				let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
 				jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
 				jmarc.url = Jmarc.apiUrl + `/marc/${collection}/records/${recordId}`;
 				
-				// returns a Promise of the Jmarc object
-				return jmarc.get(jmarc.url).then(jmarc => {return jmarc})
+				let savedResponse;
+				
+				return fetch(jmarc.url).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json()
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 200) {
+							throw new Error(json['message'])
+						}
+						
+						return jmarc.parse(json['data']);
+					}
+				)
 			}
 			
+			post() {
+				if (this.recordId) {
+					throw new Error("Can't POST existing record")
+				}
+				
+				let savedResponse;
+				
+				return fetch(
+					this.collectionUrl + '/records',
+					{
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: this.stringify()
+					}	
+				).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json()
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 201) {
+							throw new Error(json['message']);
+						}
+						
+						this.url = json['result'];
+						this.recordId = parseInt(this.url.split('/').slice(-1));
+						this.saved = true;
+						
+						return this
+					}
+				)
+			}
+		
+			put() {
+				if (! this.recordId) {
+					throw new Error("Can't PUT new record")
+				}
+				
+				let savedResponse;
+				
+				return fetch(
+					this.url,
+					{
+						method: 'PUT',
+						headers: {'Content-Type': 'application/json'},
+						body: this.stringify()
+					}	
+				).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json();
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 200) {
+							throw new Error(json['message'])
+						}
+						
+						this.saved = true;
+					
+						return this
+					} 
+				)
+			}
+			
+			delete() {
+				if (! this.recordId) {
+					throw new Error("Can't DELETE new record")
+				}
+				
+				let savedResponse;
+				
+				return fetch(
+					this.url,
+					{method: 'DELETE'}	
+				).then(
+					response => {
+						if (response.status == 204) {
+							this.recordId = null;
+							this.url = null;
+						
+							return this;
+						}
+						
+						return response.json()
+					}
+				).then(
+					check => {
+						if (check.constructor.name == "Jmarc") {
+							return check
+						}
+						
+						throw new Error(check['message'])
+					}
+				)
+			}
+
 			parse(data) {
 				this.updated = data['updated']
 				
@@ -98,7 +236,9 @@ if (nodejs) {
 							this.fields.push(df)
 						}
 					}
-				}		
+				}
+				
+				return this		
 			}
 			
 			stringify() {
@@ -124,7 +264,14 @@ if (nodejs) {
 				return JSON.stringify(recordData)
 			}
 			
-			// accessors 
+			createField(tag) {
+				tag || function() {throw new Error("tag required")};
+				
+				let field = tag.match(/^00/) ? new ControlField(tag) : new DataField(tag);
+				this.fields.push(field);
+				
+				return field
+			}
 			
 			getControlFields() {
 				return this.fields.filter(x => x.tag.match(/^0{2}/))
@@ -151,115 +298,6 @@ if (nodejs) {
 				
 				return
 			}
-			
-			setSubfield(tag, code, value, tagPlace, codePlace) {
-				let field = this.getField(tag);
-				let sub = this.getSubfield(tag, code, tagPlace, codePlace);
-				
-				if (sub) {
-					sub.value = value
-				} else if (field) {					
-					field.subfields.push(new Subfield(code, value))
-				} else {
-					this.fields.push(new DataField(tag, [" ", " "], [new Subfield(code, value)]))
-				}
-			}
-			
-			// HTTP methods 
-			// return promises of this
-			
-			get() {
-				return fetch(this.url).then(
-					response => {
-						if (response.ok) {
-							return response.json()
-						}
-						
-						return Promise.reject(response.json())
-					}
-				).then(
-					json => {
-						this.parse(json['data']);
-						
-						return this
-					}
-				)
-			}
-			
-			post() {
-				if (this.recordId) {
-					throw new Error("Can't POST existing record")
-				}
-				
-				return fetch(
-					this.collectionUrl + '/records',
-					{
-						method: 'POST',
-						headers: {'Content-Type': 'application/json'},
-						body: this.stringify()
-					}	
-				).then(
-					response => {
-						if (response.ok) {	
-							return response.json()
-						}
-						
-						return Promise.reject(response.json())
-					}
-				).then(
-					json => {
-						this.url = json['result'];
-						this.recordId = parseInt(this.url.split('/').slice(-1));
-						
-						return this
-					}
-				);
-			}
-		
-			put() {
-				if (! this.recordId) {
-					throw new Error("Can't PUT new record")
-				}
-				
-				return fetch(
-					this.url,
-					{
-						method: 'PUT',
-						headers: {'Content-Type': 'application/json'},
-						body: this.serialize()
-					}	
-				).then(
-					response => {
-						if (response.ok) {
-							return this
-						} 
-						
-						return Promise.reject(response.json())
-					}
-				)
-			}
-			
-			delete() {
-				if (! this.recordId) {
-					throw new Error("Can't DELETE new record")
-				}
-				
-				return fetch(
-					this.url,
-					{method: 'DELETE'}	
-				).then(
-					response => {
-						if (response.ok) {
-							this.recordId = null;
-							this.url = null;
-						
-							return this;
-						}
-						
-						return Promise.reject(response.json())
-					}
-				)
-			}
 		}
 		
 		class Bib extends Jmarc {
@@ -272,8 +310,9 @@ if (nodejs) {
 			constructor() {
 				super("auths");
 			}
-		}
 		
+		}
+
 		exports.Jmarc = Jmarc;
 		exports.Bib = Bib;
 		exports.Auth = Auth;
