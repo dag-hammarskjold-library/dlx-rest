@@ -8,6 +8,7 @@ from dlx.file import File, Identifier, S3
 from dlx_rest.app import app
 from dlx_rest.config import Config
 from moto import mock_s3
+from base64 import b64encode
 
 API = 'http://localhost/api'
 
@@ -263,6 +264,29 @@ def test_api_file(client, files):
 
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=open')
     assert res.status_code == 200
+
+'''
+# User session management
+def login(client, username, password):
+    return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
+
+def logout(client):
+    return client.get(PRE + '/logout', follow_redirects=True)
+'''
+
+# User profile testing
+def test_api_userprofile(client, default_users, users):
+    #credentials = b64encode(b"test_user@un.org:password").decode("utf-8")
+    #token = client.get("/api/token")
+    #res = client.get("/api/userprofile/my_profile", headers={"Authorization": f"Basic {credentials}"})
+    #data = check_response(res)
+    #assert data['_meta']['returns'] == f'{API}/schemas/api.userprofile'
+    pass
+
+# User basket testing
+def test_api_userbasket(client):
+    # Get the current user's basket, which should be created if it doesn't exist
+    pass
     
 # util
 
