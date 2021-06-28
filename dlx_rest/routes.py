@@ -5,6 +5,7 @@ from mongoengine import connect, disconnect
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
+from mongoengine.errors import DoesNotExist
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -288,6 +289,21 @@ defining new routes. Their only purpose in the database is to be visibile to the
 user interface and for assignment to specific roles.
 '''
 
+# Basket management
+# Should these also be in the API?
+'''
+@app.route('/user/basket')
+@login_required
+@requires_permission(register_permission('getBasket'))
+def get_basket():
+    print(current_user.id)
+    try:
+        basket = Basket.objects.get(id=current_user.id)
+        return_data = {"user": current_user, "basket": basket}
+        return return_data
+    except DoesNotExist:
+        return {"status": 404}
+'''
 
 '''
 The following functions probably should go into another file, perhaps a utils.py?
