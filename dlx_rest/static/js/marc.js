@@ -39,6 +39,8 @@ class MarcRecord extends HTMLElement {
         this.leaderList = ['000', '001', '002', '003', '004', '005', '006', '007', '008', '009']
         this.savePrefix=""
         this.numRowCallingEvent=0;
+        this.firstRecord="";
+        this.secondRecord="";
     };
 
     // create the hidden Modal form
@@ -53,7 +55,8 @@ class MarcRecord extends HTMLElement {
             "            </button> " +
             "            </div> " +
             "            <div class='modal-body'> " +
-            "            <div id='modalContent'>  myContent  </div> " +
+            "            <div id='modalContent'>    </div> " +
+            "            <div class='container' id='app'> </div>  " +  
             "            </div> " +
             "            <div class='modal-footer'> " +
             "            <button id='modalClose' type='button' class='btn btn-secondary' data-dismiss='modal'>Close</button> " +
@@ -61,7 +64,7 @@ class MarcRecord extends HTMLElement {
             "            </div>" +
             "        </div>" +
             "        </div>" +
-            "        </div> ";
+            "        </div>";
     }
 
     // create the search modal form
@@ -169,6 +172,9 @@ class MarcRecord extends HTMLElement {
     async getDataFromApi(value) {
         this.url = this.prefixUrl + value;
         this.url1=this.url + "/history";
+
+        // keep the url of the original record
+        this.firstRecord=this.url
     	
         let response = await fetch(this.url);
         let response1 = await fetch(this.url1);  
@@ -2220,9 +2226,15 @@ class MarcRecord extends HTMLElement {
 
         }
 
+        // function initiating the history two files display component
+        initHistoryTwoFileDisplay(url1,url2){
+            return  `<double-record-display urls="${url1},${url2}"></double-record-display>`
+        }
+
         // function generating the record with the value from the API
         displayDataFromApi(myDataList, myDataSize, myData) {
 
+            let that=this;
 
             // check if the record is already displayed
             let divNewRecord = document.getElementById("divNewRecord");
@@ -2406,14 +2418,37 @@ class MarcRecord extends HTMLElement {
             btnHistoryRecord.addEventListener("click", () => {
                 if (this.history.length===0){
                     alert("No history available for this record")
-                }else{
+                }
+                else
+                {
                     document.getElementById("modalTitle").innerHTML = "<div class='alert alert-success mt-2' role='alert'>History of the record</div>";
-                    document.getElementById("modalContent").innerHTML="<h3> Link(s) available </h3>"
+                    document.getElementById("modalContent").innerHTML =""
                     for (let i = 0; i < this.history.length; i++) {
-                        document.getElementById("modalContent").innerHTML += "<a href=" + this.history[i]+" target=_blank>"+this.history[i]+"</a><br>"; 
+                        //document.getElementById("modalContent").innerHTML += "<a href=" + this.history[i]+" target=_blank>"+this.history[i]+"</a><br>"; 
+                        document.getElementById("modalContent").innerHTML += "<div class=history> " + this.history[i] + " </div>";
                     }
+                    // creation of the event on click
+                        let myElement=document.getElementsByClassName("history")
+                        //alert(myElement.length)
+                        for (let i = 0; i < myElement.length; i++) {
+                            myElement[i].addEventListener('click', (event) => {
+                            this.secondRecord=event.target.innerText
+
+                            //find the component
+                            vm.urls=[]
+                            vm.urls.push(this.firstRecord.toString())
+                            vm.urls.push(this.secondRecord.toString())
+                            vm.displayData()
+                            vm.visible=true
+                            
+                            // close the modal
+                            $("#myModal").modal('hide');
+
+                            });
+                          }
+    
                     let myButton = document.getElementById("modalButton");
-                    myButton.style.visibility="hidden"
+                    myButton.style.display="none"
                 }
             })
 

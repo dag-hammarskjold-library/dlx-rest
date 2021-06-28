@@ -13,6 +13,9 @@
     <!-- Font awesome link -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
 
+    <!-- Vue JS CDN -->
+    <script src="https://unpkg.com/vue"></script>
+
     <style>
         .bd-placeholder-img {
             font-size: 1.125rem;
@@ -82,7 +85,9 @@
                 <div class="col-md-9">
                     {% block content %} {% endblock %}
                 </div>
-                <div class="col"></div>
+                <div class="col">
+
+                </div>
             </div>
 
 
@@ -90,6 +95,7 @@
 
     <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}" integrity="sha384-xrRywqdh3PHs8keKZN+8zzc5TX0GRTLCcmivcbNJWm2rs5C8PRhcEn3czEjhAO9o" crossorigin="anonymous"></script>
     <script src="{{url_for('static', filename='js/count.js')}}"></script>
+    <script src="{{url_for('static', filename='js/history_two_files_display.js')}}"></script>
 </body>
 
 </html>
