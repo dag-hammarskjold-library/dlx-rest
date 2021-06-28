@@ -11,6 +11,7 @@ from moto import mock_s3
 from base64 import b64encode
 
 API = 'http://localhost/api'
+PRE = 'http://localhost/'
 
 # make sure the db is mocked before committing test data
 if Config.connect_string != 'mongomock://localhost':
@@ -265,28 +266,72 @@ def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=open')
     assert res.status_code == 200
 
-'''
-# User session management
-def login(client, username, password):
-    return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
-
-def logout(client):
-    return client.get(PRE + '/logout', follow_redirects=True)
-'''
 
 # User profile testing
 def test_api_userprofile(client, default_users, users):
-    #credentials = b64encode(b"test_user@un.org:password").decode("utf-8")
-    #token = client.get("/api/token")
-    #res = client.get("/api/userprofile/my_profile", headers={"Authorization": f"Basic {credentials}"})
-    #data = check_response(res)
-    #assert data['_meta']['returns'] == f'{API}/schemas/api.userprofile'
-    pass
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+    res = client.get("/api/userprofile/my_profile", headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert data['_meta']['returns'] == f'{API}/schemas/api.userprofile'
 
 # User basket testing
-def test_api_userbasket(client):
+def test_api_userbasket(client, default_users, users):
     # Get the current user's basket, which should be created if it doesn't exist
-    pass
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # GET the basket. It should have zero items.
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    #print(data)
+    assert data['_meta']['returns'] == f'{API}/schemas/api.basket'
+    assert len(data['data']['items']) == 0
+
+    # POST an item to the basket
+    payload = {
+        'collection': 'bibs',
+        'record_id': '5127'
+    }
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
+    assert res.status_code == 200
+
+    # GET the basket again. Now it should have one item.
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    #print(data)
+    assert len(data['data']['items']) == 1
+
+    # GET the basket item. Its collection and record_id should match what we POSTed.
+    item_url = data['data']['items'][0]
+    res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    print(data)
+    assert data['data']['collection'] == 'bibs'
+    assert data['data']['record_id'] == '5127'
+
+    # Try to POST a duplicate. This shoudl fail silently, and the basket should still contain only one item.
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
+    assert res.status_code == 200
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    #print(data)
+    assert len(data['data']['items']) == 1
+
+    # Now DELETE the item from the basket and verify the basket contains zero items.
+    res = client.delete(item_url, headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 200
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    assert len(data['data']['items']) == 0
+
     
 # util
 

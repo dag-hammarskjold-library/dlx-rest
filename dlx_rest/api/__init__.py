@@ -42,7 +42,7 @@ DB.connect(Config.connect_string)
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
-    print(auth_header)
+    #print(f"Auth header: {auth_header}")
     if not auth_header:
         return None
 
@@ -1356,9 +1356,6 @@ class MyBasketRecord(Resource):
 
         links = {
             '_self': URL('api_my_basket_record').to_str(),
-            'related': {
-                'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in this_u.my_basket()['items']]
-            }
         }
 
         meta = {
@@ -1366,7 +1363,11 @@ class MyBasketRecord(Resource):
             'returns': URL('api_schema', schema_name='api.basket').to_str()
         }
 
-        return ApiResponse(links=links, meta=meta, data={}).jsonify()
+        data = {
+            'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in this_u.my_basket()['items']]
+        }
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 
     @ns.doc("Add an item to the current user's basket. The item data must be in the body of the request.", security="basic")
