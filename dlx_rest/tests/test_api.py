@@ -332,6 +332,15 @@ def test_api_userbasket(client, default_users, users):
     data = json.loads(res.data)
     assert len(data['data']['items']) == 0
 
+    # Add an item, then clear the basket, testing to make sure there are zero records after.
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    assert len(data['data']['items']) == 1
+    res = client.post("/api/userprofile/my_profile/basket/clear", headers={"Authorization": f"Basic {credentials}"})
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    assert len(data['data']['items']) == 0
     
 # util
 
