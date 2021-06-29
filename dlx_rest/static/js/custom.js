@@ -1,12 +1,8 @@
-function myFunction() {
-    var x = document.getElementById("myDiv");
-    if (x.style.display === "none") {
-        x.style.display = "block";
-    } else {
-        x.style.display = "none";
-    }
+
+// add the behaviour 
+function displayUI(){
+    //let nui=document.getElementById("new_ui_component")
+    new_ui_component.visible=true
+    alert("ooooooooyoooooo")
 }
 
-function loading() {
-    $("#loading").show();
-}
