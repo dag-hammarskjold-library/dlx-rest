@@ -24,7 +24,7 @@ def login(client, username, password):
 def logout(client):
     return client.get(PRE + '/logout', follow_redirects=True)
 
-def test_login(client, users, default_users):
+def test_login(client, default_users):
     # Get the login form
     response = client.get(PRE + '/login')
     assert response.status_code == 200
@@ -138,7 +138,7 @@ def test_create_user(client, default_users):
     assert user[0].email == new_user['email']
 
 
-def test_update_user(client, users, default_users):
+def test_update_user(client, default_users):
     from dlx_rest.models import User
     admin_user = default_users['admin']
     edited_user = User.objects.get(email=default_users['non-admin']['email'])
@@ -180,7 +180,7 @@ def test_update_user(client, users, default_users):
     assert len(user) > 0
     assert user[0].email == 'foo@bar.com'
 
-def test_delete_user(client, users, default_users):
+def test_delete_user(client, default_users):
     from dlx_rest.models import User
     deleted_user = User.objects.get(email=default_users['new']['email'])
     current_user_count = len(User.objects)

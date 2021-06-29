@@ -305,7 +305,7 @@ if (nodejs) {
 			get saved() {
 				return JSON.stringify(this.savedState) === JSON.stringify(this.compile());
 			}
-			
+
 			parse(data) {
 				this.updated = data['updated']
 				
@@ -341,13 +341,12 @@ if (nodejs) {
 				
 				let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 		
-				for (let tag of tags.sort(x => parseInt(x))) {				
+				for (let tag of tags.sort(x => parseInt(x))) {
 					recordData[tag] = recordData[tag] || [];
 					
 					for (let field of this.getFields(tag)) {
 						if (field.constructor.name == 'ControlField') {
 							recordData[tag].push(field.value);
-		
 						} else {
 							let fieldData = {};
 							
@@ -368,7 +367,7 @@ if (nodejs) {
 			
 			createField(tag) {
 				tag || function() {throw new Error("tag required")};
-				
+
 				let field;
 				
 				if (tag.match(/^00/)) {
@@ -380,7 +379,7 @@ if (nodejs) {
 						field = new AuthDataField(tag)
 					}
 				}
-				
+
 				this.fields.push(field);
 				
 				return field
@@ -401,7 +400,16 @@ if (nodejs) {
 			getField(tag, place) {
 				return this.getFields(tag)[place || 0]
 			}
-
+			
+			getSubfield(tag, code, tagPlace, codePlace) {
+				let field = this.getField(tag, tagPlace);
+				
+				if (field) {
+					return field.getSubfield(code, codePlace);
+				}
+				
+				return
+			}
 		}
 		
 		class Bib extends Jmarc {

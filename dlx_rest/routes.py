@@ -5,6 +5,7 @@ from mongoengine import connect, disconnect
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
+from mongoengine.errors import DoesNotExist
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -288,6 +289,21 @@ defining new routes. Their only purpose in the database is to be visibile to the
 user interface and for assignment to specific roles.
 '''
 
+# Basket management
+# Should these also be in the API?
+'''
+@app.route('/user/basket')
+@login_required
+@requires_permission(register_permission('getBasket'))
+def get_basket():
+    print(current_user.id)
+    try:
+        basket = Basket.objects.get(id=current_user.id)
+        return_data = {"user": current_user, "basket": basket}
+        return return_data
+    except DoesNotExist:
+        return {"status": 404}
+'''
 
 '''
 The following functions probably should go into another file, perhaps a utils.py?
@@ -366,12 +382,14 @@ def search_records(coll):
     prev_page = None
     next_page = None
 
+    record_count_url = data['_links']['related']['count']
+
     if not len(records) < int(limit):
         next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
     if int(start) > int(limit):
         prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
         
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page)
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url)
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
@@ -384,11 +402,3 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
-
-# testing. not for commit
-@app.route('/jmarc-test')
-def jtest():
-    return render_template('jmarc-test.html')
-    
-    
-

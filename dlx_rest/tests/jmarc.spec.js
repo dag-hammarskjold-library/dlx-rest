@@ -71,7 +71,7 @@ describe(
 				
 				var field = auth.getField("100");
 				expect(field).toBeInstanceOf(DataField);
-				
+	
 				var subfield = field.getSubfield("a");
 				expect(subfield.constructor.name).toEqual("Subfield");
 				expect(subfield.code).toEqual("a");
@@ -132,7 +132,7 @@ describe(
 
 				expect(bib.isAuthorityControlled("700", "a")).toBeTrue();
 			}
-		)
+		);
 		
 		it(
 			"does lookup of authority-controlled values",
