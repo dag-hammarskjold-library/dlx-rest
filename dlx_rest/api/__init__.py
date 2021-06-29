@@ -1385,6 +1385,21 @@ class MyBasketRecord(Resource):
 
         return 200
 
+@ns.route('/userprofile/my_profile/basket/clear')
+class MyBasketClear(Resource):
+    @ns.doc("Clear the contents of the basket.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            this_basket.clear()
+        except:
+            raise
+
+        return 200
+
 @ns.route('/userprofile/my_profile/basket/items/<string:item_id>')
 class MyBasketItem(Resource):
     @ns.doc("Get the contents of an item in the current user's basket.", security="basic")
