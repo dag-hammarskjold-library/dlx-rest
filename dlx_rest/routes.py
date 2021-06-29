@@ -384,3 +384,11 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
+
+# testing. not for commit
+@app.route('/jmarc-test')
+def jtest():
+    return render_template('jmarc-test.html')
+    
+    
+

@@ -956,7 +956,7 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
                 
-            tags = [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
+            tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
             
             conditions.append(Or(*[Condition(tag, {code: Regex(val, 'i')}, record_type='auth') for tag in tags]))
             

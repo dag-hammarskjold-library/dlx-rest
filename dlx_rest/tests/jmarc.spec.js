@@ -4,9 +4,9 @@ const jmarcjs = require('../static/js/jmarc.js');
 const Jmarc = jmarcjs.Jmarc;
 const Bib = jmarcjs.Bib;
 const Auth = jmarcjs.Auth;
-const ControlField = jmarcjs.ControlField;
+//const ControlField = jmarcjs.ControlField;
 const DataField = jmarcjs.DataField;
-const Subfield = jmarcjs.Subfield;
+//const Subfield = jmarcjs.Subfield;
 
 Jmarc.apiUrl = "http://localhost:5000/api";
 
@@ -14,23 +14,19 @@ describe(
 	"Jmarc", 
 	function() {
 		it(
-			"create, write, read", 
+			"does create, write, and read", 
 			function() {
 				// create record
-				let auth = new Jmarc("auths"); // same as `new Auth()`
+				let auth = new Auth();
 				
-				// low level write
-				var field = new ControlField("007");
+				// write
+				var field = auth.createField("007");
 				field.value = "foobar";
-				auth.fields.push(field);
 				
-				var field = new DataField("100");
-				var subfield = new Subfield("a");
+				var field = auth.createField("100")
+				var subfield = field.createSubfield("a");
 				subfield.value = "foo";
-				field.subfields.push(subfield);
-				auth.fields.push(field);
 				
-				// write with shortcuts
 				for (let i = 0; i < 5; i++) {
 					// repeated fields
 					var field = auth.createField("900"); // creates field, adds to record, returns the field
@@ -74,7 +70,7 @@ describe(
 				expect(field.value).toEqual("foobar");
 				
 				var field = auth.getField("100");
-				expect(field.constructor.name).toEqual("DataField");
+				expect(field).toBeInstanceOf(DataField);
 				
 				var subfield = field.getSubfield("a");
 				expect(subfield.constructor.name).toEqual("Subfield");
@@ -82,7 +78,7 @@ describe(
 				expect(subfield.value).toEqual("foo");
 				
 				var field = auth.getField("900", 3); // gets the 4th instance of field 900
-				expect(field.constructor.name).toEqual("DataField");
+				expect(field).toBeInstanceOf(DataField);
 				expect(field.getSubfield("a").value).toEqual("bar 3")
 				expect(field.getSubfield("a", 1).value).toEqual("baz 3"); // gets the second instance of subfield a
 				
@@ -94,7 +90,7 @@ describe(
 		);
 		
 		it(
-			"post, get, put, delete",
+			"does post, get, put, delete",
 			async function() {
 				var auth = new Auth();
 				auth.createField("100").createSubfield("a").value = "New record";
@@ -102,13 +98,14 @@ describe(
 				
 				// post
 				await auth.post();
-				expect(auth.recordId).toBeGreaterThan(0); // backend creates the ID
+				expect(auth.recordId).toBeGreaterThan(0); // backend creates the ID				
 				expect(auth.saved).toBe(true);
 				
 				// get the same record by ID
-				var auth = await Jmarc.get("auths", auth.recordId);
+				var auth = await Auth.get(auth.recordId);
 				expect(auth.getField("100").getSubfield("a").value).toEqual("New record");
-				
+				expect(auth.saved).toBe(true);
+
 				// put
 				auth.getField("100").getSubfield("a").value = "Updated record";
 				expect(auth.saved).toBe(false);
@@ -126,6 +123,35 @@ describe(
 					expect(err.message).toMatch(/^Requested resource not found/)
 				}
   	  	  	}
+		);
+		
+		it(
+			"knows what fields are authority-controlled",
+			function() {
+				var bib = new Bib();
+
+				expect(bib.isAuthorityControlled("700", "a")).toBeTrue();
+			}
+		)
+		
+		it(
+			"does lookup of authority-controlled values",
+			async function() {
+				// create test auth record
+				var auth = new Auth();
+				var myVal = Math.random().toString();
+				auth.createField("100").createSubfield("a").value = myVal;
+				await auth.post();
+				
+				// create test bib record
+				var bib = new Bib();
+				var field = bib.createField("700");
+				field.createSubfield("a").value = myVal;
+				
+				var choices = await field.lookup();
+				expect(choices[0]).toBeInstanceOf(DataField);
+				expect(choices[0].getSubfield("a").value).toEqual(myVal);
+			}
 		);
 	}
 );

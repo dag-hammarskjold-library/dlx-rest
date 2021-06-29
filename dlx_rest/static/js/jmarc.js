@@ -9,14 +9,45 @@ if (nodejs) {
 
 (
 	function(exports) {
+		const authMap = {
+			"bibs": {
+        		'191': {'b': '190', 'c': '190'},
+        		'600': {'a': '100', 'g': '100'},
+        		'610': {'a': '110', 'g': '110'},
+        		'611': {'a': '111', 'g': '111'},
+        		'630': {'a': '130', 'g': '130'},
+        		'650': {'a': '150'},
+        		'651': {'a': '151'},
+        		'700': {'a': '100', 'g': '100'},
+        		'710': {'a': '110', '9': '110'},
+        		'711': {'a': '111', 'g': '111'},
+        		'730': {'a': '130'},
+        		'791': {'b': '190', 'c' : '190'},
+        		'830': {'a': '130'},
+        		'991': {'a': '191', 'b': '191', 'c': '191', 'd': '191'}
+    		},
+			"auths": {
+        		//'491': {'a': '191'}, # ?
+        		'500': {'a': '100'},
+        		'510': {'a': '110'},
+        		'511': {'a': '111'},
+        		'550': {'a': '150'},
+        		'551': {'a': '151'},
+    		}
+		};
 	
 		class Subfield {
 			constructor(code, value, xref) {
 				this.code = code;
 				this.value = value;
+				this.xref = xref;	
+			}
+		}
+		
+		class LinkedSubfield extends Subfield {
+			constructor(code, value, xref) {
+				super(code, value);
 				this.xref = xref;
-				
-				this.saved = false;
 			}
 		}
 		
@@ -76,6 +107,51 @@ if (nodejs) {
 				
 				return str
 			}
+			
+			lookup() {
+				let collection = this instanceof BibDataField ? "bibs" : "auths";
+				let lookupString = this.subfields.map(x => {return `${x.code}=${x.value}`}).join("&");
+				let url = Jmarc.apiUrl + `/marc/${collection}/lookup/${this.tag}?${lookupString}`;
+				
+				return fetch(url).then(
+					response => {
+						return response.json()
+					}
+				).then(
+					json => {
+						let results = json['data'];
+						let choices = [];
+						
+						for (let auth of results) {
+							// each result is a record
+							// the wanted auth field is the only 1XX field
+							for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
+								let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
+								
+								for (let sf of auth[tag][0]['subfields']) {
+									field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
+								}
+								
+								choices.push(field)
+							}
+						}
+						
+						return choices
+					}
+				)
+			}
+		}
+
+		class BibDataField extends DataField {
+			constructor(tag, indicators, subfields) {
+				super(tag, indicators, subfields)
+			}
+		}
+		
+		class AuthDataField extends DataField {
+			constructor(tag, indicators, subfields) {
+				super(tag, indicators, subfields)
+			}
 		}
 		
 		class Jmarc {
@@ -85,7 +161,16 @@ if (nodejs) {
 				this.collectionUrl = Jmarc.apiUrl + `/marc/${collection}`;
 				this.recordId = null;
 				this.fields = [];
-				this.saved = false;
+			}
+			
+			isAuthorityControlled(tag, code) {
+				let map = authMap;
+				
+				if (map[this.collection][tag] && map[this.collection][tag][code]) {
+					return true
+				}
+				
+				return false
 			}
 			
 			static get(collection, recordId) {
@@ -109,7 +194,10 @@ if (nodejs) {
 							throw new Error(json['message'])
 						}
 						
-						return jmarc.parse(json['data']);
+						jmarc.parse(json['data']);
+						jmarc.savedState = jmarc.compile();
+						
+						return jmarc
 					}
 				)
 			}
@@ -120,7 +208,7 @@ if (nodejs) {
 				}
 				
 				let savedResponse;
-				
+
 				return fetch(
 					this.collectionUrl + '/records',
 					{
@@ -142,9 +230,9 @@ if (nodejs) {
 						
 						this.url = json['result'];
 						this.recordId = parseInt(this.url.split('/').slice(-1));
-						this.saved = true;
+						this.savedState = this.compile()
 						
-						return this
+						return this;
 					}
 				)
 			}
@@ -175,9 +263,9 @@ if (nodejs) {
 							throw new Error(json['message'])
 						}
 						
-						this.saved = true;
-					
-						return this
+						this.savedState = this.compile();
+						
+						return this;
 					} 
 				)
 			}
@@ -214,10 +302,15 @@ if (nodejs) {
 				)
 			}
 
+			get saved() {
+				return JSON.stringify(this.savedState) === JSON.stringify(this.compile());
+			}
+			
 			parse(data) {
 				this.updated = data['updated']
 				
 				let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
+				tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
 				
 				for (let tag of tags) {
 					for (let field of data[tag]) {
@@ -225,11 +318,13 @@ if (nodejs) {
 							let cf = new ControlField(tag, field);
 							this.fields.push(cf)
 						} else {
-							let df = new DataField(tag);
+							let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
 							df.indicators = field.indicators.map(x => x.replace(" ", "_"));
+					
+							let sf;
 							
 							for (let subfield of field.subfields) {
-								let sf = new Subfield(subfield.code, subfield.value, subfield.xref);
+								sf = new Subfield(subfield.code, subfield.value, subfield.xref);
 								df.subfields.push(sf)
 							}
 							
@@ -241,33 +336,51 @@ if (nodejs) {
 				return this		
 			}
 			
-			stringify() {
-				let recordData = {'_id': this.recordId, 'updated': this.updated};
+			compile() {
+				let recordData = {'_id': this.recordId}; //, 'updated': this.updated};
+				
 				let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 		
-				for (let tag of tags.sort(x => parseInt(x))) {
-					let fieldData = {};
+				for (let tag of tags.sort(x => parseInt(x))) {				
 					recordData[tag] = recordData[tag] || [];
 					
 					for (let field of this.getFields(tag)) {
 						if (field.constructor.name == 'ControlField') {
 							recordData[tag].push(field.value);
+		
 						} else {
+							let fieldData = {};
+							
 							fieldData['indicators'] = field.indicators;
-							fieldData['subfields'] = field.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}})
+							fieldData['subfields'] = field.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
+							
+							recordData[tag].push(fieldData);
 						}
-						
-						recordData[tag].push(fieldData);
 					}
 				}
 		
-				return JSON.stringify(recordData)
+				return recordData
+			}
+			
+			stringify() {
+				return JSON.stringify(this.compile())
 			}
 			
 			createField(tag) {
 				tag || function() {throw new Error("tag required")};
 				
-				let field = tag.match(/^00/) ? new ControlField(tag) : new DataField(tag);
+				let field;
+				
+				if (tag.match(/^00/)) {
+					field = new ControlField(tag)
+				} else {
+					if (this instanceof Bib) {
+						field = new BibDataField(tag)
+					} else if (this instanceof Auth) {
+						field = new AuthDataField(tag)
+					}
+				}
+				
 				this.fields.push(field);
 				
 				return field
@@ -288,29 +401,31 @@ if (nodejs) {
 			getField(tag, place) {
 				return this.getFields(tag)[place || 0]
 			}
-			
-			getSubfield(tag, code, tagPlace, codePlace) {
-				let field = this.getField(tag, tagPlace);
-				
-				if (field) {
-					return field.getSubfield(code, codePlace);
-				}
-				
-				return
-			}
+
 		}
 		
 		class Bib extends Jmarc {
 			constructor() {
 				super("bibs");
 			}
+			
+			static get(recordId) {
+				return Jmarc.get("bibs", recordId)
+			}
+			
+			validate() {}
 		}
 		
 		class Auth extends Jmarc {
 			constructor() {
 				super("auths");
 			}
-		
+			
+			static get(recordId) {
+				return Jmarc.get("auths", recordId)
+			}
+			
+			validate() {}
 		}
 
 		exports.Jmarc = Jmarc;
