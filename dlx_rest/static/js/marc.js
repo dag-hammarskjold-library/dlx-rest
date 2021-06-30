@@ -449,14 +449,6 @@ class MarcRecord extends HTMLElement {
             } 
         }
 
-        // implementSearchAuthorities(){
-        //     // adding the logic of the double click on the tag 
-        //     let elements = document.getElementsByClassName("lookup");
-        //     for (var i = 0; i < elements.length; i++) {                       
-        //         elements[i].addEventListener('dblclick', this.searchAuthorities, false);
-        //     } 
-        // }
-
         implementSearchAuthorities(){
             // adding the logic of the double click on the tag 
             let element = document.getElementById("executeQuery");
@@ -686,7 +678,8 @@ class MarcRecord extends HTMLElement {
             //--->create data table > start
             var tbl = '';
             //table-responsive table-sm
-            tbl += '<table id="tableNewRecord" class="table table-hover table-responsive">'
+            tbl += '<table id="tableNewRecord" class="table table-hover table-responsive" style="table-layout: fixed; width: 100%; height:500px">'
+ //           tbl += '<table id="tableNewRecord">'
 
             //--->create table header > start
             tbl += '<thead>';
@@ -715,7 +708,7 @@ class MarcRecord extends HTMLElement {
             tbl += '<td><div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text"  min="000" max="999" placeholder="Tag" maxlength="3" size="3"></div></td>';
             tbl += '<td><div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
             tbl += '<td><div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div></td>';
-            tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="25" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
+            tbl += '<td><div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="70" id="value' + row_id + '" type="text" placeholder="Value"></div></div></td>';
             tbl += '<td><div id="divXref' + row_id + '" ><div><input size="8" id="inputXref' + row_id + '" type="text" placeholder="xref"></div></div></td>';
 
             // end of the line
@@ -756,6 +749,8 @@ class MarcRecord extends HTMLElement {
             if (divNewRecord === null) {
                 divNewRecord = document.createElement("DIV");
                 divNewRecord.id = "divNewRecord";
+                divNewRecord.style.overflowY="scroll";
+                divNewRecord.style.height="650px";
             }
 
             this.manageDisplayButton();
@@ -812,7 +807,7 @@ class MarcRecord extends HTMLElement {
                 cell1.innerHTML = '<div style="display: table;" class="tagClass mt-0" col_name="tagCol" contenteditable="true"> <input id="tagCol' + row_id + '" type="text" min="001" max="999" placeholder="Tag" maxlength="3" size="3"></div>';
                 cell2.innerHTML = '<div style="display: table;" class="indClass" col_name="ind1Col" contenteditable="true"><select class="mt-1" id="ind1Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
                 cell3.innerHTML = '<div style="display: table;" class="indClass" col_name="ind2Col" contenteditable="true"><select class="mt-1" id="ind2Col' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option> <option value="0">0</option> <option value="1">1</option> <option value="2">2</option> <option value="3">3</option> <option value="4">4</option> <option value="5">5</option> <option value="6">6</option> <option value="7">7</option> <option value="8">8</option><option value="9">9</option></select></div>';
-                cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="25" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
+                cell4.innerHTML = '<div id="divData' + row_id + '" style="display: table;" class="valueClass" col_name="valueCol" contenteditable="true"><div><select class="mr-2" id="code' + row_id + '"><option value=" "> </option><option value="N/A">N/A</option><option value="a">a</option> <option value="b">b</option> <option value="c">c</option> <option value="d">d</option> <option value="e">e</option> <option value="f">f</option> <option value="g">g</option> <option value="h">h</option> <option value="i">i</option> <option value="j">j</option> <option value="k">k</option> <option value="l">l</option> <option value="m">m</option> <option value="n">n</option> <option value="o">o</option> <option value="p">p</option> <option value="q">q</option> <option value="r">r</option> <option value="s">s</option> <option value="t">t</option> <option value="u">u</option> <option value="v">v</option><option value="w">w</option> <option value="x">x</option> <option value="y">y</option><option value="z">z</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option></select><input size="70" id="value' + row_id + '" type="text" placeholder="Value"></div></div>';
                 cell5.innerHTML = '<div id="divXref' + row_id + '" ><div><input size="8" id="inputXref' + row_id + '" type="text" placeholder="xref"></div></div>';
                 this.updateNumberOfLineRecord();
                 this.implementDblClick();
@@ -1560,7 +1555,7 @@ class MarcRecord extends HTMLElement {
             divHeader.setAttribute("id", "divHeader");
 
             // Adding the style
-            divHeader.className = "mt-3 mb-3 text-left text-success";
+            divHeader.className = "mt-1 mb-1 text-left text-success";
 
             // Adding the div to the page
             this.appendChild(divHeader);
@@ -1616,6 +1611,11 @@ class MarcRecord extends HTMLElement {
 
                 // adding the logic to call the new url
                 btnCreateNewRecord.addEventListener("click", () => {
+                    // deactivate the styling for the divContent
+
+                    divContent.style.overflowY="";
+                    divContent.style.height="";
+
                     this.typeEditMode = "CREATERECORD"
                     let divRecordType = document.getElementById("divRecordType");
 
@@ -2294,6 +2294,10 @@ class MarcRecord extends HTMLElement {
                 divContent = document.createElement("DIV");
                 this.appendChild(divContent);
                 divContent.id = "divContent";
+                // adding styling for scrollbar
+                divContent.style.overflowY="scroll";
+                divContent.style.height="650px";
+                
 
                 // create the div for the mail
                 let divMail = document.createElement("DIV");
@@ -2486,9 +2490,15 @@ class MarcRecord extends HTMLElement {
             table.appendChild(thead);
 
             // some styling for the header
-            thead.className = "thead-light";
-            table.className = "table-sm table-responsive ";
+            // thead.className = "thead-light";
+            // table.className = "table-sm table-responsive ";
             table.id = "tableData"
+            // table.style.height="100px"
+            // table.style.overflowY="auto"
+
+            //table.style.tableLayout="auto"
+            
+
 
             // add the values of the columns
             th1.innerHTML = "<span class='badge badge-secondary'> TAG </span>";

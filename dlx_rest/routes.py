@@ -19,6 +19,10 @@ from dlx_rest.utils import is_safe_url
 def index():
     return render_template('index.html', title="Home")
 
+@app.route('/newui')
+def newui():
+    return render_template('new_ui.html', title="New UI")
+
 # Authentication
 @login_manager.user_loader
 def load_user(id):
