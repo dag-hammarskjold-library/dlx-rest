@@ -3,25 +3,28 @@ DLX REST API
 '''
 
 # external
+from dlx_rest.routes import login
 import os, json, re, boto3, mimetypes
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort, send_file
-from flask_restx import Resource, Api, reqparse
+from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
+from mongoengine.document import Document
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.file import File, Identifier
+from werkzeug import security
 
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User
+from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, abort, brief_bib, brief_auth, validate_data
 
 # Init
@@ -39,6 +42,7 @@ DB.connect(Config.connect_string)
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
+    #print(f"Auth header: {auth_header}")
     if not auth_header:
         return None
 
@@ -79,9 +83,13 @@ class SchemasList(Resource):
         names = (
             'api.response',
             'api.urllist',
+            'api.basket',
+            'api.basket.item.batch',
+            'api.basket.item',
             'jmarc',
             'jmarc.template', 
             'jfile', 
+            'jmarc.batch',
             'jmarc.controlfield', 
             'jmarc.datafield', 
             'jmarc.subfield', 
@@ -174,6 +182,14 @@ class Schema(Resource):
             data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
         elif schema_name == 'api.count':
             data = {'type': 'integer'}
+        elif schema_name == 'api.userprofile':
+            data = {'type': 'object'}
+        elif schema_name == 'api.basket':
+            data = {'type': 'object'}
+        elif schema_name == 'api.basket.item.batch':
+            data = {'type': 'array'}
+        elif schema_name == 'api.basket.item':
+            data = {'type': 'object'}
         else:
             abort(404)
         
@@ -956,7 +972,7 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
                 
-            tags = [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
+            tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
             
             conditions.append(Or(*[Condition(tag, {code: Regex(val, 'i')}, record_type='auth') for tag in tags]))
             
@@ -1290,3 +1306,132 @@ class FileRecord(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data={}).jsonify()
+
+
+#These routes all require a currently authenticated/authenticatable user.
+
+@ns.route('/userprofile/my_profile')
+class MyUserProfileRecord(Resource):
+    @ns.doc(description="Get the current user's profile information", security="basic")
+    @login_required
+    def get(self):        
+        return_data = {}
+
+        try:
+            this_u = User.objects.get(id=current_user.id)
+            user_id = this_u['id']
+            return_data['email'] = this_u.email
+            return_data['roles'] = []
+            for r in this_u.roles:
+                return_data['roles'].append(r.name)
+            
+            my_basket = URL('api_my_basket_record').to_str()
+        except:
+            raise
+
+        links = {
+            '_self': URL('api_my_user_profile_record').to_str(),
+            'related': {
+                'baskets': [my_basket]
+            }
+        }
+
+        meta = {
+            'name': 'api_user_profile_record',
+            'returns': URL('api_schema', schema_name='api.userprofile').to_str()
+        }
+
+        return ApiResponse(links=links, meta=meta, data=return_data).jsonify()
+
+@ns.route('/userprofile/my_profile/basket')
+class MyBasketRecord(Resource):
+    @ns.doc(description="Get the current user's basket.", security="basic")
+    @login_required
+    def get(self):
+        try:
+            this_u = User.objects.get(id=current_user.id)
+            user_id = this_u['id']
+        except:
+            raise
+
+        links = {
+            '_self': URL('api_my_basket_record').to_str(),
+        }
+
+        meta = {
+            'name': 'api_user_basket_record',
+            'returns': URL('api_schema', schema_name='api.basket').to_str()
+        }
+
+        data = {
+            'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in this_u.my_basket()['items']]
+        }
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+
+
+    @ns.doc("Add an item to the current user's basket. The item data must be in the body of the request.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user.id)
+            item = json.loads(request.data)
+            if 'collection' in item and 'record_id' in item:
+                this_u.my_basket().add_item(item)
+            else:
+                abort(500)
+        except:
+            raise
+
+        return 200
+
+@ns.route('/userprofile/my_profile/basket/clear')
+class MyBasketClear(Resource):
+    @ns.doc("Clear the contents of the basket.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            this_basket.clear()
+        except:
+            raise
+
+        return 200
+
+@ns.route('/userprofile/my_profile/basket/items/<string:item_id>')
+class MyBasketItem(Resource):
+    @ns.doc("Get the contents of an item in the current user's basket.", security="basic")
+    @login_required
+    def get(self, item_id):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            item_data = this_basket.get_item_by_id(item_id)
+        except:
+            raise
+
+        links = {
+            '_self': URL('api_my_basket_item', item_id=item_id).to_str(),
+        }
+
+        meta = {
+            'name': 'api_user_basket_item',
+            'returns': URL('api_schema', schema_name='api.basket.item').to_str()
+        }
+
+        return ApiResponse(links=links, meta=meta, data=item_data).jsonify()
+
+    @ns.doc("Remove an item from the current user's basket. The item data must be in the body of the request.", security="basic")
+    @login_required
+    def delete(self, item_id):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            this_basket = Basket.objects(owner=this_u)[0]
+            this_basket.remove_item(item_id)
+        except:
+            raise
+
+        return 200
