@@ -68,6 +68,27 @@ let basketcomponent = {
               </div>
             </div> 
           </div>`,
+  created:async function(){
+
+          alert("je suis ici")
+          // fetch the data from the api
+          //let url="https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api/userprofile/my_profile/basket"
+          let url="http://127.0.0.1:5000/api/userprofile/my_profile/basket"
+          
+          fetch(url)
+            .then((res)=>JSON.parse(res.data))
+            .then((data)=>console.log(data))
+
+          // process to fecth data for the full record
+          // if (response.ok) {
+
+          //     alert(response)
+          //     let json = response.json();
+          //     console.log(json)
+
+          // }
+
+  },
   data:function(){
     return {
       listRecords:[]
