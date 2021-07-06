@@ -1410,6 +1410,15 @@ class MyBasketItem(Resource):
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
             item_data = this_basket.get_item_by_id(item_id)
+            if item_data['collection'] == 'bibs':
+                this_m = Bib.from_id(int(item_data['record_id']))
+                item_data['title'] = this_m.title()
+            elif item_data['collection'] == 'auths':
+                this_m = Auth.from_id(int(item_data['record_id']))
+                heading_field = this_m.heading_field.get_value('a')
+                item_data['title'] = heading_field
+        except IndexError:
+            abort(404)
         except:
             raise
 
@@ -1431,6 +1440,8 @@ class MyBasketItem(Resource):
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
             this_basket.remove_item(item_id)
+        except IndexError:
+            abort(400)
         except:
             raise
 
