@@ -279,7 +279,7 @@ def test_api_userprofile(client, default_users, users):
     assert data['_meta']['returns'] == f'{API}/schemas/api.userprofile'
 
 # User basket testing
-def test_api_userbasket(client, default_users, users):
+def test_api_userbasket(client, default_users, users, marc):
     # Get the current user's basket, which should be created if it doesn't exist
     username = default_users['admin']['email']
     password = default_users['admin']['password']
@@ -297,7 +297,7 @@ def test_api_userbasket(client, default_users, users):
     # POST an item to the basket
     payload = {
         'collection': 'bibs',
-        'record_id': '5127'
+        'record_id': '1'
     }
     res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
     assert res.status_code == 200
@@ -315,7 +315,7 @@ def test_api_userbasket(client, default_users, users):
     data = json.loads(res.data)
     print(data)
     assert data['data']['collection'] == 'bibs'
-    assert data['data']['record_id'] == '5127'
+    assert data['data']['record_id'] == '1'
 
     # Try to POST a duplicate. This shoudl fail silently, and the basket should still contain only one item.
     res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
@@ -343,6 +343,7 @@ def test_api_userbasket(client, default_users, users):
     assert len(data['data']['items']) == 0
     
 # util
+
 
 def check_response(response):
     client = app.test_client()
