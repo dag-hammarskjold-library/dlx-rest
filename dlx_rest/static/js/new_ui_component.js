@@ -91,10 +91,10 @@ data:function(){
 let basketcomponent = {
   props:["url","prefix"],
   template:` 
-            <div class="container col-lg-2 mt-3" id="app0" style="background-color:white;">
+            <div class="container col-lg-2 mt-3" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
             <div class='container mt-3 shadow' style="overflow-y: scroll; height:900px;" >
               <div><h4 class="badge bg-success mt-2">Basket <span class="badge badge-light">{{this.listRecordsTot.length}}</span> </h4></div>
-              <button type="button" class="btn btn-primary mb-2 mt-3" v-on:click="clearRecordList">Clear Records list</button>
+              <button type="button" class="btn btn-primary mb-2 mt-3"  v-on:click="clearRecordList">Clear Records list</button>
               <button type="button" class="btn btn-primary mb-2 mt-3" v-show='btnToDisplay' v-on:click='addRecordToList(myRecordId,myCollection,myId,myTitle)'> Undo this action </button>
               <div v-for="record in this.listRecordsTot" :key="record.id" class="list-group">
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true">
