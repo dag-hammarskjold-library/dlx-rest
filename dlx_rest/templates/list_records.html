@@ -76,6 +76,15 @@
                     {{record['title_line']}}
                 </a>
             </div>
+            {% if current_user.is_authenticated %}
+                <div class="row mb-1">
+                    {% if coll=="bibs" %}
+                        <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
+                    {% else %}
+                        <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
+                    {% endif %}
+                </div>
+            {% endif %}
             <div class="row">
                 <p>{{record['second_line']}}</p>
             </div>
@@ -98,4 +107,6 @@
         </ul>
     </nav>
 </div>
+
+<script src="{{url_for('static', filename='js/custom.js')}}" defer></script>
 {% endblock %}

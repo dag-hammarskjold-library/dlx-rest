@@ -21,7 +21,8 @@ def index():
 
 @app.route('/newui')
 def newui():
-    return render_template('new_ui.html', title="New UI")
+    this_prefix = url_for('doc', _external=True)
+    return render_template('new_ui.html', title="New UI", prefix=this_prefix)
 
 # Authentication
 @login_manager.user_loader
@@ -392,8 +393,11 @@ def search_records(coll):
         next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
     if int(start) > int(limit):
         prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
+
+    #parameters to call the API
+    this_prefix = url_for('doc', _external=True)
         
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url)
+    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url, prefix=this_prefix)
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
