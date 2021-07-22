@@ -78,11 +78,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="row mb-1">
-                    {% if coll=="bibs" %}
-                        <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
-                    {% else %}
-                        <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
-                    {% endif %}
+                <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
                 </div>
             {% endif %}
             <div class="row">
