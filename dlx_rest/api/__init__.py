@@ -1383,7 +1383,11 @@ class MyBasketRecord(Resource):
         except:
             raise
 
-        return 200
+        my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
+        print(my_item)
+        item_id = my_item['id']
+
+        return {"id": item_id}, 200
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):
