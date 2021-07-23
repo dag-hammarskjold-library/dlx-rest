@@ -1413,10 +1413,12 @@ class MyBasketItem(Resource):
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title()
+                item_data['symbol'] = this_m.get_value('191','a')
             elif item_data['collection'] == 'auths':
                 this_m = Auth.from_id(int(item_data['record_id']))
                 heading_field = this_m.heading_field.get_value('a')
                 item_data['title'] = heading_field
+                item_data['symbol'] = None
         except IndexError:
             abort(404)
         except:

@@ -99,13 +99,15 @@ let basketcomponent = {
               <div v-for="record in this.listRecordsTot" :key="record.id" class="list-group">
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true">
                   <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">{{record.record_id}}</h5>
+                    <small><span class="mb-1">{{record.collection}}/{{record.record_id}}</span></small>
                     <small><i v-on:click="removeRecordFromList(record.id)" class="far fa-trash-alt"></i></small>
                   </div>
                   <p class="mb-1 text-success">
-                  <span>{{record.title.substring(0,45)}}....</span>
+                    <span :title=record.title>{{record.title.substring(0,45)}}....</span>
                   </p>
-                  <small>{{record.collection}} Collection</small>
+                  <p v-if="record.symbol" class="mb-1">
+                    <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
+                  </p>
                 </a>
               </div>
             </div> 
@@ -145,6 +147,8 @@ let basketcomponent = {
                   myItem.record_id=myJson1["data"]["record_id"]
                   myItem.collection=myJson1["data"]["collection"]
                   myItem.title=myJson1["data"]["title"]
+                  myItem.symbol=myJson1["data"]["symbol"]
+                  //console.log(myItem.symbol)
                   this.listRecordsTot.push(myItem)
                 }
 
