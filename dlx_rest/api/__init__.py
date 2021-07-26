@@ -1241,7 +1241,7 @@ class FilesRecordsList(Resource):
 class FileRecord(Resource):
     args = reqparse.RequestParser()
     args.add_argument(
-        'format', 
+        'action', 
         type=str, 
         choices=['open', 'download']
     )
@@ -1250,6 +1250,7 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
+        print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1268,6 +1269,7 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
+        print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1276,6 +1278,7 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
+                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1287,6 +1290,7 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
+                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
