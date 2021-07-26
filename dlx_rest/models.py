@@ -44,6 +44,9 @@ class Basket(Document):
     def get_item_by_id(self, item_id):
         return list(filter(lambda x: x['id'] == item_id, self.items))[0]
 
+    def get_item_by_coll_and_rid(self, collection, record_id):
+        return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
+
     def add_item(self, item):
         existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
         if len(existing_item) == 0:

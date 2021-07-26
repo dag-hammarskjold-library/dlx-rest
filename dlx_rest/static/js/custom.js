@@ -1,11 +1,19 @@
-function addBasket(myRecordId,myCollection,myTitle,myPrefix){
+function addRemoveBasket(myFunc, myRecordId,myCollection,myPrefix) {
+    if (myFunc == "add") {
+      addBasket(myRecordId,myCollection,myPrefix)
+    } else if (myFunc == "remove") {
+      removeBasket(myRecordId, myCollection, myPrefix)
+    }
+}
+
+function addBasket(myRecordId,myCollection,myPrefix){
           
     // fetch the data from the api
     let url=myPrefix+"userprofile/my_profile/basket"
     console.log(url)
 
     // prepare the data to load
-    data=`{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
+    data=`{"collection": "${myCollection}", "record_id": "${myRecordId}"}`
     console.log(data)
 
     // call the api route with POST method
@@ -15,14 +23,54 @@ function addBasket(myRecordId,myCollection,myTitle,myPrefix){
       })
       
       // success
-      .then(response => {
-          if (response.ok) {	
-            alert("Item "+ myRecordId +"("+ myCollection + ")  added to the basket ")
-        }
+      .then(response => response.json())
+      .then(data => {
+          console.log(data)
+          el = document.querySelector("#" + myCollection + "-" + myRecordId)
+          el.setAttribute("data-basketItem", data["id"])
+          el.setAttribute("class", "fas fa-folder-minus")
+          el.setAttribute("title", "Remove from your basket")
+          el.setAttribute("onclick", "addRemoveBasket(`remove`,`" + myRecordId + "`,`" + myCollection + "`,`" + myPrefix + "`)")
       })
 
       // failure
       .catch(error => {
-        alert("Oups!!!  Item "+ myRecordId +"("+ myCollection + ") not added to the basket ")
+        console.log(error)
+        //alert("Oups!!!  Item "+ myRecordId +"("+ myCollection + ") not added to the basket ")
       })
+}
+
+function removeBasket(myRecordId, myCollection, myPrefix) {
+     // fetch the data from the api
+     let el = document.querySelector("#" + myCollection + "-" + myRecordId)
+     let url=myPrefix+"userprofile/my_profile/basket/items/" + el.getAttribute("data-basketItem")
+
+     //console.log(url)
+ 
+     // prepare the data to load
+     //data=`{"id": "${myItemId}"}`
+     //console.log(data)
+ 
+     // call the api route with POST method
+     fetch(url, {
+       method: 'DELETE',
+       //body: data
+       })
+       
+       // success
+       .then(response => {
+           console.log(data)
+           el = document.querySelector("#" + myCollection + "-" + myRecordId)
+           //el.setAttribute("data-basketItem", data["id"])
+           el.setAttribute("class", "fas fa-folder-plus")
+           el.setAttribute("title", "Add to your basket")
+           el.removeAttribute("data-basketItem")
+           el.setAttribute("onclick", "addRemoveBasket(`add`,`" + myRecordId + "`,`" + myCollection + "`,`" + myPrefix + "`)")
+       })
+ 
+       // failure
+       .catch(error => {
+         console.log(error)
+         //alert("Oups!!!  Item "+ myRecordId +"("+ myCollection + ") not added to the basket ")
+       })
 }

@@ -71,18 +71,22 @@
     {% for record in records %}
     <div class="row pt-2 border-bottom">
         <div class="container">
-            <div class="row">
-                <a class="lead" href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
-                    {{record['title_line']}}
-                </a>
-            </div>
-            {% if current_user.is_authenticated %}
-                <div class="row mb-1">
-                <button onclick="addBasket(`{{record['id']}}`,`{{coll}}`,`{{record['title_line']}}`,`{{prefix}}`)" type="button" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add to your basket</button>
+            <div class="col-11 float-left">
+                <div class="row">
+                    <a class="lead" href="{{ url_for('get_record_by_id', coll=coll, id=record['id']) }}">
+                        {{record['title_line']}}
+                    </a>
                 </div>
-            {% endif %}
-            <div class="row">
-                <p>{{record['second_line']}}</p>
+                <div class="row">
+                    <p>{{record['second_line']}}</p>
+                </div>
+            </div>
+            <div class="col-1 float-left">
+                {% if current_user.is_authenticated %}
+                    <div class="row ml-auto">
+                    <a href="#"><i id="{{coll}}-{{record['id']}}" class="fas fa-folder-plus" onclick="addRemoveBasket(`add`,`{{record['id']}}`,`{{coll}}`,`{{prefix}}`)" data-toggle="tooltip" title="Add to your basket"></i></a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
