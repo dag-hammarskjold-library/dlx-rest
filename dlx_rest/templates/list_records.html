@@ -1,4 +1,5 @@
 {% extends 'base.html' %} {% block content %}
+<div class="navbar navbar-expand-lg navbar-light text-center" id="message-bar"></div>
 <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
     <form class="form-inline mr-auto col-lg-10" action="{{url_for('search_records', coll=coll)}}">
         {% if q %}
@@ -84,7 +85,7 @@
             <div class="col-1 float-left">
                 {% if current_user.is_authenticated %}
                     <div class="row ml-auto">
-                    <a href="#"><i id="{{coll}}-{{record['id']}}" class="fas fa-folder-plus" onclick="addRemoveBasket(`add`,`{{record['id']}}`,`{{coll}}`,`{{prefix}}`)" data-toggle="tooltip" title="Add to your basket"></i></a>
+                    <a><i id="{{coll}}-{{record['id']}}" class="fas fa-folder-plus" onclick="addRemoveBasket(`add`,`{{record['id']}}`,`{{coll}}`,`{{prefix}}`)" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 {% endif %}
             </div>
