@@ -6,7 +6,7 @@ from dlx_rest.config import Config
 from dlx_rest.forms import LoginForm
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 
-PRE = 'http://localhost/'
+#PRE = 'http://localhost/'
 
 def test_testing():
     assert Config.TESTING == True
@@ -14,19 +14,19 @@ def test_testing():
 
 # Index page
 def test_index(client):
-    response = client.get(PRE)
+    response = client.get('/')
     assert response.status_code == 200
 
 # User session management
 def login(client, username, password):
-    return client.post(PRE + '/login', data = {'email': username, 'password': password}, follow_redirects=True)
+    return client.post('/login', data = {'email': username, 'password': password}, follow_redirects=True)
 
 def logout(client):
-    return client.get(PRE + '/logout', follow_redirects=True)
+    return client.get('/logout', follow_redirects=True)
 
 def test_login(client, default_users):
     # Get the login form
-    response = client.get(PRE + '/login')
+    response = client.get('/login')
     assert response.status_code == 200
 
     user = default_users['admin']
@@ -43,7 +43,7 @@ def test_login(client, default_users):
     assert b'Invalid username or password' in rv.data
 
 def test_logout(client):
-    #response = client.get(PRE + '/logout')
+    #response = client.get('/logout')
     # Logout should always redirect
     #assert response.status_code == 302
     rv = logout(client)
@@ -54,13 +54,13 @@ def test_logout(client):
 # All of these should work only if authenticated.
 def test_admin(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin')
+    response = client.get('/admin')
     assert response.status_code == 403
 
     # Authenticated, non-admin user
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin')
+    response = client.get('/admin')
     assert response.status_code == 403
 
     logout(client)
@@ -68,20 +68,20 @@ def test_admin(client, default_users):
     # Authenticated, admin user
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin')
+    response = client.get('/admin')
     assert response.status_code == 200
 
     logout(client)
 
 def test_list_users(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users')
+    response = client.get('/admin/users')
     assert response.status_code == 403
 
     # Authenticated, non-admin user
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users')
+    response = client.get('/admin/users')
     assert response.status_code == 403
 
     logout(client)
@@ -89,17 +89,17 @@ def test_list_users(client, default_users):
     # Authenticated, admin user
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users')
+    response = client.get('/admin/users')
     assert response.status_code == 200
 
     logout(client)
 
 def test_create_user(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users/new')
+    response = client.get('/admin/users/new')
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/users/new', data={
+    response = client.post('/admin/users/new', data={
         'email': 'new_test_user@un.org', 'password': 'password'
     })
     assert response.status_code == 403
@@ -107,10 +107,10 @@ def test_create_user(client, default_users):
     # Authenticated, unauthorized user.
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/new')
+    response = client.get('/admin/users/new')
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/users/new', data={
+    response = client.post('/admin/users/new', data={
         'email': 'new_test_user@un.org', 'password': 'password'
     })
     assert response.status_code == 403
@@ -120,11 +120,11 @@ def test_create_user(client, default_users):
     # Authenticated, authorized user
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/new')
+    response = client.get('/admin/users/new')
     assert response.status_code == 200
 
     new_user = default_users['new']
-    response = client.post(PRE + '/admin/users/new', data={
+    response = client.post('/admin/users/new', data={
         'email': new_user['email'], 'password': new_user['password']
     })
     assert response.status_code == 302
@@ -144,10 +144,10 @@ def test_update_user(client, default_users):
     edited_user = User.objects.get(email=default_users['non-admin']['email'])
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
+    response = client.get('/admin/users/{}/edit'.format(str(edited_user.id)))
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
+    response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
         'email':'foo@bar.com', 'password': 'password'
     })
     assert response.status_code == 403
@@ -155,10 +155,10 @@ def test_update_user(client, default_users):
     # Authenticated, but unauthorized.
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
+    response = client.get('/admin/users/{}/edit'.format(str(edited_user.id)))
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
+    response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
         'email':'foo@bar.com', 'password': 'password'
     })
     assert response.status_code == 403
@@ -167,10 +167,10 @@ def test_update_user(client, default_users):
     # Authenticated, authorized
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)))
+    response = client.get('/admin/users/{}/edit'.format(str(edited_user.id)))
     assert response.status_code == 200
 
-    response = client.post(PRE + '/admin/users/{}/edit'.format(str(edited_user.id)), data={
+    response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
         'email':'foo@bar.com', 'password': 'password'
     })
     assert response.status_code == 302
@@ -186,20 +186,20 @@ def test_delete_user(client, default_users):
     current_user_count = len(User.objects)
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
+    response = client.get('/admin/users/{}/delete'.format(str(deleted_user.id)))
     assert response.status_code == 403
 
     # Authenticated, unauthorized
     user = default_users['new']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
+    response = client.get('/admin/users/{}/delete'.format(str(deleted_user.id)))
     assert response.status_code == 403
     logout(client)
 
     # Authenticated, authorized
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/users/{}/delete'.format(str(deleted_user.id)))
+    response = client.get('/admin/users/{}/delete'.format(str(deleted_user.id)))
     assert response.status_code == 302
     logout(client)
 
@@ -209,13 +209,13 @@ def test_delete_user(client, default_users):
 
 def test_list_roles(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/roles')
+    response = client.get('/admin/roles')
     assert response.status_code == 403
 
     # Authenticated, non-admin user
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles')
+    response = client.get('/admin/roles')
     assert response.status_code == 403
 
     logout(client)
@@ -223,17 +223,17 @@ def test_list_roles(client, default_users):
     # Authenticated, admin user
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles')
+    response = client.get('/admin/roles')
     assert response.status_code == 200
 
     logout(client)
 
 def test_create_role(client, default_users):
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/roles/new')
+    response = client.get('/admin/roles/new')
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/roles/new', data={
+    response = client.post('/admin/roles/new', data={
         'name': 'testRole'
     })
     assert response.status_code == 403
@@ -241,10 +241,10 @@ def test_create_role(client, default_users):
     # Authenticated, unauthorized user.
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/new')
+    response = client.get('/admin/roles/new')
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/roles/new', data={
+    response = client.post('/admin/roles/new', data={
         'name': 'testRole'
     })
     assert response.status_code == 403
@@ -255,10 +255,10 @@ def test_create_role(client, default_users):
     # Authenticated, authorized user
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/new')
+    response = client.get('/admin/roles/new')
     assert response.status_code == 200
 
-    response = client.post(PRE + '/admin/roles/new', data={
+    response = client.post('/admin/roles/new', data={
         'name': 'testRole'
     })
     assert response.status_code == 302
@@ -279,10 +279,10 @@ def test_update_role(client, default_users):
     edited_role = Role.objects.get(name='testRole')
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    response = client.get('/admin/roles/{}'.format(str(edited_role.name)))
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+    response = client.post('/admin/roles/{}'.format(str(edited_role.name)), data={
         'name':'testRole', 'permissions': []
     })
     assert response.status_code == 403
@@ -290,10 +290,10 @@ def test_update_role(client, default_users):
     # Authenticated, but unauthorized.
     user = default_users['non-admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    response = client.get('/admin/roles/{}'.format(str(edited_role.name)))
     assert response.status_code == 403
 
-    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+    response = client.post('/admin/roles/{}'.format(str(edited_role.name)), data={
         'name':'testRole', 'permissions': []
     })
     assert response.status_code == 403
@@ -302,10 +302,10 @@ def test_update_role(client, default_users):
     # Authenticated, authorized
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/{}'.format(str(edited_role.name)))
+    response = client.get('/admin/roles/{}'.format(str(edited_role.name)))
     assert response.status_code == 200
 
-    response = client.post(PRE + '/admin/roles/{}'.format(str(edited_role.name)), data={
+    response = client.post('/admin/roles/{}'.format(str(edited_role.name)), data={
         'name':'testRole', 'permissions': []
     })
     assert response.status_code == 302
@@ -320,20 +320,20 @@ def test_delete_role(client, default_users):
     current_role_count = len(Role.objects)
 
     # Unauthenticated. This should give a 403 for unauthorized users.
-    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    response = client.get('/admin/roles/{}/delete'.format(str(deleted_role.name)))
     assert response.status_code == 403
 
     # Authenticated, unauthorized
     user = default_users['new']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    response = client.get('/admin/roles/{}/delete'.format(str(deleted_role.name)))
     assert response.status_code == 403
     logout(client)
 
     # Authenticated, authorized
     user = default_users['admin']
     login(client, user['email'], user['password'])
-    response = client.get(PRE + '/admin/roles/{}/delete'.format(str(deleted_role.name)))
+    response = client.get('/admin/roles/{}/delete'.format(str(deleted_role.name)))
     assert response.status_code == 302
     logout(client)
 
