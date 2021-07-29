@@ -15,6 +15,7 @@ Flask = "*"
 Flask-Cors = "*"
 Flask-Login = "*"
 Flask-WTF = "*"
+troposphere = "<3"
 
 [dev-packages]
 

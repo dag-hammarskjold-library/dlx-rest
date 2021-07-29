@@ -9,3 +9,4 @@ mongoengine
 mongomock
 pymongo
 pytest
+troposphere<3
