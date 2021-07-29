@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+dlx = {git = "https://github.com/dag-hammarskjold-library/dlx"}
+flask-mongoengine = "*"
+flask-restx = "*"
+mongoengine = "*"
+mongomock = "*"
+pymongo = "*"
+pytest = "*"
+Flask = "*"
+Flask-Cors = "*"
+Flask-Login = "*"
+Flask-WTF = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
