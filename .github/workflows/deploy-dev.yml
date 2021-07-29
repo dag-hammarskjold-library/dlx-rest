@@ -22,19 +22,34 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+          
+      - name: Set up virtual environment
+        run: |
+          python -m virtualenv venv
+          source venv/bin/activate
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install wheel flake8 pytest
+          pip install wheel flake8 pytest awscli
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          
       - name: Test with pytest
         run: |
           pytest
-      - name: Deploy to dev
+          
+      - name: Set up AWS Environment
+        run: |
+          aws configure set region us-east-1 --profile default
+          aws configure set aws_access_key_id ${{ secrets.PRIMARY_AWS_ACCESS_KEY_ID }} --profile default
+          aws configure set aws_secret_access_key ${{ secrets.PRIMARY_AWS_SECRET_ACCESS_KEY }} --profile default
+          
+      - name: Zappa deploy to dev
         run: |
           pip install zappa
           zappa update dev
