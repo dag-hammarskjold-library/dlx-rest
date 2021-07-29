@@ -1282,7 +1282,7 @@ class FileRecord(Resource):
             except Exception as e:
                 abort(500, str(e))
 
-            return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
+            return send_file(s3_file['Body'], as_attachment=True, download_name=output_filename)
         elif action == 'open':
             output_filename = record.filename
             s3 = boto3.client('s3')
@@ -1294,7 +1294,7 @@ class FileRecord(Resource):
             except Exception as e:
                 abort(500, str(e))
 
-            return send_file(s3_file['Body'], as_attachment=False, attachment_filename=output_filename)
+            return send_file(s3_file['Body'], as_attachment=False, download_name=output_filename)
             
         links = {
             '_self': URL('api_file_record', record_id=record_id).to_str(),
