@@ -36,6 +36,7 @@ jobs:
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
+          pip install pip==20.1
           pip install -r requirements.txt
           pip install zappa
           pip install awscli
