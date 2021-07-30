@@ -31,26 +31,25 @@ jobs:
       - name: Install pipenv
         run: |
           pip install --upgrade pip
-          pip install pipenv
 
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
-          pipenv --clear
-          pipenv install
-          pipenv run pip install zappa
-          pipenv run pip install flask
+          pip install -r requirements.txt
+          pip install zappa
+          pip install flask
+          pip install awscli
           
       - name: Test with pytest
         run: |
-          pipenv run pytest
+          pytest
           
       - name: Set up AWS Environment
         run: |
-          pipenv run aws configure set region us-east-1 --profile default
-          pipenv run aws configure set aws_access_key_id ${{ secrets.PRIMARY_AWS_ACCESS_KEY_ID }} --profile default
-          pipenv run aws configure set aws_secret_access_key ${{ secrets.PRIMARY_AWS_SECRET_ACCESS_KEY }} --profile default
+          aws configure set region us-east-1 --profile default
+          aws configure set aws_access_key_id ${{ secrets.PRIMARY_AWS_ACCESS_KEY_ID }} --profile default
+          aws configure set aws_secret_access_key ${{ secrets.PRIMARY_AWS_SECRET_ACCESS_KEY }} --profile default
           
       - name: Zappa deploy to dev
         run: |
-          pipenv run zappa update dev
+          zappa update dev
