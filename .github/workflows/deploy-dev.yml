@@ -38,8 +38,8 @@ jobs:
         run: |
           pipenv --clear
           pipenv install
-          pipenv install zappa
-          pipenv install flask
+          pipenv run pip install zappa
+          pipenv run pip install flask
           
       - name: Test with pytest
         run: |
