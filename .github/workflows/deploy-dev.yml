@@ -42,7 +42,8 @@ jobs:
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
-          if [ -f requirements.txt ]; then pipenv install -r requirements.txt; fi
+          pipenv run pip install zappa
+          pipenv install
           
       - name: Test with pytest
         run: |
@@ -56,5 +57,4 @@ jobs:
           
       - name: Zappa deploy to dev
         run: |
-          pipenv run pip install zappa
           pipenv run zappa update dev
