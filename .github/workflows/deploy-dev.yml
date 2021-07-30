@@ -30,14 +30,15 @@ jobs:
           
       - name: Install pipenv
         run: |
+          pip install --upgrade pip
           pip install pipenv
 
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
           pipenv --clear
-          pipenv install zappa
           pipenv install
+          pipenv install zappa
           
       - name: Test with pytest
         run: |
