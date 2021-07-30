@@ -35,7 +35,8 @@ jobs:
       - name: Install dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
-          pipenv run pip install zappa
+          pipenv --clear
+          pipenv install zappa
           pipenv install
           
       - name: Test with pytest
