@@ -22,7 +22,17 @@ def index():
 @app.route('/newui')
 def newui():
     this_prefix = url_for('doc', _external=True)
-    return render_template('new_ui.html', title="New UI", prefix=this_prefix)
+    urls = []
+    records = request.args.get('records', None).split(",")
+    print(records)
+    for r in records:
+        print(r)
+        coll, recid = r.split("/")
+        print(coll, recid)
+        url = url_for('api_record', collection = coll, record_id = recid)
+        print(url)
+        urls.append(url)
+    return render_template('new_ui.html', title="New UI", prefix=this_prefix, urls=",".join(urls))
 
 # Authentication
 @login_manager.user_loader
