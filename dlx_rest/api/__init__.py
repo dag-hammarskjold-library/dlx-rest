@@ -1044,7 +1044,11 @@ class RecordMerge(Resource):
         user = 'testing' if current_user.is_anonymous else current_user.email
         gaining = Auth.from_id(record_id) or abort(404)
         losing_id = request.args.get('target') or abort(400, '"target" param required')
-        losing = Auth.from_id(int(losing_id)) or abort(404, "Target auth not found")
+        losing_id = int(losing_id)
+        losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
+        
+        if losing.heading_field.tag != gaining.heading_field.tag:
+            abort(403, "Auth records not of the same type")
 
         # bibs
         conditions = []
@@ -1055,23 +1059,22 @@ class RecordMerge(Resource):
                     val = losing.heading_field.get_value(subfield_code)
                     
                     if val:
-                        conditions.append(Condition(bib_tag, {subfield_code: val}))
+                        conditions.append(Condition(bib_tag, {subfield_code: losing_id}))
         
         query = Query(Or(*conditions))
-        project = dict.fromkeys(DlxConfig.bib_authority_controlled.keys(), True)
         changed = 0
 
-        for bib in BibSet.from_query(query, projection=project, auth_control=False):
+        for bib in BibSet.from_query(query):
             for field in bib.datafields:
                 for subfield in field.subfields:
-                    if hasattr(subfield, 'xref') and subfield.xref == int(losing_id):
+                    if hasattr(subfield, 'xref') and subfield.xref == losing_id:
                         subfield.xref = gaining.id
                         bib.commit(user=user)
                         changed += 1
         
         losing.delete(user=user)
         
-        return jsonify({'message': f'updated {changed} records and deleted auth {losing_id}'}) 
+        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
         
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')

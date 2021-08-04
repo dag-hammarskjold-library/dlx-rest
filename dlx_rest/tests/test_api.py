@@ -268,7 +268,7 @@ def test_api_file(client, files):
 
 def test_api_auth_merge(client, marc):
     res = client.get(f'{API}/marc/auths/records/1/merge?target=2')
-    assert res.status_code == 204
+    assert res.status_code == 200
     
     res = client.get(f'{API}/marc/auths/records/2')
     assert res.status_code == 404
