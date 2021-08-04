@@ -1033,6 +1033,46 @@ class LookupMap(Resource):
         
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
+# Auth merge
+@ns.route('/marc/<string:collection>/records/<int:record_id>/merge')
+@ns.param('collection')
+@ns.param('record_id')
+class RecordMerge(Resource):
+    @ns.doc(description='Auth merge the target authority record in to this one')
+    @login_required
+    def get(self, collection, record_id):
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        gaining = Auth.from_id(record_id) or abort(404)
+        losing_id = request.args.get('target') or abort(400, '"target" param required')
+        losing = Auth.from_id(int(losing_id)) or abort(404, "Target auth not found")
+
+        # bibs
+        conditions = []
+            
+        for bib_tag, d in DlxConfig.bib_authority_controlled.items():
+            for subfield_code, auth_tag in d.items():
+                if auth_tag == losing.heading_field.tag:
+                    val = losing.heading_field.get_value(subfield_code)
+                    
+                    if val:
+                        conditions.append(Condition(bib_tag, {subfield_code: val}))
+        
+        query = Query(Or(*conditions))
+        project = dict.fromkeys(DlxConfig.bib_authority_controlled.keys(), True)
+        changed = 0
+
+        for bib in BibSet.from_query(query, projection=project, auth_control=False):
+            for field in bib.datafields:
+                for subfield in field.subfields:
+                    if hasattr(subfield, 'xref') and subfield.xref == int(losing_id):
+                        subfield.xref = gaining.id
+                        bib.commit(user=user)
+                        changed += 1
+        
+        losing.delete(user=user)
+        
+        return jsonify({'message': f'updated {changed} records and deleted auth {losing_id}'}) 
+        
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
@@ -1050,6 +1090,8 @@ class RecordHistory(Resource):
         
         if history:
             data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
+        else:
+            data = None
         
         links = {
             '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
