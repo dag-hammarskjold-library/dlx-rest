@@ -1065,12 +1065,20 @@ class RecordMerge(Resource):
         changed = 0
 
         for bib in BibSet.from_query(query):
-            for field in bib.datafields:
-                for subfield in field.subfields:
-                    if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                        subfield.xref = gaining.id
-                        bib.commit(user=user)
-                        changed += 1
+            state = bib.to_bson()
+            
+            for i, field in enumerate(bib.fields):
+                if isinstance(field, Datafield):
+                    for subfield in field.subfields:
+                        if hasattr(subfield, 'xref') and subfield.xref == losing_id:
+                            subfield.xref = gaining.id
+                    
+                            if field in bib.fields[0:i] + bib.fields[i+1:]:
+                                del bib.fields[i]
+                    
+            if bib.to_bson() != state:    
+                bib.commit(user=user)
+                changed += 1
         
         losing.delete(user=user)
         
