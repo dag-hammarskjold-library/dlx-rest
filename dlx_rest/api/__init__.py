@@ -1034,13 +1034,12 @@ class LookupMap(Resource):
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
 # Auth merge
-@ns.route('/marc/<string:collection>/records/<int:record_id>/merge')
-@ns.param('collection')
+@ns.route('/marc/auths/records/<int:record_id>/merge')
 @ns.param('record_id')
 class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
-    def get(self, collection, record_id):
+    def get(self, record_id):
         user = 'testing' if current_user.is_anonymous else current_user.email
         gaining = Auth.from_id(record_id) or abort(404)
         losing_id = request.args.get('target') or abort(400, '"target" param required')
@@ -1050,35 +1049,46 @@ class RecordMerge(Resource):
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(403, "Auth records not of the same type")
 
-        # bibs
-        conditions = []
+        def update_records(record_type, gaining, losing):
+            authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
             
-        for bib_tag, d in DlxConfig.bib_authority_controlled.items():
-            for subfield_code, auth_tag in d.items():
-                if auth_tag == losing.heading_field.tag:
-                    val = losing.heading_field.get_value(subfield_code)
-                    
-                    if val:
-                        conditions.append(Condition(bib_tag, {subfield_code: losing_id}))
-        
-        query = Query(Or(*conditions))
-        changed = 0
+            conditions = []
+                 
+            for ref_tag, d in authmap.items():
+                for subfield_code, auth_tag in d.items():
+                    if auth_tag == losing.heading_field.tag:
+                        val = losing.heading_field.get_value(subfield_code)
+                        
+                        if val:
+                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
+            
+            
+            cls = BibSet if record_type == 'bib' else AuthSet
+            query = Query(Or(*conditions))
+            changed = 0
 
-        for bib in BibSet.from_query(query):
-            state = bib.to_bson()
-            
-            for i, field in enumerate(bib.fields):
-                if isinstance(field, Datafield):
-                    for subfield in field.subfields:
-                        if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                            subfield.xref = gaining.id
+            for record in cls.from_query(query):
+                state = record.to_bson()
+                
+                for i, field in enumerate(record.fields):
+                    if isinstance(field, Datafield):
+                        for subfield in field.subfields:
+                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
+                                subfield.xref = gaining.id
+                        
+                                if field in record.fields[0:i] + record.fields[i+1:]:
+                                    del record.fields[i] # duplicate field
+                        
+                if record.to_bson() != state:    
+                    record.commit(user=user)
+                    changed += 1
                     
-                            if field in bib.fields[0:i] + bib.fields[i+1:]:
-                                del bib.fields[i]
-                    
-            if bib.to_bson() != state:    
-                bib.commit(user=user)
-                changed += 1
+            return changed
+        
+        changed = 0
+        
+        for record_type in ('bib', 'auth'):
+            changed += update_records(record_type, gaining, losing)    
         
         losing.delete(user=user)
         
