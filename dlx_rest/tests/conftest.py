@@ -101,10 +101,11 @@ def marc():
         auths.append(auth)
     
     bibs = []
+    
     for i in range(1, 3):
         bib = Bib()
         bib.id = i
-        bib.set('245', 'a', 'Title').set('700', 'a', i)
+        bib.set('245', 'a', 'Title').set('700', 'a', f'Heading {i}')
         bib.commit()
         bibs.append(bib)
         

@@ -266,7 +266,16 @@ def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=open')
     assert res.status_code == 200
 
-
+def test_api_auth_merge(client, marc):
+    res = client.get(f'{API}/marc/auths/records/1/merge?target=2')
+    assert res.status_code == 200
+    
+    res = client.get(f'{API}/marc/auths/records/2')
+    assert res.status_code == 404
+    
+    res = client.get(f'{API}/marc/bibs/records/2/fields/700/0/subfields/a/0')
+    assert json.loads(res.data)['data'] == "Heading 1"
+    
 # User profile testing
 def test_api_userprofile(client, default_users, users):
     username = default_users['admin']['email']
