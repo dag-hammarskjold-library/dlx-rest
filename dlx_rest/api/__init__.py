@@ -24,7 +24,8 @@ from werkzeug import security
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
+#from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
+from dlx_rest.models import User, SyncLog, Permission, Role, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, abort, brief_bib, brief_auth, validate_data
 
 # Init
@@ -364,6 +365,7 @@ class RecordsList(Resource):
     
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
+    @requires_permission(register_permission('createRecord'))
     def post(self, collection):
         user = 'testing' if current_user.is_anonymous else current_user.email
         cls = ClassDispatch.by_collection(collection) or abort(404)
@@ -491,6 +493,7 @@ class Record(Resource):
 
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @login_required
+    @requires_permission(register_permission('updateRecord'))
     def put(self, collection, record_id):
         user = 'testing' if current_user.is_anonymous else current_user.email
         cls = ClassDispatch.by_collection(collection) or abort(404)
@@ -522,6 +525,7 @@ class Record(Resource):
 
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
+    @requires_permission(register_permission('deleteRecord'))
     def delete(self, collection, record_id):
         user = 'testing' if current_user.is_anonymous else current_user.email
         
@@ -619,6 +623,7 @@ class RecordFieldPlaceList(Resource):
     
     @ns.doc(description='Create new field with the given tag', security='basic')
     @login_required
+    @requires_permission(register_permission('createField'))
     def post(self, collection, record_id, field_tag):
         user = 'testing' if current_user.is_anonymous else current_user.email
         
@@ -698,6 +703,7 @@ class RecordFieldPlace(Resource):
 
     @ns.doc(description='Replace the field with the given tag at the given place', security='basic')
     @login_required
+    @requires_permission(register_permission('updateField'))
     def put(self, collection, record_id, field_tag, field_place):
         user = f'testing' if current_user.is_anonymous else current_user.email
         
@@ -740,6 +746,7 @@ class RecordFieldPlace(Resource):
     
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
+    @requires_permission(register_permission('deleteField'))
     def delete(self, collection, record_id, field_tag, field_place):
         user = f'testing' if current_user.is_anonymous else current_user.email
         
@@ -1122,6 +1129,7 @@ class TemplatesList(Resource):
     
     @ns.doc(description='Create a new temaplate with the given data', security='basic')
     @login_required
+    @requires_permission(register_permission('createTemplate'))
     def post(self, collection):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
@@ -1175,6 +1183,7 @@ class Template(Resource):
 
     @ns.doc(description='Replace a template with the given name with the given data', security='basic')
     @login_required
+    @requires_permission(register_permission('updateTemplate'))
     def put(self, collection, template_name):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
@@ -1195,6 +1204,7 @@ class Template(Resource):
 
     @ns.doc(description='Delete a template with the given name', security='basic')
     @login_required
+    @requires_permission(register_permission('deleteTemplate'))
     def delete(self, collection, template_name):
         template_collection = DB.handle[f'{collection}_templates']
         template_collection.find_one({'name': template_name}) or abort(404)
