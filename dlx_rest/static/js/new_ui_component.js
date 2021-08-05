@@ -1,4 +1,475 @@
 /////////////////////////////////////////////////////////////////
+// Imports
+/////////////////////////////////////////////////////////////////
+
+//import { Jmarc } from "../js/jmarc.js";
+
+/////////////////////////////////////////////////////////////////
+// JMARC class definition
+/////////////////////////////////////////////////////////////////
+
+"use strict";
+
+		const authMap = {
+			"bibs": {
+        		'191': {'b': '190', 'c': '190'},
+        		'600': {'a': '100', 'g': '100'},
+        		'610': {'a': '110', 'g': '110'},
+        		'611': {'a': '111', 'g': '111'},
+        		'630': {'a': '130', 'g': '130'},
+        		'650': {'a': '150'},
+        		'651': {'a': '151'},
+        		'700': {'a': '100', 'g': '100'},
+        		'710': {'a': '110', '9': '110'},
+        		'711': {'a': '111', 'g': '111'},
+        		'730': {'a': '130'},
+        		'791': {'b': '190', 'c' : '190'},
+        		'830': {'a': '130'},
+        		'991': {'a': '191', 'b': '191', 'c': '191', 'd': '191'}
+    		},
+			"auths": {
+        		//'491': {'a': '191'}, # ?
+        		'500': {'a': '100'},
+        		'510': {'a': '110'},
+        		'511': {'a': '111'},
+        		'550': {'a': '150'},
+        		'551': {'a': '151'},
+    		}
+		};
+	
+		class Subfield {
+			constructor(code, value, xref) {
+				this.code = code;
+				this.value = value;
+				this.xref = xref;	
+			}
+		}
+		
+		class LinkedSubfield extends Subfield {
+			constructor(code, value, xref) {
+				super(code, value);
+				this.xref = xref;
+			}
+		}
+		
+		class ControlField {
+			constructor(tag, value) {
+				if (tag) {
+					! tag.match(/^00/) && function() {throw new Error("invalid Control Field tag")};
+				}
+				
+				this.tag = tag;
+				this.value = value;
+			}
+		}
+		
+		class DataField {
+			constructor(tag, indicators, subfields) {
+				if (tag) {
+					tag.match(/^00/) && function() {throw new Error("invalid Data Field tag")};
+				}
+				
+				indicators ||= [" ", " "];
+				
+				this.tag = tag;
+				this.indicators = indicators || [];
+				this.subfields = subfields || [];
+			}
+			
+			createSubfield(code) {
+				code || function() {throw new Error("subfield code required")};
+				
+				let subfield = new Subfield(code);
+				this.subfields.push(subfield);
+				
+				return subfield;
+			}
+			
+			getSubfields(code) {
+				return this.subfields.filter(x => x.code == code);
+			}
+			
+			getSubfield(code, place) {
+				return this.getSubfields(code)[place || 0];
+			}
+			
+			toStr() {
+				let str = ""
+				
+				for (let subfield of this.subfields) {
+					str += `\$${subfield.code} ${subfield.value} `;
+					
+					if (subfield.xref) {
+						str += `@${subfield.xref} `;
+					}
+					
+					str += '|';
+				}
+				
+				return str
+			}
+			
+			lookup() {
+				let collection = this instanceof BibDataField ? "bibs" : "auths";
+				let lookupString = this.subfields.map(x => {return `${x.code}=${x.value}`}).join("&");
+				let url = Jmarc.apiUrl + `/marc/${collection}/lookup/${this.tag}?${lookupString}`;
+				
+				return fetch(url).then(
+					response => {
+						return response.json()
+					}
+				).then(
+					json => {
+						let results = json['data'];
+						let choices = [];
+						
+						for (let auth of results) {
+							// each result is a record
+							// the wanted auth field is the only 1XX field
+							for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
+								let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
+								
+								for (let sf of auth[tag][0]['subfields']) {
+									field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
+								}
+								
+								choices.push(field)
+							}
+						}
+						
+						return choices
+					}
+				)
+			}
+		}
+
+		class BibDataField extends DataField {
+			constructor(tag, indicators, subfields) {
+				super(tag, indicators, subfields)
+			}
+		}
+		
+		class AuthDataField extends DataField {
+			constructor(tag, indicators, subfields) {
+				super(tag, indicators, subfields)
+			}
+		}
+		
+		class Jmarc {
+			constructor(collection) {
+				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+				this.collection = collection || function() {throw new Error("Collection required")};
+				this.collectionUrl = Jmarc.apiUrl + `/marc/${collection}`;
+				this.recordId = null;
+				this.fields = [];
+			}
+			
+			isAuthorityControlled(tag, code) {
+				let map = authMap;
+				
+				if (map[this.collection][tag] && map[this.collection][tag][code]) {
+					return true
+				}
+				
+				return false
+			}
+			
+			static get(collection, recordId) {
+				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+				
+				let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
+				jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
+				jmarc.url = Jmarc.apiUrl + `/marc/${collection}/records/${recordId}`;
+				
+				let savedResponse;
+				
+				return fetch(jmarc.url).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json()
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 200) {
+							throw new Error(json['message'])
+						}
+						
+						jmarc.parse(json['data']);
+						jmarc.savedState = jmarc.compile();
+						
+						return jmarc
+					}
+				)
+			}
+			
+			post() {
+				if (this.recordId) {
+					throw new Error("Can't POST existing record")
+				}
+				
+				let savedResponse;
+
+				return fetch(
+					this.collectionUrl + '/records',
+					{
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: this.stringify()
+					}	
+				).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json()
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 201) {
+							throw new Error(json['message']);
+						}
+						
+						this.url = json['result'];
+						this.recordId = parseInt(this.url.split('/').slice(-1));
+						this.savedState = this.compile()
+						
+						return this;
+					}
+				)
+			}
+		
+			put() {
+				if (! this.recordId) {
+					throw new Error("Can't PUT new record")
+				}
+				
+				let savedResponse;
+				
+				return fetch(
+					this.url,
+					{
+						method: 'PUT',
+						headers: {'Content-Type': 'application/json'},
+						body: this.stringify()
+					}	
+				).then(
+					response => {
+						savedResponse = response;
+						
+						return response.json();
+					}
+				).then(
+					json => {
+						if (savedResponse.status != 200) {
+							throw new Error(json['message'])
+						}
+						
+						this.savedState = this.compile();
+						
+						return this;
+					} 
+				)
+			}
+			
+			delete() {
+				if (! this.recordId) {
+					throw new Error("Can't DELETE new record")
+				}
+				
+				let savedResponse;
+				
+				return fetch(
+					this.url,
+					{method: 'DELETE'}	
+				).then(
+					response => {
+						if (response.status == 204) {
+							this.recordId = null;
+							this.url = null;
+						
+							return this;
+						}
+						
+						return response.json()
+					}
+				).then(
+					check => {
+						if (check.constructor.name == "Jmarc") {
+							return check
+						}
+						
+						throw new Error(check['message'])
+					}
+				)
+			}
+
+			get saved() {
+				return JSON.stringify(this.savedState) === JSON.stringify(this.compile());
+			}
+
+			parse(data) {
+				this.updated = data['updated']
+				
+				let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
+				tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
+				
+				for (let tag of tags) {
+					for (let field of data[tag]) {
+						if (tag.match(/^00/)) {
+							let cf = new ControlField(tag, field);
+							this.fields.push(cf)
+						} else {
+							let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
+							df.indicators = field.indicators.map(x => x.replace(" ", "_"));
+					
+							let sf;
+							
+							for (let subfield of field.subfields) {
+								sf = new Subfield(subfield.code, subfield.value, subfield.xref);
+								df.subfields.push(sf)
+							}
+							
+							this.fields.push(df)
+						}
+					}
+				}
+				
+				return this		
+			}
+			
+			compile() {
+				let recordData = {'_id': this.recordId}; //, 'updated': this.updated};
+				
+				let tags = Array.from(new Set(this.fields.map(x => x.tag)));
+		
+				for (let tag of tags.sort(x => parseInt(x))) {
+					recordData[tag] = recordData[tag] || [];
+					
+					for (let field of this.getFields(tag)) {
+						if (field.constructor.name == 'ControlField') {
+							recordData[tag].push(field.value);
+						} else {
+							let fieldData = {};
+							
+							fieldData['indicators'] = field.indicators;
+							fieldData['subfields'] = field.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
+							
+							recordData[tag].push(fieldData);
+						}
+					}
+				}
+		
+				return recordData
+			}
+			
+			stringify() {
+				return JSON.stringify(this.compile())
+			}
+			
+			createField(tag) {
+				tag || function() {throw new Error("tag required")};
+
+				let field;
+				
+				if (tag.match(/^00/)) {
+					field = new ControlField(tag)
+				} else {
+					if (this instanceof Bib) {
+						field = new BibDataField(tag)
+					} else if (this instanceof Auth) {
+						field = new AuthDataField(tag)
+					}
+				}
+
+				this.fields.push(field);
+				
+				return field
+			}
+			
+			getControlFields() {
+				return this.fields.filter(x => x.tag.match(/^0{2}/))
+			}
+			
+			getDataFields() {
+				return this.fields.filter(x => ! x.tag.match(/^0{2}/))
+			}
+			
+			getFields(tag) {
+				return this.fields.filter(x => x.tag == tag)
+			}
+			
+			getField(tag, place) {
+				return this.getFields(tag)[place || 0]
+			}
+			
+			getSubfield(tag, code, tagPlace, codePlace) {
+				let field = this.getField(tag, tagPlace);
+				
+				if (field) {
+					return field.getSubfield(code, codePlace);
+				}
+				
+				return
+			}
+		}
+		
+		class Bib extends Jmarc {
+			constructor() {
+				super("bibs");
+			}
+			
+			static get(recordId) {
+				return Jmarc.get("bibs", recordId)
+			}
+			
+			validate() {}
+		}
+		
+		class Auth extends Jmarc {
+			constructor() {
+				super("auths");
+			}
+			
+			static get(recordId) {
+				return Jmarc.get("auths", recordId)
+			}
+			
+			validate() {}
+		}
+
+/////////////////////////////////////////////////////////////////
+// MODAL MERGE AUTHORITY COMPONENT
+/////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+let modalmergecomponent = {
+  template:`
+              <div v-show="visible" class="modal" tabindex="-1">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">Modal title</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <p>Modal body text goes here.</p>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `
+,
+data:function(){
+  return {
+    visible:true
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////
 // HEADER COMPONENT
 /////////////////////////////////////////////////////////////////
 let headercomponent = {
@@ -12,7 +483,7 @@ let headercomponent = {
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
               <ul class="navbar-nav mr-auto">
                 <li class="nav-item active">
-                  <a class="nav-link" href="#">Feature1 <span class="sr-only">(current)</span></a>
+                  <a class="nav-link" href="#">Authorities Merge <span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#">Feature2</a>
@@ -65,16 +536,8 @@ data:function(){
     return {
       visible:true,
       textToDisplay:"Messaging bar", // just insert the string to display
-      styleToDisplay:"row alert alert-primary" 
-      // list of values :
-      // alert alert-primary
-      // alert alert-secondary
-      // alert alert-success
-      // alert alert-danger
-      // alert alert-warning
-      // alert alert-info
-      // alert alert-light
-      // alert alert-dark
+      styleToDisplay:"row alert alert-primary", 
+      // list of values : // alert alert-primary // alert alert-secondary // alert alert-success // alert alert-danger // alert alert-warning // alert alert-info // alert alert-light // alert alert-dark
       }
     }
     , 
@@ -91,19 +554,19 @@ data:function(){
 let basketcomponent = {
   props:["url","prefix"],
   template:` 
-            <div class="container col-lg-2 mt-3" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
-            <div class='container mt-3 shadow' style="overflow-y: scroll; height:900px;" >
+            <div class="container col-sm-2 mt-3" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
+            <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
               <div><h4 class="badge bg-success mt-2">Basket <span class="badge badge-light">{{this.listRecordsTot.length}}</span> </h4></div>
               <button type="button" class="btn btn-primary mb-2 mt-3"  v-on:click="clearRecordList">Clear Records list</button>
               <button type="button" class="btn btn-primary mb-2 mt-3" v-show='btnToDisplay' v-on:click='addRecordToList(myRecordId,myCollection,myId,myTitle)'> Undo this action </button>
-              <div v-for="record in this.listRecordsTot" :key="record.id" class="list-group">
+              <div v-for="record in this.listRecordsTot" :key="record.id" class="list-group" >
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true">
                   <div class="d-flex w-100 justify-content-between">
                     <small><span class="mb-1">{{record.collection}}/{{record.record_id}}</span></small>
                     <small><i v-on:click="removeRecordFromList(record.id)" class="far fa-trash-alt"></i></small>
                   </div>
                   <p class="mb-1 text-success">
-                    <span :title=record.title>{{record.title.substring(0,45)}}....</span>
+                    <span :title=record.title v-on:click="displayRecord(record.record_id)">{{record.title.substring(0,45)}}....</span>
                   </p>
                   <p v-if="record.symbol" class="mb-1">
                     <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
@@ -150,6 +613,7 @@ let basketcomponent = {
                   myItem.symbol=myJson1["data"]["symbol"]
                   //console.log(myItem.symbol)
                   this.listRecordsTot.push(myItem)
+
                 }
 
             }
@@ -172,9 +636,10 @@ let basketcomponent = {
   }
   ,
   methods:{
-    // init data
-    initData(){
-
+    // display record 
+    displayRecord(myRecord){
+      this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord)
+      this.callChangeStyling("Record added to the editor","row alert alert-success")
     },
     callChangeStyling(myText,myStyle){
       this.$root.$refs.messagecomponent.changeStyling(myText,myStyle)
@@ -275,8 +740,8 @@ let basketcomponent = {
 
 let warningcomponent = {
   template:`
-  <div class="container col-lg-2 mt-3" id="app1" style="background-color:white;">
-  <div class='container mt-3 shadow' style="overflow-y: scroll; height:900px;">
+  <div v-show="visible" class="container col-sm-2 mt-3" id="app1" style="background-color:white;">
+  <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
   <div><h5 class="badge bg-success mt-2">Warning(s) / error(s) </h5></div>
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
       <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -327,6 +792,12 @@ let warningcomponent = {
   </div></div>
 </div>
 </div>`
+,
+data:function(){
+  return {
+    visible:true
+    }
+  }
 }
 
 /////////////////////////////////////////////////////////////////
@@ -335,126 +806,289 @@ let warningcomponent = {
 
 let multiplemarcrecordcomponent = {
   props:{
-      urls:{
+      prefix:{
         type: String,
         required: true
       }
   },
-  template:`<div class="container col-lg-7 mt-3 " id="app" style="background-color:white;">
-            <div class='row container mt-3 shadow' style="overflow-y: scroll; height:900px;">
-                
-                <div v-for="record in $parent.records" class="w-25 overflow-auto col-5 ml-3 mr-3 mt-3 mb-3 border-success bg-gradient border-3 border-start shadow-lg">
-                    <h4 class='mt-3'> Record ID : {{record['myId']}} </h4>
-                    <h6 class="text-success"> Last update :  {{record['myUpdated']}} </h6>
-                    <hr>
-                    <div class="border border-2" v-if="mtr.myTag !=='' " v-for="mtr in record['myTagRecord']">     
-                         <span class='badge rounded-pill bg-secondary'> {{mtr.myTag}}</span> <span> {{mtr.myHeader}}</span> <span> {{mtr.myIndicators}}</span> 
-                         <span v-for="sub in mtr.mySubFields">
-                            <span class="text-primary fw-bold" ><br>$</span><span class="text-primary fw-bold">{{sub.code}}</span> <span>{{sub.value}} |</span> <span class="text-success fw-bold" v-if="sub.xref"> {{"@@@" + sub.xref}} </span>
-                         </span>
+  template:`<div class="container col-sm-8 mt-3 " id="app" style="background-color:white;">
+              
+              <div id="record" class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
+                    <div><h5 class="badge bg-success mt-2">Editor</h5></div>
+                    <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
+                        <div class="jumbotron jumbotron-fluid">
+                            <div class="container">
+                              <h1 class="display-4 text-center">No record selected</h1>
+                              <p class="lead text-center">please select record from the basket,clicking on the title(green)!!!</p>
+                            </div>
+                          </div>                                
                     </div>
-                </div>
-            </div> </div>
+                    <div id="records" class="row">
+                        <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-5 ml-3" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button></div></div>
+                        <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-5 ml-5" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button></div></div>
+
+                  </div>
+              </div>
+            </div>
             `,
 data:function(){
   return {
-    visible:true
+    visible:true,
+    record1:"",
+    record2:"",
+    isRecordOneDisplayed:false,
+    isRecordTwoDisplayed:false
     }
   },
-  created: async function(){
-       
-    // Retrieving the url inside an array
-    let myUrls= this.urls.split(",");
-    
-    // Retrieve the number of url
-    let mySize=myUrls.length
-    
-    // Loop the array of URLS
-    for (i = 0; i < mySize; i++) {
-
-      let myRecord={ 
-        myId:"",
-        myUpdated:"",
-        myTagRecord:[
-          {
-            myTag:"",
-            myHeader:"",
-            myIndicators:[
-            {
-              myIndicator1:"",
-              myIndicator2:""
-            }
-          ],
-            mySubFields:[
-              {
-                myCode:"",
-                myValue:"",
-                myXref:""
-              }
-            ]
-          }
-        ]
-      }
-      
-
-      // retrieving data from API
-      let response = await fetch(myUrls[i]);
-    
-      // process to fecth data for the full record
-      if (response.ok) {
-          let myJson= await response.json();
-
-          // assign the ID value
-          myRecord.myId=myJson["data"]['_id'];
-
-          // assign the updated value
-          myRecord.myUpdated=myJson["data"]['updated'];
-          
-          // Retrieve the value of the tag
-          let mylistTags=Object.keys(myJson["data"]).sort()
-          
-          // Loop to display the tags and the values
-          for (j = 0; j < mylistTags.length; j++){
-
-              if (mylistTags[j]!=="_id" && mylistTags[j]!=="updated"  && mylistTags[j]!=="files"){
-                
-                // assign the tag value
-                myTag=mylistTags[j]
-
-                // Save the record
-                // let saveRecord={}
-                
-                // size of the tag record array
-                let sizeTagRecord = myJson["data"][myTag].length
-
-                  // loop inside the tag record array
-                  for (k = 0; k < sizeTagRecord; k++){                
-                    
-                    let saveRecord={}
-                    saveRecord.myTag=myTag
-
-                    // header case
-                    if (myTag){
-                        if (parseInt(myTag)==parseInt('000') || parseInt(myTag)==parseInt('001') || parseInt(myTag)==parseInt('002') || parseInt(myTag)==parseInt('003') || parseInt(myTag)==parseInt('004') || parseInt(myTag)==parseInt('005') || parseInt(myTag)==parseInt('007') || parseInt(myTag)==parseInt('008')) {
-                          saveRecord.myHeader=myJson["data"][myTag]
-                        } 
-                        // rest of the tag
-                        else {
-                          myIndicators=myJson["data"][myTag][k]["indicators"]
-                          mySubFields=myJson["data"][myTag][k]["subfields"]
-                          
-                          // save value
-                          saveRecord.myIndicators=myIndicators
-                          saveRecord.mySubFields=mySubFields
-                        }
-                      }
-                    myRecord.myTagRecord.push(saveRecord)
-                  }
-              }
-          }
-      } 
-      vm_new_ui_component.records.push(myRecord)
+  created(){
+    this.$root.$refs.multiplemarcrecordcomponent = this;
+  },
+  methods:
+  {
+    callChangeStyling(myText,myStyle){
+      this.$root.$refs.messagecomponent.changeStyling(myText,myStyle)
+    },
+    removeRecordFromEditor(recordID){
+    // get the parent
+    if (recordID==="record1"){
+      // remove the div
+      let myDiv=document.getElementById("record1")
+      myDiv.children[1].remove()
+      // reset the parameters
+      this.record1=""
+      this.isRecordOneDisplayed=false
+      this.callChangeStyling("Record removed to the editor","row alert alert-success")
     }
+    if (recordID==="record2") {
+      let myDiv=document.getElementById("record2")
+      // remove the div
+      myDiv.children[1].remove()
+      // reset the parameters
+      this.record2=""
+      this.isRecordTwoDisplayed=false
+      this.callChangeStyling("Record removed to the editor","row alert alert-success")
+    }
+    },
+  async displayMarcRecord(myRecord){
+
+    // console.log(this.prefix)
+
+    // Jmarc.apiUrl=this.prefix
+
+    Jmarc.apiUrl="http://127.0.0.1:5000/records"
+    //Jmarc.apiUrl="https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api"
+
+    let display = {"display1": myRecord};
+	
+    for (let [div, recId] of Object.entries(display)) {
+      Jmarc.get("bibs", recId).then(
+        bib => {
+          let table = document.createElement("table");
+
+          // some styling for the table
+          table.style.width="100%";
+          table.style.tableLayout="fixed";
+          
+          
+          let idRow = table.insertRow();
+          let idCell = idRow.insertCell();
+          idCell.colSpan = 3;
+          idCell.innerHTML = "record ID: " + recId;
+          
+          let saveCell = idRow.insertCell();
+          let saveButton = document.createElement("input");
+          saveCell.appendChild(saveButton);
+          saveButton.type = "button";
+          saveButton.value = "save";
+          saveButton.className="btn btn-primary"
+          saveButton.onclick = function() {bib.put()};
+          
+          let deleteCell = idRow.insertCell();
+          let deleteButton = document.createElement("input");
+          deleteCell.appendChild(deleteButton);
+          deleteButton.type = "button";
+          deleteButton.value = "delete";
+          deleteButton.className="btn btn-danger"
+          deleteButton.onclick = function() {bib.delete()};
+          
+          for (let field of bib.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
+            let row = table.insertRow();
+          
+            let tagCell = row.insertCell();
+            tagCell.innerHTML = field.tag;
+            
+            if (field.constructor.name == "ControlField") {
+              // controlfield
+              row.insertCell(); // placeholder
+              
+              let valCell = row.insertCell();
+              valCell.innerHTML = field.value;
+            } else {
+              // datafield
+              for (let subfield of field.subfields) {
+                let subRow = table.insertRow()
+                subRow.insertCell(); // placeholder
+                
+                let codeCell = subRow.insertCell();
+                codeCell.innerHTML = subfield.code;
+                
+                // value
+                let valCell = subRow.insertCell();
+                valCell.contentEditable = true; // not used but makes cell clickable
+                
+                let valSpan = document.createElement("span");
+                valCell.appendChild(valSpan);
+                subfield.valueElement = valSpan; // save the value HTML element in the subfield object
+                valSpan.innerHTML = subfield.value; 
+                valSpan.contentEditable = true;
+                valCell.addEventListener("focus", function() {valSpan.focus()});
+                
+                if (bib.isAuthorityControlled(field.tag, subfield.code)) {
+                  valSpan.className = "authority-controlled"; // for styling
+                  
+                  // xref
+                  let xrefCell = subRow.insertCell();
+                  subfield.xrefElement = xrefCell; // save the xref HTML element in the subfield object
+                  //xrefCell.innerHTML = subfield.xref;
+                  let xrefLink = document.createElement("a");
+                  xrefCell.appendChild(xrefLink);
+                  xrefLink.text = subfield.xref;
+                  xrefLink.href = `${Jmarc.apiUrl}/marc/auths/records/${subfield.xref}`;
+                  
+                  // lookup
+                  let timer;
+                  
+                  valCell.addEventListener(
+                    "keyup",
+                    function(event) {
+                      if (event.keyCode < 45 && event.keyCode !== 8) {
+                        // non ascii or delete keys
+                        return
+                      }
+                      
+                      valSpan.style.backgroundColor = "red";
+                      xrefCell.innerHTML = null;
+                      
+                      let popup = document.getElementById("typeahead-popup");
+                      popup && popup.remove();
+                      
+                      clearTimeout(timer);
+                      subfield.value = valCell.innerText;
+                      
+                      if (subfield.value) {
+                        timer = setTimeout(
+                          function() {
+                            let popup = document.createElement("div");
+                            valCell.appendChild(popup);
+                            popup.id = "typeahead-popup";
+                            popup.innerHTML = "searching...";
+                            
+                            field.lookup().then(
+                              choices => {
+                                if (choices.length == 0) {
+                                  popup.innerHTML = "not found :(";
+                                  setTimeout(function() {popup.remove()}, 1000)
+                                  return
+                                }
+                                
+                                popup.innerHTML = null;
+                                
+                                let list = document.createElement("ul");
+                                popup.appendChild(list);
+                                
+                                for (let choice of choices) {
+                                  let item = document.createElement("li");
+                                  list.appendChild(item);
+                                  item.innerHTML = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
+                                  
+                                  item.addEventListener(
+                                    "mouseover",
+                                    function() {item.style.backgroundColor = "gray"}
+                                  );
+                                  
+                                  item.addEventListener(
+                                    "mouseout",
+                                    function() {
+                                      item.style.backgroundColor = "white";
+                                      subfield.value = valSpan.innerText
+                                    }
+                                  )
+                                  
+                                  item.addEventListener(
+                                    "mousedown",
+                                    function() {
+                                      popup.remove()
+                                      
+                                      for (let newSubfield of choice.subfields) {
+                                        let currentSubfield = field.getSubfield(newSubfield.code);
+                                        
+                                        currentSubfield.value = newSubfield.value;
+                                        currentSubfield.xref = newSubfield.xref;
+                                        
+                                        currentSubfield.valueElement.innerHTML = currentSubfield.value;
+                                        currentSubfield.valueElement.style.backgroundColor = "white";
+                                        currentSubfield.xrefElement.innerHTML = currentSubfield.xref;	
+                                      }
+                                    }
+                                  )
+                                }
+                              }
+                            )
+                          },
+                          750
+                        );
+                      }
+                    }
+                  )
+                }
+                
+                valCell.addEventListener(
+                  "blur",
+                  function() {
+                    subfield.value = valSpan.innerText;
+                    console.log(`user entered value "${subfield.value}"`);
+  
+                  }
+                );
+  
+                valCell.addEventListener(
+                  "keydown",
+                  function(event) {
+                    if (event.keyCode === 13) {
+                      // return key
+                      event.preventDefault();
+                      valCell.blur();
+                    }
+                  }
+                );
+                
+              }
+            }
+          }
+          if (this.isRecordOneDisplayed==false){
+            let myRecord1 = document.getElementById("record1");
+            myRecord1.appendChild(table)
+            this.isRecordOneDisplayed=true
+            this.record1=myRecord
+          } 
+          else if  
+            (this.isRecordTwoDisplayed==false)  {
+            let myRecord2 = document.getElementById("record2");
+            myRecord2.appendChild(table)
+            this.isRecordTwoDisplayed=true
+            this.record2=myRecord
+          }
+        
+
+          // myRecord.appendChild(table);
+          // myRecord.id = "record"+myRecord.recId;
+        }
+      
+      );
+    
+    }
+  
+  }
   }
 }
 
@@ -463,9 +1097,12 @@ data:function(){
 /////////////////////////////////////////////////////////////////
 let vm_new_ui_component = new Vue({
   el:'#new_ui_component',
-  components:{headercomponent,basketcomponent,warningcomponent,multiplemarcrecordcomponent,messagecomponent},
+  components:{headercomponent,basketcomponent,warningcomponent,multiplemarcrecordcomponent,messagecomponent,modalmergecomponent},
       data:{
         visible:false,
+        recordToDisplay:"",
+        recordDisplayed:[],
+        maxRecordToDisplay:26,
         records:[]
       },
       methods:{}
