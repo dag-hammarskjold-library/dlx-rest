@@ -10,6 +10,8 @@
 
 "use strict";
 
+//const { memoryUsage } = require("process");
+
 		const authMap = {
 			"bibs": {
         		'191': {'b': '190', 'c': '190'},
@@ -112,7 +114,7 @@
 			lookup() {
 				let collection = this instanceof BibDataField ? "bibs" : "auths";
 				let lookupString = this.subfields.map(x => {return `${x.code}=${x.value}`}).join("&");
-				let url = Jmarc.apiUrl + `/marc/${collection}/lookup/${this.tag}?${lookupString}`;
+				let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 				
 				return fetch(url).then(
 					response => {
@@ -159,7 +161,7 @@
 			constructor(collection) {
 				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
 				this.collection = collection || function() {throw new Error("Collection required")};
-				this.collectionUrl = Jmarc.apiUrl + `/marc/${collection}`;
+				this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 				this.recordId = null;
 				this.fields = [];
 			}
@@ -179,7 +181,7 @@
 				
 				let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
 				jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
-				jmarc.url = Jmarc.apiUrl + `/marc/${collection}/records/${recordId}`;
+				jmarc.url = Jmarc.apiUrl + `marc/${collection}/records/${recordId}`;
 				
 				let savedResponse;
 				
@@ -577,7 +579,7 @@ let basketcomponent = {
           </div>
     `,
   created:
-  
+        
         async function(){
 
           // List of Items
@@ -620,6 +622,8 @@ let basketcomponent = {
 
           }
 
+          
+          this.$root.$refs.basketcomponent = this;
 
   },
  
@@ -636,6 +640,16 @@ let basketcomponent = {
   }
   ,
   methods:{
+    // return the id of the record
+    getId(recId){
+      let myId=""
+      for (let i = 0; i < this.listRecordsTot.length; ++i){
+        if (this.listRecordsTot[i].record_id == recId) {
+            myId=this.listRecordsTot[i].id
+          }
+        }
+      return myId
+    },
     // display record 
     displayRecord(myRecord){
       this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord)
@@ -654,7 +668,7 @@ let basketcomponent = {
         if (sizeArray!==0){
                    
             for (let i = 0; i < this.listRecordsTot.length; ++i){
-                this.removeRecordFromList(this.listRecordsTot[i].id,verbose=false)
+                this.removeRecordFromList(this.listRecordsTot[i].id,false)
             }
             this.callChangeStyling("Basket cleared!!! ","row alert alert-success")
         }
@@ -708,6 +722,7 @@ let basketcomponent = {
           })
           .then(response => {
               if (response.ok) {	
+
                 // delete the value from the array
                 for (let i = 0; i < this.listRecordsTot.length; ++i){
                   if (this.listRecordsTot[i].id == myIndex) {
@@ -720,15 +735,13 @@ let basketcomponent = {
                     }
                   }
                 if (verbose){
-                this.callChangeStyling("Item "+ this.listRecordsTot[i].record_id +"("+ this.listRecordsTot[i].collection + ")  deleted from the basket.","row alert alert-success")
-                // let myText=document.getElementById("messageText")
-                // myText.innerText+= "<div class='text-primary' v-on:click='this.addRecordToList(record.id,record.collection,record.record_id,record.title)'> Do you want to undo this operation? </div>"
-              }
+                this.callChangeStyling("Item "+ myIndex + ")  deleted from the basket.","row alert alert-success")
+               }
             }
           })
           .catch(error => {
             if (verbose) {
-            this.callChangeStyling("Oups!!!  Item "+ this.listRecordsTot[i].record_id +"("+ this.listRecordsTot[i].collection + ") not deleted from the basket ","row alert alert-danger")
+            this.callChangeStyling("Oups!!!  There is an error with this action , item   " + myIndex +" !!!","row alert alert-danger")
           }})
     }
   }
@@ -837,7 +850,8 @@ data:function(){
     record1:"",
     record2:"",
     isRecordOneDisplayed:false,
-    isRecordTwoDisplayed:false
+    isRecordTwoDisplayed:false,
+    id:""
     }
   },
   created(){
@@ -848,6 +862,15 @@ data:function(){
     callChangeStyling(myText,myStyle){
       this.$root.$refs.messagecomponent.changeStyling(myText,myStyle)
     },
+    
+    getIdFromRecordId(recId){
+      this.id=this.$root.$refs.basketcomponent.getId(recId)
+    }
+    ,
+    removeFromBasket(recId){
+      this.getIdFromRecordId(recId)
+      this.$root.$refs.basketcomponent.removeRecordFromList(this.id,false)
+    },
     removeRecordFromEditor(recordID){
     // get the parent
     if (recordID==="record1"){
@@ -857,7 +880,7 @@ data:function(){
       // reset the parameters
       this.record1=""
       this.isRecordOneDisplayed=false
-      this.callChangeStyling("Record removed to the editor","row alert alert-success")
+      this.callChangeStyling("Record removed from the editor","row alert alert-success")
     }
     if (recordID==="record2") {
       let myDiv=document.getElementById("record2")
@@ -866,17 +889,14 @@ data:function(){
       // reset the parameters
       this.record2=""
       this.isRecordTwoDisplayed=false
-      this.callChangeStyling("Record removed to the editor","row alert alert-success")
+      this.callChangeStyling("Record removed from the editor","row alert alert-success")
     }
     },
   async displayMarcRecord(myRecord){
 
     // console.log(this.prefix)
 
-    // Jmarc.apiUrl=this.prefix
-
-    Jmarc.apiUrl="http://127.0.0.1:5000/records"
-    //Jmarc.apiUrl="https://czwkm00smd.execute-api.us-east-1.amazonaws.com/dev/api"
+    Jmarc.apiUrl=this.prefix
 
     let display = {"display1": myRecord};
 	
@@ -893,7 +913,7 @@ data:function(){
           let idRow = table.insertRow();
           let idCell = idRow.insertCell();
           idCell.colSpan = 3;
-          idCell.innerHTML = "record ID: " + recId;
+          idCell.innerHTML = "record ID: <strong> " + recId + "</strong>";
           
           let saveCell = idRow.insertCell();
           let saveButton = document.createElement("input");
@@ -901,7 +921,10 @@ data:function(){
           saveButton.type = "button";
           saveButton.value = "save";
           saveButton.className="btn btn-primary"
-          saveButton.onclick = function() {bib.put()};
+          saveButton.onclick = ()=> {
+            bib.put()
+            this.callChangeStyling("Record " + recId + " has been updated/saved","row alert alert-success")
+          };
           
           let deleteCell = idRow.insertCell();
           let deleteButton = document.createElement("input");
@@ -909,7 +932,18 @@ data:function(){
           deleteButton.type = "button";
           deleteButton.value = "delete";
           deleteButton.className="btn btn-danger"
-          deleteButton.onclick = function() {bib.delete()};
+          deleteButton.onclick = ()=> {
+            bib.delete()
+            if (this.record1===String(recId)){
+              this.removeRecordFromEditor("record1")
+            }
+            if (this.record2===String(recId)){
+              this.removeRecordFromEditor("record2")
+            }
+
+            this.callChangeStyling("Record " + recId + " has been deleted","row alert alert-success")
+            this.removeFromBasket(recId)
+          };
           
           for (let field of bib.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
             let row = table.insertRow();
