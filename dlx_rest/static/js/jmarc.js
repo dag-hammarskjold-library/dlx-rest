@@ -448,6 +448,6 @@ if (nodejs) {
 	}
 )
 
-(
-	nodejs ? exports : this['jmarcjs'] = {}
-)
+// (
+// 	nodejs ? exports : this['jmarcjs'] = {}
+// )
