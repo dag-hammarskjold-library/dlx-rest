@@ -1,4 +1,4 @@
-git+https://github.com/dag-hammarskjold-library/dlx
+git+https://github.com/dag-hammarskjold-library/dlx#egg=dlx
 Flask
 flask-cors
 Flask-Login
@@ -9,3 +9,4 @@ mongoengine
 mongomock
 pymongo
 pytest
+troposphere<3

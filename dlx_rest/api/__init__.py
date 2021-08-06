@@ -1033,6 +1033,67 @@ class LookupMap(Resource):
         
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
+# Auth merge
+@ns.route('/marc/auths/records/<int:record_id>/merge')
+@ns.param('record_id')
+class RecordMerge(Resource):
+    @ns.doc(description='Auth merge the target authority record in to this one')
+    @login_required
+    def get(self, record_id):
+        user = 'testing' if current_user.is_anonymous else current_user.email
+        gaining = Auth.from_id(record_id) or abort(404)
+        losing_id = request.args.get('target') or abort(400, '"target" param required')
+        losing_id = int(losing_id)
+        losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
+        
+        if losing.heading_field.tag != gaining.heading_field.tag:
+            abort(403, "Auth records not of the same type")
+
+        def update_records(record_type, gaining, losing):
+            authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
+            
+            conditions = []
+                 
+            for ref_tag, d in authmap.items():
+                for subfield_code, auth_tag in d.items():
+                    if auth_tag == losing.heading_field.tag:
+                        val = losing.heading_field.get_value(subfield_code)
+                        
+                        if val:
+                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
+            
+            
+            cls = BibSet if record_type == 'bib' else AuthSet
+            query = Query(Or(*conditions))
+            changed = 0
+
+            for record in cls.from_query(query):
+                state = record.to_bson()
+                
+                for i, field in enumerate(record.fields):
+                    if isinstance(field, Datafield):
+                        for subfield in field.subfields:
+                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
+                                subfield.xref = gaining.id
+                        
+                                if field in record.fields[0:i] + record.fields[i+1:]:
+                                    del record.fields[i] # duplicate field
+                        
+                if record.to_bson() != state:    
+                    record.commit(user=user)
+                    changed += 1
+                    
+            return changed
+        
+        changed = 0
+        
+        for record_type in ('bib', 'auth'):
+            changed += update_records(record_type, gaining, losing)    
+        
+        losing.delete(user=user)
+        
+        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+        
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
@@ -1050,6 +1111,8 @@ class RecordHistory(Resource):
         
         if history:
             data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
+        else:
+            data = None
         
         links = {
             '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
@@ -1241,7 +1304,7 @@ class FilesRecordsList(Resource):
 class FileRecord(Resource):
     args = reqparse.RequestParser()
     args.add_argument(
-        'format', 
+        'action', 
         type=str, 
         choices=['open', 'download']
     )
@@ -1250,6 +1313,7 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
+        print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1268,6 +1332,7 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
+        print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1276,10 +1341,11 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
+                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
-            return send_file(s3_file['Body'], as_attachment=True, attachment_filename=output_filename)
+            return send_file(s3_file['Body'], as_attachment=True, download_name=output_filename)
         elif action == 'open':
             output_filename = record.filename
             s3 = boto3.client('s3')
@@ -1287,10 +1353,11 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
+                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
-            return send_file(s3_file['Body'], as_attachment=False, attachment_filename=output_filename)
+            return send_file(s3_file['Body'], as_attachment=False, download_name=output_filename)
             
         links = {
             '_self': URL('api_file_record', record_id=record_id).to_str(),
