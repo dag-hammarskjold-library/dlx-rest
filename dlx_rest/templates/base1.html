@@ -54,7 +54,11 @@
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Files</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('newui')}}">NEW UI</a></li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.has_permission('updateRecord') %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>
+                        {% endif %}
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav ml-auto">
                     {% if current_user.is_authenticated %}

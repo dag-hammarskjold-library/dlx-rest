@@ -114,6 +114,13 @@ class User(UserMixin, Document):
             ]
         )
 
+    def has_permission(self, permission_name):
+        my_permissions = []
+        for role in self.roles:
+            if role.has_permission(permission_name):
+                return True
+        return False
+
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(Config.JWT_SECRET_KEY)
