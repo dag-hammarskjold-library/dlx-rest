@@ -1,14 +1,19 @@
+/* The Flask app must be currently running in TESTING mode to use this spec. If
+the app is not in TESTING mode, the spec will fail at the app login prompt. 
+Unset environment variable DLX_REST_DEV and export/setx DLX_REST_TESTING to a
+true value before starting the app */
+
 "use strict";
 
 const jmarcjs = require('../static/js/jmarc.js');
 const Jmarc = jmarcjs.Jmarc;
 const Bib = jmarcjs.Bib;
 const Auth = jmarcjs.Auth;
-//const ControlField = jmarcjs.ControlField;
+const ControlField = jmarcjs.ControlField;
 const DataField = jmarcjs.DataField;
-//const Subfield = jmarcjs.Subfield;
+const Subfield = jmarcjs.Subfield;
 
-Jmarc.apiUrl = "http://localhost:5000/api";
+Jmarc.apiUrl = "http://localhost:5000/api/";
 
 describe(
 	"Jmarc", 

@@ -111,7 +111,7 @@ if (nodejs) {
 			lookup() {
 				let collection = this instanceof BibDataField ? "bibs" : "auths";
 				let lookupString = this.subfields.map(x => {return `${x.code}=${x.value}`}).join("&");
-				let url = Jmarc.apiUrl + `/marc/${collection}/lookup/${this.tag}?${lookupString}`;
+				let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 				
 				return fetch(url).then(
 					response => {
@@ -157,8 +157,10 @@ if (nodejs) {
 		class Jmarc {
 			constructor(collection) {
 				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+				Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/'
+				
 				this.collection = collection || function() {throw new Error("Collection required")};
-				this.collectionUrl = Jmarc.apiUrl + `/marc/${collection}`;
+				this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 				this.recordId = null;
 				this.fields = [];
 			}
@@ -175,10 +177,11 @@ if (nodejs) {
 			
 			static get(collection, recordId) {
 				Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+				Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/'
 				
 				let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
 				jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
-				jmarc.url = Jmarc.apiUrl + `/marc/${collection}/records/${recordId}`;
+				jmarc.url = Jmarc.apiUrl + `marc/${collection}/records/${recordId}`;
 				
 				let savedResponse;
 				
@@ -445,6 +448,6 @@ if (nodejs) {
 	}
 )
 
-(
-	nodejs ? exports : this['jmarcjs'] = {}
-)
+// (
+// 	nodejs ? exports : this['jmarcjs'] = {}
+// )
