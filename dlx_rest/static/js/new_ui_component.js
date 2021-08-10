@@ -869,8 +869,7 @@ let multiplemarcrecordcomponent = {
       });
     }
   },
-  methods:
-  {
+  methods: {
     callChangeStyling(myText, myStyle) {
       this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
     },
@@ -1141,23 +1140,7 @@ let multiplemarcrecordcomponent = {
       }
 
     }
-    // // Some styling for the cells
-    // let cells = document.getElementsByTagName("td");
-    // for (let i = 0; i < cells.length; i++) {
-    //   console.log("ici +++++++++++")
-    //   cells[i].style.textAlign = "center";  
-    //   if (i==0){
-    //     cells[i].style.width = "50px";  
-    //   }
-    //   if (i==1){
-    //     cells[i].style.width = "10px";  
-    //   }
-    //   if (i==2){
-    //     cells[i].style.width = "200px";  
-    //   }
-    // }
    }
-  }
 }
 
 /////////////////////////////////////////////////////////////////
