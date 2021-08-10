@@ -654,6 +654,7 @@ let basketcomponent = {
       this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord)
       this.callChangeStyling("Record added to the editor", "row alert alert-success")
     },
+
     callChangeStyling(myText, myStyle) {
       this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
     },
