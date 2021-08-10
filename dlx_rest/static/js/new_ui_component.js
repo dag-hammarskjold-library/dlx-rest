@@ -905,19 +905,24 @@ data:function(){
         bib => {
           let table = document.createElement("table");
 
-          // some styling for the table
-          table.style.width="100%";
+          // Some styling for the table
+          table.style.width="400px";
           table.style.tableLayout="fixed";
+          table.className="w-auto table-striped"
           
+
           
           let idRow = table.insertRow();
           let idCell = idRow.insertCell();
           idCell.colSpan = 3;
           idCell.innerHTML = "record ID: <strong> " + recId + "</strong>";
-          
+  
           let saveCell = idRow.insertCell();
           let saveButton = document.createElement("input");
+          
           saveCell.appendChild(saveButton);
+
+
           saveButton.type = "button";
           saveButton.value = "save";
           saveButton.className="btn btn-primary"
@@ -928,7 +933,8 @@ data:function(){
           
           let deleteCell = idRow.insertCell();
           let deleteButton = document.createElement("input");
-          deleteCell.appendChild(deleteButton);
+          deleteCell.appendChild(deleteButton)
+          
           deleteButton.type = "button";
           deleteButton.value = "delete";
           deleteButton.className="btn btn-danger"
@@ -971,6 +977,8 @@ data:function(){
                 valCell.contentEditable = true; // not used but makes cell clickable
                 
                 let valSpan = document.createElement("span");
+                // update the size of the span
+                valSpan.style.width="100%"
                 valCell.appendChild(valSpan);
                 subfield.valueElement = valSpan; // save the value HTML element in the subfield object
                 valSpan.innerHTML = subfield.value; 
@@ -987,8 +995,9 @@ data:function(){
                   let xrefLink = document.createElement("a");
                   xrefCell.appendChild(xrefLink);
                   xrefLink.text = subfield.xref;
-                  xrefLink.href = `${Jmarc.apiUrl}/marc/auths/records/${subfield.xref}`;
-                  
+                  xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
+                  xrefLink.target="_blank"
+
                   // lookup
                   let timer;
                   
@@ -1112,17 +1121,28 @@ data:function(){
             this.isRecordTwoDisplayed=true
             this.record2=myRecord
           }
-        
 
-          // myRecord.appendChild(table);
-          // myRecord.id = "record"+myRecord.recId;
         }
       
       );
     
     }
-  
-  }
+    // // Some styling for the cells
+    // let cells = document.getElementsByTagName("td");
+    // for (let i = 0; i < cells.length; i++) {
+    //   console.log("ici +++++++++++")
+    //   cells[i].style.textAlign = "center";  
+    //   if (i==0){
+    //     cells[i].style.width = "50px";  
+    //   }
+    //   if (i==1){
+    //     cells[i].style.width = "10px";  
+    //   }
+    //   if (i==2){
+    //     cells[i].style.width = "200px";  
+    //   }
+    // }
+   }
   }
 }
 
