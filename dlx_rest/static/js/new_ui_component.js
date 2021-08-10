@@ -588,31 +588,6 @@ let basketcomponent = {
       // fetch the data from the api
       let url = this.prefix + this.url
 
-          // process to fecth data for the full record
-          if (response.ok) {
-            let myJson= await response.json();
-
-            // Adding the data inside the list
-            listItems.push(myJson.data.items)
- 
-            // Extracting the data for each items in the list
-            for (let item=0 ; item < listItems[0].length; item++ ){
-
-                // retrieving data from API
-                let response1 = await fetch(listItems[0][item]);
-
-                if (response1.ok) {
-                  let myItem={}
-                  let myJson1= await response1.json();
-                  myItem.id=myJson1["data"]["id"]
-                  myItem.record_id=myJson1["data"]["record_id"]
-                  myItem.collection=myJson1["data"]["collection"]
-                  myItem.title=myJson1["data"]["title"]
-                  myItem.symbol=myJson1["data"]["symbol"]
-                  //console.log(myItem.symbol)
-                  this.listRecordsTot.push(myItem)
-
-                }
 
       // retrieving data from API
       let response = await fetch(url);
@@ -946,9 +921,9 @@ let multiplemarcrecordcomponent = {
             let table = document.createElement("table");
 
             // some styling for the table
-            table.style.width="400px";
+            table.style.width = "100%";
             table.style.tableLayout = "fixed";
-            table.className="w-auto table-striped"
+
 
             let idRow = table.insertRow();
             let idCell = idRow.insertCell();
@@ -1011,8 +986,6 @@ let multiplemarcrecordcomponent = {
                   valCell.contentEditable = true; // not used but makes cell clickable
 
                   let valSpan = document.createElement("span");
-                  // update the size of the span
-                  valSpan.style.width="100%"
                   valCell.appendChild(valSpan);
                   subfield.valueElement = valSpan; // save the value HTML element in the subfield object
                   valSpan.innerHTML = subfield.value;
@@ -1029,8 +1002,7 @@ let multiplemarcrecordcomponent = {
                     let xrefLink = document.createElement("a");
                     xrefCell.appendChild(xrefLink);
                     xrefLink.text = subfield.xref;
-                    xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
-                    xrefLink.target="_blank"
+                    xrefLink.href = `${Jmarc.apiUrl}/marc/auths/records/${subfield.xref}`;
 
                     // lookup
                     let timer;
@@ -1166,22 +1138,6 @@ let multiplemarcrecordcomponent = {
       }
 
     }
-    // // Some styling for the cells
-    // let cells = document.getElementsByTagName("td");
-    // for (let i = 0; i < cells.length; i++) {
-    //   console.log("ici +++++++++++")
-    //   cells[i].style.textAlign = "center";  
-    //   if (i==0){
-    //     cells[i].style.width = "50px";  
-    //   }
-    //   if (i==1){
-    //     cells[i].style.width = "10px";  
-    //   }
-    //   if (i==2){
-    //     cells[i].style.width = "200px";  
-    //   }
-    // }
-   }
   }
 }
 
