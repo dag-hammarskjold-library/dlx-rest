@@ -109,6 +109,7 @@ export let multiplemarcrecordcomponent = {
               table.style.width="400px";
               table.style.tableLayout = "fixed";
               table.className="w-auto table-striped"
+
   
               let idRow = table.insertRow();
               let idCell = idRow.insertCell();
@@ -307,6 +308,15 @@ export let multiplemarcrecordcomponent = {
                 myRecord1.appendChild(table)
                 this.isRecordOneDisplayed = true
                 this.record1 = myRecord
+                // further styling for the div
+                if (myColl==="bibs") {
+                   console.log("ici")
+                   myRecord1.style.backgroundColor="green";    
+                   myRecord1.style.opacity="0.6"; 
+                } else {
+                  myRecord1.style.backgroundColor="yellow";    
+                  myRecord1.style.opacity="0.6"; 
+                }
               }
               else if
                 (this.isRecordTwoDisplayed == false) {
@@ -314,6 +324,15 @@ export let multiplemarcrecordcomponent = {
                 myRecord2.appendChild(table)
                 this.isRecordTwoDisplayed = true
                 this.record2 = myRecord
+                // further styling for the div
+                if (myColl==="bibs") {
+                  console.log("ici")
+                  myRecord2.style.backgroundColor="green";    
+                  myRecord2.style.opacity="0.6"; 
+                } else {
+                  myRecord2.style.backgroundColor="yellow";    
+                  myRecord2.style.opacity="0.6"; 
+                }
               }
   
   

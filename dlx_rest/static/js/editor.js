@@ -16,8 +16,7 @@ import { modalmergecomponent } from "./merge.js";
 /////////////////////////////////////////////////////////////////
 let vm_new_ui_component = new Vue({
     el: '#new_ui_component',
-    //components: { headercomponent, basketcomponent, warningcomponent, multiplemarcrecordcomponent, messagecomponent, modalmergecomponent },
-    components: { headercomponent, basketcomponent, warningcomponent, multiplemarcrecordcomponent, messagecomponent, modalmergecomponent },
+     components: { headercomponent, basketcomponent, warningcomponent, multiplemarcrecordcomponent, messagecomponent, modalmergecomponent },
     data: {
       visible: false,
       recordToDisplay: "",
