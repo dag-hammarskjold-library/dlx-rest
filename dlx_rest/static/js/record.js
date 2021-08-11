@@ -93,6 +93,7 @@ export let multiplemarcrecordcomponent = {
       async displayMarcRecord(myRecord, myColl="bibs") {
         /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
   
+        console.log("Collection: " + myColl)
         // console.log(myRecord)
         // console.log(this.prefix)
   
