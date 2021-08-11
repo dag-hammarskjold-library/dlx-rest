@@ -16,7 +16,7 @@ export let basketcomponent = {
                       <small><i v-on:click="removeRecordFromList(record.id)" class="far fa-trash-alt"></i></small>
                     </div>
                     <p class="mb-1 text-success">
-                      <span :title=record.title v-on:click="displayRecord(record.record_id)">{{record.title.substring(0,45)}}....</span>
+                      <span :title=record.title v-on:click="displayRecord(record.record_id, record.collection)">{{record.title.substring(0,45)}}....</span>
                     </p>
                     <p v-if="record.symbol" class="mb-1">
                       <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
@@ -98,8 +98,8 @@ export let basketcomponent = {
         return myId
       },
       // display record 
-      displayRecord(myRecord) {
-        this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord)
+      displayRecord(myRecord, myCollection) {
+        this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
         this.callChangeStyling("Record added to the editor", "row alert alert-success")
       },
   
