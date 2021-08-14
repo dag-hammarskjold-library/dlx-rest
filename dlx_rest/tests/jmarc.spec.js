@@ -1,28 +1,49 @@
-/* The Flask app must be currently running in TESTING mode to use this spec. If
-the app is not in TESTING mode, the spec will fail at the app login prompt. 
-Unset environment variable DLX_REST_DEV and export/setx DLX_REST_TESTING to a
-true value before starting the app */
+/* This is a Jasmine test suite https://jasmine.github.io/
+
+To install the Node dependencies run `npm install node-fetch rollup jasmine`
+
+To run the spec run `jasmine <path to this file>` 
+
+The Flask app must be currently running in TESTING mode. Export/setx 
+DLX_REST_TESTING to a true value before starting the app. If the app is not in
+TESTING mode, the spec will fail at the app login prompt */
 
 "use strict";
 
-const jmarcjs = require('../static/js/jmarc.js');
-const Jmarc = jmarcjs.Jmarc;
-const Bib = jmarcjs.Bib;
-const Auth = jmarcjs.Auth;
-const ControlField = jmarcjs.ControlField;
-const DataField = jmarcjs.DataField;
-const Subfield = jmarcjs.Subfield;
-
-Jmarc.apiUrl = "http://localhost:5000/api/";
-
 describe(
-	"Jmarc", 
+	"jmarcjs", 
 	function() {
-		it(
-			"does create, write, and read", 
+		var apiUrl = "http://localhost:5000/api/";
+		var jmarcCompiled = __dirname + "/jmarc.umd.js"
+		
+		beforeEach(
+			async function() {
+				// convert the jmarc.js module to "UMD" for use in Node
+				var rollup = require("rollup");
+				
+				const bundle = await rollup.rollup({input: __dirname + "/../static/js/jmarc.js"});  
+				await bundle.write({format: "umd", file: jmarcCompiled, name: "jmarcjs"});
+				await bundle.close();	
+			}
+		);
+		
+		afterAll(
 			function() {
+				// delete the UMD file
+				const fs = require('fs');
+				
+				fs.unlinkSync(jmarcCompiled);
+			}
+		);
+		
+		it(
+			"does create, read, and write of bib and auth records", 
+			function() {
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
 				// create record
-				let auth = new Auth();
+				let auth = new jmarcjs.Auth();
 				
 				// write
 				var field = auth.createField("007");
@@ -75,7 +96,7 @@ describe(
 				expect(field.value).toEqual("foobar");
 				
 				var field = auth.getField("100");
-				expect(field).toBeInstanceOf(DataField);
+				expect(field).toBeInstanceOf(jmarcjs.DataField);
 	
 				var subfield = field.getSubfield("a");
 				expect(subfield.constructor.name).toEqual("Subfield");
@@ -83,7 +104,7 @@ describe(
 				expect(subfield.value).toEqual("foo");
 				
 				var field = auth.getField("900", 3); // gets the 4th instance of field 900
-				expect(field).toBeInstanceOf(DataField);
+				expect(field).toBeInstanceOf(jmarcjs.DataField);
 				expect(field.getSubfield("a").value).toEqual("bar 3")
 				expect(field.getSubfield("a", 1).value).toEqual("baz 3"); // gets the second instance of subfield a
 				
@@ -97,7 +118,10 @@ describe(
 		it(
 			"does post, get, put, delete",
 			async function() {
-				var auth = new Auth();
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
+				var auth = new jmarcjs.Auth();
 				auth.createField("100").createSubfield("a").value = "New record";
 				expect(auth.saved).toBe(false);
 				
@@ -107,7 +131,7 @@ describe(
 				expect(auth.saved).toBe(true);
 				
 				// get the same record by ID
-				var auth = await Auth.get(auth.recordId);
+				var auth = await jmarcjs.Auth.get(auth.recordId);
 				expect(auth.getField("100").getSubfield("a").value).toEqual("New record");
 				expect(auth.saved).toBe(true);
 
@@ -123,7 +147,7 @@ describe(
 				expect(auth.recordId).toBeNull();
 
 				try {
-					await Jmarc.get("auths", oldId);
+					await jmarcjs.Jmarc.get("auths", oldId);
 				} catch(err) {
 					expect(err.message).toMatch(/^Requested resource not found/)
 				}
@@ -133,8 +157,10 @@ describe(
 		it(
 			"knows what fields are authority-controlled",
 			function() {
-				var bib = new Bib();
-
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
+				var bib = new jmarcjs.Bib();
 				expect(bib.isAuthorityControlled("700", "a")).toBeTrue();
 			}
 		);
@@ -142,19 +168,22 @@ describe(
 		it(
 			"does lookup of authority-controlled values",
 			async function() {
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
 				// create test auth record
-				var auth = new Auth();
+				var auth = new jmarcjs.Auth();
 				var myVal = Math.random().toString();
 				auth.createField("100").createSubfield("a").value = myVal;
 				await auth.post();
 				
 				// create test bib record
-				var bib = new Bib();
+				var bib = new jmarcjs.Bib();
 				var field = bib.createField("700");
 				field.createSubfield("a").value = myVal;
 				
 				var choices = await field.lookup();
-				expect(choices[0]).toBeInstanceOf(DataField);
+				expect(choices[0]).toBeInstanceOf(jmarcjs.DataField);
 				expect(choices[0].getSubfield("a").value).toEqual(myVal);
 			}
 		);
