@@ -187,5 +187,23 @@ describe(
 				expect(choices[0].getSubfield("a").value).toEqual(myVal);
 			}
 		);
+		
+		it(
+			"provides record history",
+			async function() {
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
+				var bib = new jmarcjs.Bib();
+				var hist = await bib.history();
+				expect(hist).toEqual([]);
+				
+				bib.createField("245").createSubfield("a").value = "New record";
+				await bib.post();
+				hist = await bib.history();
+				expect(hist[0]).toBeInstanceOf(jmarcjs.Jmarc);
+				expect(hist[0].getField("245").getSubfield("a").value).toEqual("New record")
+			}
+		);
 	}
 );

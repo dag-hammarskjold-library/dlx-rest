@@ -159,6 +159,7 @@ export class Jmarc {
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
 		this.fields = [];
+		this._history = [];
 	}
 	
 	isAuthorityControlled(tag, code) {
@@ -362,6 +363,27 @@ export class Jmarc {
 	
 	stringify() {
 		return JSON.stringify(this.compile())
+	}
+	
+	async history() {
+		if (typeof this.url === "undefined") {
+			return []
+		}
+		
+		let response = await fetch(this.url + "/history");
+		let json = await response.json();
+		let data = json['data'];
+		let historyRecords = [];
+		
+		for (let url of data) {
+			let record = new Jmarc();
+			let response = await fetch(url);
+			let json = await response.json();
+			record.parse(json['data']);
+			historyRecords.push(record);
+		}
+		
+		return historyRecords
 	}
 	
 	createField(tag) {
