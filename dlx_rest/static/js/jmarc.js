@@ -2,8 +2,7 @@
 
 if (typeof window === "undefined") {
 	// probably running in Node
-	var fetch = require('node-fetch')
-}
+	global.fetch = require('node-fetch')
 	
 const authMap = {
 	"bibs": {
