@@ -1,5 +1,10 @@
 "use strict";
 
+if (typeof window === "undefined") {
+	// probably running in Node
+	var fetch = require('node-fetch')
+}
+	
 const authMap = {
 	"bibs": {
 		'191': {'b': '190', 'c': '190'},
@@ -27,7 +32,7 @@ const authMap = {
 	}
 };
 
-class Subfield {
+export class Subfield {
 	constructor(code, value, xref) {
 		this.code = code;
 		this.value = value;
@@ -42,7 +47,7 @@ class LinkedSubfield extends Subfield {
 	}
 }
 
-class ControlField {
+export class ControlField {
 	constructor(tag, value) {
 		if (tag) {
 			! tag.match(/^00/) && function() {throw new Error("invalid Control Field tag")};
@@ -53,7 +58,7 @@ class ControlField {
 	}
 }
 
-class DataField {
+export class DataField {
 	constructor(tag, indicators, subfields) {
 		if (tag) {
 			tag.match(/^00/) && function() {throw new Error("invalid Data Field tag")};
@@ -154,6 +159,7 @@ export class Jmarc {
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
 		this.fields = [];
+		this._history = [];
 	}
 	
 	isAuthorityControlled(tag, code) {
@@ -359,6 +365,27 @@ export class Jmarc {
 		return JSON.stringify(this.compile())
 	}
 	
+	async history() {
+		if (typeof this.url === "undefined") {
+			return []
+		}
+		
+		let response = await fetch(this.url + "/history");
+		let json = await response.json();
+		let data = json['data'];
+		let historyRecords = [];
+		
+		for (let url of data) {
+			let record = new Jmarc();
+			let response = await fetch(url);
+			let json = await response.json();
+			record.parse(json['data']);
+			historyRecords.push(record);
+		}
+		
+		return historyRecords
+	}
+	
 	createField(tag) {
 		tag || function() {throw new Error("tag required")};
 
@@ -406,7 +433,7 @@ export class Jmarc {
 	}
 }
 
-class Bib extends Jmarc {
+export class Bib extends Jmarc {
 	constructor() {
 		super("bibs");
 	}
@@ -418,7 +445,7 @@ class Bib extends Jmarc {
 	validate() {}
 }
 
-class Auth extends Jmarc {
+export class Auth extends Jmarc {
 	constructor() {
 		super("auths");
 	}
