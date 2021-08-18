@@ -2,15 +2,20 @@
   <!-- New UI component integration --> 
   {% if current_user.is_active %}
   <div style="background-color:grey;">     
-
+    <style>
+        .modal-active{
+          display:block;
+        }
+    </style>
     <div id="new_ui_component" v-show="true">  
           <headercomponent></headercomponent>
           <messagecomponent url="userprofile/my_profile/basket" prefix="{{prefix}}"></messagecomponent>
-      <div class="row">
-          <basketcomponent url="userprofile/my_profile/basket" prefix="{{prefix}}" ></basketcomponent>
-          <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>      
-          <warningcomponent/>
-        </div>
+          <modalmergecomponent></modalmergecomponent>
+          <div class="row">  
+              <basketcomponent url="userprofile/my_profile/basket" prefix="{{prefix}}" ></basketcomponent>
+              <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>      
+              <warningcomponent/>
+          </div>
     </div> 
   </div>
   {% endif %}

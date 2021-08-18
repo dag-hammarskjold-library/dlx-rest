@@ -1,4 +1,9 @@
 /////////////////////////////////////////////////////////////////
+// IMPORTS
+/////////////////////////////////////////////////////////////////
+import { modalmergecomponent } from "./merge.js";
+
+/////////////////////////////////////////////////////////////////
 // HEADER COMPONENT
 /////////////////////////////////////////////////////////////////
 export let headercomponent = {
@@ -12,7 +17,7 @@ export let headercomponent = {
               <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">
                   <li class="nav-item active">
-                    <a class="nav-link" href="#">Authorities Merge <span class="sr-only">(current)</span></a>
+                    <a class="nav-link" href="#"  id="show-modal" @click="displayModal" >Authorities Merge <span class="sr-only">(current)</span></a>
                   </li>
                   <li class="nav-item">
                     <a class="nav-link" href="#">Feature2</a>
@@ -42,7 +47,12 @@ export let headercomponent = {
     ,
     data: function () {
       return {
-        visible: true
+        visible: true,
+      }
+    },
+    methods:{
+      displayModal(){
+        modalmergecomponent.methods.toggleModal()
       }
     }
   }

@@ -1,3 +1,7 @@
+let recup=""
+/////////////////////////////////////////////////////////////////
+// IMPORT
+/////////////////////////////////////////////////////////////////
 
 import { Jmarc } from "./jmarc.js";
 
@@ -29,8 +33,8 @@ export let multiplemarcrecordcomponent = {
                             </div>                                
                       </div>
                       <div id="records" class="row">
-                          <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-5 ml-3" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button></div></div>
-                          <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-5 ml-5" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button></div></div>
+                          <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-5 ml-3 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button></div></div>
+                          <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-5 ml-5 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button></div></div>
   
                     </div>
                 </div>
@@ -53,9 +57,19 @@ export let multiplemarcrecordcomponent = {
           var split_rec = record.split("/")
           this.displayMarcRecord(split_rec[1], split_rec[0])
         });
+      recup=this
       }
+      
     },
     methods: {
+      canDisplay(){
+        if (recup.isRecordOneDisplayed && recup.isRecordTwoDisplayed) {
+          return true
+        } 
+        if (!recup.isRecordOneDisplayed && !recup.isRecordTwoDisplayed) {
+          return false
+        }
+      },
       callChangeStyling(myText, myStyle) {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
       },
@@ -110,7 +124,17 @@ export let multiplemarcrecordcomponent = {
               table.style.width="400px";
               table.style.tableLayout = "fixed";
               table.className="w-auto table-striped"
+
+              
   
+              // let saveCell = idRow.insertCell();
+              // let saveButton = document.createElement("input");
+              // saveCell.appendChild(saveButton);
+              // saveButton.type = "button";
+              // saveButton.value = "save";
+              // saveButton.className = "btn btn-outline-primary"
+
+              // Save Button
               let idRow = table.insertRow();
               let idCell = idRow.insertCell();
               idCell.colSpan = 3;
@@ -121,18 +145,35 @@ export let multiplemarcrecordcomponent = {
               saveCell.appendChild(saveButton);
               saveButton.type = "button";
               saveButton.value = "save";
-              saveButton.className = "btn btn-primary"
+              saveButton.className = "btn btn-outline-primary"
               saveButton.onclick = () => {
                 bib.put()
                 this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
               };
+
+              // clone record
   
+              let cloneCell = idRow.insertCell();
+              let cloneButton = document.createElement("input");
+              cloneCell.appendChild(cloneButton);
+              cloneButton.type = "button";
+              cloneButton.value = "clone";
+              cloneButton.className = "btn btn-outline-warning"
+              cloneButton.onclick = () => {
+                let recup=bib.clone()
+                recup.post()
+                this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
+              };
+
+
+  
+              // Delete button
               let deleteCell = idRow.insertCell();
               let deleteButton = document.createElement("input");
               deleteCell.appendChild(deleteButton);
               deleteButton.type = "button";
               deleteButton.value = "delete";
-              deleteButton.className = "btn btn-danger"
+              deleteButton.className = "btn btn-outline-danger"
               deleteButton.onclick = () => {
                 bib.delete()
                 if (this.record1 === String(recId)) {
@@ -303,11 +344,19 @@ export let multiplemarcrecordcomponent = {
                   }
                 }
               }
+              table.style.marginTop="5px"
               if (this.isRecordOneDisplayed == false) {
                 let myRecord1 = document.getElementById("record1");
                 myRecord1.appendChild(table)
                 this.isRecordOneDisplayed = true
                 this.record1 = myRecord
+                // further styling for the div
+                if (myColl==="bibs") {
+                   console.log("ici")
+                   table.style.border="2px solid green";    
+                } else {
+                  table.style.border="2px solid purple";    
+                }
               }
               else if
                 (this.isRecordTwoDisplayed == false) {
@@ -315,6 +364,13 @@ export let multiplemarcrecordcomponent = {
                 myRecord2.appendChild(table)
                 this.isRecordTwoDisplayed = true
                 this.record2 = myRecord
+                // further styling for the div
+                if (myColl==="bibs") {
+                  console.log("ici")
+                  table.style.border="3px solid green";    
+                } else {
+                  table.style.border="3px solid purple";    
+                }
               }
   
   

@@ -220,7 +220,6 @@ export class Jmarc {
 		).then(
 			response => {
 				savedResponse = response;
-				
 				return response.json()
 			}
 		).then(

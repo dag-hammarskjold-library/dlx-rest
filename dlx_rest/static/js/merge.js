@@ -1,31 +1,68 @@
 /////////////////////////////////////////////////////////////////
+// IMPORTS
+/////////////////////////////////////////////////////////////////
+import { multiplemarcrecordcomponent } from "./record.js";
+
+
+/////////////////////////////////////////////////////////////////
 // MODAL MERGE AUTHORITY COMPONENT
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
+let vm=""
 export let modalmergecomponent = {
-    template: `
-                <div v-show="visible" class="modal" tabindex="-1">
-                  <div class="modal-dialog">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title">Modal title</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                      </div>
-                      <div class="modal-body">
-                        <p>Modal body text goes here.</p>
-                      </div>
-                      <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary">Save changes</button>
-                      </div>
+	template:`
+          <!-- The Modal -->
+  
+                <div v-show="modal" class="container mb-2 bg-white text-dark" style="width:40%;" >
+                    <div class="jumbotron mt-3 mb-3">
+                    <h1>Authorities merge feature</h1>
+                    <hr>
+                    <p>Please select the targeted record</p>
+                    <select class="form-select" name="pets" id="selectElementId" v-on:click="loadRecordId()">
+                      <option value="">--Please choose an option--</option>
+
+                    </select>
+                    <hr>
+                    <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
+                    <button type="button" class="btn btn-success">Merge</button>
                     </div>
-                  </div>
                 </div>
-              `
-    ,
-    data: function () {
-      return {
-        visible: true
-      }
-    }
+
+  `,
+  created(){
+    vm=this;
   }
+  ,
+  data: function(){
+    return { 
+      modal : false                 
+    }
+ },        
+ methods: {
+   toggleModal(){
+     if (multiplemarcrecordcomponent.methods.canDisplay()) {
+     return vm.modal=!vm.modal
+     } 
+   },
+   loadRecordId(){
+      if (multiplemarcrecordcomponent.methods.canDisplay()) {
+          alert("here")
+          console.log("record1:  " + multiplemarcrecordcomponent.recup.record1)
+          let select = document.getElementById('selectElementId');  
+          
+          // adding the first record Id
+          let opt = document.createElement('option');
+          opt.value = 1;
+          opt.innerHTML = multiplemarcrecordcomponent.recup.record1;
+          select.appendChild(opt); 
+
+        // adding the second record Id
+        opt = document.createElement('option');
+        opt.value = 2;
+        opt.innerHTML = multiplemarcrecordcomponent.recup.record2;
+        select.appendChild(opt); 
+      } 
+   }
+  }
+}
+  
