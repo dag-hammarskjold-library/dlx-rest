@@ -152,9 +152,6 @@ export let multiplemarcrecordcomponent = {
               };
 
               // clone record
-              // let idCell = idRow.insertCell();
-              // idCell.colSpan = 3;
-              // idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
   
               let cloneCell = idRow.insertCell();
               let cloneButton = document.createElement("input");
@@ -163,7 +160,8 @@ export let multiplemarcrecordcomponent = {
               cloneButton.value = "clone";
               cloneButton.className = "btn btn-outline-warning"
               cloneButton.onclick = () => {
-                //bib.put()
+                let recup=bib.clone()
+                recup.post()
                 this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
               };
 
