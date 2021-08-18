@@ -388,6 +388,9 @@ export class Jmarc {
 	clone() {
 		let cloned = new this.recordClass;
 		cloned.parse(this.compile());
+		cloned.deleteField("001");
+		cloned.deleteField("005");
+		cloned.deleteField("008");
 		
 		return cloned
 	}
