@@ -320,11 +320,9 @@ export class Jmarc {
 				} else {
 					let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
 					df.indicators = field.indicators.map(x => x.replace(" ", "_"));
-			
-					let sf;
 					
 					for (let subfield of field.subfields) {
-						sf = new Subfield(subfield.code, subfield.value, subfield.xref);
+						let sf = new Subfield(subfield.code, subfield.value, subfield.xref);
 						df.subfields.push(sf)
 					}
 					
@@ -389,6 +387,9 @@ export class Jmarc {
 	clone() {
 		let cloned = new this.recordClass;
 		cloned.parse(this.compile());
+		cloned.deleteField("001");
+		cloned.deleteField("005");
+		cloned.deleteField("008");
 		
 		return cloned
 	}
@@ -427,6 +428,17 @@ export class Jmarc {
 	
 	getField(tag, place) {
 		return this.getFields(tag)[place || 0]
+	}
+	
+	deleteField(tag, place) {
+		if (typeof place === "undefined") {
+			// delete all instances of tag
+			this.fields = this.fields.filter(field => {field.tag !== tag});
+		} else {
+			// delete field by place
+			let toDelete = this.getField(tag, place);
+			this.fields = this.fields.filter(field => {field !== toDelete})
+		}
 	}
 	
 	getSubfield(tag, code, tagPlace, codePlace) {
