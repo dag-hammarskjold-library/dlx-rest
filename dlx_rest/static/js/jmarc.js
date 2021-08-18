@@ -153,9 +153,10 @@ class AuthDataField extends DataField {
 export class Jmarc {
 	constructor(collection) {
 		Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
-		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/'
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
 		this.collection = collection || function() {throw new Error("Collection required")};
+		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
 		this.fields = [];
@@ -174,7 +175,7 @@ export class Jmarc {
 	
 	static get(collection, recordId) {
 		Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
-		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/'
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
 		let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
 		jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
@@ -384,6 +385,13 @@ export class Jmarc {
 		}
 		
 		return historyRecords
+	}
+	
+	clone() {
+		let cloned = new this.recordClass;
+		cloned.parse(this.compile());
+		
+		return cloned
 	}
 	
 	createField(tag) {

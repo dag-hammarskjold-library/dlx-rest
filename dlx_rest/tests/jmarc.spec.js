@@ -205,5 +205,19 @@ describe(
 				expect(hist[0].getField("245").getSubfield("a").value).toEqual("New record")
 			}
 		);
+		
+		it(
+			"clones itself",
+			function() {
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+				
+				var bib = new jmarcjs.Bib();
+				var field = bib.createField("245").createSubfield("a").value = "A record that will be cloned";
+				var cloned = bib.clone();
+				expect(cloned).toBeInstanceOf(jmarcjs.Bib);
+				expect(cloned.getField("245").getSubfield("a").value).toEqual("A record that will be cloned");
+			}
+		);
 	}
 );
