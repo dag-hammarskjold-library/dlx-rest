@@ -307,7 +307,8 @@ export class Jmarc {
 	}
 
 	parse(data) {
-		this.updated = data['updated']
+		this.updated = data['updated'];
+		this.user = data['user'];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
@@ -337,8 +338,7 @@ export class Jmarc {
 	}
 	
 	compile() {
-		let recordData = {'_id': this.recordId}; //, 'updated': this.updated};
-		
+		let recordData = {_id: this.recordId, updated: this.updated, user: this.user};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
 		for (let tag of tags.sort(x => parseInt(x))) {

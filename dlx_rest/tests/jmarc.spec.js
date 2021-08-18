@@ -202,7 +202,9 @@ describe(
 				await bib.post();
 				hist = await bib.history();
 				expect(hist[0]).toBeInstanceOf(jmarcjs.Jmarc);
-				expect(hist[0].getField("245").getSubfield("a").value).toEqual("New record")
+				expect(hist[0].getField("245").getSubfield("a").value).toEqual("New record");
+				expect(hist[0].updated).toBeDefined();
+				expect(hist[0].user).toBeUndefined(); // there is no user in test environment
 			}
 		);
 		
