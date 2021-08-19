@@ -64,6 +64,7 @@ export let multiplemarcrecordcomponent = {
       
     },
     methods: {
+
       getRecords(){
         let myVar=[]
         myVar.push(recup.record1)
@@ -80,6 +81,7 @@ export let multiplemarcrecordcomponent = {
           if (!recup.isRecordOneDisplayed && !recup.isRecordTwoDisplayed) {
             return false
           }
+
       },
       callChangeStyling(myText, myStyle) {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
@@ -186,6 +188,22 @@ export let multiplemarcrecordcomponent = {
                   this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
               };
+
+              // clone record
+  
+              let cloneCell = idRow.insertCell();
+              let cloneButton = document.createElement("input");
+              cloneCell.appendChild(cloneButton);
+              cloneButton.type = "button";
+              cloneButton.value = "clone";
+              cloneButton.className = "btn btn-outline-warning"
+              cloneButton.onclick = () => {
+                let recup=bib.clone()
+                recup.post()
+                this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
+              };
+
+
   
               // Delete button
               let deleteCell = idRow.insertCell();
@@ -403,6 +421,7 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = myRecord
                 // further styling for the div
                 if (myColl==="bibs") {
+
                   this.collectionRecord1="bibs"
                   table.style.border="3px solid green";    
                 } else {

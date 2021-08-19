@@ -5,13 +5,16 @@ import { multiplemarcrecordcomponent } from "./record.js";
 import { messagecomponent } from "./messagebar.js";
 
 
+
 /////////////////////////////////////////////////////////////////
 // MODAL MERGE AUTHORITY COMPONENT
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 let vm=""
 export let modalmergecomponent = {
+
   props: ["prefix"],
+
 	template:`
           <!-- The Modal -->
   
@@ -26,6 +29,7 @@ export let modalmergecomponent = {
                     <hr>
                     <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
                     <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
+
                     </div>
                 </div>
 
@@ -106,6 +110,7 @@ export let modalmergecomponent = {
    },
    loadRecordId(){
       if (multiplemarcrecordcomponent.methods.canDisplay()) {
+
 
           let myVal=[] 
           myVal=multiplemarcrecordcomponent.methods.getRecords()

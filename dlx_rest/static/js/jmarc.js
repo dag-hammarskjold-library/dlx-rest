@@ -307,7 +307,8 @@ export class Jmarc {
 	}
 
 	parse(data) {
-		this.updated = data['updated']
+		this.updated = data['updated'];
+		this.user = data['user'];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
@@ -320,11 +321,9 @@ export class Jmarc {
 				} else {
 					let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
 					df.indicators = field.indicators.map(x => x.replace(" ", "_"));
-			
-					let sf;
 					
 					for (let subfield of field.subfields) {
-						sf = new Subfield(subfield.code, subfield.value, subfield.xref);
+						let sf = new Subfield(subfield.code, subfield.value, subfield.xref);
 						df.subfields.push(sf)
 					}
 					
@@ -337,8 +336,7 @@ export class Jmarc {
 	}
 	
 	compile() {
-		let recordData = {'_id': this.recordId}; //, 'updated': this.updated};
-		
+		let recordData = {_id: this.recordId, updated: this.updated, user: this.user};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
 		for (let tag of tags.sort(x => parseInt(x))) {
@@ -389,6 +387,9 @@ export class Jmarc {
 	clone() {
 		let cloned = new this.recordClass;
 		cloned.parse(this.compile());
+		cloned.deleteField("001");
+		cloned.deleteField("005");
+		cloned.deleteField("008");
 		
 		return cloned
 	}
@@ -427,6 +428,17 @@ export class Jmarc {
 	
 	getField(tag, place) {
 		return this.getFields(tag)[place || 0]
+	}
+	
+	deleteField(tag, place) {
+		if (typeof place === "undefined") {
+			// delete all instances of tag
+			this.fields = this.fields.filter(field => {return field.tag !== tag});
+		} else {
+			// delete field by place
+			let toDelete = this.getField(tag, place);
+			this.fields = this.fields.filter(field => {return field !== toDelete})
+		}
 	}
 	
 	getSubfield(tag, code, tagPlace, codePlace) {
