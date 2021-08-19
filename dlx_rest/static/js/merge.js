@@ -11,7 +11,9 @@ import { messagecomponent } from "./messagebar.js";
 /////////////////////////////////////////////////////////////////
 let vm=""
 export let modalmergecomponent = {
+
   props: ["prefix"],
+
 	template:`
           <!-- The Modal -->
   
@@ -26,6 +28,10 @@ export let modalmergecomponent = {
                     <hr>
                     <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
                     <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4e6d307a36a39c31e6cfd2013a34a4fba359ee30
                     </div>
                 </div>
 

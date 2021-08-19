@@ -186,6 +186,7 @@ export let multiplemarcrecordcomponent = {
                   this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
               };
+
   
               // Delete button
               let deleteCell = idRow.insertCell();
