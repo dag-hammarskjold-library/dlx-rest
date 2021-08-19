@@ -137,7 +137,6 @@ export let basketcomponent = {
         myRecord.title = myTitle
   
         data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
-        //data=`{"collection": "${myCollection}", "record_id": "${myIndex}"}`
   
         fetch(url, {
           method: 'POST',
@@ -152,10 +151,14 @@ export let basketcomponent = {
                 this.callChangeStyling("Item " + myRecordId + "(" + myCollection + ")  added to the basket ", "row alert alert-warning")
               }
             }
+            // if not ok
+            if (!response.ok) {
+              this.callChangeStyling("Oups!!!  Item not added to the basket ", "row alert alert-danger")
+            }
           })
           .catch(error => {
             if (verbose) {
-              this.callChangeStyling("Oups!!!  Item " + myRecordId + "(" + myCollection + ") not added to the basket ", "row alert alert-danger")
+              this.callChangeStyling("Oups!!!  Item not added to the basket ", "row alert alert-danger")
             }
           })
       }
@@ -184,13 +187,17 @@ export let basketcomponent = {
                 }
               }
               if (verbose) {
-                this.callChangeStyling("Item " + myIndex + ")  deleted from the basket.", "row alert alert-success")
+                this.callChangeStyling("Item " + this.myRecordId + "  deleted from the basket.", "row alert alert-success")
               }
+            }
+            // if not ok
+            if (!response.ok) {
+              this.callChangeStyling("Oups!!!  There is an error with this action!!!", "row alert alert-danger")
             }
           })
           .catch(error => {
             if (verbose) {
-              this.callChangeStyling("Oups!!!  There is an error with this action , item   " + myIndex + " !!!", "row alert alert-danger")
+              this.callChangeStyling("Oups!!!  There is an error with this action!!!", "row alert alert-danger")
             }
           })
       }

@@ -2,6 +2,8 @@
 // IMPORTS
 /////////////////////////////////////////////////////////////////
 import { multiplemarcrecordcomponent } from "./record.js";
+import { messagecomponent } from "./messagebar.js";
+
 
 
 /////////////////////////////////////////////////////////////////
@@ -10,6 +12,9 @@ import { multiplemarcrecordcomponent } from "./record.js";
 /////////////////////////////////////////////////////////////////
 let vm=""
 export let modalmergecomponent = {
+
+  props: ["prefix"],
+
 	template:`
           <!-- The Modal -->
   
@@ -17,14 +22,14 @@ export let modalmergecomponent = {
                     <div class="jumbotron mt-3 mb-3">
                     <h1>Authorities merge feature</h1>
                     <hr>
-                    <p>Please select the targeted record</p>
+                    <p>Please select the gaining record</p>
                     <select class="form-select" name="pets" id="selectElementId" v-on:click="loadRecordId()">
-                      <option value="">--Please choose an option--</option>
-
+                      <option value="">--Please choose the gaining record--</option>
                     </select>
                     <hr>
                     <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
-                    <button type="button" class="btn btn-success">Merge</button>
+                    <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
+
                     </div>
                 </div>
 
@@ -35,10 +40,69 @@ export let modalmergecomponent = {
   ,
   data: function(){
     return { 
-      modal : false                 
+      modal : false            
     }
  },        
  methods: {
+    callChangeStyling(myText, myStyle) {
+      this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
+    },
+   mergeAuthorities(){
+
+    // define the gaining
+    let myVal=[] 
+    let gaining=""
+    let losing=""
+    let vm=this
+
+    // getting the Ids of the records  
+    myVal=multiplemarcrecordcomponent.methods.getRecords()
+
+    // getting the select object
+    let select = document.getElementById('selectElementId');  
+    let value  = select.options[select.selectedIndex].text;
+    
+    // defining the gaining and the losing 
+    if (value===myVal[0]) {
+       gaining=myVal[0]
+       losing=myVal[1] 
+    }
+    
+    if (value===myVal[1]) {
+      gaining=myVal[1]
+      losing=myVal[0] 
+    }
+     // fetch the data from the api
+     let url = this.prefix + "marc/auths/records/" + gaining +"/merge?target=" + losing
+
+     fetch(url, {
+       method: 'GET'
+     })
+       .then(response => {
+         if (response.ok) {
+            vm.callChangeStyling("Authorities merged","row alert alert-success")
+            //reload the basket 
+            // try
+            // {
+            //   location.reload();
+            // }
+            // catch (error){
+            //   vm.callChangeStyling(error.message,"row alert alert-danger")
+            // }
+             }
+          if (!response.ok) {
+          response.json()
+              .then(json => {
+                vm.callChangeStyling(json.message,"row alert alert-danger")
+              });
+          }
+           }
+       )
+       .catch(error => {
+          vm.callChangeStyling(error.message,"row alert alert-danger")
+       })
+   }
+   ,
    toggleModal(){
      if (multiplemarcrecordcomponent.methods.canDisplay()) {
      return vm.modal=!vm.modal
@@ -46,21 +110,29 @@ export let modalmergecomponent = {
    },
    loadRecordId(){
       if (multiplemarcrecordcomponent.methods.canDisplay()) {
-          alert("here")
-          console.log("record1:  " + multiplemarcrecordcomponent.recup.record1)
-          let select = document.getElementById('selectElementId');  
+
+
+          let myVal=[] 
+          myVal=multiplemarcrecordcomponent.methods.getRecords()
           
-          // adding the first record Id
+          let select = document.getElementById('selectElementId');  
+
+          // clear select
+          select.innerText = null;
+          
+          //adding the first record Id
           let opt = document.createElement('option');
           opt.value = 1;
-          opt.innerHTML = multiplemarcrecordcomponent.recup.record1;
+          opt.innerHTML = myVal[0];
           select.appendChild(opt); 
 
-        // adding the second record Id
-        opt = document.createElement('option');
-        opt.value = 2;
-        opt.innerHTML = multiplemarcrecordcomponent.recup.record2;
-        select.appendChild(opt); 
+          // adding the second record Id
+          opt = document.createElement('option');
+          opt.value = 2;
+          opt.innerHTML = myVal[1];
+          select.appendChild(opt); 
+
+
       } 
    }
   }

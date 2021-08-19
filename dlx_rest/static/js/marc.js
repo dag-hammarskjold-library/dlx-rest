@@ -1613,8 +1613,13 @@ class MarcRecord extends HTMLElement {
                 btnCreateNewRecord.addEventListener("click", () => {
                     // deactivate the styling for the divContent
 
-                    divContent.style.overflowY="";
-                    divContent.style.height="";
+                    let divContent = document.getElementById("divContent");
+
+                    if (divContent !== null) {
+                        divContent.style.overflowY="";
+                        divContent.style.height="";
+                    }
+
 
                     this.typeEditMode = "CREATERECORD"
                     let divRecordType = document.getElementById("divRecordType");
