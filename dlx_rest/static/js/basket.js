@@ -136,11 +136,7 @@ export let basketcomponent = {
         myRecord.collection = myCollection
         myRecord.title = myTitle
   
-<<<<<<< HEAD
         let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
-=======
-        data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
->>>>>>> 4e6d307a36a39c31e6cfd2013a34a4fba359ee30
   
         fetch(url, {
           method: 'POST',
