@@ -45,6 +45,8 @@ export let multiplemarcrecordcomponent = {
         visible: true,
         record1: "",
         record2: "",
+        collectionRecord1:"",
+        collectionRecord2:"",
         isRecordOneDisplayed: false,
         isRecordTwoDisplayed: false,
         id: ""
@@ -62,13 +64,22 @@ export let multiplemarcrecordcomponent = {
       
     },
     methods: {
+      getRecords(){
+        let myVar=[]
+        myVar.push(recup.record1)
+        myVar.push(recup.record2)
+        return myVar
+      },
       canDisplay(){
-        if (recup.isRecordOneDisplayed && recup.isRecordTwoDisplayed) {
-          return true
-        } 
-        if (!recup.isRecordOneDisplayed && !recup.isRecordTwoDisplayed) {
-          return false
-        }
+          if (recup.collectionRecord1==="bibs" || recup.collectionRecord2==="bibs"){
+            return false
+          }
+          if (recup.isRecordOneDisplayed && recup.isRecordTwoDisplayed) {
+            return true
+          } 
+          if (!recup.isRecordOneDisplayed && !recup.isRecordTwoDisplayed) {
+            return false
+          }
       },
       callChangeStyling(myText, myStyle) {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
@@ -124,8 +135,6 @@ export let multiplemarcrecordcomponent = {
               table.style.width="400px";
               table.style.tableLayout = "fixed";
               table.className="w-auto table-striped"
-
-              
   
               // let saveCell = idRow.insertCell();
               // let saveButton = document.createElement("input");
@@ -147,8 +156,15 @@ export let multiplemarcrecordcomponent = {
               saveButton.value = "save";
               saveButton.className = "btn btn-outline-primary"
               saveButton.onclick = () => {
-                bib.put()
-                this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
+                try
+                {
+                  bib.put()
+                  this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
+                }
+                catch (error){
+                  this.callChangeStyling(error.message,"row alert alert-danger")
+                }
+
               };
 
               // clone record
@@ -161,11 +177,15 @@ export let multiplemarcrecordcomponent = {
               cloneButton.className = "btn btn-outline-warning"
               cloneButton.onclick = () => {
                 let recup=bib.clone()
-                recup.post()
-                this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
+                try
+                {
+                  recup.post()
+                  this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
+                }
+                catch (error){
+                  this.callChangeStyling(error.message,"row alert alert-danger")
+                }              
               };
-
-
   
               // Delete button
               let deleteCell = idRow.insertCell();
@@ -175,18 +195,35 @@ export let multiplemarcrecordcomponent = {
               deleteButton.value = "delete";
               deleteButton.className = "btn btn-outline-danger"
               deleteButton.onclick = () => {
-                bib.delete()
-                if (this.record1 === String(recId)) {
-                  this.removeRecordFromEditor("record1")
-                }
-                if (this.record2 === String(recId)) {
-                  this.removeRecordFromEditor("record2")
-                }
-  
+                try
+                {
+                  bib.delete()
+                  if (this.record1 === String(recId)) {
+                    this.removeRecordFromEditor("record1")
+                  }
+                  if (this.record2 === String(recId)) {
+                    this.removeRecordFromEditor("record2")
+                  }
                 this.callChangeStyling("Record " + recId + " has been deleted", "row alert alert-success")
-                this.removeFromBasket(recId)
+                this.removeFromBasket(recId)                  
+                }
+                catch (error){
+                this.callChangeStyling(error.message,"row alert alert-danger")
+                }  
               };
-  
+
+              // history record
+
+              // let historyCell = idRow.insertCell();
+              // let historyButton = document.createElement("select");
+              // historyCell.appendChild(historyButton);
+              // historyButton.type = "button";
+              // historyButton.value = "clone";
+              // historyButton.className = "btn btn-outline-warning"
+              // historyButton.onclick = () => {
+              // //
+              // };
+
               for (let field of bib.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
   
@@ -366,9 +403,10 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = myRecord
                 // further styling for the div
                 if (myColl==="bibs") {
-                  console.log("ici")
+                  this.collectionRecord1="bibs"
                   table.style.border="3px solid green";    
                 } else {
+                  this.collectionRecord1="auths"
                   table.style.border="3px solid purple";    
                 }
               }

@@ -1,6 +1,7 @@
 /////////////////////////////////////////////////////////////////
 // MESSAGE BAR COMPONENT
 /////////////////////////////////////////////////////////////////
+let vm=""
 export let messagecomponent = {
     template: `
             <div v-bind:class="styleToDisplay" role="alert">
@@ -10,6 +11,7 @@ export let messagecomponent = {
     ,
     created() {
       this.$root.$refs.messagecomponent = this;
+      vm=this;
     },
     data: function () {
       return {
@@ -22,8 +24,15 @@ export let messagecomponent = {
     ,
     methods: {
       changeStyling(myText, myStyle) {
-        this.textToDisplay = myText
-        this.styleToDisplay = myStyle
+        vm.textToDisplay = myText
+        vm.styleToDisplay = myStyle
+        let timeoutID= setTimeout(
+          function(){
+          vm.textToDisplay="Messaging bar", // just insert the string to display
+          vm.styleToDisplay="row alert alert-primary" 
+          }
+          ,10000
+        )
       }
     }
   }
