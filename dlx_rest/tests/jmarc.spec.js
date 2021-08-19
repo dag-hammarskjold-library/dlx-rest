@@ -231,15 +231,18 @@ describe(
 				// all fields of tag
 				var auth = new jmarcjs.Auth();
 				auth.createField("001").value = "Fake ID";
+				auth.createField("245").createSubfield("a").value = "Other field";
 				expect(auth.getField("001").value).toEqual("Fake ID");
 				auth.deleteField("001");
 				expect(auth.getField("001")).toBeUndefined();
+				expect(auth.getField("245").getSubfield("a").value).toEqual("Other field");
 				
 				// single field by place
 				auth.createField("900").createSubfield("a").value = "Field 1";
 				auth.createField("900").createSubfield("a").value = "Field 2";
 				auth.deleteField("900", 1);
 				expect(auth.getField("900", 1)).toBeUndefined();
+				expect(auth.getField("900", 0).getSubfield("a").value).toEqual("Field 1");
 			}
 		)
 	}

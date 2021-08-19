@@ -433,11 +433,11 @@ export class Jmarc {
 	deleteField(tag, place) {
 		if (typeof place === "undefined") {
 			// delete all instances of tag
-			this.fields = this.fields.filter(field => {field.tag !== tag});
+			this.fields = this.fields.filter(field => {return field.tag !== tag});
 		} else {
 			// delete field by place
 			let toDelete = this.getField(tag, place);
-			this.fields = this.fields.filter(field => {field !== toDelete})
+			this.fields = this.fields.filter(field => {return field !== toDelete})
 		}
 	}
 	
