@@ -189,21 +189,6 @@ export let multiplemarcrecordcomponent = {
                 }              
               };
 
-              // clone record
-  
-              let cloneCell = idRow.insertCell();
-              let cloneButton = document.createElement("input");
-              cloneCell.appendChild(cloneButton);
-              cloneButton.type = "button";
-              cloneButton.value = "clone";
-              cloneButton.className = "btn btn-outline-warning"
-              cloneButton.onclick = () => {
-                let recup=bib.clone()
-                recup.post()
-                this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
-              };
-
-
   
               // Delete button
               let deleteCell = idRow.insertCell();
