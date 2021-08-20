@@ -534,6 +534,15 @@ class Record(Resource):
             abort(403, 'Authority record in use')
         
         if result.acknowledged:
+            # We should make sure this record is removed from any baskets that contained it.
+            for basket in Basket.objects:
+                # Normally the record_id is an integer, but it's being stored here as a string.
+                try:
+                    basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id))
+                    basket.remove_item(basket_item['id'])
+                except IndexError:
+                    pass
+
             return Response(status=204)
         else:
             abort(500)
@@ -1451,7 +1460,7 @@ class MyBasketRecord(Resource):
             raise
 
         my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
-        print(my_item)
+        #print(my_item)
         item_id = my_item['id']
 
         return {"id": item_id}, 200
