@@ -80,13 +80,13 @@ export let modalmergecomponent = {
          if (response.ok) {
             vm.callChangeStyling("Authorities merged","row alert alert-success")
             //reload the basket 
-            // try
-            // {
-            //   location.reload();
-            // }
-            // catch (error){
-            //   vm.callChangeStyling(error.message,"row alert alert-danger")
-            // }
+            try
+            {
+              location.reload();
+            }
+            catch (error){
+              vm.callChangeStyling(error.message,"row alert alert-danger")
+            }
              }
           if (!response.ok) {
           response.json()
