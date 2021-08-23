@@ -11,12 +11,10 @@
           <headercomponent></headercomponent>
           <messagecomponent url="userprofile/my_profile/basket" prefix="{{prefix}}"></messagecomponent>
           <modalmergecomponent prefix="{{prefix}}"></modalmergecomponent>
-          <div class="row">  
+          <div class="row">
               <basketcomponent url="userprofile/my_profile/basket" prefix="{{prefix}}" ></basketcomponent>
-              <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>      
-              <warningcomponent/>
-          </div>
-    </div> 
+              <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>        
+        </div> 
   </div>
   {% endif %}
 {% endblock %}
