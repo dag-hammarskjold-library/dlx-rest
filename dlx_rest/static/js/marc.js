@@ -2369,11 +2369,6 @@ class MarcRecord extends HTMLElement {
                 let myTableContent = "";
                 for (i = 0; i < this.filesAvailable.length; i++) {
 
-
-                    // just a test
-                    console.log("the data is : "+this.filesAvailable[i]['id'])
-
-
                     // creation of the line
                     let myTr = document.createElement("TR")
 
@@ -2656,6 +2651,15 @@ class MarcRecord extends HTMLElement {
                             // building a string with the information about the TAG Line
                             th5.innerHTML = "<span class='badge badge-pill badge-warning'><span class='dataProvider' id='" + this.recordType + "//" + th1.innerText + "//" + th2.innerText + "//" + th3.innerText + "//" + th4.innerText + "//" + (j + 1) + "'><i class='fas fa-edit'> " + (j + 1) + "/" + numOccur + "  </i> </span></span>";
                             th5.addEventListener("click", () => {
+
+
+                                // Hidding the divContent
+                                let divContent = document.getElementById("divContent");
+
+                                if (divContent !== null) {
+                                    divContent.style.overflowY="";
+                                    divContent.style.height="";
+                                }
 
                                 // Edit the value of the edit mode
                                 this.typeEditMode = "TAGRECORD"

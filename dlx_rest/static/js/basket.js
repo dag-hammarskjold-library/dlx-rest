@@ -138,7 +138,6 @@ export let basketcomponent = {
         myRecord.title = myTitle
   
         let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
-
         fetch(url, {
           method: 'POST',
           body: data,
