@@ -20,25 +20,24 @@ export let multiplemarcrecordcomponent = {
         required: false
       }
     },
-    template: `<div class="container col-sm-8 mt-3 " id="app" style="background-color:white;">
-                
-                <div id="record" class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-                      <div><h5 class="badge bg-success mt-2">Editor</h5></div>
+    template: ` 
+                  <div class="container mt-3 col-sm-10" id="app1" style="background-color:white;">
+                  <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
+                      <div><h5 class="badge bg-success mt-2 ml-3">Editor</h5></div>
                       <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
-                          <div class="jumbotron jumbotron-fluid">
+                          <div class="ml-3 mr-3 jumbotron jumbotron-fluid">
                               <div class="container">
                                 <h1 class="display-4 text-center">No record selected</h1>
                                 <p class="lead text-center">please select record from the basket,clicking on the title(green)!!!</p>
                               </div>
                             </div>                                
                       </div>
-                      <div id="records" class="row">
-                          <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-5 ml-3 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button></div></div>
-                          <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-5 ml-5 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button></div></div>
+                      <div id="records" class="row ml-3">
+                          <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button></div></div>
+                          <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;"><div><button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button></div></div>
   
                     </div>
-                </div>
-              </div>
+                </div></div>
               `,
     data: function () {
       return {

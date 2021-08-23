@@ -28,10 +28,6 @@ export let modalmergecomponent = {
                     <hr>
                     <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
                     <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
-<<<<<<< HEAD
-=======
-
->>>>>>> 4e6d307a36a39c31e6cfd2013a34a4fba359ee30
                     </div>
                 </div>
 
@@ -84,13 +80,13 @@ export let modalmergecomponent = {
          if (response.ok) {
             vm.callChangeStyling("Authorities merged","row alert alert-success")
             //reload the basket 
-            // try
-            // {
-            //   location.reload();
-            // }
-            // catch (error){
-            //   vm.callChangeStyling(error.message,"row alert alert-danger")
-            // }
+            try
+            {
+              location.reload();
+            }
+            catch (error){
+              vm.callChangeStyling(error.message,"row alert alert-danger")
+            }
              }
           if (!response.ok) {
           response.json()

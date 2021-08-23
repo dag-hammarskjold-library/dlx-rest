@@ -4,7 +4,7 @@
 export let basketcomponent = {
     props: ["url", "prefix"],
     template: ` 
-              <div class="container col-sm-2 mt-3" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
+              <div class="container mt-3 col-sm-2" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
               <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
                 <div><h4 class="badge bg-success mt-2">Basket <span class="badge badge-light">{{this.listRecordsTot.length}}</span> </h4></div>
                 <button type="button" class="btn btn-primary mb-2 mt-3"  v-on:click="clearRecordList">Clear Records list</button>
@@ -27,7 +27,7 @@ export let basketcomponent = {
             </div>
       `,
     created:
-  
+   
       async function () {
   
         // List of Items
@@ -72,7 +72,8 @@ export let basketcomponent = {
   
         this.$root.$refs.basketcomponent = this;
   
-      },
+      }
+      ,
   
     data: function () {
       return {
@@ -86,7 +87,7 @@ export let basketcomponent = {
       }
     }
     ,
-    methods: {
+    methods: { 
       // return the id of the record
       getId(recId) {
         let myId = ""
@@ -136,12 +137,8 @@ export let basketcomponent = {
         myRecord.collection = myCollection
         myRecord.title = myTitle
   
-<<<<<<< HEAD
         let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
-=======
-        data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
->>>>>>> 4e6d307a36a39c31e6cfd2013a34a4fba359ee30
-  
+        
         fetch(url, {
           method: 'POST',
           body: data,
@@ -206,4 +203,4 @@ export let basketcomponent = {
           })
       }
     }
-  }
+}
