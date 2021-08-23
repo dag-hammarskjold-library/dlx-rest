@@ -322,7 +322,7 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)
-    print(data)
+    #print(data)
     assert data['data']['collection'] == 'bibs'
     assert data['data']['record_id'] == '1'
 
@@ -350,6 +350,22 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
     assert len(data['data']['items']) == 0
+
+    # Add an item to the basket, then delete the item, testing to make sure there are zero items in the basket afterward.
+    # This test should be extended to cover multiple users with the same item in their baskets...
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    assert len(data['data']['items']) == 1
+
+    # delete; this should be the same record as in the payload
+    res = client.delete(f'{API}/marc/bibs/records/1')
+    assert res.status_code == 204
+    res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
+    data = json.loads(res.data)
+    assert len(data['data']['items']) == 0
+
+
     
 # util
 
