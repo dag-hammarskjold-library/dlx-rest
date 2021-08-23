@@ -320,9 +320,24 @@ export let multiplemarcrecordcomponent = {
                       //xrefCell.innerHTML = subfield.xref;
                       let xrefLink = document.createElement("a");
                       xrefCell.appendChild(xrefLink);
-                      xrefLink.text = subfield.xref;
-                      xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
-                      xrefLink.target="_blank"
+                      //xrefLink.text = subfield.xref;
+                      //xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
+                      xrefLink.href = `/records/auths/${subfield.xref}`;
+                      xrefLink.target="_blank";
+
+                      let xrefIcon = document.createElement("i");
+                      xrefIcon.className = "fas fa-link float-left mr-2";
+                      xrefLink.appendChild(xrefIcon);
+
+                      let toBasketA = document.createElement("a");
+                      let toBasketI = document.createElement("i");
+                      toBasketA.href="#";
+                      toBasketA.onclick = () => {
+                        this.$root.$refs.basketcomponent.addRecordToList(subfield.xref, "auths", null, subfield.value);
+                      }
+                      toBasketI.className = "fas fa-inbox float-left";
+                      toBasketA.appendChild(toBasketI);
+                      xrefCell.appendChild(toBasketA);
   
                       // lookup
                       let timer;
