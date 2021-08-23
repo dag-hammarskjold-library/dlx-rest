@@ -213,6 +213,59 @@ export let multiplemarcrecordcomponent = {
                 }  
               };
 
+              //Make a row for files
+              let filesRow = table.insertRow();
+              let filesCell = filesRow.insertCell();
+              filesCell.colSpan = 6;
+              filesCell.className = "text-wrap"
+              let filesUL = document.createElement("ul");
+              filesUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";
+              filesCell.appendChild(filesUL);
+              for (let f of bib.files) {
+                let fileLI = document.createElement("li");
+                fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
+
+                let itemUL = document.createElement("ul");
+                itemUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";                
+
+                let fileLabel = document.createElement("span");
+                fileLabel.innerText = `${f['language']}`;
+                //itemLI.appendChild(fileLabel);
+
+                let fileOpen = document.createElement("a");
+                fileOpen.href = `${f['url']}?action=open`;
+                fileOpen.target = "_blank";
+                fileOpen.title = "Open";
+                let openIcon = document.createElement("i");
+                openIcon.className = "fas fa-file text-dark";
+                fileOpen.appendChild(openIcon);
+
+                let fileDownload = document.createElement("a");
+                fileDownload.href = `${f['url']}?action=download`;
+                fileDownload.title = "Download";
+                let downloadIcon = document.createElement("i");
+                downloadIcon.className = "fas fa-cloud-download-alt text-dark";
+                fileDownload.appendChild(downloadIcon);
+
+                let labelLI = document.createElement("li");
+                labelLI.className = "list-group-item list-group-item-dark border-0 m-0 p-0 px-1";
+                let openLI = document.createElement("li");
+                openLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                let downloadLI = document.createElement("li");
+                downloadLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                labelLI.appendChild(fileLabel);
+                openLI.appendChild(fileOpen);
+                downloadLI.appendChild(fileDownload);
+
+                itemUL.appendChild(labelLI);
+                itemUL.appendChild(openLI);
+                itemUL.appendChild(downloadLI);
+
+                fileLI.appendChild(itemUL);
+                filesUL.appendChild(fileLI);
+                //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
+              }
+
               // history record
 
               // let historyCell = idRow.insertCell();
