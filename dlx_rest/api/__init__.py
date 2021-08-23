@@ -534,6 +534,15 @@ class Record(Resource):
             abort(403, 'Authority record in use')
         
         if result.acknowledged:
+            # We should make sure this record is removed from any baskets that contained it.
+            for basket in Basket.objects:
+                # Normally the record_id is an integer, but it's being stored here as a string.
+                try:
+                    basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id))
+                    basket.remove_item(basket_item['id'])
+                except IndexError:
+                    pass
+
             return Response(status=204)
         else:
             abort(500)
@@ -1451,7 +1460,7 @@ class MyBasketRecord(Resource):
             raise
 
         my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
-        print(my_item)
+        #print(my_item)
         item_id = my_item['id']
 
         return {"id": item_id}, 200
@@ -1483,11 +1492,11 @@ class MyBasketItem(Resource):
             item_data = this_basket.get_item_by_id(item_id)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
-                item_data['title'] = this_m.title()
+                item_data['title'] = this_m.title() or '...'
                 item_data['symbol'] = this_m.get_value('191','a')
             elif item_data['collection'] == 'auths':
                 this_m = Auth.from_id(int(item_data['record_id']))
-                heading_field = this_m.heading_field.get_value('a')
+                heading_field = this_m.heading_field.get_value('a') or '...'
                 item_data['title'] = heading_field
                 item_data['symbol'] = None
         except IndexError:
