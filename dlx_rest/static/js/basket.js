@@ -116,14 +116,17 @@ export let basketcomponent = {
     ,
     methods: { 
       // return the id of the record
-      getId(recId) {
+      getId(recId, coll) {
         let myId = ""
         for (let i = 0; i < this.listRecordsTot.length; ++i) {
-          if (this.listRecordsTot[i].record_id == recId) {
+          if (this.listRecordsTot[i].record_id == recId & this.listRecordsTot[i].collection == coll) {
             myId = this.listRecordsTot[i].id
           }
         }
         return myId
+      },
+      contains(myRecord, myCollection) {
+
       },
       displayRecord(myRecord, myCollection) {
         this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)

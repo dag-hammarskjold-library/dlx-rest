@@ -84,12 +84,12 @@ export let multiplemarcrecordcomponent = {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
       },
   
-      getIdFromRecordId(recId) {
-        this.id = this.$root.$refs.basketcomponent.getId(recId)
+      getIdFromRecordId(recId, coll) {
+        this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
       }
       ,
-      removeFromBasket(recId) {
-        this.getIdFromRecordId(recId)
+      removeFromBasket(recId, coll) {
+        this.getIdFromRecordId(recId, coll)
         this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
       },
       removeRecordFromEditor(recordID) {
@@ -205,7 +205,7 @@ export let multiplemarcrecordcomponent = {
                     this.removeRecordFromEditor("record2")
                   }
                 this.callChangeStyling("Record " + recId + " has been deleted", "row alert alert-success")
-                this.removeFromBasket(recId)                  
+                this.removeFromBasket(recId, myColl)                  
                 }
                 catch (error){
                 this.callChangeStyling(error.message,"row alert alert-danger")
