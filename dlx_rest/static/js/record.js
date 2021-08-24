@@ -70,13 +70,12 @@ export let multiplemarcrecordcomponent = {
         return myVar
       },
       canDisplay(){
-          if (recup.collectionRecord1==="bibs" || recup.collectionRecord2==="bibs"){
-            return false
-          }
-          if (recup.isRecordOneDisplayed && recup.isRecordTwoDisplayed) {
+          console.log("record1 :  " + recup.collectionRecord1)
+          console.log("record2 :  " + recup.collectionRecord2)
+          if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
             return true
-          } 
-          if (!recup.isRecordOneDisplayed && !recup.isRecordTwoDisplayed) {
+          }
+          else {
             return false
           }
       },
@@ -102,6 +101,7 @@ export let multiplemarcrecordcomponent = {
           // reset the parameters
           this.record1 = ""
           this.isRecordOneDisplayed = false
+          this.collectionRecord1=""
           this.callChangeStyling("Record removed from the editor", "row alert alert-success")
         }
         if (recordID === "record2") {
@@ -111,6 +111,7 @@ export let multiplemarcrecordcomponent = {
           // reset the parameters
           this.record2 = ""
           this.isRecordTwoDisplayed = false
+          this.collectionRecord2=""
           this.callChangeStyling("Record removed from the editor", "row alert alert-success")
         }
       },
@@ -431,9 +432,10 @@ export let multiplemarcrecordcomponent = {
                 this.record1 = myRecord
                 // further styling for the div
                 if (myColl==="bibs") {
-                   console.log("ici")
+                  this.collectionRecord1="bibs"
                    table.style.border="2px solid green";    
                 } else {
+                  this.collectionRecord1="auths"
                   table.style.border="2px solid purple";    
                 }
               }
@@ -445,17 +447,14 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = myRecord
                 // further styling for the div
                 if (myColl==="bibs") {
-                  this.collectionRecord1="bibs"
+                  this.collectionRecord2="bibs"
                   table.style.border="3px solid green";    
                 } else {
-                  this.collectionRecord1="auths"
+                  this.collectionRecord2="auths"
                   table.style.border="3px solid purple";    
                 }
               }
-  
-  
-              // myRecord.appendChild(table);
-              // myRecord.id = "record"+myRecord.recId;
+
             }
   
           );
@@ -465,5 +464,3 @@ export let multiplemarcrecordcomponent = {
       }
      }
   }
-
-//export { multiplemarcrecordcomponent }
