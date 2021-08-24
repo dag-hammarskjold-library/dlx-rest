@@ -125,9 +125,6 @@ export let basketcomponent = {
         }
         return myId
       },
-      contains(myRecord, myCollection) {
-
-      },
       displayRecord(myRecord, myCollection) {
         this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
         this.callChangeStyling("Record added to the editor", "row alert alert-success")

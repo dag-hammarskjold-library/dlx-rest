@@ -87,6 +87,19 @@ export let multiplemarcrecordcomponent = {
         this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
       }
       ,
+      toggleBasketItem(recId, coll) {
+        let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
+        let myI = document.getElementById(`${coll}/${recId}`);
+        if (myBasketId) {
+          this.removeFromBasket(subfield.xref, "auths").then( () => {
+            myI.className = "fas fa-folder-minus float-left";
+          });
+        } else {
+          this.$root.$refs.basketcomponent.addRecordToList(recId, coll).then( () => {
+            myI.className = "fas fa-folder-minus float-left";
+          });
+        }
+      },
       removeFromBasket(recId, coll) {
         this.getIdFromRecordId(recId, coll)
         this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
@@ -319,28 +332,23 @@ export let multiplemarcrecordcomponent = {
                       xrefIcon.className = "fas fa-link float-left mr-2";
                       xrefLink.appendChild(xrefIcon);
 
+                      /* This just isn't worknng right. It's not important...
                       let toBasketA = document.createElement("a");
                       let toBasketI = document.createElement("i");
+                      toBasketI.id = `auths/${subfield.xref}`;
                       toBasketA.href="#";
+                      toBasketA.onclick = () => {
+                        this.toggleBasketItem(subfield.xref, "auths");
+                      }
                       let basketItemId = this.$root.$refs.basketcomponent.getId(subfield.xref, "auths");
-                      console.log(`${subfield.xref}: ${basketItemId}`);
                       if (basketItemId) {
-                        toBasketA.onclick = () => {
-                          this.removeFromBasket(subfield.xref, "auths").then( () => {
-                            toBasketI.className = "fas fa-folder-minus plus-left";
-                          });;
-                        }
-                        toBasketI.className = "fas fa-folder-minus float-left";
+                        toBasketI.className = "fas fa-folder-minus plus-left";
                       } else {
-                        toBasketA.onclick = () => {
-                          this.$root.$refs.basketcomponent.addRecordToList(subfield.xref, "auths", null, subfield.value).then( () => {
-                            toBasketI.className = "fas fa-folder-minus float-left";
-                          });
-                        }
                         toBasketI.className = "fas fa-folder-plus float-left";
                       }
                       toBasketA.appendChild(toBasketI);
                       xrefCell.appendChild(toBasketA);
+                      */
   
                       // lookup
                       let timer;
