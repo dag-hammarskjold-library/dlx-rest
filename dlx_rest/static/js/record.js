@@ -265,23 +265,11 @@ export let multiplemarcrecordcomponent = {
                 //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
               }
 
-              // history record
-
-              // let historyCell = idRow.insertCell();
-              // let historyButton = document.createElement("select");
-              // historyCell.appendChild(historyButton);
-              // historyButton.type = "button";
-              // historyButton.value = "clone";
-              // historyButton.className = "btn btn-outline-warning"
-              // historyButton.onclick = () => {
-              // //
-              // };
-
               for (let field of bib.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
   
                 let tagCell = row.insertCell();
-                tagCell.innerHTML = field.tag;
+                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";             
   
                 if (field.constructor.name == "ControlField") {
                   // controlfield
@@ -293,7 +281,8 @@ export let multiplemarcrecordcomponent = {
                   // datafield
                   for (let subfield of field.subfields) {
                     let subRow = table.insertRow()
-                    subRow.insertCell(); // placeholder
+                    let opeCell=subRow.insertCell(); 
+                    opeCell.innerHTML = "<i class='ml-1 fas fa-plus-square'></i><span>  </span><i class='fas fa-minus'></i>";      
   
                     let codeCell = subRow.insertCell();
                     codeCell.innerHTML = subfield.code;
@@ -301,8 +290,8 @@ export let multiplemarcrecordcomponent = {
                     // value
                     let valCell = subRow.insertCell();
                     valCell.contentEditable = true; // not used but makes cell clickable
-  
                     let valSpan = document.createElement("span");
+                    
                     // update the size of the span
                     valSpan.style.width="100%"
                     valCell.appendChild(valSpan);
