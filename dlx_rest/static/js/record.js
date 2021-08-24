@@ -321,10 +321,23 @@ export let multiplemarcrecordcomponent = {
                       let toBasketA = document.createElement("a");
                       let toBasketI = document.createElement("i");
                       toBasketA.href="#";
-                      toBasketA.onclick = () => {
-                        this.$root.$refs.basketcomponent.addRecordToList(subfield.xref, "auths", null, subfield.value);
+                      let basketItemId = this.$root.$refs.basketcomponent.getId(subfield.xref, "auths");
+                      console.log(`${subfield.xref}: ${basketItemId}`);
+                      if (basketItemId) {
+                        toBasketA.onclick = () => {
+                          this.removeFromBasket(subfield.xref, "auths").then( () => {
+                            toBasketI.className = "fas fa-folder-minus plus-left";
+                          });;
+                        }
+                        toBasketI.className = "fas fa-folder-minus float-left";
+                      } else {
+                        toBasketA.onclick = () => {
+                          this.$root.$refs.basketcomponent.addRecordToList(subfield.xref, "auths", null, subfield.value).then( () => {
+                            toBasketI.className = "fas fa-folder-minus float-left";
+                          });
+                        }
+                        toBasketI.className = "fas fa-folder-plus float-left";
                       }
-                      toBasketI.className = "fas fa-inbox float-left";
                       toBasketA.appendChild(toBasketI);
                       xrefCell.appendChild(toBasketA);
   
