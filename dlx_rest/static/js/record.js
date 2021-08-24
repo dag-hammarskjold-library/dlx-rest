@@ -83,12 +83,25 @@ export let multiplemarcrecordcomponent = {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
       },
   
-      getIdFromRecordId(recId) {
-        this.id = this.$root.$refs.basketcomponent.getId(recId)
+      getIdFromRecordId(recId, coll) {
+        this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
       }
       ,
-      removeFromBasket(recId) {
-        this.getIdFromRecordId(recId)
+      toggleBasketItem(recId, coll) {
+        let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
+        let myI = document.getElementById(`${coll}/${recId}`);
+        if (myBasketId) {
+          this.removeFromBasket(subfield.xref, "auths").then( () => {
+            myI.className = "fas fa-folder-minus float-left";
+          });
+        } else {
+          this.$root.$refs.basketcomponent.addRecordToList(recId, coll).then( () => {
+            myI.className = "fas fa-folder-minus float-left";
+          });
+        }
+      },
+      removeFromBasket(recId, coll) {
+        this.getIdFromRecordId(recId, coll)
         this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
       },
       removeRecordFromEditor(recordID) {
@@ -206,7 +219,7 @@ export let multiplemarcrecordcomponent = {
                     this.removeRecordFromEditor("record2")
                   }
                 this.callChangeStyling("Record " + recId + " has been deleted", "row alert alert-success")
-                this.removeFromBasket(recId)                  
+                this.removeFromBasket(recId, myColl)                  
                 }
                 catch (error){
                 this.callChangeStyling(error.message,"row alert alert-danger")
@@ -310,9 +323,32 @@ export let multiplemarcrecordcomponent = {
                       //xrefCell.innerHTML = subfield.xref;
                       let xrefLink = document.createElement("a");
                       xrefCell.appendChild(xrefLink);
-                      xrefLink.text = subfield.xref;
-                      xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
-                      xrefLink.target="_blank"
+                      //xrefLink.text = subfield.xref;
+                      //xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
+                      xrefLink.href = `/records/auths/${subfield.xref}`;
+                      xrefLink.target="_blank";
+
+                      let xrefIcon = document.createElement("i");
+                      xrefIcon.className = "fas fa-link float-left mr-2";
+                      xrefLink.appendChild(xrefIcon);
+
+                      /* This just isn't worknng right. It's not important...
+                      let toBasketA = document.createElement("a");
+                      let toBasketI = document.createElement("i");
+                      toBasketI.id = `auths/${subfield.xref}`;
+                      toBasketA.href="#";
+                      toBasketA.onclick = () => {
+                        this.toggleBasketItem(subfield.xref, "auths");
+                      }
+                      let basketItemId = this.$root.$refs.basketcomponent.getId(subfield.xref, "auths");
+                      if (basketItemId) {
+                        toBasketI.className = "fas fa-folder-minus plus-left";
+                      } else {
+                        toBasketI.className = "fas fa-folder-plus float-left";
+                      }
+                      toBasketA.appendChild(toBasketI);
+                      xrefCell.appendChild(toBasketA);
+                      */
   
                       // lookup
                       let timer;

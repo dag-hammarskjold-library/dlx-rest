@@ -199,7 +199,6 @@ export class Jmarc {
 				jmarc.savedState = jmarc.compile();
 
 				jmarc.files = json['data']['files']
-				console.log(jmarc.files)
 				
 				return jmarc
 			}

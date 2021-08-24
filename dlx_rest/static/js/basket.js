@@ -1,5 +1,8 @@
 /////////////////////////////////////////////////////////////////
 // BASKET COMPONENT
+
+import { Jmarc } from "./jmarc.js";
+
 /////////////////////////////////////////////////////////////////
 export let basketcomponent = {
     props: ["url", "prefix"],
@@ -58,8 +61,32 @@ export let basketcomponent = {
               myItem.id = myJson1["data"]["id"]
               myItem.record_id = myJson1["data"]["record_id"]
               myItem.collection = myJson1["data"]["collection"]
-              myItem.title = myJson1["data"]["title"]
-              myItem.symbol = myJson1["data"]["symbol"]
+              myItem.title = ""
+              
+              // DRY this out
+              Jmarc.get(myItem.collection, myItem.record_id).then(jmarc => {
+                if(myItem.collection == "bibs") {
+                  myItem.symbol = jmarc.getSubfield(191,"a",0,0).value;
+                  myItem.title = jmarc.getSubfield(245,"a",0,0).value;
+                  let myTitleField = jmarc.getField(245,0);
+                  let myTitle = [];
+                  for (let s in myTitleField.subfields) {
+                    myTitle.push(myTitleField.subfields[s].value);
+                  }
+                  myItem.title = myTitle.join(" ");
+                } else if (myItem.collection == "auths") {
+                  let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
+                  let myTitle = [];
+                  for (let s in myTitleField.subfields) {
+                    myTitle.push(myTitleField.subfields[s].value);
+                  }
+                  myItem.title = myTitle.join(" ");
+                }
+              })
+              
+
+              //myItem.title = myJson1["data"]["title"]
+              //myItem.symbol = myJson1["data"]["symbol"]
               //console.log(myItem.symbol)
               this.listRecordsTot.push(myItem)
   
@@ -89,16 +116,15 @@ export let basketcomponent = {
     ,
     methods: { 
       // return the id of the record
-      getId(recId) {
+      getId(recId, coll) {
         let myId = ""
         for (let i = 0; i < this.listRecordsTot.length; ++i) {
-          if (this.listRecordsTot[i].record_id == recId) {
+          if (this.listRecordsTot[i].record_id == recId & this.listRecordsTot[i].collection == coll) {
             myId = this.listRecordsTot[i].id
           }
         }
         return myId
       },
-      // display record 
       displayRecord(myRecord, myCollection) {
         this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
         this.callChangeStyling("Record added to the editor", "row alert alert-success")
@@ -124,32 +150,45 @@ export let basketcomponent = {
       }
       ,
       // add a specific record to the basket
-      addRecordToList(myRecordId, myCollection, myId, myTitle, verbose = true) {
+      addRecordToList(myRecordId, myCollection) {
   
         // fetch the data from the api
         let url = this.prefix + this.url
-  
-        // assign the parameters to the objects 
-        let myRecord = {}
-  
-        myRecord.id = myId
-        myRecord.record_id = myRecordId
-        myRecord.collection = myCollection
-        myRecord.title = myTitle
-  
-        let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myTitle}"}`
-        fetch(url, {
-          method: 'POST',
-          body: data,
-        })
+        let myItemTitle = "";
+        let myId = null;
+
+        Jmarc.get(myCollection, myRecordId).then(jmarc => {
+          if(myCollection == "bibs") {
+            let myTitleField = jmarc.getField(245,0);
+            let myTitle = [];
+            for (let s in myTitleField.subfields) {
+              myTitle.push(myTitleField.subfields[s].value);
+            }
+            myItemTitle = myTitle.join(" ");
+          } else if (myCollection == "auths") {
+            let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
+            let myTitle = [];
+            for (let s in myTitleField.subfields) {
+              //console.log(s);
+              myTitle.push(myTitleField.subfields[s].value);
+            }
+            //console.log(myTitle);
+            myItemTitle = myTitle.join(" ");
+            //console.log(myItemTitle);
+          }
+          let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myItemTitle}"}`
+          fetch(url, {
+            method: 'POST',
+            body: data,
+          })
           .then(response => {
             if (response.ok) {
               // add the object to the array
-              this.listRecordsTot.push(myRecord)
+              this.listRecordsTot.push({"id": myId, "collection": myCollection, "record_id": myRecordId, "title": myItemTitle})
               this.btnToDisplay = false
-              if (verbose) {
-                this.callChangeStyling("Item " + myRecordId + "(" + myCollection + ")  added to the basket ", "row alert alert-warning")
-              }
+              //if (verbose) {
+              this.callChangeStyling("Item " + myRecordId + "(" + myCollection + ")  added to the basket ", "row alert alert-warning")
+              //}
             }
             // if not ok
             if (!response.ok) {
@@ -161,6 +200,7 @@ export let basketcomponent = {
               this.callChangeStyling("Oups!!!  Item not added to the basket ", "row alert alert-danger")
             }
           })
+        })
       }
       ,
       // delete a specific record from the basket
