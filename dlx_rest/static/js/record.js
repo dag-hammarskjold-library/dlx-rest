@@ -160,14 +160,19 @@ export let multiplemarcrecordcomponent = {
               let idRow = table.insertRow();
               let idCell = idRow.insertCell();
               idCell.colSpan = 3;
-              idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
+              let headerField = document.createElement("h5");
+              idCell.appendChild(headerField);
+              headerField.innerText = `${myColl}/${recId}`;
+              headerField.className = "float-left mx-2";
+              //idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
   
-              let saveCell = idRow.insertCell();
-              let saveButton = document.createElement("input");
-              saveCell.appendChild(saveButton);
+              //let saveCell = idRow.insertCell();
+              let saveButton = document.createElement("i");
+              //saveCell.appendChild(saveButton);
+              idCell.appendChild(saveButton);
               saveButton.type = "button";
               saveButton.value = "save";
-              saveButton.className = "btn btn-outline-primary"
+              saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1"
               saveButton.onclick = () => {
                 try
                 {
@@ -182,12 +187,13 @@ export let multiplemarcrecordcomponent = {
 
               // clone record
   
-              let cloneCell = idRow.insertCell();
-              let cloneButton = document.createElement("input");
-              cloneCell.appendChild(cloneButton);
+              //let cloneCell = idRow.insertCell();
+              let cloneButton = document.createElement("i");
+              //cloneCell.appendChild(cloneButton);
+              idCell.appendChild(cloneButton);
               cloneButton.type = "button";
               cloneButton.value = "clone";
-              cloneButton.className = "btn btn-outline-warning"
+              cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1"
               cloneButton.onclick = () => {
                 let recup=bib.clone()
                 try
@@ -203,12 +209,27 @@ export let multiplemarcrecordcomponent = {
   
               // Delete button
               let deleteCell = idRow.insertCell();
-              let deleteButton = document.createElement("input");
-              deleteCell.appendChild(deleteButton);
+              let deleteDiv = document.createElement("div");
+              deleteCell.appendChild(deleteDiv);
+              deleteDiv.className = "dropdown";
+              let deleteButton = document.createElement("i");
+              deleteDiv.appendChild(deleteButton);
+              deleteButton.id = "deleteDropdown";
               deleteButton.type = "button";
               deleteButton.value = "delete";
-              deleteButton.className = "btn btn-outline-danger"
-              deleteButton.onclick = () => {
+              deleteButton.className = "fas fa-trash-alt text-danger dropdown-toggle mr-2";
+              deleteButton.setAttribute("data-toggle", "dropdown");
+              let deleteDropdown = document.createElement("div");
+              deleteDiv.appendChild(deleteDropdown);
+              deleteDropdown.className = "dropdown-menu";
+              deleteDropdown.setAttribute("aria-labelledBy", "deleteDropdown");
+              let deleteItem = document.createElement("a");
+              deleteDropdown.appendChild(deleteItem);
+              deleteItem.className = "dropdown-item";
+              deleteItem.innerText = "Delete Record";
+              deleteItem.href="#";
+
+              deleteItem.onclick = () => {
                 try
                 {
                   bib.delete()
