@@ -71,81 +71,81 @@ export let multiplemarcrecordcomponent = {
       
     },
     methods: {
-        getRecords(){
+        getRecords() {
             let myVar=[]
             myVar.push(recup.record1)
             myVar.push(recup.record2)
             
             return myVar
-    },
-        canDisplay(){
-        console.log("record1 :  " + recup.collectionRecord1)
-        console.log("record2 :  " + recup.collectionRecord2)
-        if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
-            return true
-        } else {
-            return false
-        }
-    },
+        },
+        canDisplay() {
+            console.log("record1 :  " + recup.collectionRecord1)
+            console.log("record2 :  " + recup.collectionRecord2)
+            if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
+                return true
+            } else {
+                return false
+            }
+        },
         callChangeStyling(myText, myStyle) {
-        this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
-    },
+            this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
+        },
         getIdFromRecordId(recId, coll) {
-        this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
-    },
+            this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
+        },
         toggleBasketItem(recId, coll) {
-        let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
-        let myI = document.getElementById(`${coll}/${recId}`);
-        if (myBasketId) {
-            this.removeFromBasket(subfield.xref, "auths").then( 
-                () => {myI.className = "fas fa-folder-minus float-left";}
-            );
-        } else {
-            this.$root.$refs.basketcomponent.addRecordToList(recId, coll).then( 
-                () => {myI.className = "fas fa-folder-minus float-left";}
-            );
-        }
-    },
+            let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
+            let myI = document.getElementById(`${coll}/${recId}`);
+            if (myBasketId) {
+                this.removeFromBasket(subfield.xref, "auths").then( 
+                    () => {myI.className = "fas fa-folder-minus float-left";}
+                );
+            } else {
+                this.$root.$refs.basketcomponent.addRecordToList(recId, coll).then( 
+                    () => {myI.className = "fas fa-folder-minus float-left";}
+                );
+            }
+        },
         removeFromBasket(recId, coll) {
-        this.getIdFromRecordId(recId, coll)
-        this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
-    },
+            this.getIdFromRecordId(recId, coll)
+            this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+        },
         removeRecordFromEditor(recordID) {
-        /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
-        // get the parent
-        if (recordID === "record1") {
-            // remove the div
-            let myDiv = document.getElementById("record1")
-            myDiv.children[1].remove()
-            // reset the parameters
-            this.record1 = ""
-            this.isRecordOneDisplayed = false
-            this.collectionRecord1=""
-            this.callChangeStyling("Record removed from the editor", "row alert alert-success")
-        }
-        if (recordID === "record2") {
-            let myDiv = document.getElementById("record2")
-            // remove the div
-            myDiv.children[1].remove()
-            // reset the parameters
-            this.record2 = ""
-            this.isRecordTwoDisplayed = false
-            this.collectionRecord2=""
-            this.callChangeStyling("Record removed from the editor", "row alert alert-success")
-        }
-    },
+            /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
+            // get the parent
+            if (recordID === "record1") {
+                // remove the div
+                let myDiv = document.getElementById("record1")
+                myDiv.children[1].remove()
+                // reset the parameters
+                this.record1 = ""
+                this.isRecordOneDisplayed = false
+                this.collectionRecord1=""
+                this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+            }
+            if (recordID === "record2") {
+                let myDiv = document.getElementById("record2")
+                // remove the div
+                myDiv.children[1].remove()
+                // reset the parameters
+                this.record2 = ""
+                this.isRecordTwoDisplayed = false
+                this.collectionRecord2=""
+                this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+            }
+        },
         async displayMarcRecord(myRecord, myColl="bibs") {
-        /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
+            /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
   
-        console.log("Collection: " + myColl)
-        // console.log(myRecord)
-        // console.log(this.prefix)
+            console.log("Collection: " + myColl)
+            // console.log(myRecord)
+            // console.log(this.prefix)
   
-        Jmarc.apiUrl = this.prefix
+            Jmarc.apiUrl = this.prefix
   
-        let display = { "display1": myRecord };
+            let display = { "display1": myRecord };
   
-        for (let [div, recId] of Object.entries(display)) {
+            for (let [div, recId] of Object.entries(display)) {
             Jmarc.get(myColl, recId).then(
                 jmarc => {
                     let table = document.createElement("table");
@@ -513,6 +513,6 @@ export let multiplemarcrecordcomponent = {
                 }
             );
         }
-    }
+        }
     }
 }
