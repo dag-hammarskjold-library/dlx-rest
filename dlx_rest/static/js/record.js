@@ -78,7 +78,7 @@ export let multiplemarcrecordcomponent = {
             
             return myVar
     },
-    canDisplay(){
+        canDisplay(){
         console.log("record1 :  " + recup.collectionRecord1)
         console.log("record2 :  " + recup.collectionRecord2)
         if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
@@ -87,13 +87,13 @@ export let multiplemarcrecordcomponent = {
             return false
         }
     },
-    callChangeStyling(myText, myStyle) {
+        callChangeStyling(myText, myStyle) {
         this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
     },
-    getIdFromRecordId(recId, coll) {
+        getIdFromRecordId(recId, coll) {
         this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
     },
-    toggleBasketItem(recId, coll) {
+        toggleBasketItem(recId, coll) {
         let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
         let myI = document.getElementById(`${coll}/${recId}`);
         if (myBasketId) {
@@ -106,11 +106,11 @@ export let multiplemarcrecordcomponent = {
             );
         }
     },
-    removeFromBasket(recId, coll) {
+        removeFromBasket(recId, coll) {
         this.getIdFromRecordId(recId, coll)
         this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
     },
-    removeRecordFromEditor(recordID) {
+        removeRecordFromEditor(recordID) {
         /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
         // get the parent
         if (recordID === "record1") {
@@ -134,7 +134,7 @@ export let multiplemarcrecordcomponent = {
             this.callChangeStyling("Record removed from the editor", "row alert alert-success")
         }
     },
-    async displayMarcRecord(myRecord, myColl="bibs") {
+        async displayMarcRecord(myRecord, myColl="bibs") {
         /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
   
         console.log("Collection: " + myColl)
@@ -513,5 +513,6 @@ export let multiplemarcrecordcomponent = {
                 }
             );
         }
+    }
     }
 }
