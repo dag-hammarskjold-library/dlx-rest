@@ -141,7 +141,7 @@ export let multiplemarcrecordcomponent = {
   
         for (let [div, recId] of Object.entries(display)) {
           Jmarc.get(myColl, recId).then(
-            bib => {
+            jmarc => {
               let table = document.createElement("table");
   
               // some styling for the table
@@ -176,7 +176,7 @@ export let multiplemarcrecordcomponent = {
               saveButton.onclick = () => {
                 try
                 {
-                  bib.put()
+                  jmarc.put()
                   this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
                 }
                 catch (error){
@@ -195,7 +195,7 @@ export let multiplemarcrecordcomponent = {
               cloneButton.value = "clone";
               cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1"
               cloneButton.onclick = () => {
-                let recup=bib.clone()
+                let recup=jmarc.clone()
                 try
                 {
                   recup.post()
@@ -232,7 +232,7 @@ export let multiplemarcrecordcomponent = {
               deleteItem.onclick = () => {
                 try
                 {
-                  bib.delete()
+                  jmarc.delete()
                   if (this.record1 === String(recId)) {
                     this.removeRecordFromEditor("record1")
                   }
@@ -255,7 +255,7 @@ export let multiplemarcrecordcomponent = {
               let filesUL = document.createElement("ul");
               filesUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";
               filesCell.appendChild(filesUL);
-              for (let f of bib.files) {
+              for (let f of jmarc.files) {
                 let fileLI = document.createElement("li");
                 fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
 
@@ -300,7 +300,7 @@ export let multiplemarcrecordcomponent = {
                 //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
               }
 
-              for (let field of bib.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
+              for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
   
                 let tagCell = row.insertCell();
@@ -335,7 +335,7 @@ export let multiplemarcrecordcomponent = {
                     valSpan.contentEditable = true;
                     valCell.addEventListener("focus", function () { valSpan.focus() });
   
-                    if (bib.isAuthorityControlled(field.tag, subfield.code)) {
+                    if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
                       valSpan.className = "authority-controlled"; // for styling
   
                       // xref
