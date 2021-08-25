@@ -148,41 +148,41 @@ export let multiplemarcrecordcomponent = {
         for (let [div, recId] of Object.entries(display)) {
             Jmarc.get(myColl, recId).then(
                 jmarc => {
-                    let table = document.createElement("table");
-                    
-                    // some styling for the table
-                    table.style.width="400px";
-                    table.style.tableLayout = "fixed";
-                    table.className="w-auto table-striped"
-                    
-                    // let saveCell = idRow.insertCell();
-                    // let saveButton = document.createElement("input");
-                    // saveCell.appendChild(saveButton);
-                    // saveButton.type = "button";
-                    // saveButton.value = "save";
-                    // saveButton.className = "btn btn-outline-primary"
-                    
-                    // Save Button
-                    let idRow = table.insertRow();
-                    let idCell = idRow.insertCell();
-                    idCell.colSpan = 3;
-                    let headerField = document.createElement("h5");
-                    idCell.appendChild(headerField);
-                    headerField.innerText = `${myColl}/${recId}`;
-                    headerField.className = "float-left mx-2";
-                    //idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
-                    
-                    //let saveCell = idRow.insertCell();
-                    let saveButton = document.createElement("i");
-                    //saveCell.appendChild(saveButton);
-                    idCell.appendChild(saveButton);
-                    saveButton.type = "button";
-                    saveButton.value = "save";
-                    saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1"
-                    saveButton.onclick = () => {
+                    let table = document.createElement("table");
+                    
+                    // some styling for the table
+                    table.style.width="400px";
+                    table.style.tableLayout = "fixed";
+                    table.className="w-auto table-striped"
+                    
+                    // let saveCell = idRow.insertCell();
+                    // let saveButton = document.createElement("input");
+                    // saveCell.appendChild(saveButton);
+                    // saveButton.type = "button";
+                    // saveButton.value = "save";
+                    // saveButton.className = "btn btn-outline-primary"
+                    
+                    // Save Button
+                    let idRow = table.insertRow();
+                    let idCell = idRow.insertCell();
+                    idCell.colSpan = 3;
+                    let headerField = document.createElement("h5");
+                    idCell.appendChild(headerField);
+                    headerField.innerText = `${myColl}/${recId}`;
+                    headerField.className = "float-left mx-2";
+                    //idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
+                    
+                    //let saveCell = idRow.insertCell();
+                    let saveButton = document.createElement("i");
+                    //saveCell.appendChild(saveButton);
+                    idCell.appendChild(saveButton);
+                    saveButton.type = "button";
+                    saveButton.value = "save";
+                    saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1"
+                    saveButton.onclick = () => {
                         try {
-                            jmarc.put()
-                            this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
+                            jmarc.put()
+                            this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
                         } catch (error) {
                             this.callChangeStyling(error.message,"row alert alert-danger")
                         }
