@@ -374,87 +374,87 @@ export let multiplemarcrecordcomponent = {
                                         let timer;
                                           
                                         valCell.addEventListener(
-                                        "keyup",
-                                        function (event) {
-                                          if (event.keyCode < 45 && event.keyCode !== 8) {
-                                            // non ascii or delete keys
-                                            return
-                                          }
+                                            "keyup",
+                                            function (event) {
+                                                if (event.keyCode < 45 && event.keyCode !== 8) {
+                                                    // non ascii or delete keys
+                                                    return
+                                                }
                                     
-                                          valSpan.style.backgroundColor = "red";
-                                          xrefCell.innerHTML = null;
+                                                valSpan.style.backgroundColor = "red";
+                                                xrefCell.innerHTML = null;
                                     
-                                          let popup = document.getElementById("typeahead-popup");
-                                          popup && popup.remove();
+                                                let popup = document.getElementById("typeahead-popup");
+                                                popup && popup.remove();
                                     
-                                          clearTimeout(timer);
-                                          subfield.value = valCell.innerText;
+                                                clearTimeout(timer);
+                                                subfield.value = valCell.innerText;
                                     
-                                          if (subfield.value) {
-                                            timer = setTimeout(
-                                              function () {
-                                                let popup = document.createElement("div");
-                                                valCell.appendChild(popup);
-                                                popup.id = "typeahead-popup";
-                                                popup.innerHTML = "searching...";
-                                    
-                                                field.lookup().then(
-                                                  choices => {
-                                                    if (choices.length == 0) {
-                                                      popup.innerHTML = "not found :(";
-                                                      setTimeout(function () { popup.remove() }, 1000)
-                                                      return
-                                                    }
-                                    
-                                                    popup.innerHTML = null;
-                                    
-                                                    let list = document.createElement("ul");
-                                                    popup.appendChild(list);
-                                    
-                                                    for (let choice of choices) {
-                                                      let item = document.createElement("li");
-                                                      list.appendChild(item);
-                                                      item.innerHTML = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
-                                    
-                                                      item.addEventListener(
-                                                        "mouseover",
-                                                        function () { item.style.backgroundColor = "gray" }
-                                                      );
-                                    
-                                                      item.addEventListener(
-                                                        "mouseout",
+                                                if (subfield.value) {
+                                                    timer = setTimeout(
                                                         function () {
-                                                          item.style.backgroundColor = "white";
-                                                          subfield.value = valSpan.innerText
-                                                        }
-                                                      )
-                                    
-                                                      item.addEventListener(
-                                                        "mousedown",
-                                                        function () {
-                                                          popup.remove()
-                                    
-                                                          for (let newSubfield of choice.subfields) {
-                                                            let currentSubfield = field.getSubfield(newSubfield.code);
-                                    
-                                                            currentSubfield.value = newSubfield.value;
-                                                            currentSubfield.xref = newSubfield.xref;
-                                    
-                                                            currentSubfield.valueElement.innerHTML = currentSubfield.value;
-                                                            currentSubfield.valueElement.style.backgroundColor = "white";
-                                                            currentSubfield.xrefElement.innerHTML = currentSubfield.xref;
-                                                          }
-                                                        }
-                                                      )
-                                                    }
-                                                  }
-                                                )
-                                              },
-                                              750
-                                            );
-                                          }
-                                        }
-                                      )
+                                                            let popup = document.createElement("div");
+                                                            valCell.appendChild(popup);
+                                                            popup.id = "typeahead-popup";
+                                                            popup.innerHTML = "searching...";
+                                                            
+                                                            field.lookup().then(
+                                                                choices => {
+                                                                    if (choices.length == 0) {
+                                                                        popup.innerHTML = "not found";
+                                                                        setTimeout(function () { popup.remove() }, 1000)
+                                                                        return
+                                                                    }
+                                                                
+                                                                    popup.innerHTML = null;
+                                                            
+                                                                    let list = document.createElement("ul");
+                                                                    popup.appendChild(list);
+                                                            
+                                                                    for (let choice of choices) {
+                                                                        let item = document.createElement("li");
+                                                                        list.appendChild(item);
+                                                                        item.innerHTML = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
+                                                            
+                                                                        item.addEventListener(
+                                                                            "mouseover",
+                                                                            function () { item.style.backgroundColor = "gray" }
+                                                                        );
+                                                            
+                                                                        item.addEventListener(
+                                                                            "mouseout",
+                                                                            function () {
+                                                                                item.style.backgroundColor = "white";
+                                                                                subfield.value = valSpan.innerText
+                                                                            }
+                                                                        );
+                                                            
+                                                                        item.addEventListener(
+                                                                            "mousedown",
+                                                                            function () {
+                                                                                popup.remove()
+                                                            
+                                                                                for (let newSubfield of choice.subfields) {
+                                                                                    let currentSubfield = field.getSubfield(newSubfield.code);
+                                                            
+                                                                                    currentSubfield.value = newSubfield.value;
+                                                                                    currentSubfield.xref = newSubfield.xref;
+                                                            
+                                                                                    currentSubfield.valueElement.innerHTML = currentSubfield.value;
+                                                                                    currentSubfield.valueElement.style.backgroundColor = "white";
+                                                                                    currentSubfield.xrefElement.innerHTML = currentSubfield.xref;
+                                                                                }
+                                                                            }
+                                                                        );
+                                                                    }
+                                                                }
+                                                            );
+                                                        },
+                                                        750
+                                                    );
+                                                }
+                                            }
+                                        )
                                     }
                                     
                                     valCell.addEventListener(
@@ -511,7 +511,6 @@ export let multiplemarcrecordcomponent = {
                         }
                     }
                 );
-
             }
         }
     }
