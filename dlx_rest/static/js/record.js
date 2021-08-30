@@ -71,6 +71,31 @@ export let multiplemarcrecordcomponent = {
       
     },
     methods: {
+        justatest(){
+            alert("just a test")
+        },
+        // add a new Line to the table
+        addLineToTable(index,table){
+
+                // Insère une ligne dans la table à l'indice de ligne 0
+                let newRow = table.insertRow(index);
+
+                // Insère une cellule dans la ligne à l'indice 0
+                let newCell1 = newRow.insertCell(index);
+                let newCell2 = newRow.insertCell(index);
+                let newCell3 = newRow.insertCell(index);
+
+                // Ajoute un nœud texte à la cellule
+                let newText = document.createTextNode('Nouvelle ligne supérieure')
+                newCell1.innerHTML="1"
+                newCell2.innerHTML="2"
+                newCell3.innerHTML="3"
+            },
+        // remove a line from the table
+        removeLineFromTable(){
+                // Delete second row
+                table.deleteRow(this.rowSelected);
+            },
         getRecords() {
             let myVar=[]
             myVar.push(recup.record1)
@@ -155,12 +180,20 @@ export let multiplemarcrecordcomponent = {
                         table.style.tableLayout = "fixed";
                         table.className="w-auto table-striped"
                         
-                        // let saveCell = idRow.insertCell();
-                        // let saveButton = document.createElement("input");
-                        // saveCell.appendChild(saveButton);
-                        // saveButton.type = "button";
-                        // saveButton.value = "save";
-                        // saveButton.className = "btn btn-outline-primary"
+                        // Adding event listener on the table to catch the index
+                        let rows 
+                        let rowsArray 
+                        let rowIndex 
+                        let columns 
+                        let columnIndex 
+
+                        // table.addEventListener('click', (event) => {
+                        //     rows = document.querySelectorAll('tr');
+                        //     rowsArray = Array.from(rows);
+                        //     rowIndex = rowsArray.findIndex(row => row.contains(event.target));
+                        //     // columns = Array.from(rowsArray[rowIndex].querySelectorAll('td'));
+                        //     // columnIndex = columns.findIndex(column => column == event.target);
+                        // })
                         
                         // Save Button
                         let idRow = table.insertRow();
@@ -170,9 +203,6 @@ export let multiplemarcrecordcomponent = {
                         idCell.appendChild(headerField);
                         headerField.innerText = `${myColl}/${recId}`;
                         headerField.className = "float-left mx-2";
-                        //idCell.innerHTML = "<strong> " + myColl + "/" + recId + "</strong>";
-                        
-                        //let saveCell = idRow.insertCell();
                         let saveButton = document.createElement("i");
                         //saveCell.appendChild(saveButton);
                         idCell.appendChild(saveButton);
@@ -299,6 +329,7 @@ export let multiplemarcrecordcomponent = {
                             //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
                         }
                     
+                        
                         for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                             let row = table.insertRow();
                         
@@ -313,11 +344,67 @@ export let multiplemarcrecordcomponent = {
                                 valCell.innerHTML = field.value;
                             } else {
                                 // datafield
+                                
                                 for (let subfield of field.subfields) {
+
                                     let subRow = table.insertRow()
                                     let opeCell=subRow.insertCell(); 
-                                    opeCell.innerHTML = "<i class='ml-1 fas fa-plus-square'></i><span>  </span><i class='fas fa-minus'></i>";      
-                        
+
+                                    // creation of the minus element
+                                    let minusSign=document.createElement("i");
+                                    minusSign.className="ml-1 fas fa-minus-square"
+
+                                    minusSign.addEventListener("click",()=>{
+
+                                        let answer = window.confirm("Do you want to delete this row?");
+                                        if (answer) {
+                                            let targetedRow=subRow.rowIndex
+                                            alert("Deleting the row " + targetedRow)                                       
+                                            table.deleteRow(targetedRow);
+                                        }
+                                        else {
+                                            alert("Operation canceled!!!")    
+                                        }
+                                    })  
+                                    
+                                    // adding minusSign to the cell 
+                                    opeCell.appendChild(minusSign)
+
+                                    // creation of the plus element
+                                    let plusSign=document.createElement("i");
+                                    plusSign.className="ml-1 fas fa-plus-square"
+
+                                    plusSign.addEventListener("click",()=>{
+
+                                        let answer = window.confirm("Do you want to add a new row?");
+                                        if (answer) {
+                                        
+                                            let targetedRow=subRow.rowIndex+1
+                                            alert("Adding new row at the position " + targetedRow)                                       
+                                            let subRow1 = table.insertRow(targetedRow)
+                                            let opeCell1=subRow1.insertCell(); 
+                                            let opeCell2=subRow1.insertCell();
+                                            let opeCell3=subRow1.insertCell();
+                                            
+                                            opeCell1.innerHTML="val1"
+                                            opeCell2.innerHTML="val2"
+                                            opeCell3.innerHTML="val3"
+
+
+                                        }
+                                        else {
+                                            alert("Operation canceled!!!")    
+                                        }
+                                    })  
+                                    
+                                    // adding plusSign to the cell 
+                                    opeCell.appendChild(plusSign)
+
+
+
+
+
+
                                     let codeCell = subRow.insertCell();
                                     codeCell.innerHTML = subfield.code;
                                     
@@ -351,24 +438,6 @@ export let multiplemarcrecordcomponent = {
                                         let xrefIcon = document.createElement("i");
                                         xrefIcon.className = "fas fa-link float-left mr-2";
                                         xrefLink.appendChild(xrefIcon);
-                                          
-                                        /* This just isn't worknng right. It's not important...
-                                        let toBasketA = document.createElement("a");
-                                        let toBasketI = document.createElement("i");
-                                        toBasketI.id = `auths/${subfield.xref}`;
-                                        toBasketA.href="#";
-                                        toBasketA.onclick = () => {
-                                          this.toggleBasketItem(subfield.xref, "auths");
-                                        }
-                                        let basketItemId = this.$root.$refs.basketcomponent.getId(subfield.xref, "auths");
-                                        if (basketItemId) {
-                                          toBasketI.className = "fas fa-folder-minus plus-left";
-                                        } else {
-                                          toBasketI.className = "fas fa-folder-plus float-left";
-                                        }
-                                        toBasketA.appendChild(toBasketI);
-                                        xrefCell.appendChild(toBasketA);
-                                        */
                                           
                                         // lookup
                                         let timer;
