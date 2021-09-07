@@ -88,7 +88,23 @@ export class DataField {
 		return this.getSubfields(code)[place || 0];
 	}
 	
-	toStr() {
+	deleteSubfield(subfieldOrCode, place) {
+	    if (subfieldOrCode instanceof Subfield) {
+	        let subfield = subfieldOrCode;
+            this.subfields = this.subfields.filter(x => x !== subfield)
+	    } else {
+	        let code = subfieldOrCode;
+            
+            if (place) {
+                let subfield = this.getSubfield(code, place);
+                this.deleteSubfield(subfield);
+            } else {
+                this.subfields = this.subfields.filter(x => x.code !== code)
+            }
+	    }
+	}
+    
+    toStr() {
 		let str = ""
 		
 		for (let subfield of this.subfields) {
@@ -432,17 +448,23 @@ export class Jmarc {
 		return this.getFields(tag)[place || 0]
 	}
 	
-	deleteField(tag, place) {
-		if (typeof place === "undefined") {
-			// delete all instances of tag
-			this.fields = this.fields.filter(field => {return field.tag !== tag});
+	deleteField(tagOrField, place) {
+		if (tagOrField instanceof DataField) {
+            let field = tagOrField;
+		    this.fields = this.fields.filter(x => x !== field);
 		} else {
-			// delete field by place
-			let toDelete = this.getField(tag, place);
-			this.fields = this.fields.filter(field => {return field !== toDelete})
-		}
-	}
-	
+            let tag = tagOrField;
+            
+            if (place) {
+			    let field = this.getField(tag, place);
+			    this.deleteField(field);
+		    } else {
+			    // delete all instances of tag
+			    this.fields = this.fields.filter(field => field.tag !== tag);
+		    }
+	    }
+    }
+    
 	getSubfield(tag, code, tagPlace, codePlace) {
 		let field = this.getField(tag, tagPlace);
 		

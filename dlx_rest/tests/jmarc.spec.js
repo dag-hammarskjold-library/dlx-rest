@@ -37,7 +37,7 @@ describe(
 		);
 		
 		it(
-			"does create, read, and write of bib and auth records", 
+			"create, read, and write bib and auth records", 
 			function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -116,7 +116,7 @@ describe(
 		);
 		
 		it(
-			"does post, get, put, delete",
+			"post, get, put, delete",
 			async function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -155,7 +155,7 @@ describe(
 		);
 		
 		it(
-			"knows what fields are authority-controlled",
+			"determine whether fields are authority-controlled",
 			function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -166,7 +166,7 @@ describe(
 		);
 		
 		it(
-			"does lookup of authority-controlled values",
+			"lookup of authority-controlled values",
 			async function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -189,7 +189,7 @@ describe(
 		);
 		
 		it(
-			"provides record history",
+			"record history",
 			async function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -209,7 +209,7 @@ describe(
 		);
 		
 		it(
-			"clones itself",
+			"clone",
 			function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -223,7 +223,7 @@ describe(
 		);
 		
 		it(
-			"deletes fields by tag and field place",
+			"delete fields",
 			function() {
 				const jmarcjs = require(jmarcCompiled);
 				jmarcjs.Jmarc.apiUrl = apiUrl;
@@ -243,7 +243,42 @@ describe(
 				auth.deleteField("900", 1);
 				expect(auth.getField("900", 1)).toBeUndefined();
 				expect(auth.getField("900", 0).getSubfield("a").value).toEqual("Field 1");
+                
+                // single field by instance
+                var field = auth.createField("999");
+                field.createSubfield("a").value = "Val";
+                auth.deleteField(field);
+                expect(auth.getField("999")).toBeUndefined();
 			}
 		)
+        
+        it(
+            "delete subfields",
+            function() {
+				const jmarcjs = require(jmarcCompiled);
+				jmarcjs.Jmarc.apiUrl = apiUrl;
+                
+                // all subfields of code
+                var bib = new jmarcjs.Bib();
+                var field = bib.createField("900");
+                field.createSubfield("a").value = "Val 1";
+                field.createSubfield("a").value = "val 2";
+                field.deleteSubfield("a");
+                expect(field.getSubfield("a")).toBeUndefined();
+                
+                // single subfield by code and place
+                field.createSubfield("b").value = "Val 1";
+                field.createSubfield("b").value = "Val 2";
+                field.deleteSubfield("b", 1);
+                expect(field.getSubfield("b", 1)).toBeUndefined();
+                expect(field.getSubfield("b", 0).value).toEqual("Val 1");
+                
+                // single subfield by instance
+                var subfield = field.createSubfield("c");
+                subfield.value = "Val";
+                field.deleteSubfield(subfield); // use the subfield object to delete
+                expect(field.getSubfield("c")).toBeUndefined();
+            }
+        )
 	}
 );
