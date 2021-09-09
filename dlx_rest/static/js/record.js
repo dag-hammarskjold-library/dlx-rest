@@ -105,8 +105,7 @@ export let multiplemarcrecordcomponent = {
             return myVar
         },
         canDisplay() {
-            console.log("record1 :  " + recup.collectionRecord1)
-            console.log("record2 :  " + recup.collectionRecord2)
+
             if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
                 return true
             } else {
@@ -200,6 +199,17 @@ export let multiplemarcrecordcomponent = {
                         saveButton.onclick = () => {
                             try {
                                 jmarc.put()
+
+                                let parentElement = saveButton.parentElement
+                                let parentElementPlus=parentElement.parentElement
+                                let parentElementPlusPlus=parentElementPlus.parentElement
+                                let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                                let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+
+                                this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                                console.log(jmarc.recordId)
+                                this.displayMarcRecord(jmarc.recordId,jmarc.collection)
+
                                 this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
                             } catch (error) {
                                 this.callChangeStyling(error.message,"row alert alert-danger")
@@ -208,9 +218,7 @@ export let multiplemarcrecordcomponent = {
                     
                         // clone record
                   
-                        //let cloneCell = idRow.insertCell();
                         let cloneButton = document.createElement("i");
-                        //cloneCell.appendChild(cloneButton);
                         idCell.appendChild(cloneButton);
                         cloneButton.type = "button";
                         cloneButton.value = "clone";
@@ -223,18 +231,7 @@ export let multiplemarcrecordcomponent = {
                             } catch (error) {
                                 this.callChangeStyling(error.message,"row alert alert-danger")
                             }              
-                        };
-
-                        // Refresh button
-                        let refreshButton = document.createElement("i");
-                        idCell.appendChild(refreshButton);
-                        refreshButton.type = "button";
-                        refreshButton.value = "refresh";
-                        refreshButton.className = "fas fa-sync text-success float-left mr-2 mt-1"
-                        refreshButton.onclick = () => {
-                            // recursive call to be implemented
-                            // we need to discuss the behaviour
-                        };    
+                        };  
 
                         // Add TAG button
                         let addTagButton = document.createElement("i");
@@ -336,7 +333,7 @@ export let multiplemarcrecordcomponent = {
                             
                             fileLI.appendChild(itemUL);
                             filesUL.appendChild(fileLI);
-                            //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
+                            
                         }
                     
                         
@@ -415,8 +412,7 @@ export let multiplemarcrecordcomponent = {
                                             let opeCell3=subRow1.insertCell();
                                             
                                             let subfieldItem = {}
-                                            // Need to add the +- icons here, along with event listeners
-                                            //opeCell1.innerHTML="val1"
+
 
                                             // visual effect to show the update status
                                             opeCell1.style.background="rgba(255, 255, 128, .5)";
@@ -424,30 +420,28 @@ export let multiplemarcrecordcomponent = {
                                             opeCell3.style.background="rgba(255, 255, 128, .5)";
 
                                             // This is a default value for the subfield code
-                                            opeCell2.innerHTML="x";
+                                            opeCell2.innerHTML="_";
                                             opeCell2.contentEditable = true;
 
                                             // This is a default value for the subfield value                                            
-                                            opeCell3.innerHTML="subfield value";
+                                            opeCell3.innerHTML="insert new subfield value";
                                             opeCell3.contentEditable = true;
-
-                                            // These events are sufficient to demonstrate the functionality
-                                            // but are only suggestions and may not be satisfactory
-                                            opeCell2.onblur = () => {
-                                                subfieldItem['code'] = opeCell2.textContent;
-                                                subfieldItem['value'] = opeCell3.textContent;
-                                            }
+                                            
                                             opeCell3.onblur = () => {
                                                 subfieldItem['code'] = opeCell2.textContent;
                                                 subfieldItem['value'] = opeCell3.textContent;
                                                 field.subfields.push(subfieldItem);
-                                                if (subfieldItem['code']!=="x" && subfieldItem['value']!=="subfield value"){
+                                            
+                                                if (subfieldItem['code']!=="_" && subfieldItem['value']!=="subfield value"){
                                                     opeCell1.style.background="";
                                                     opeCell2.style.background="";
                                                     opeCell3.style.background="";
                                                 }
-                                            // Update the jmarc object
-                                            jmarc.put()
+                                                // Update the jmarc object
+                                                jmarc.put()
+
+                                                // refresh the object
+                                                subfieldItem={}
                                             }
 
                                         }
@@ -455,6 +449,8 @@ export let multiplemarcrecordcomponent = {
                                             alert("Operation canceled!!!")    
                                         }
                                     })  
+
+                                    
                                     
                                     // adding plusSign to the cell 
                                     opeCell.appendChild(plusSign)
