@@ -1,3 +1,4 @@
+  
 let recup=""
 /////////////////////////////////////////////////////////////////
 // IMPORT
@@ -104,8 +105,7 @@ export let multiplemarcrecordcomponent = {
             return myVar
         },
         canDisplay() {
-            console.log("record1 :  " + recup.collectionRecord1)
-            console.log("record2 :  " + recup.collectionRecord2)
+
             if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
                 return true
             } else {
@@ -160,12 +160,7 @@ export let multiplemarcrecordcomponent = {
             }
         },
         async displayMarcRecord(myRecord, myColl="bibs") {
-            /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
-  
-            console.log("Collection: " + myColl)
-            // console.log(myRecord)
-            // console.log(this.prefix)
-  
+
             Jmarc.apiUrl = this.prefix
   
             let display = { "display1": myRecord };
@@ -186,14 +181,6 @@ export let multiplemarcrecordcomponent = {
                         let rowIndex 
                         let columns 
                         let columnIndex 
-
-                        // table.addEventListener('click', (event) => {
-                        //     rows = document.querySelectorAll('tr');
-                        //     rowsArray = Array.from(rows);
-                        //     rowIndex = rowsArray.findIndex(row => row.contains(event.target));
-                        //     // columns = Array.from(rowsArray[rowIndex].querySelectorAll('td'));
-                        //     // columnIndex = columns.findIndex(column => column == event.target);
-                        // })
                         
                         // Save Button
                         let idRow = table.insertRow();
@@ -212,6 +199,17 @@ export let multiplemarcrecordcomponent = {
                         saveButton.onclick = () => {
                             try {
                                 jmarc.put()
+
+                                let parentElement = saveButton.parentElement
+                                let parentElementPlus=parentElement.parentElement
+                                let parentElementPlusPlus=parentElementPlus.parentElement
+                                let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                                let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+
+                                this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                                console.log(jmarc.recordId)
+                                this.displayMarcRecord(jmarc.recordId,jmarc.collection)
+
                                 this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
                             } catch (error) {
                                 this.callChangeStyling(error.message,"row alert alert-danger")
@@ -220,9 +218,7 @@ export let multiplemarcrecordcomponent = {
                     
                         // clone record
                   
-                        //let cloneCell = idRow.insertCell();
                         let cloneButton = document.createElement("i");
-                        //cloneCell.appendChild(cloneButton);
                         idCell.appendChild(cloneButton);
                         cloneButton.type = "button";
                         cloneButton.value = "clone";
@@ -235,7 +231,18 @@ export let multiplemarcrecordcomponent = {
                             } catch (error) {
                                 this.callChangeStyling(error.message,"row alert alert-danger")
                             }              
-                        };
+                        };  
+
+                        // Add TAG button
+                        let addTagButton = document.createElement("i");
+                        idCell.appendChild(addTagButton);
+                        addTagButton.type = "button";
+                        addTagButton.value = "refresh";
+                        addTagButton.className = "fas fa-plus-circle text-primary float-left mr-2 mt-1"
+                        addTagButton.onclick = () => {
+                            // to be implemented
+                        };    
+                        
 
                         // Delete button
                         let deleteCell = idRow.insertCell();
@@ -326,7 +333,7 @@ export let multiplemarcrecordcomponent = {
                             
                             fileLI.appendChild(itemUL);
                             filesUL.appendChild(fileLI);
-                            //filesCell.innerHTML= `${f['language']}<br>${f['url']}`;
+                            
                         }
                     
                         
@@ -360,7 +367,22 @@ export let multiplemarcrecordcomponent = {
                                         if (answer) {
                                             let targetedRow=subRow.rowIndex
                                             alert("Deleting the row " + targetedRow)                                       
+                                            //let thisSubfieldItem = {}
+                                            let thisCode = subRow.children[1].textContent;
+                                            let thisValue = subRow.children[2].textContent;
+                                            //Remove the subfield from the jmarc object's subfields for this tag
+                                            field.subfields = field.subfields.filter( el => el.code !== thisCode && el.value !== thisValue)
+                                            // Assign the values to the subfield
+                                            let subfieldItem = {}
+                                            subfieldItem['code'] = thisCode
+                                            subfieldItem['value'] = thisValue
+                                            // Delete the subfield
+                                            field.deleteSubfield(subfieldItem)
+                                            // Update the jmarc object
+                                            jmarc.put()
+                                            //Remove the subfield row from the table
                                             table.deleteRow(targetedRow);
+                                            
                                         }
                                         else {
                                             alert("Operation canceled!!!")    
@@ -382,29 +404,60 @@ export let multiplemarcrecordcomponent = {
                                             let targetedRow=subRow.rowIndex+1
                                             alert("Adding new row at the position " + targetedRow)                                       
                                             let subRow1 = table.insertRow(targetedRow)
+                                            //This cell holds the subfield controls (add/remvoe)
                                             let opeCell1=subRow1.insertCell(); 
+                                            //This cell holds the subfield code
                                             let opeCell2=subRow1.insertCell();
+                                            //This cell holds the subfield value
                                             let opeCell3=subRow1.insertCell();
                                             
-                                            opeCell1.innerHTML="val1"
-                                            opeCell2.innerHTML="val2"
-                                            opeCell3.innerHTML="val3"
+                                            let subfieldItem = {}
 
+
+                                            // visual effect to show the update status
+                                            opeCell1.style.background="rgba(255, 255, 128, .5)";
+                                            opeCell2.style.background="rgba(255, 255, 128, .5)";
+                                            opeCell3.style.background="rgba(255, 255, 128, .5)";
+
+                                            // This is a default value for the subfield code
+                                            opeCell2.innerHTML="_";
+                                            opeCell2.contentEditable = true;
+
+                                            // This is a default value for the subfield value                                            
+                                            opeCell3.innerHTML="insert new subfield value";
+                                            opeCell3.contentEditable = true;
+                                            
+                                            opeCell3.onblur = () => {
+                                                subfieldItem['code'] = opeCell2.textContent;
+                                                subfieldItem['value'] = opeCell3.textContent;
+                                                field.subfields.push(subfieldItem);
+                                            
+                                                if (subfieldItem['code']!=="_" && subfieldItem['value']!=="subfield value"){
+                                                    opeCell1.style.background="";
+                                                    opeCell2.style.background="";
+                                                    opeCell3.style.background="";
+                                                }
+                                                // Update the jmarc object
+                                                jmarc.put()
+
+                                                // refresh the object
+                                                subfieldItem={}
+                                            }
 
                                         }
                                         else {
                                             alert("Operation canceled!!!")    
                                         }
                                     })  
+
+                                    
                                     
                                     // adding plusSign to the cell 
                                     opeCell.appendChild(plusSign)
 
-
-
-
-
-
+                                    ///////////////////////////////////////////////
+                                    ////////////////////////////////////////////////
+                                    
                                     let codeCell = subRow.insertCell();
                                     codeCell.innerHTML = subfield.code;
                                     
@@ -584,3 +637,4 @@ export let multiplemarcrecordcomponent = {
         }
     }
 }
+
