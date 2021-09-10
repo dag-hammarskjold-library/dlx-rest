@@ -194,23 +194,25 @@ export let multiplemarcrecordcomponent = {
             saveButton.value = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1"
             saveButton.onclick = () => {
-                try {
-                    jmarc.put()
+                jmarc.put().then(
+                    jmarc => {
+                        let parentElement = saveButton.parentElement
+                        let parentElementPlus=parentElement.parentElement
+                        let parentElementPlusPlus=parentElementPlus.parentElement
+                        let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                        let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
 
-                    let parentElement = saveButton.parentElement
-                    let parentElementPlus=parentElement.parentElement
-                    let parentElementPlusPlus=parentElementPlus.parentElement
-                    let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                    let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+                        this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                        console.log(jmarc.recordId)
+                        this.displayMarcRecord(jmarc.recordId,jmarc.collection)
 
-                    this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                    console.log(jmarc.recordId)
-                    this.displayMarcRecord(jmarc.recordId,jmarc.collection)
-
-                    this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
-                } catch (error) {
-                    this.callChangeStyling(error.message,"row alert alert-danger")
-                }
+                        this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
+                    }
+                ).catch(
+                    error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger")
+                    }
+                );
             };
                     
             // clone record
@@ -377,7 +379,7 @@ export let multiplemarcrecordcomponent = {
                                 // Delete the subfield
                                 field.deleteSubfield(subfieldItem)
                                 // Update the jmarc object
-                                jmarc.put()
+                                // jmarc.put()
                                 //Remove the subfield row from the table
                                 table.deleteRow(targetedRow);
                                 
@@ -408,9 +410,6 @@ export let multiplemarcrecordcomponent = {
                                 let opeCell2=subRow1.insertCell();
                                 //This cell holds the subfield value
                                 let opeCell3=subRow1.insertCell();
-                                
-                                let subfieldItem = {}
-
 
                                 // visual effect to show the update status
                                 opeCell1.style.background="rgba(255, 255, 128, .5)";
@@ -418,28 +417,27 @@ export let multiplemarcrecordcomponent = {
                                 opeCell3.style.background="rgba(255, 255, 128, .5)";
 
                                 // This is a default value for the subfield code
-                                opeCell2.innerHTML="_";
+                                opeCell2.textContent = "_";
                                 opeCell2.contentEditable = true;
 
                                 // This is a default value for the subfield value                                            
-                                opeCell3.innerHTML="insert new subfield value";
+                                opeCell3.textContent = "insert new subfield value";
                                 opeCell3.contentEditable = true;
+                                opeCell2.select();
                                 
                                 opeCell3.onblur = () => {
-                                    subfieldItem['code'] = opeCell2.textContent;
-                                    subfieldItem['value'] = opeCell3.textContent;
-                                    field.subfields.push(subfieldItem);
+                                    let newSubfield = field.createSubfield();
+                                    newSubfield.code = opeCell2.textContent;
+                                    newSubfield.value = opeCell3.textContent;
                                 
-                                    if (subfieldItem['code']!=="_" && subfieldItem['value']!=="subfield value"){
+                                    if (newSubfield.code !== "_" && newSubfield.value) {
                                         opeCell1.style.background="";
                                         opeCell2.style.background="";
                                         opeCell3.style.background="";
                                     }
+                                    
                                     // Update the jmarc object
-                                    jmarc.put()
-
-                                    // refresh the object
-                                    subfieldItem={}
+                                    // jmarc.put()
                                 }
 
                             }
@@ -605,7 +603,7 @@ export let multiplemarcrecordcomponent = {
                 let myRecord1 = document.getElementById("record1");
                 myRecord1.appendChild(table)
                 this.isRecordOneDisplayed = true
-                this.record1 = myRecord
+                this.record1 = recId;
                 // further styling for the div
                 if (myColl==="bibs") {
                     this.collectionRecord1="bibs"
@@ -620,7 +618,7 @@ export let multiplemarcrecordcomponent = {
                 let myRecord2 = document.getElementById("record2");
                 myRecord2.appendChild(table)
                 this.isRecordTwoDisplayed = true
-                this.record2 = myRecord
+                this.record2 = recId;
                 // further styling for the div
                 if (myColl==="bibs") {
                     this.collectionRecord2="bibs"
