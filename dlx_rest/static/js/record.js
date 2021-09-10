@@ -290,7 +290,14 @@ export let multiplemarcrecordcomponent = {
             let filesUL = document.createElement("ul");
             filesUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";
             filesCell.appendChild(filesUL);
-            for (let f of jmarc.files) {
+            
+            function fileSort(a, b) {
+                if (a.language === "en") return -1;
+                if (b.language === "en") return 1;
+                return a.language > b.language;
+            }
+            
+            for (let f of jmarc.files.sort(fileSort)) {
                 let fileLI = document.createElement("li");
                 fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
                 
