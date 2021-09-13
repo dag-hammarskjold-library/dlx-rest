@@ -423,7 +423,6 @@ export let multiplemarcrecordcomponent = {
                                 // This is a default value for the subfield value                                            
                                 opeCell3.textContent = "insert new subfield value";
                                 opeCell3.contentEditable = true;
-                                opeCell2.select();
                                 
                                 opeCell3.onblur = () => {
                                     let newSubfield = field.createSubfield();
