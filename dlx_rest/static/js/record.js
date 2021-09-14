@@ -431,7 +431,8 @@ export let multiplemarcrecordcomponent = {
                                 opeCell3.textContent = "insert new subfield value";
                                 opeCell3.contentEditable = true;
                                 
-                                opeCell3.onblur = () => {
+                                //opeCell3.onblur = () => {
+                                opeCell3.addEventListener('input', (e) => {
                                     let newSubfield = field.createSubfield();
                                     newSubfield.code = opeCell2.textContent;
                                     newSubfield.value = opeCell3.textContent;
@@ -444,7 +445,7 @@ export let multiplemarcrecordcomponent = {
                                     
                                     // Update the jmarc object
                                     // jmarc.put()
-                                }
+                                });
 
                             }
                             else {
