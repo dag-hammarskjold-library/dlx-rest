@@ -420,7 +420,7 @@ export let multiplemarcrecordcomponent = {
                             opeCell3.contentEditable = true;
                             
                             //opeCell3.onblur = () => {
-                            opeCell3.addEventListener('input', (e) => {
+                            opeCell3.addEventListener('input', () => {
                                 let newSubfield = field.createSubfield();
                                 newSubfield.code = opeCell2.textContent;
                                 newSubfield.value = opeCell3.textContent;
@@ -433,6 +433,14 @@ export let multiplemarcrecordcomponent = {
                                 
                                 // Update the jmarc object
                                 // jmarc.put()
+                            });
+                            
+                            opeCell3.addEventListener('keydown', event => {
+                                if (event.keyCode === 13) {
+                                    // return key
+                                    event.preventDefault();
+                                    opeCell3.blur();
+                                }
                             });
                         });
 
