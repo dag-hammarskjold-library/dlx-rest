@@ -583,7 +583,7 @@ export let multiplemarcrecordcomponent = {
                         }
                         
                         valCell.addEventListener(
-                            "blur",
+                            "input",
                             function () {
                                 subfield.value = valSpan.innerText;
                                 console.log(`user entered value "${subfield.value}"`);
