@@ -368,33 +368,25 @@ export let multiplemarcrecordcomponent = {
                         let minusSign=document.createElement("i");
                         minusSign.className="ml-1 fas fa-minus-square"
 
-                        minusSign.addEventListener("click",()=>{
-
-                            let answer = window.confirm("Do you want to delete this row?");
-                            if (answer) {
-                                let targetedRow=subRow.rowIndex
-                                alert("Deleting the row " + targetedRow)                                       
-                                //let thisSubfieldItem = {}
-                                let thisCode = subRow.children[1].textContent;
-                                let thisValue = subRow.children[2].textContent;
-                                //Remove the subfield from the jmarc object's subfields for this tag
-                                field.subfields = field.subfields.filter( el => el.code !== thisCode && el.value !== thisValue)
-                                // Assign the values to the subfield
-                                let subfieldItem = {}
-                                subfieldItem['code'] = thisCode
-                                subfieldItem['value'] = thisValue
-                                // Delete the subfield
-                                field.deleteSubfield(subfieldItem)
-                                // Update the jmarc object
-                                // jmarc.put()
-                                //Remove the subfield row from the table
-                                table.deleteRow(targetedRow);
-                                
-                            }
-                            else {
-                                alert("Operation canceled!!!")    
-                            }
-                        })  
+                        minusSign.addEventListener("click", () => {
+                            let targetedRow=subRow.rowIndex
+                            //alert("Deleting the row " + targetedRow)                                       
+                            //let thisSubfieldItem = {}
+                            let thisCode = subRow.children[1].textContent;
+                            let thisValue = subRow.children[2].textContent;
+                            //Remove the subfield from the jmarc object's subfields for this tag
+                            field.subfields = field.subfields.filter( el => el.code !== thisCode && el.value !== thisValue)
+                            // Assign the values to the subfield
+                            let subfieldItem = {}
+                            subfieldItem['code'] = thisCode
+                            subfieldItem['value'] = thisValue
+                            // Delete the subfield
+                            field.deleteSubfield(subfieldItem)
+                            // Update the jmarc object
+                            // jmarc.put()
+                            //Remove the subfield row from the table
+                            table.deleteRow(targetedRow);
+                        }); 
                         
                         // adding minusSign to the cell 
                         opeCell.appendChild(minusSign)
@@ -403,58 +395,47 @@ export let multiplemarcrecordcomponent = {
                         let plusSign=document.createElement("i");
                         plusSign.className="ml-1 fas fa-plus-square"
 
-                        plusSign.addEventListener("click",()=>{
+                        plusSign.addEventListener("click", () => {
+                            let targetedRow=subRow.rowIndex+1
+                            //alert("Adding new row at the position " + targetedRow)                                       
+                            let subRow1 = table.insertRow(targetedRow)
+                            //This cell holds the subfield controls (add/remvoe)
+                            let opeCell1=subRow1.insertCell(); 
+                            //This cell holds the subfield code
+                            let opeCell2=subRow1.insertCell();
+                            //This cell holds the subfield value
+                            let opeCell3=subRow1.insertCell();
 
-                            let answer = window.confirm("Do you want to add a new row?");
-                            if (answer) {
+                            // visual effect to show the update status
+                            opeCell1.style.background="rgba(255, 255, 128, .5)";
+                            opeCell2.style.background="rgba(255, 255, 128, .5)";
+                            opeCell3.style.background="rgba(255, 255, 128, .5)";
+
+                            // This is a default value for the subfield code
+                            opeCell2.textContent = "_";
+                            opeCell2.contentEditable = true;
+
+                            // This is a default value for the subfield value                                            
+                            opeCell3.textContent = "insert new subfield value";
+                            opeCell3.contentEditable = true;
                             
-                                let targetedRow=subRow.rowIndex+1
-                                alert("Adding new row at the position " + targetedRow)                                       
-                                let subRow1 = table.insertRow(targetedRow)
-                                //This cell holds the subfield controls (add/remvoe)
-                                let opeCell1=subRow1.insertCell(); 
-                                //This cell holds the subfield code
-                                let opeCell2=subRow1.insertCell();
-                                //This cell holds the subfield value
-                                let opeCell3=subRow1.insertCell();
-
-                                // visual effect to show the update status
-                                opeCell1.style.background="rgba(255, 255, 128, .5)";
-                                opeCell2.style.background="rgba(255, 255, 128, .5)";
-                                opeCell3.style.background="rgba(255, 255, 128, .5)";
-
-                                // This is a default value for the subfield code
-                                opeCell2.textContent = "_";
-                                opeCell2.contentEditable = true;
-
-                                // This is a default value for the subfield value                                            
-                                opeCell3.textContent = "insert new subfield value";
-                                opeCell3.contentEditable = true;
+                            //opeCell3.onblur = () => {
+                            opeCell3.addEventListener('input', (e) => {
+                                let newSubfield = field.createSubfield();
+                                newSubfield.code = opeCell2.textContent;
+                                newSubfield.value = opeCell3.textContent;
+                            
+                                if (newSubfield.code !== "_" && newSubfield.value) {
+                                    opeCell1.style.background="";
+                                    opeCell2.style.background="";
+                                    opeCell3.style.background="";
+                                }
                                 
-                                //opeCell3.onblur = () => {
-                                opeCell3.addEventListener('input', (e) => {
-                                    let newSubfield = field.createSubfield();
-                                    newSubfield.code = opeCell2.textContent;
-                                    newSubfield.value = opeCell3.textContent;
-                                
-                                    if (newSubfield.code !== "_" && newSubfield.value) {
-                                        opeCell1.style.background="";
-                                        opeCell2.style.background="";
-                                        opeCell3.style.background="";
-                                    }
-                                    
-                                    // Update the jmarc object
-                                    // jmarc.put()
-                                });
+                                // Update the jmarc object
+                                // jmarc.put()
+                            });
+                        });
 
-                            }
-                            else {
-                                alert("Operation canceled!!!")    
-                            }
-                        })  
-
-                        
-                        
                         // adding plusSign to the cell 
                         opeCell.appendChild(plusSign)
 
