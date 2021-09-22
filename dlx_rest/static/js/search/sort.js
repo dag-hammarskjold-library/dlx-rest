@@ -1,5 +1,5 @@
 export let sortcomponent = {
-    props: ['collection', 'params'],
+    props: ['uibase', 'collection', 'params'],
     template: `
     <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
         <div class="collapse navbar-collapse" id="resultsNavbarToggle">
@@ -51,7 +51,7 @@ export let sortcomponent = {
             return this.rpp.indexOf(limit) > -1
         },
         rebuildUrl(param, value) {
-            let myUrl = `/records/${this.collection}/search`;
+            let myUrl = `${this.uibase}/records/${this.collection}/search`;
             let myParams = this.params;
             myParams[param] = value;
             const qs = Object.keys(myParams)

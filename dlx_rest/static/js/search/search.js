@@ -4,6 +4,10 @@ import { paginationcomponent } from "./pagination.js";
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
     props: {
+        api_prefix: {
+            type: String,
+            required: true
+        },
         search_url: {
             type: String,
             required: true
@@ -22,7 +26,7 @@ export let searchcomponent = {
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
             </form>
         </div>
-        <sortcomponent v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <paginationcomponent></paginationcomponent>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
@@ -77,13 +81,14 @@ export let searchcomponent = {
             }
             
         }
-        console.log(myProps)
+        let myUIBase = this.api_prefix.replace('/api/','');
         return {
             visible: true,
             results: [],
             links: {},
-            action: `/records/${this.collection}/search`,
-            params: myProps
+            action: `${myUIBase}/records/${this.collection}/search`,
+            params: myProps,
+            uibase: myUIBase
         }
     },
     components: {
