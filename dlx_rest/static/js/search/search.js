@@ -1,5 +1,4 @@
 import { sortcomponent } from "./sort.js";
-import { paginationcomponent } from "./pagination.js";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -27,7 +26,15 @@ export let searchcomponent = {
             </form>
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
-        <paginationcomponent></paginationcomponent>
+        <nav>
+            <ul class="pagination pagination-md justify-content-center">
+                <li class="page-item disabled"><span class="page-link">{{start}} to {{end}} of {{resultcount}} Records</span></li>
+                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+            </ul>
+        </nav>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11">
@@ -48,12 +55,33 @@ export let searchcomponent = {
                 </div>
             </div>
         </div>
+        <nav>
+            <ul class="pagination pagination-md justify-content-center">
+                <li class="page-item disabled"><span class="page-link">{{start}} to {{end}} of {{resultcount}} Records</span></li>
+                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+            </ul>
+        </nav>
     </div>`,
     created: async function() {
         let response = await fetch(this.search_url);
         if (response.ok) {
             let jsonData = await response.json();
-            this.links = jsonData["_links"];
+            let linkKeys = Object.keys(jsonData["_links"])
+            linkKeys.forEach((key, index) => {
+                this.links[key] = jsonData["_links"][key];
+            });
+            if (this.links.related.count) {
+                this.count = this.links.related.count;
+            }
+            if (this.links._prev) {
+                this.prev = this.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+            }
+            if (this.links._next) {
+                this.next = this.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+            }
             for (let result of jsonData["data"]) {
                 let myResult = { "_id": result["_id"]}
                 if (this.collection == "bibs") {
@@ -67,6 +95,7 @@ export let searchcomponent = {
                 }
                 this.results.push(myResult);
             }
+            this.buildPagination();
         }
     },
     data: function () {
@@ -79,21 +108,40 @@ export let searchcomponent = {
             } else {
                 myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
             }
-            
         }
         let myUIBase = this.api_prefix.replace('/api/','');
+        //console.log(this.links)
         return {
             visible: true,
             results: [],
             links: {},
             action: `${myUIBase}/records/${this.collection}/search`,
             params: myProps,
-            uibase: myUIBase
+            uibase: myUIBase,
+            count: null,
+            prev: null,
+            next: null,
+            resultcount: 0,
+            start: 0,
+            end: 0
+        }
+    },
+    methods: {
+        async buildPagination() {
+            let countResponse = await fetch(this.count);
+            let jsonData = await countResponse.json();
+            this.resultcount = jsonData["data"];
+
+            let myEnd = this.params.start + this.params.limit;
+            this.end = myEnd
+            this.start = this.params.start
+            if (myEnd >= this.resultcount) {
+                this.end = this.resultcount
+                this.next = null
+            }
         }
     },
     components: {
-        'sortcomponent': sortcomponent,
-        'paginationcomponent': paginationcomponent
+        'sortcomponent': sortcomponent
     }
 }
-

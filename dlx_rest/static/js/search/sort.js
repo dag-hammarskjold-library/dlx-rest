@@ -6,7 +6,7 @@ export let sortcomponent = {
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item"><a class="nav-link disabled">Results per page:</a></li>
                 <li v-for="o in this.rpp" class="nav-item">
-                    <a id="limit" v-if="o === params.limit" class="nav-link disabled sortcomponent">{{o}}</a>
+                    <a id="limit" v-if="o === parseInt(params.limit)" class="nav-link disabled sortcomponent">{{o}}</a>
                     <a id="limit" v-else class="nav-link sortcomponent">{{o}}</a>
                 </li>
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
@@ -43,21 +43,16 @@ export let sortcomponent = {
     mounted: function() {
         for (let el of document.getElementsByClassName('sortcomponent')) {
             el.href = this.rebuildUrl(el.id, el.innerText);
-            console.log(el.href);
         }
     },
     methods: {
-        rppContains(limit) {
-            return this.rpp.indexOf(limit) > -1
-        },
         rebuildUrl(param, value) {
             let myUrl = `${this.uibase}/records/${this.collection}/search`;
-            let myParams = this.params;
+            let myParams = Object.assign({},this.params);
             myParams[param] = value;
             const qs = Object.keys(myParams)
                 .map(key => `${key}=${encodeURIComponent(myParams[key])}`)
                 .join('&');
-            console.log(qs);
             return `${myUrl}?${qs}`;
         }
     }
