@@ -51,7 +51,7 @@ export let sortcomponent = {
             let myParams = Object.assign({},this.params);
             myParams[param] = value;
             const qs = Object.keys(myParams)
-                .map(key => `${key}=${encodeURIComponent(myParams[key])}`)
+                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
                 .join('&');
             return `${myUrl}?${qs}`;
         }
