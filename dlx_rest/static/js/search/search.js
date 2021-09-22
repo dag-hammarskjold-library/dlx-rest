@@ -132,7 +132,7 @@ export let searchcomponent = {
             let jsonData = await countResponse.json();
             this.resultcount = jsonData["data"];
 
-            let myEnd = this.params.start + this.params.limit;
+            let myEnd = this.params.start + this.params.limit -1;
             this.end = myEnd
             this.start = this.params.start
             if (myEnd >= this.resultcount) {
