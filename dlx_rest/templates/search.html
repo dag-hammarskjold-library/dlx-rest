@@ -3,8 +3,9 @@
     <div id="search_vm" v-show="true">
         <messagecomponent></messagecomponent>
         <div class="row">
-            <sidebarcomponent prefix="{{prefix}}"></sidebarcomponent>
-            <searchcomponent prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" q="{{q}}"></searchcomponent>
+            <sidebarcomponent sbtype="facet"></sidebarcomponent>
+            <searchcomponent prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" q="{{q}}" start="{{start}}" limit="{{limit}}" sort="{{sort}}" direction="{{direction}}"></searchcomponent>
+            <sidebarcomponent sbtype="other"></sidebarcomponent>
         </div>
     </div>
 </div>

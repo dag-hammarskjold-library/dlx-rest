@@ -1,10 +1,9 @@
+import { sortcomponent } from "./sort.js";
+import { paginationcomponent } from "./pagination.js";
+
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
     props: {
-        prefix: {
-            type: String,
-            required: true
-        },
         search_url: {
             type: String,
             required: true
@@ -12,20 +11,19 @@ export let searchcomponent = {
         collection: {
             type: String,
             required: true
-        },
-        q: {
-            type: String
         }
     },
     template: ` 
-    <div class="col-sm-10 pt-2" id="app1" style="background-color:white;">
-        <div class="row">
+    <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
+        <div class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
-                <input v-if="q" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="q">
+                <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
             </form>
         </div>
+        <sortcomponent v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <paginationcomponent></paginationcomponent>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11">
@@ -68,19 +66,29 @@ export let searchcomponent = {
         }
     },
     data: function () {
+        let myParams = this.search_url.split("?")[1];
+        let myProps = {}
+        for (let p of myParams.split("&")) {
+            let thisParam = p.split("=");
+            if (thisParam[0] == "start" || thisParam[0] == "limit") {
+                myProps[thisParam[0]] = parseInt(thisParam[1]);
+            } else {
+                myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
+            }
+            
+        }
+        console.log(myProps)
         return {
             visible: true,
             results: [],
             links: {},
-            action: `/records/${this.collection}`
+            action: `/records/${this.collection}/search`,
+            params: myProps
         }
     },
-    methods: {
-        buildPagination() {
-
-        },
-        buildCount() {
-
-        }
+    components: {
+        'sortcomponent': sortcomponent,
+        'paginationcomponent': paginationcomponent
     }
 }
+

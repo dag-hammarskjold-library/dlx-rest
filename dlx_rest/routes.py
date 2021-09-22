@@ -382,7 +382,7 @@ def search_records(coll):
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, q=q)
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
 
 
 @app.route('/records/<coll>/facets')
