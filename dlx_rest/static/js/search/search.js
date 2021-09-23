@@ -68,6 +68,7 @@ export let searchcomponent = {
     created: async function() {
         let response = await fetch(this.search_url);
         if (response.ok) {
+
             let jsonData = await response.json();
             let linkKeys = Object.keys(jsonData["_links"])
             linkKeys.forEach((key, index) => {
@@ -96,6 +97,25 @@ export let searchcomponent = {
                 this.results.push(myResult);
             }
             this.buildPagination();
+        }
+    },
+    mounted: async function() {
+        let myProfileUrl = `${this.api_prefix}userprofile/my_profile`;
+        let response = await fetch(myProfileUrl);
+        if (response.ok) {
+            let jsonData = await response.json();
+            let myUser =  jsonData.data.email;
+
+            // From here we can be fairly sure we're authenticated, so proceed...
+            for (let result of this.results) {
+                let myId = `icon-${this.collection}-${result._id}`
+                let iconEl = document.getElementById(myId);
+                if (myUser !== null) {
+                    // we can add to and remove from basket
+                } else {
+                    iconEl.visible = false;
+                }
+            }
         }
     },
     data: function () {
