@@ -369,22 +369,10 @@ export let multiplemarcrecordcomponent = {
                         minusSign.className="ml-1 fas fa-minus-square"
 
                         minusSign.addEventListener("click", () => {
+                            // Remove the subfield from the field
+                            field.deleteSubfield(subfield);
+                            // Remove the subfield row from the table
                             let targetedRow=subRow.rowIndex
-                            //alert("Deleting the row " + targetedRow)                                       
-                            //let thisSubfieldItem = {}
-                            let thisCode = subRow.children[1].textContent;
-                            let thisValue = subRow.children[2].textContent;
-                            //Remove the subfield from the jmarc object's subfields for this tag
-                            field.subfields = field.subfields.filter( el => el.code !== thisCode && el.value !== thisValue)
-                            // Assign the values to the subfield
-                            let subfieldItem = {}
-                            subfieldItem['code'] = thisCode
-                            subfieldItem['value'] = thisValue
-                            // Delete the subfield
-                            field.deleteSubfield(subfieldItem)
-                            // Update the jmarc object
-                            // jmarc.put()
-                            //Remove the subfield row from the table
                             table.deleteRow(targetedRow);
                         }); 
                         
