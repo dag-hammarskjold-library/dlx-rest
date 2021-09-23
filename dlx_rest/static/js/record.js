@@ -396,6 +396,8 @@ export let multiplemarcrecordcomponent = {
                         plusSign.className="ml-1 fas fa-plus-square"
 
                         plusSign.addEventListener("click", () => {
+                            let newSubfield = field.createSubfield();
+                            
                             let targetedRow=subRow.rowIndex+1
                             //alert("Adding new row at the position " + targetedRow)                                       
                             let subRow1 = table.insertRow(targetedRow)
@@ -414,15 +416,16 @@ export let multiplemarcrecordcomponent = {
                             // This is a default value for the subfield code
                             opeCell2.textContent = "_";
                             opeCell2.contentEditable = true;
+                            
+                            opeCell2.addEventListener('input', () => {
+                                newSubfield.code = opeCell2.textContent;
+                            });
 
                             // This is a default value for the subfield value                                            
                             opeCell3.textContent = "insert new subfield value";
                             opeCell3.contentEditable = true;
-                            
-                            //opeCell3.onblur = () => {
+
                             opeCell3.addEventListener('input', () => {
-                                let newSubfield = field.createSubfield();
-                                newSubfield.code = opeCell2.textContent;
                                 newSubfield.value = opeCell3.textContent;
                             
                                 if (newSubfield.code !== "_" && newSubfield.value) {
@@ -575,7 +578,6 @@ export let multiplemarcrecordcomponent = {
                             "input",
                             function () {
                                 subfield.value = valSpan.innerText;
-                                console.log(`user entered value "${subfield.value}"`);
                             }
                         );
                         
