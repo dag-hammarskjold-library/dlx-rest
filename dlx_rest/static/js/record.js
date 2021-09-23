@@ -482,7 +482,8 @@ export let multiplemarcrecordcomponent = {
                                         // non ascii or delete keys
                                         return
                                     }
-                        
+                                    
+                                    let originalColor = valSpan.style.backgroundColor;
                                     valSpan.style.backgroundColor = "red";
                                     xrefCell.innerHTML = null;
                         
@@ -516,7 +517,7 @@ export let multiplemarcrecordcomponent = {
                                                         for (let choice of choices) {
                                                             let item = document.createElement("li");
                                                             list.appendChild(item);
-                                                            item.innerHTML = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
+                                                            item.innerText = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
                                                 
                                                             item.addEventListener(
                                                                 "mouseover",
@@ -542,9 +543,22 @@ export let multiplemarcrecordcomponent = {
                                                                         currentSubfield.value = newSubfield.value;
                                                                         currentSubfield.xref = newSubfield.xref;
                                                 
-                                                                        currentSubfield.valueElement.innerHTML = currentSubfield.value;
+                                                                        currentSubfield.valueElement.innerText = currentSubfield.value;
                                                                         currentSubfield.valueElement.style.backgroundColor = "white";
-                                                                        currentSubfield.xrefElement.innerHTML = currentSubfield.xref;
+                                                                        
+                                                                        let xrefLink = document.createElement("a");
+                                                                        xrefLink.href = `/records/auths/${newSubfield.xref}`;
+                                                                        xrefLink.target="_blank";
+                                                                        
+                                                                        let xrefIcon = document.createElement("i");
+                                                                        xrefIcon.className = "fas fa-link float-left mr-2";
+                                                                        xrefLink.appendChild(xrefIcon);
+                                                                        
+                                                                        while (currentSubfield.xrefElement.firstChild) {
+                                                                            currentSubfield.xrefElement.removeChild(currentSubfield.xrefElement.firstChild)
+                                                                        }
+                                                                        
+                                                                        currentSubfield.xrefElement.append(xrefLink);
                                                                     }
                                                                 }
                                                             );
