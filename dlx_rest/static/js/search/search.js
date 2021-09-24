@@ -1,4 +1,5 @@
 import { sortcomponent } from "./sort.js";
+import basket from "../api/basket.js";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -100,23 +101,35 @@ export let searchcomponent = {
         }
     },
     mounted: async function() {
-        let myProfileUrl = `${this.api_prefix}userprofile/my_profile`;
-        let response = await fetch(myProfileUrl);
-        if (response.ok) {
-            let jsonData = await response.json();
-            let myUser =  jsonData.data.email;
-            console.log(myUser)
-
-            // From here we can be fairly sure we're authenticated, so proceed...
+        let myProfile = await this.checkAuthentication();
+        if (this.user !== null) {
+            // This should always be the info returned as /api/userprofile/my_profile/basket
+            let myUrl = myProfile._links.related.baskets[0]
+            await this.getMyBasket(myUrl);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
-                console.log(iconEl)
-                if (myUser !== null) {
-                    // we can add to and remove from basket
+                let basketItemId = this.$root.$refs.basketcomponent.getId(result._id, this.collection);
+                
+                if (this.basketContains(this.basketcontents, this.collection, result._id)) {
+                    // set the icon to a minus sign and the title to "Remove from basket"
+                    iconEl.classList.remove('fa-folder-plus');
+                    iconEl.classList.add('fa-folder-minus');
+                    iconEl.title = "Remove from basket";
+                    iconEl.addEventListener('click', () => {
+                        this.$root.$refs.basketcomponent.removeRecordFromList(basketItemId);
+                    })
                 } else {
-                    iconEl.visible = false;
+                    iconEl.addEventListener('click', () => {
+                        basket.createItem(this.api_prefix, )
+                    });
                 }
+            }
+        } else {
+            for (let result of this.results) {
+                let myId = `icon-${this.collection}-${result._id}`
+                let iconEl = document.getElementById(myId);
+                iconEl.style.display = "none";
             }
         }
     },
@@ -145,7 +158,8 @@ export let searchcomponent = {
             next: null,
             resultcount: 0,
             start: 0,
-            end: 0
+            end: 0,
+            basketcontents: []
         }
     },
     methods: {
@@ -157,13 +171,49 @@ export let searchcomponent = {
             let myEnd = this.params.start + this.params.limit -1;
             this.end = myEnd
             this.start = this.params.start
+            if (this.resultcount == 0) {
+                this.start = 0;
+            }
             if (myEnd >= this.resultcount) {
                 this.end = this.resultcount
                 this.next = null
             }
+        },
+        async checkAuthentication() {
+            let myProfileUrl = `${this.api_prefix}userprofile/my_profile`;
+            let response = await fetch(myProfileUrl);
+            if (response.redirected) {
+                this.user = null;
+                return null;
+            } else if (response.ok) {
+                let jsonData = await response.json();
+                this.user = jsonData.data.email;
+                return jsonData;
+            }
+        },
+        async getMyBasket(url) {
+            let response = await fetch(url);
+            if (response.ok) {
+                let jsonData = await response.json();
+                for (let item of jsonData.data.items) {
+                    let itemRes = await fetch(item);
+                    if (itemRes.ok) {
+                        let itemJson = await itemRes.json();
+                        this.basketcontents.push(itemJson.data);
+                    }
+                }
+            }
+        },
+        basketContains(basketContents, collection, record_id) {
+            for (let item of basketContents) {
+                if (item.collection == collection && item.record_id == record_id) {
+                    return true;
+                }
+            }
+            return false;
         }
     },
     components: {
-        'sortcomponent': sortcomponent
+        'sortcomponent': sortcomponent,
     }
 }
