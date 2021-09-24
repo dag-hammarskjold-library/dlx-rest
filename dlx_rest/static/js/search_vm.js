@@ -6,13 +6,14 @@
 import { messagecomponent } from "./messagebar.js";
 import { sidebarcomponent } from "./search/sidebar.js";
 import { searchcomponent } from "./search/search.js";
+import { basketcomponent } from "./basket.js";
 
 /////////////////////////////////////////////////////////////////
 // VIEW MODEL DEFINITION
 /////////////////////////////////////////////////////////////////
 export let vm_search_component = new Vue({
     el: '#search_vm',
-    components: { messagecomponent, sidebarcomponent, searchcomponent},
+    components: { messagecomponent, sidebarcomponent, searchcomponent, basketcomponent },
     data: {
       visible: false,
     },
