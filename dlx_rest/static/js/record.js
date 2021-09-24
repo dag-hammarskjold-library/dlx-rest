@@ -386,7 +386,7 @@ export let multiplemarcrecordcomponent = {
                         plusSign.className="ml-1 fas fa-plus-square"
 
                         plusSign.addEventListener("click", () => {
-                            let newSubfield = field.createSubfield();
+                            let newSubfield = field.createSubfield(null, field.subfields.indexOf(subfield) + 1);
                             
                             let targetedRow=subRow.rowIndex+1
                             //alert("Adding new row at the position " + targetedRow)                                       
