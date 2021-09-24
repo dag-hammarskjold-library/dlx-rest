@@ -345,9 +345,11 @@ export let multiplemarcrecordcomponent = {
             
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
+                field.row = row;
             
                 let tagCell = row.insertCell();
-                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";             
+                field.tagCell = tagCell; 
+                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";
             
                 if (field.constructor.name == "ControlField") {
                     // controlfield
@@ -369,22 +371,10 @@ export let multiplemarcrecordcomponent = {
                         minusSign.className="ml-1 fas fa-minus-square"
 
                         minusSign.addEventListener("click", () => {
+                            // Remove the subfield from the field
+                            field.deleteSubfield(subfield);
+                            // Remove the subfield row from the table
                             let targetedRow=subRow.rowIndex
-                            //alert("Deleting the row " + targetedRow)                                       
-                            //let thisSubfieldItem = {}
-                            let thisCode = subRow.children[1].textContent;
-                            let thisValue = subRow.children[2].textContent;
-                            //Remove the subfield from the jmarc object's subfields for this tag
-                            field.subfields = field.subfields.filter( el => el.code !== thisCode && el.value !== thisValue)
-                            // Assign the values to the subfield
-                            let subfieldItem = {}
-                            subfieldItem['code'] = thisCode
-                            subfieldItem['value'] = thisValue
-                            // Delete the subfield
-                            field.deleteSubfield(subfieldItem)
-                            // Update the jmarc object
-                            // jmarc.put()
-                            //Remove the subfield row from the table
                             table.deleteRow(targetedRow);
                         }); 
                         
@@ -396,7 +386,7 @@ export let multiplemarcrecordcomponent = {
                         plusSign.className="ml-1 fas fa-plus-square"
 
                         plusSign.addEventListener("click", () => {
-                            let newSubfield = field.createSubfield();
+                            let newSubfield = field.createSubfield(null, field.subfields.indexOf(subfield) + 1);
                             
                             let targetedRow=subRow.rowIndex+1
                             //alert("Adding new row at the position " + targetedRow)                                       
@@ -497,7 +487,8 @@ export let multiplemarcrecordcomponent = {
                                         // non ascii or delete keys
                                         return
                                     }
-                        
+                                    
+                                    let originalColor = valSpan.style.backgroundColor;
                                     valSpan.style.backgroundColor = "red";
                                     xrefCell.innerHTML = null;
                         
@@ -531,7 +522,7 @@ export let multiplemarcrecordcomponent = {
                                                         for (let choice of choices) {
                                                             let item = document.createElement("li");
                                                             list.appendChild(item);
-                                                            item.innerHTML = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
+                                                            item.innerText = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
                                                 
                                                             item.addEventListener(
                                                                 "mouseover",
@@ -553,13 +544,43 @@ export let multiplemarcrecordcomponent = {
                                                 
                                                                     for (let newSubfield of choice.subfields) {
                                                                         let currentSubfield = field.getSubfield(newSubfield.code);
+                                                                        
+                                                                        if (typeof currentSubfield === "undefined") {
+                                                                            // the field does not already exist
+                                                                            field.subfields.push(newSubfield);
+                                                                            currentSubfield = newSubfield;
+                                                                            
+                                                                            // create new subfield in table (again)
+                                                                            // get the place of the previous subfield
+                                                                            let place = field.subfields.indexOf(currentSubfield);
+                                                                            let newRow = table.insertRow(field.row.rowIndex + place + 1);
+                                                                            newRow.insertCell() // +/- cell
+                                                                            newRow.insertCell().innerText = currentSubfield.code;
+                                                                            // value element does not have event listeners
+                                                                            currentSubfield.valueElement = newRow.insertCell();
+                                                                            currentSubfield.innerText = currentSubfield.value;
+                                                                            currentSubfield.xrefElement = newRow.insertCell();
+                                                                        }
                                                 
                                                                         currentSubfield.value = newSubfield.value;
                                                                         currentSubfield.xref = newSubfield.xref;
                                                 
-                                                                        currentSubfield.valueElement.innerHTML = currentSubfield.value;
+                                                                        currentSubfield.valueElement.innerText = currentSubfield.value;
                                                                         currentSubfield.valueElement.style.backgroundColor = "white";
-                                                                        currentSubfield.xrefElement.innerHTML = currentSubfield.xref;
+                                                                        
+                                                                        let xrefLink = document.createElement("a");
+                                                                        xrefLink.href = `/records/auths/${newSubfield.xref}`;
+                                                                        xrefLink.target="_blank";
+                                                                        
+                                                                        let xrefIcon = document.createElement("i");
+                                                                        xrefIcon.className = "fas fa-link float-left mr-2";
+                                                                        xrefLink.appendChild(xrefIcon);
+                                                                        
+                                                                        while (currentSubfield.xrefElement.firstChild) {
+                                                                            currentSubfield.xrefElement.removeChild(currentSubfield.xrefElement.firstChild)
+                                                                        }
+                                                                        
+                                                                        currentSubfield.xrefElement.append(xrefLink);
                                                                     }
                                                                 }
                                                             );

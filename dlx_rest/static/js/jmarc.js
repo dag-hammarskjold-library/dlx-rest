@@ -71,11 +71,15 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	createSubfield(code) {
-		code || function() {throw new Error("subfield code required")};
-		
+	createSubfield(code, place) {
 		let subfield = new Subfield(code);
-		this.subfields.push(subfield);
+		
+        if (place) {
+            this.subfields.splice(place, 0, subfield);
+        }
+        else {
+            this.subfields.push(subfield);
+        }
 		
 		return subfield;
 	}
