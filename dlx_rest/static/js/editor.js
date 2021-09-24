@@ -5,7 +5,6 @@
 import { Jmarc } from "./jmarc.js";
 import { headercomponent } from "./header.js";
 import { basketcomponent } from "./basket.js";
-import { warningcomponent } from "./warning.js";
 import { multiplemarcrecordcomponent } from "./record.js";
 import { messagecomponent } from "./messagebar.js";
 import { modalmergecomponent } from "./merge.js";
