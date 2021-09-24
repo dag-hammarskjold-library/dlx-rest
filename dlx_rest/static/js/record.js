@@ -345,9 +345,11 @@ export let multiplemarcrecordcomponent = {
             
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
+                field.row = row;
             
                 let tagCell = row.insertCell();
-                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";             
+                field.tagCell = tagCell; 
+                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";
             
                 if (field.constructor.name == "ControlField") {
                     // controlfield
@@ -539,6 +541,23 @@ export let multiplemarcrecordcomponent = {
                                                 
                                                                     for (let newSubfield of choice.subfields) {
                                                                         let currentSubfield = field.getSubfield(newSubfield.code);
+                                                                        
+                                                                        if (typeof currentSubfield === "undefined") {
+                                                                            // the field does not already exist
+                                                                            field.subfields.push(newSubfield);
+                                                                            currentSubfield = newSubfield;
+                                                                            
+                                                                            // create new subfield in table (again)
+                                                                            // get the place of the previous subfield
+                                                                            let place = field.subfields.indexOf(currentSubfield);
+                                                                            let newRow = table.insertRow(field.row.rowIndex + place + 1);
+                                                                            newRow.insertCell() // +/- cell
+                                                                            newRow.insertCell().innerText = currentSubfield.code;
+                                                                            // value element does not have event listeners
+                                                                            currentSubfield.valueElement = newRow.insertCell();
+                                                                            currentSubfield.innerText = currentSubfield.value;
+                                                                            currentSubfield.xrefElement = newRow.insertCell();
+                                                                        }
                                                 
                                                                         currentSubfield.value = newSubfield.value;
                                                                         currentSubfield.xref = newSubfield.xref;
