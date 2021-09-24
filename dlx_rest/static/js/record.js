@@ -170,7 +170,17 @@ export let multiplemarcrecordcomponent = {
             // some styling for the table
             table.style.width="400px";
             table.style.tableLayout = "fixed";
-            table.className="w-auto table-striped"
+            table.className="w-auto table-striped";
+            table.style.marginTop="5px";
+            
+            if (myColl==="bibs") {
+                this.collectionRecord2="bibs"
+                table.style.border="3px solid green";    
+            }
+            else {
+                this.collectionRecord2="auths"
+                table.style.border="3px solid purple";    
+            }
             
             // Adding event listener on the table to catch the index
             let rows 
@@ -188,7 +198,6 @@ export let multiplemarcrecordcomponent = {
             headerField.innerText = `${myColl}/${recId}`;
             headerField.className = "float-left mx-2";
             let saveButton = document.createElement("i");
-            //saveCell.appendChild(saveButton);
             idCell.appendChild(saveButton);
             saveButton.type = "button";
             saveButton.value = "save";
@@ -215,8 +224,7 @@ export let multiplemarcrecordcomponent = {
                 );
             };
                     
-            // clone record
-                  
+            // clone record  
             let cloneButton = document.createElement("i");
             idCell.appendChild(cloneButton);
             cloneButton.type = "button";
@@ -241,7 +249,6 @@ export let multiplemarcrecordcomponent = {
             addTagButton.onclick = () => {
                 // to be implemented
             };    
-            
 
             // Delete button
             let deleteCell = idRow.insertCell();
@@ -341,8 +348,7 @@ export let multiplemarcrecordcomponent = {
                 filesUL.appendChild(fileLI);
                 
             }
-                    
-            
+
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 let row = table.insertRow();
                 field.row = row;
@@ -350,9 +356,9 @@ export let multiplemarcrecordcomponent = {
                 let tagCell = row.insertCell();
                 field.tagCell = tagCell; 
                 tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";
-            
+                
+                // controlfield
                 if (field.constructor.name == "ControlField") {
-                    // controlfield
                     row.insertCell(); // placeholder
             
                     let valCell = row.insertCell();
@@ -362,7 +368,6 @@ export let multiplemarcrecordcomponent = {
                 }
                 
                 // datafield
-                
                 for (let subfield of field.subfields) {
                     let subRow = table.insertRow()
                     let opeCell=subRow.insertCell(); 
@@ -615,40 +620,21 @@ export let multiplemarcrecordcomponent = {
                     );
                 }
             }
-                  
-            table.style.marginTop="5px";
-                  
+            
+            let myDivId;
+            
             if (this.isRecordOneDisplayed == false) {
-                let myRecord1 = document.getElementById("record1");
-                myRecord1.appendChild(table)
+                myDivId = "record1";
                 this.isRecordOneDisplayed = true
                 this.record1 = recId;
-                // further styling for the div
-                if (myColl==="bibs") {
-                    this.collectionRecord1="bibs"
-                    table.style.border="2px solid green";    
-                }
-                else {
-                    this.collectionRecord1="auths"
-                    table.style.border="2px solid purple";    
-                }
             }
             else if (this.isRecordTwoDisplayed == false) {
-                let myRecord2 = document.getElementById("record2");
-                myRecord2.appendChild(table)
+                myDivId = "record2";
                 this.isRecordTwoDisplayed = true
                 this.record2 = recId;
-                // further styling for the div
-                if (myColl==="bibs") {
-                    this.collectionRecord2="bibs"
-                    table.style.border="3px solid green";    
-                }
-                else {
-                    this.collectionRecord2="auths"
-                    table.style.border="3px solid purple";    
-                }
             }
-            
+
+            document.getElementById(myDivId).appendChild(table);            
         }
     }
 }
