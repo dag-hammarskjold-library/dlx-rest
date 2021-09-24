@@ -105,11 +105,13 @@ export let searchcomponent = {
         if (response.ok) {
             let jsonData = await response.json();
             let myUser =  jsonData.data.email;
+            console.log(myUser)
 
             // From here we can be fairly sure we're authenticated, so proceed...
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
+                console.log(iconEl)
                 if (myUser !== null) {
                     // we can add to and remove from basket
                 } else {
