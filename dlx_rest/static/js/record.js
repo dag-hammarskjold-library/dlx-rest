@@ -61,7 +61,9 @@ export let multiplemarcrecordcomponent = {
         }
     },
     created() {
+        Jmarc.apiUrl = this.prefix;
         this.$root.$refs.multiplemarcrecordcomponent = this;
+        
         if (this.records) {
             this.records.split(",").forEach(
                 record => {
@@ -163,32 +165,27 @@ export let multiplemarcrecordcomponent = {
             }
         },
         async displayMarcRecord(recId, myColl="bibs") {
-            Jmarc.apiUrl = this.prefix;
+            let component = this; // for use in event listeners
             let jmarc = await Jmarc.get(myColl, recId);
             let table = document.createElement("table");
             
-            // some styling for the table
-            table.style.width="400px";
-            table.style.tableLayout = "fixed";
-            table.className="w-auto table-striped"
+            // table css in in base1.html
+            table.className = myColl === "bibs" ? "bib" : "auth"; 
+            table.className += " marc-record table-hover";
             
-            // Adding event listener on the table to catch the index
-            let rows 
-            let rowsArray 
-            let rowIndex 
-            let columns 
-            let columnIndex 
-            
-            // Save Button
-            let idRow = table.insertRow();
+            // Table header
+            let tableHeader = table.createTHead();
+            let idRow = tableHeader.insertRow();
             let idCell = idRow.insertCell();
             idCell.colSpan = 3;
-            let headerField = document.createElement("h5");
-            idCell.appendChild(headerField);
-            headerField.innerText = `${myColl}/${recId}`;
-            headerField.className = "float-left mx-2";
+            
+            let idField = document.createElement("h5");
+            idCell.appendChild(idField);
+            idField.innerText = `${myColl}/${recId}`;
+            idField.className = "float-left mx-2";
+            
+            // Save Button
             let saveButton = document.createElement("i");
-            //saveCell.appendChild(saveButton);
             idCell.appendChild(saveButton);
             saveButton.type = "button";
             saveButton.value = "save";
@@ -215,13 +212,13 @@ export let multiplemarcrecordcomponent = {
                 );
             };
                     
-            // clone record
-                  
+            // clone record  
             let cloneButton = document.createElement("i");
             idCell.appendChild(cloneButton);
             cloneButton.type = "button";
             cloneButton.value = "clone";
             cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1"
+            
             cloneButton.onclick = () => {
                 let recup = jmarc.clone();
                 try {
@@ -230,24 +227,14 @@ export let multiplemarcrecordcomponent = {
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
-            };  
-
-            // Add TAG button
-            let addTagButton = document.createElement("i");
-            idCell.appendChild(addTagButton);
-            addTagButton.type = "button";
-            addTagButton.value = "refresh";
-            addTagButton.className = "fas fa-plus-circle text-primary float-left mr-2 mt-1"
-            addTagButton.onclick = () => {
-                // to be implemented
-            };    
+            };
             
-
             // Delete button
             let deleteCell = idRow.insertCell();
             let deleteDiv = document.createElement("div");
             deleteCell.appendChild(deleteDiv);
             deleteDiv.className = "dropdown";
+            
             let deleteButton = document.createElement("i");
             deleteDiv.appendChild(deleteButton);
             deleteButton.id = "deleteDropdown";
@@ -255,10 +242,12 @@ export let multiplemarcrecordcomponent = {
             deleteButton.value = "delete";
             deleteButton.className = "fas fa-trash-alt text-danger dropdown-toggle mr-2";
             deleteButton.setAttribute("data-toggle", "dropdown");
+            
             let deleteDropdown = document.createElement("div");
             deleteDiv.appendChild(deleteDropdown);
             deleteDropdown.className = "dropdown-menu";
             deleteDropdown.setAttribute("aria-labelledBy", "deleteDropdown");
+            
             let deleteItem = document.createElement("a");
             deleteDropdown.appendChild(deleteItem);
             deleteItem.className = "dropdown-item";
@@ -282,8 +271,8 @@ export let multiplemarcrecordcomponent = {
                 }  
             };
                     
-            //Make a row for files
-            let filesRow = table.insertRow();
+            // Files
+            let filesRow = tableHeader.insertRow();
             let filesCell = filesRow.insertCell();
             filesCell.colSpan = 6;
             filesCell.className = "text-wrap"
@@ -341,314 +330,357 @@ export let multiplemarcrecordcomponent = {
                 filesUL.appendChild(fileLI);
                 
             }
-                    
             
+            // Table body
+            let tableBody = table.createTBody();
+            
+            // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
-                let row = table.insertRow();
-                field.row = row;
-            
-                let tagCell = row.insertCell();
-                field.tagCell = tagCell; 
-                tagCell.innerHTML = "<span class='badge badge-pill badge-warning'>" +field.tag+"</span>";
-            
-                if (field.constructor.name == "ControlField") {
-                    // controlfield
-                    row.insertCell(); // placeholder
-            
-                    let valCell = row.insertCell();
-                    valCell.innerHTML = field.value;
-                }
-                else {
-                    // datafield
+                // Field row
+                field.row = tableBody.insertRow();
+                
+                // Tag
+                let tagCell = field.row.insertCell();
+                field.tagCell = tagCell;
+                tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
+                tagCell.setAttribute("data-toggle", "dropdown");
+                tagCell.innerText = field.tag;
+                
+                // menu
+                let tagMenu = document.createElement("div");
+                tagCell.append(tagMenu);
+                tagMenu.className = "dropdown-menu";
+                tagMenu.style.cursor = "default";
+                
+                // add field
+                let addField = document.createElement("i");
+                tagMenu.append(addField);
+                addField.className = "dropdown-item";
+                addField.innerText = "Add field";
+                
+                addField.addEventListener("click", function() {
+                    let newField = jmarc.createField(null, (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+                    let newSubfield = newField.createSubfield();
                     
-                    for (let subfield of field.subfields) {
+                    let row = table.insertRow(field.row.rowIndex + 1);
+                    let tagCell = row.insertCell();
+                    tagCell.contentEditable = true;
+                    tagCell.innerText = "___";
+                    
+                    tagCell.addEventListener("input", function() {
+                        newField.tag = tagCell.innerText;
+                    });
+                    
+                    let fieldCell = row.insertCell();
+                    let fieldTable = document.createElement("table");
+                    fieldCell.append(fieldTable);
+                    fieldTable.className = "marc-field";
+                    
+                    let subfieldRow = fieldTable.insertRow();
+                    let codeCell = subfieldRow.insertCell();
+                    codeCell.className = "subfield-code";
+                    codeCell.contentEditable = true;
+                    codeCell.innerHTML = "_";
+                    
+                    codeCell.addEventListener("input", function() {
+                        newSubfield.code = codeCell.innerText;
+                    });
+                    
+                    let valCell = subfieldRow.insertCell();
+                    valCell.className = "subfield-value";
+                    valCell.contentEditable = true;
+                    valCell.innerHTML = "insert new subfield value";
+                    
+                    valCell.addEventListener("input", function() {
+                        newSubfield.value = valCell.innerText;
+                    });
+                });
+                
+                // delete field
+                let deleteField = document.createElement("i");
+                tagMenu.append(deleteField);
+                deleteField.className = "dropdown-item";
+                deleteField.innerText = "Delete field";
+                
+                deleteField.addEventListener("click", function() {
+                    jmarc.deleteField(field);
+                    table.deleteRow(field.row.rowIndex);
+                });
+                
+                // Field table
+                let fieldCell = field.row.insertCell();
+                let fieldTable = document.createElement("table");
+                fieldCell.append(fieldTable);
+                fieldTable.className = "marc-field";
+                
+                // Controlfield
+                if (field.constructor.name == "ControlField") {
+                    field.row = fieldTable.insertRow();
+                    field.row.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                    let valCell = field.row.insertCell();
+                    valCell.innerHTML = field.value;
+                    
+                    continue; 
+                }
+                
+                // Datafield
+                for (let subfield of field.subfields) {
+                    subfield.row  = fieldTable.insertRow();
 
-                        let subRow = table.insertRow()
-                        let opeCell=subRow.insertCell(); 
+                    // Subfield code
+                    let codeCell = subfield.row.insertCell();
+                    codeCell.innerText = subfield.code;
+                    codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
+                    codeCell.setAttribute("data-toggle", "dropdown");
+                    
+                    // menu
+                    let codeMenu = document.createElement("div");
+                    codeCell.append(codeMenu);
+                    codeMenu.className = "dropdown-menu";
+                    codeMenu.style.cursor = "default";
+                    
+                    // add subfield
+                    let addSubfield = document.createElement("i");
+                    codeMenu.append(addSubfield);
+                    addSubfield.className = "dropdown-item";
+                    addSubfield.innerText = "Add subfield";
+                    
+                    addSubfield.addEventListener("click", function() {
+                        // New table row
+                        let newSubfield = field.createSubfield(null, field.subfields.indexOf(subfield) + 1);             
+                        let newRow = fieldTable.insertRow(subfield.row.rowIndex + 1);
 
-                        // creation of the minus element
-                        let minusSign=document.createElement("i");
-                        minusSign.className="ml-1 fas fa-minus-square"
-
-                        minusSign.addEventListener("click", () => {
-                            // Remove the subfield from the field
-                            field.deleteSubfield(subfield);
-                            // Remove the subfield row from the table
-                            let targetedRow=subRow.rowIndex
-                            table.deleteRow(targetedRow);
-                        }); 
+                        // New code
+                        let newCodeCell = newRow.insertCell();
+                        newCodeCell.textContent = "_";
+                        newCodeCell.contentEditable = true;
                         
-                        // adding minusSign to the cell 
-                        opeCell.appendChild(minusSign)
+                        newCodeCell.addEventListener('input', () => {
+                            newSubfield.code = newCodeCell.textContent;
+                        });
+                        
+                        // New value
+                        let newValueCell = newRow.insertCell();                                          
+                        newValueCell.textContent = "insert new subfield value";
+                        newValueCell.contentEditable = true;
+                        
+                        // visual effect to show the update status
+                        newCodeCell.style.background="rgba(255, 255, 128, .5)";
+                        newValueCell.style.background="rgba(255, 255, 128, .5)";
 
-                        // creation of the plus element
-                        let plusSign=document.createElement("i");
-                        plusSign.className="ml-1 fas fa-plus-square"
-
-                        plusSign.addEventListener("click", () => {
-                            let newSubfield = field.createSubfield(null, field.subfields.indexOf(subfield) + 1);
-                            
-                            let targetedRow=subRow.rowIndex+1
-                            //alert("Adding new row at the position " + targetedRow)                                       
-                            let subRow1 = table.insertRow(targetedRow)
-                            //This cell holds the subfield controls (add/remvoe)
-                            let opeCell1=subRow1.insertCell(); 
-                            //This cell holds the subfield code
-                            let opeCell2=subRow1.insertCell();
-                            //This cell holds the subfield value
-                            let opeCell3=subRow1.insertCell();
-
-                            // visual effect to show the update status
-                            opeCell1.style.background="rgba(255, 255, 128, .5)";
-                            opeCell2.style.background="rgba(255, 255, 128, .5)";
-                            opeCell3.style.background="rgba(255, 255, 128, .5)";
-
-                            // This is a default value for the subfield code
-                            opeCell2.textContent = "_";
-                            opeCell2.contentEditable = true;
-                            
-                            opeCell2.addEventListener('input', () => {
-                                newSubfield.code = opeCell2.textContent;
-                            });
-
-                            // This is a default value for the subfield value                                            
-                            opeCell3.textContent = "insert new subfield value";
-                            opeCell3.contentEditable = true;
-
-                            opeCell3.addEventListener('input', () => {
-                                newSubfield.value = opeCell3.textContent;
-                            
-                                if (newSubfield.code !== "_" && newSubfield.value) {
-                                    opeCell1.style.background="";
-                                    opeCell2.style.background="";
-                                    opeCell3.style.background="";
-                                }
-                                
-                                // Update the jmarc object
-                                // jmarc.put()
-                            });
-                            
-                            opeCell3.addEventListener('keydown', event => {
+                        newValueCell.addEventListener('input', () => {
+                            newSubfield.value = newValueCell.textContent;
+                        
+                            if (newSubfield.code !== "_" && newSubfield.value) {
+                                newCodeCell.style.background = "";
+                                newValueCell.style.background = "";
+                            }
+                        });
+                        
+                        for (let cell of [newCodeCell, newValueCell]) {
+                            cell.addEventListener('keydown', event => {
                                 if (event.keyCode === 13) {
                                     // return key
                                     event.preventDefault();
-                                    opeCell3.blur();
+                                    cell.blur();
                                 }
                             });
-                        });
+                        }
+                    });
+                    
+                    // delete subfield
+                    let deleteSubfield = document.createElement("i");
+                    codeMenu.append(deleteSubfield);
+                    deleteSubfield.className = "dropdown-item";
+                    deleteSubfield.innerText = "Delete subfield";
 
-                        // adding plusSign to the cell 
-                        opeCell.appendChild(plusSign)
-
-                        ///////////////////////////////////////////////
-                        ////////////////////////////////////////////////
-                        
-                        let codeCell = subRow.insertCell();
-                        codeCell.innerHTML = subfield.code;
-                        
-                        // value
-                        let valCell = subRow.insertCell();
-                        valCell.contentEditable = true; // not used but makes cell clickable
-                        let valSpan = document.createElement("span");
-                        
-                        // update the size of the span
-                        valSpan.style.width="100%"
-                        valCell.appendChild(valSpan);
-                        subfield.valueElement = valSpan; // save the value HTML element in the subfield object
-                        valSpan.innerHTML = subfield.value;
-                        valSpan.contentEditable = true;
-                        valCell.addEventListener("focus", function () { valSpan.focus() });
-                        
-                        if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                            valSpan.className = "authority-controlled"; // for styling
-                              
-                            // xref
-                            let xrefCell = subRow.insertCell();
-                            subfield.xrefElement = xrefCell; // save the xref HTML element in the subfield object
-                            //xrefCell.innerHTML = subfield.xref;
-                            let xrefLink = document.createElement("a");
-                            xrefCell.appendChild(xrefLink);
-                            //xrefLink.text = subfield.xref;
-                            //xrefLink.href = `${Jmarc.apiUrl}marc/auths/records/${subfield.xref}?format=mrk`;
-                            xrefLink.href = `/records/auths/${subfield.xref}`;
-                            xrefLink.target="_blank";
-                              
-                            let xrefIcon = document.createElement("i");
-                            xrefIcon.className = "fas fa-link float-left mr-2";
-                            xrefLink.appendChild(xrefIcon);
-                              
-                            // lookup
-                            let timer;
-                              
-                            valCell.addEventListener(
-                                "keyup",
-                                function (event) {
-                                    if (event.keyCode < 45 && event.keyCode !== 8) {
-                                        // non ascii or delete keys
-                                        return
-                                    }
-                                    
-                                    let originalColor = valSpan.style.backgroundColor;
-                                    valSpan.style.backgroundColor = "red";
-                                    xrefCell.innerHTML = null;
-                        
-                                    let popup = document.getElementById("typeahead-popup");
-                                    popup && popup.remove();
-                        
-                                    clearTimeout(timer);
-                                    subfield.value = valCell.innerText;
-                        
-                                    if (subfield.value) {
-                                        timer = setTimeout(
-                                            function () {
-                                                let popup = document.createElement("div");
-                                                valCell.appendChild(popup);
-                                                popup.id = "typeahead-popup";
-                                                popup.innerHTML = "searching...";
-                                                
-                                                field.lookup().then(
-                                                    choices => {
-                                                        if (choices.length == 0) {
-                                                            popup.innerHTML = "not found";
-                                                            setTimeout(function () { popup.remove() }, 1000)
-                                                            return
-                                                        }
-                                                    
-                                                        popup.innerHTML = null;
-                                                
-                                                        let list = document.createElement("ul");
-                                                        popup.appendChild(list);
-                                                
-                                                        for (let choice of choices) {
-                                                            let item = document.createElement("li");
-                                                            list.appendChild(item);
-                                                            item.innerText = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
-                                                
-                                                            item.addEventListener(
-                                                                "mouseover",
-                                                                function () { item.style.backgroundColor = "gray" }
-                                                            );
-                                                
-                                                            item.addEventListener(
-                                                                "mouseout",
-                                                                function () {
-                                                                    item.style.backgroundColor = "white";
-                                                                    subfield.value = valSpan.innerText
-                                                                }
-                                                            );
-                                                
-                                                            item.addEventListener(
-                                                                "mousedown",
-                                                                function () {
-                                                                    popup.remove()
-                                                
-                                                                    for (let newSubfield of choice.subfields) {
-                                                                        let currentSubfield = field.getSubfield(newSubfield.code);
-                                                                        
-                                                                        if (typeof currentSubfield === "undefined") {
-                                                                            // the field does not already exist
-                                                                            field.subfields.push(newSubfield);
-                                                                            currentSubfield = newSubfield;
-                                                                            
-                                                                            // create new subfield in table (again)
-                                                                            // get the place of the previous subfield
-                                                                            let place = field.subfields.indexOf(currentSubfield);
-                                                                            let newRow = table.insertRow(field.row.rowIndex + place + 1);
-                                                                            newRow.insertCell() // +/- cell
-                                                                            newRow.insertCell().innerText = currentSubfield.code;
-                                                                            // value element does not have event listeners
-                                                                            currentSubfield.valueElement = newRow.insertCell();
-                                                                            currentSubfield.innerText = currentSubfield.value;
-                                                                            currentSubfield.xrefElement = newRow.insertCell();
-                                                                        }
-                                                
-                                                                        currentSubfield.value = newSubfield.value;
-                                                                        currentSubfield.xref = newSubfield.xref;
-                                                
-                                                                        currentSubfield.valueElement.innerText = currentSubfield.value;
-                                                                        currentSubfield.valueElement.style.backgroundColor = "white";
-                                                                        
-                                                                        let xrefLink = document.createElement("a");
-                                                                        xrefLink.href = `/records/auths/${newSubfield.xref}`;
-                                                                        xrefLink.target="_blank";
-                                                                        
-                                                                        let xrefIcon = document.createElement("i");
-                                                                        xrefIcon.className = "fas fa-link float-left mr-2";
-                                                                        xrefLink.appendChild(xrefIcon);
-                                                                        
-                                                                        while (currentSubfield.xrefElement.firstChild) {
-                                                                            currentSubfield.xrefElement.removeChild(currentSubfield.xrefElement.firstChild)
-                                                                        }
-                                                                        
-                                                                        currentSubfield.xrefElement.append(xrefLink);
-                                                                    }
-                                                                }
-                                                            );
-                                                        }
-                                                    }
-                                                );
-                                            },
-                                            750
-                                        );
-                                    }
-                                }
-                            )
+                    deleteSubfield.addEventListener("click", function() {
+                        if (field.subfields.length == 1) {
+                            component.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
+                            return
                         }
                         
-                        valCell.addEventListener(
-                            "input",
-                            function () {
-                                subfield.value = valSpan.innerText;
-                            }
-                        );
+                        // Remove the subfield from the field
+                        field.deleteSubfield(subfield);
+                        // Remove the subfield row from the table
+                        fieldTable.deleteRow(subfield.row.rowIndex);
+                    });
+                    
+                    // Subfield value
+                    let valCell = subfield.row.insertCell();
+                    valCell.className = "subfield-value";
+                    valCell.contentEditable = true; // not used but makes cell clickable
+                    valCell.setAttribute("data-taggle", "tooltip");
+                    valCell.title = `The human-readable field name for ${field.tag}\$${subfield.code}`;
+                    
+                    let valSpan = document.createElement("span");
+                    valSpan.align = "left";
+                    valSpan.style.width = "100%"
+                    valCell.appendChild(valSpan);
+                    subfield.valueElement = valSpan; // save the value HTML element in the subfield object
+                    valSpan.innerHTML = subfield.value;
+                    valSpan.contentEditable = true;
+                    
+                    // change focus to span when cell is clicked
+                    valCell.addEventListener("focus", function () {valSpan.focus()});
+
+                    valCell.addEventListener("input", function () {
+                        subfield.value = valSpan.innerText;
+                    });
+                    
+                    valCell.addEventListener("keydown", function (event) {
+                        // prevent newline and blur on return key
+                        if (event.keyCode === 13) {
+                            event.preventDefault();
+                            valCell.blur();
+                        }
+                    });
+                    
+                    // auth controlled
+                    if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                        valSpan.className = "authority-controlled"; // for styling
+                          
+                        // xref
+                        let xrefCell = subfield.row.insertCell();
+                        subfield.xrefElement = xrefCell; // save the xref HTML element in the subfield object
                         
-                        valCell.addEventListener(
-                            "keydown",
-                            function (event) {
-                                if (event.keyCode === 13) {
-                                    // return key
-                                    event.preventDefault();
-                                    valCell.blur();
-                                }
+                        let xrefLink = document.createElement("a");
+                        xrefCell.appendChild(xrefLink);
+                        xrefLink.href = `/records/auths/${subfield.xref}`;
+                        xrefLink.target="_blank";
+                          
+                        let xrefIcon = document.createElement("i");
+                        xrefIcon.className = "fas fa-link float-left mr-2";
+                        xrefLink.appendChild(xrefIcon);
+                          
+                        // lookup
+                        let timer;
+                          
+                        valCell.addEventListener("keyup", function (event) {
+                            if (event.keyCode < 45 && event.keyCode !== 8) {
+                                // non ascii or delete keys
+                                return
                             }
-                        );
+                                
+                            let originalColor = valSpan.style.backgroundColor;
+                            valSpan.style.backgroundColor = "LightCoral";
+                            xrefCell.innerHTML = null;
+                    
+                            let popup = document.getElementById("typeahead-popup");
+                            popup && popup.remove();
+                    
+                            clearTimeout(timer);
+                            subfield.value = valCell.innerText;
+                    
+                            if (subfield.value) {
+                                timer = setTimeout(
+                                    function () {
+                                        let dropdown = document.createElement("div");
+                                        valCell.appendChild(dropdown);
+                                        dropdown.className = "typehead-dropdown";
+                                        dropdown.id = "typeahead-dropdown";
+                                        dropdown.innerHTML = "searching...";
+                                        
+                                        field.lookup().then(choices => {
+                                            if (choices.length == 0) {
+                                                dropdown.innerHTML = "not found";
+                                                setTimeout(function () { dropdown.remove() }, 1000)
+                                                return
+                                            }
+                                            
+                                            dropdown.innerHTML = null;
+                                        
+                                            let list = document.createElement("ul");
+                                            dropdown.appendChild(list);
+                                            list.className = "list-group";
+                                        
+                                            for (let choice of choices) {
+                                                let item = document.createElement("li");
+                                                list.appendChild(item);
+                                                item.className = "list-group-item";
+                                                
+                                                item.innerHTML = choice.subfields.map(x => `<span style="color: blue">$${x.code}</span> ${x.value}`).join("<br>");
+                                                
+                                                item.addEventListener("mouseover", function () {
+                                                    item.style.backgroundColor = "gray"
+                                                });
+                                                
+                                                item.addEventListener("mouseout", function () {
+                                                    item.style.backgroundColor = "";
+                                                    subfield.value = valSpan.innerText
+                                                });
+                                                
+                                                item.addEventListener("mousedown", function () {
+                                                    dropdown.remove()
+                                        
+                                                    for (let newSubfield of choice.subfields) {
+                                                        let currentSubfield = field.getSubfield(newSubfield.code);
+                                                        
+                                                        if (typeof currentSubfield === "undefined") {
+                                                            // the field does not already exist
+                                                            field.subfields.push(newSubfield);
+                                                            currentSubfield = newSubfield;
+                                                                
+                                                            // create new subfield in table (again)
+                                                            // get the place of the previous subfield
+                                                            let place = field.subfields.indexOf(currentSubfield);
+                                                            let newRow = fieldTable.insertRow(subfield.row.rowIndex + 1); // needs fix
+                                                            newRow.insertCell().innerText = currentSubfield.code;
+                                                            // value element does not have event listeners
+                                                            currentSubfield.valueElement = newRow.insertCell();
+                                                            currentSubfield.innerText = currentSubfield.value;
+                                                            currentSubfield.xrefElement = newRow.insertCell();
+                                                        }
+                                        
+                                                        currentSubfield.value = newSubfield.value;
+                                                        currentSubfield.xref = newSubfield.xref;
+                                        
+                                                        currentSubfield.valueElement.innerText = currentSubfield.value;
+                                                        currentSubfield.valueElement.style.backgroundColor = "";
+                                                            
+                                                        let xrefLink = document.createElement("a");
+                                                        xrefLink.href = `/records/auths/${newSubfield.xref}`;
+                                                        xrefLink.target="_blank";
+                                                            
+                                                        let xrefIcon = document.createElement("i");
+                                                        xrefIcon.className = "fas fa-link float-left mr-2";
+                                                        xrefLink.appendChild(xrefIcon);
+                                                            
+                                                        while (currentSubfield.xrefElement.firstChild) {
+                                                            currentSubfield.xrefElement.removeChild(currentSubfield.xrefElement.firstChild)
+                                                        }
+                                                            
+                                                        currentSubfield.xrefElement.append(xrefLink);
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }, 
+                                    750
+                                );
+                            }
+                        });
                     }
                 }
             }
-                  
-            table.style.marginTop="5px";
-                  
+            
+            // Add to div
+            let myDivId;
+            
             if (this.isRecordOneDisplayed == false) {
-                let myRecord1 = document.getElementById("record1");
-                myRecord1.appendChild(table)
+                myDivId = "record1";
                 this.isRecordOneDisplayed = true
                 this.record1 = recId;
-                // further styling for the div
-                if (myColl==="bibs") {
-                    this.collectionRecord1="bibs"
-                    table.style.border="2px solid green";    
-                }
-                else {
-                    this.collectionRecord1="auths"
-                    table.style.border="2px solid purple";    
-                }
+                this.collectionRecord1 = myColl; // used for auth merge
             }
             else if (this.isRecordTwoDisplayed == false) {
-                let myRecord2 = document.getElementById("record2");
-                myRecord2.appendChild(table)
+                myDivId = "record2";
                 this.isRecordTwoDisplayed = true
                 this.record2 = recId;
-                // further styling for the div
-                if (myColl==="bibs") {
-                    this.collectionRecord2="bibs"
-                    table.style.border="3px solid green";    
-                }
-                else {
-                    this.collectionRecord2="auths"
-                    table.style.border="3px solid purple";    
-                }
+                this.collectionRecord2 = myColl; // used for auth merge
             }
-            
+
+            document.getElementById(myDivId).appendChild(table);            
         }
     }
 }
