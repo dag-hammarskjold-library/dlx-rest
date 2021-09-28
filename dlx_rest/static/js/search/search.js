@@ -51,7 +51,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-folder-plus addRemoveIcon" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-folder-plus" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -66,6 +66,35 @@ export let searchcomponent = {
             </ul>
         </nav>
     </div>`,
+    data: function () {
+        let myParams = this.search_url.split("?")[1];
+        let myProps = {}
+        for (let p of myParams.split("&")) {
+            let thisParam = p.split("=");
+            if (thisParam[0] == "start" || thisParam[0] == "limit") {
+                myProps[thisParam[0]] = parseInt(thisParam[1]);
+            } else {
+                myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
+            }
+        }
+        let myUIBase = this.api_prefix.replace('/api/','');
+        //console.log(this.links)
+        return {
+            visible: true,
+            results: [],
+            links: {},
+            action: `${myUIBase}/records/${this.collection}/search`,
+            params: myProps,
+            uibase: myUIBase,
+            count: null,
+            prev: null,
+            next: null,
+            resultcount: 0,
+            start: 0,
+            end: 0,
+            basketcontents: ['foo']
+        }
+    },
     created: async function() {
         let response = await fetch(this.search_url);
         if (response.ok) {
@@ -103,63 +132,27 @@ export let searchcomponent = {
     mounted: async function() {
         let myProfile = await this.checkAuthentication();
         if (this.user !== null) {
-            // This should always be the info returned as /api/userprofile/my_profile/basket
-            let myUrl = myProfile._links.related.baskets[0]
-            await this.getMyBasket(myUrl);
+            const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
-                let basketItemId = this.$root.$refs.basketcomponent.getId(result._id, this.collection);
-                
-                if (this.basketContains(this.basketcontents, this.collection, result._id)) {
-                    // set the icon to a minus sign and the title to "Remove from basket"
-                    iconEl.classList.remove('fa-folder-plus');
+                iconEl.addEventListener("click", async () => {
+                    const myBasket = await basket.getBasket(this.api_prefix);
+                    this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
+                });
+                if (this.basketContains(myBasket, this.collection, result._id)) {
+                    iconEl.classList.remove('fa-folder-plus',);
                     iconEl.classList.add('fa-folder-minus');
                     iconEl.title = "Remove from basket";
-                    iconEl.addEventListener('click', () => {
-                        this.$root.$refs.basketcomponent.removeRecordFromList(basketItemId);
-                    })
-                } else {
-                    iconEl.addEventListener('click', () => {
-                        basket.createItem(this.api_prefix, )
-                    });
-                }
+                } 
             }
+            
         } else {
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
                 iconEl.style.display = "none";
             }
-        }
-    },
-    data: function () {
-        let myParams = this.search_url.split("?")[1];
-        let myProps = {}
-        for (let p of myParams.split("&")) {
-            let thisParam = p.split("=");
-            if (thisParam[0] == "start" || thisParam[0] == "limit") {
-                myProps[thisParam[0]] = parseInt(thisParam[1]);
-            } else {
-                myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
-            }
-        }
-        let myUIBase = this.api_prefix.replace('/api/','');
-        //console.log(this.links)
-        return {
-            visible: true,
-            results: [],
-            links: {},
-            action: `${myUIBase}/records/${this.collection}/search`,
-            params: myProps,
-            uibase: myUIBase,
-            count: null,
-            prev: null,
-            next: null,
-            resultcount: 0,
-            start: 0,
-            end: 0,
-            basketcontents: []
         }
     },
     methods: {
@@ -211,6 +204,25 @@ export let searchcomponent = {
                 }
             }
             return false;
+        },
+        toggleAddRemove(el, myBasket, collection, record_id) {
+            if (el.classList.value === "fas fa-folder-plus") {
+                // we can run an add
+                const added = basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
+                if (added) {
+                    el.classList.remove("fa-folder-plus");
+                    el.classList.add("fa-folder-minus");
+                    // Send a message to the messagebar...
+                }
+            } else {
+                // we can run a deletion
+                const deleted = basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
+                if (deleted) {
+                    el.classList.remove("fa-folder-minus");
+                    el.classList.add("fa-folder-plus");
+                    // Send a message to the messagebar...
+                }
+            }
         }
     },
     components: {
