@@ -27,13 +27,13 @@ export let sortcomponent = {
     `,
     data: function() {
         let mySortFields = ['updated'];
-        /* Once we have more fields to use for sorting, we can add them here
+        /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
             mySortFields.push('title')
+            mySortFields.push('publication date')
         } else if (this.collection == "auths") {
             mySortFields.push('heading')
         }
-        */
         return {
             rpp: [10,50,100,500,1000],
             sortFields: mySortFields,
