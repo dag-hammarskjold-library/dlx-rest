@@ -359,7 +359,6 @@ export let multiplemarcrecordcomponent = {
                 addField.innerText = "Add field";
                 
                 addField.addEventListener("click", function() {
-                
                     let newField = jmarc.createField(null, (field.row.rowIndex - 2 /*2 header rows*/) + 1);
                     let newSubfield = newField.createSubfield();
                     
@@ -564,7 +563,7 @@ export let multiplemarcrecordcomponent = {
                             }
                                 
                             let originalColor = valSpan.style.backgroundColor;
-                            valSpan.style.backgroundColor = "red";
+                            valSpan.style.backgroundColor = "LightCoral";
                             xrefCell.innerHTML = null;
                     
                             let popup = document.getElementById("typeahead-popup");
@@ -576,27 +575,31 @@ export let multiplemarcrecordcomponent = {
                             if (subfield.value) {
                                 timer = setTimeout(
                                     function () {
-                                        let popup = document.createElement("div");
-                                        valCell.appendChild(popup);
-                                        popup.id = "typeahead-popup";
-                                        popup.innerHTML = "searching...";
+                                        let dropdown = document.createElement("div");
+                                        valCell.appendChild(dropdown);
+                                        dropdown.className = "typehead-dropdown";
+                                        dropdown.id = "typeahead-dropdown";
+                                        dropdown.innerHTML = "searching...";
                                         
                                         field.lookup().then(choices => {
                                             if (choices.length == 0) {
-                                                popup.innerHTML = "not found";
-                                                setTimeout(function () { popup.remove() }, 1000)
+                                                dropdown.innerHTML = "not found";
+                                                setTimeout(function () { dropdown.remove() }, 1000)
                                                 return
                                             }
                                             
-                                            popup.innerHTML = null;
+                                            dropdown.innerHTML = null;
                                         
                                             let list = document.createElement("ul");
-                                            popup.appendChild(list);
+                                            dropdown.appendChild(list);
+                                            list.className = "list-group";
                                         
                                             for (let choice of choices) {
                                                 let item = document.createElement("li");
                                                 list.appendChild(item);
-                                                item.innerText = choice.subfields.map(x => `$${x.code} ${x.value}`).join(" ");
+                                                item.className = "list-group-item";
+                                                
+                                                item.innerHTML = choice.subfields.map(x => `<span style="color: blue">$${x.code}</span> ${x.value}`).join("<br>");
                                                 
                                                 item.addEventListener("mouseover", function () {
                                                     item.style.backgroundColor = "gray"
@@ -608,7 +611,7 @@ export let multiplemarcrecordcomponent = {
                                                 });
                                                 
                                                 item.addEventListener("mousedown", function () {
-                                                    popup.remove()
+                                                    dropdown.remove()
                                         
                                                     for (let newSubfield of choice.subfields) {
                                                         let currentSubfield = field.getSubfield(newSubfield.code);
