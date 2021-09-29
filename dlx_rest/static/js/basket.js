@@ -2,244 +2,87 @@
 // BASKET COMPONENT
 
 import { Jmarc } from "./jmarc.js";
+import basket from "./api/basket.js";
 
 /////////////////////////////////////////////////////////////////
 export let basketcomponent = {
-    props: ["url", "prefix"],
+    props: ["api_prefix", "basket_id"],
     template: ` 
-              <div class="container mt-3 col-sm-2" id="app0" style="background-color:white;" v-show="this.listRecordsTot.length!==0">
-              <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-                <div><h4 class="badge bg-success mt-2">Basket <span class="badge badge-light">{{this.listRecordsTot.length}}</span> </h4></div>
-                <button type="button" class="btn btn-primary mb-2 mt-3"  v-on:click="clearRecordList">Clear Records list</button>
-                <button type="button" class="btn btn-primary mb-2 mt-3" v-show='btnToDisplay' v-on:click='addRecordToList(myRecordId,myCollection,myId,myTitle)'> Undo this action </button>
-                <div v-for="record in this.listRecordsTot" :key="record.id" class="list-group" >
-                  <a href="#" class="list-group-item list-group-item-action" aria-current="true">
+    <div class="container col-sm-2" id="app0" style="background-color:white;">
+        <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
+            <div v-for="record in this.basketItems" :key="record._id" class="list-group" >
+                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id">
                     <div class="d-flex w-100 justify-content-between">
-                      <small><span class="mb-1">{{record.collection}}/{{record.record_id}}</span></small>
-                      <small><i v-on:click="removeRecordFromList(record.id)" class="far fa-trash-alt"></i></small>
+                        <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
+                        <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
                     </div>
-                    <p class="mb-1 text-success">
-                      <span :title=record.title v-on:click="displayRecord(record.record_id, record.collection)">{{record.title.substring(0,45)}}....</span>
+                    <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
+                        <span :title=record.title>{{record.title.substring(0,45)}}....</span>
                     </p>
                     <p v-if="record.symbol" class="mb-1">
-                      <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
+                        <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
                     </p>
-                  </a>
-                </div>
-              </div> 
+                </a>
             </div>
-      `,
-    created:
-   
-      async function () {
-  
-        // List of Items
-        let listItems = []
-  
-        // fetch the data from the api
-        let url = this.prefix + this.url
-  
-        // retrieving data from API
-        let response = await fetch(url);
-  
-        // process to fecth data for the full record
-        if (response.ok) {
-          let myJson = await response.json();
-  
-          // Adding the data inside the list
-          listItems.push(myJson.data.items)
-  
-          // Extracting the data for each items in the list
-          for (let item = 0; item < listItems[0].length; item++) {
-  
-            // retrieving data from API
-            let response1 = await fetch(listItems[0][item]);
-  
-            if (response1.ok) {
-              let myItem = {}
-              let myJson1 = await response1.json();
-              myItem.id = myJson1["data"]["id"]
-              myItem.record_id = myJson1["data"]["record_id"]
-              myItem.collection = myJson1["data"]["collection"]
-              myItem.title = ""
-              
-              // DRY this out
-              Jmarc.get(myItem.collection, myItem.record_id).then(jmarc => {
-                if(myItem.collection == "bibs") {
-                  myItem.symbol = jmarc.getSubfield(191,"a",0,0).value;
-                  myItem.title = jmarc.getSubfield(245,"a",0,0).value;
-                  let myTitleField = jmarc.getField(245,0);
-                  let myTitle = [];
-                  for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                  }
-                  myItem.title = myTitle.join(" ");
-                } else if (myItem.collection == "auths") {
-                  let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-                  let myTitle = [];
-                  for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                  }
-                  myItem.title = myTitle.join(" ");
-                }
-              })
-              
-
-              //myItem.title = myJson1["data"]["title"]
-              //myItem.symbol = myJson1["data"]["symbol"]
-              //console.log(myItem.symbol)
-              this.listRecordsTot.push(myItem)
-  
-            }
-  
-          }
-  
-        }
-  
-  
-        this.$root.$refs.basketcomponent = this;
-  
-      }
-      ,
-  
+        </div>
+    </div>
+    `,
     data: function () {
-      return {
-        visible: true,
-        btnToDisplay: false,
-        myId: "",
-        myRecordId: "",
-        myCollection: "",
-        myTitle: "",
-        listRecordsTot: []
-      }
-    }
-    ,
-    methods: { 
-      // return the id of the record
-      getId(recId, coll) {
-        let myId = ""
-        for (let i = 0; i < this.listRecordsTot.length; ++i) {
-          if (this.listRecordsTot[i].record_id == recId & this.listRecordsTot[i].collection == coll) {
-            myId = this.listRecordsTot[i].id
-          }
+        return {
+          visible: true,
+          basketItems: [],    
         }
-        return myId
-      },
-      displayRecord(myRecord, myCollection) {
-        this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
-        this.callChangeStyling("Record added to the editor", "row alert alert-success")
-      },
-  
-      callChangeStyling(myText, myStyle) {
-        this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
-      },
-      // clear the list of records
-      clearRecordList() {
-  
-        // retrieving the size of the array
-        let sizeArray = this.listRecordsTot.length
-  
-        // check if the array is not empty
-        if (sizeArray !== 0) {
-  
-          for (let i = 0; i < this.listRecordsTot.length; ++i) {
-            this.removeRecordFromList(this.listRecordsTot[i].id, false)
-          }
-          this.callChangeStyling("Basket cleared!!! ", "row alert alert-success")
-        }
-      }
-      ,
-      // add a specific record to the basket
-      addRecordToList(myRecordId, myCollection) {
-  
-        // fetch the data from the api
-        let url = this.prefix + this.url
-        let myItemTitle = "";
-        let myId = null;
-
-        Jmarc.get(myCollection, myRecordId).then(jmarc => {
-          if(myCollection == "bibs") {
-            let myTitleField = jmarc.getField(245,0);
-            let myTitle = [];
-            for (let s in myTitleField.subfields) {
-              myTitle.push(myTitleField.subfields[s].value);
-            }
-            myItemTitle = myTitle.join(" ");
-          } else if (myCollection == "auths") {
-            let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-            let myTitle = [];
-            for (let s in myTitleField.subfields) {
-              //console.log(s);
-              myTitle.push(myTitleField.subfields[s].value);
-            }
-            //console.log(myTitle);
-            myItemTitle = myTitle.join(" ");
-            //console.log(myItemTitle);
-          }
-          let data = `{"collection": "${myCollection}", "record_id": "${myRecordId}", "title": "${myItemTitle}"}`
-          fetch(url, {
-            method: 'POST',
-            body: data,
-          })
-          .then(response => {
-            if (response.ok) {
-              // add the object to the array
-              this.listRecordsTot.push({"id": myId, "collection": myCollection, "record_id": myRecordId, "title": myItemTitle})
-              this.btnToDisplay = false
-              //if (verbose) {
-              this.callChangeStyling("Item " + myRecordId + "(" + myCollection + ")  added to the basket ", "row alert alert-warning")
-              //}
-            }
-            // if not ok
-            if (!response.ok) {
-              this.callChangeStyling("Oups!!!  Item not added to the basket ", "row alert alert-danger")
-            }
-          })
-          .catch(error => {
-            if (verbose) {
-              this.callChangeStyling("Oups!!!  Item not added to the basket ", "row alert alert-danger")
-            }
-          })
-        })
-      }
-      ,
-      // delete a specific record from the basket
-      removeRecordFromList(myIndex, verbose = true) {
-  
-        // fetch the data from the api
-        let url = this.prefix + this.url + "/items/" + myIndex
-  
-        fetch(url, {
-          method: 'DELETE'
-        })
-          .then(response => {
-            if (response.ok) {
-  
-              // delete the value from the array
-              for (let i = 0; i < this.listRecordsTot.length; ++i) {
-                if (this.listRecordsTot[i].id == myIndex) {
-                  this.myId = this.listRecordsTot[i].id
-                  this.myRecordId = this.listRecordsTot[i].record_id
-                  this.myCollection = this.listRecordsTot[i].collection
-                  this.myTitle = this.listRecordsTot[i].title
-                  this.listRecordsTot.splice(i, 1)
-                  this.btnToDisplay = true
+    },
+    created: async function () {
+        const myBasket = await basket.getBasket(this.api_prefix);
+        for (let item of myBasket) {
+            let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
+            myItem['collection'] = item.collection;
+            let myItemTitle = "";
+            if (item.collection == "bibs") {
+                let myTitleField = myItem.getField(245,0);
+                let myTitle = [];
+                for (let s in myTitleField.subfields) {
+                    myTitle.push(myTitleField.subfields[s].value);
                 }
-              }
-              if (verbose) {
-                this.callChangeStyling("Item " + this.myRecordId + "  deleted from the basket.", "row alert alert-success")
-              }
+                myItemTitle = myTitle.join(" ");
+                let mySymbolField = myItem.getField(191,0);
+                let mySymbol = [];
+                for (let s in mySymbolField.subfields) {
+                    if (mySymbolField.subfields[s].code === "a") {
+                        mySymbol.push(mySymbolField.subfields[s].value);
+                    }
+                }
+                myItem["symbol"] = mySymbol.join(" ")
+            } else if (item.collection == "auths") {
+                let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
+                let myTitle = [];
+                for (let s in myTitleField.subfields) {
+                    myTitle.push(myTitleField.subfields[s].value);
+                }
+                myItemTitle = myTitle.join(" ");
             }
-            // if not ok
-            if (!response.ok) {
-              this.callChangeStyling("Oups!!!  There is an error with this action!!!", "row alert alert-danger")
+            myItem["title"] = myItemTitle;
+            myItem["_id"] = item.record_id;
+            this.basketItems.push(myItem);
+        }
+    },
+    methods: {
+        displayRecord(myRecord, myCollection) {
+            this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
+            this.callChangeStyling("Record added to the editor", "row alert alert-success")
+        },
+        callChangeStyling(myText, myStyle) {
+            this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
+        },
+        async removeRecordFromList(collection, record_id) {
+            let el = document.getElementById(`${collection}--${record_id}`);
+            const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
+            const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
+            if (deleted) {
+                el.parentElement.remove();
+                this.callChangeStyling("Record removed from basket", "row alert alert-success")
             }
-          })
-          .catch(error => {
-            if (verbose) {
-              this.callChangeStyling("Oups!!!  There is an error with this action!!!", "row alert alert-danger")
-            }
-          })
-      }
+        }
     }
 }
