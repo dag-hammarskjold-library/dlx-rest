@@ -1,4 +1,5 @@
 import { sortcomponent } from "./sort.js";
+import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 
 export let searchcomponent = {
@@ -47,6 +48,12 @@ export let searchcomponent = {
                     <div class="row">
                         <p>{{result.second_line}}</p>
                     </div>
+                    <div v-if="collection == 'auths'" class="row">
+                        <p>
+                            <countcomponent search_name="bibs" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
+                            <countcomponent search_name="auths" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
+                        </p>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -92,7 +99,8 @@ export let searchcomponent = {
             resultcount: 0,
             start: 0,
             end: 0,
-            basketcontents: ['foo']
+            basketcontents: ['foo'],
+            lookup_maps: {}
         }
     },
     created: async function() {
@@ -121,11 +129,26 @@ export let searchcomponent = {
                 } else if (this.collection == "auths") {
                     myResult["first_line"] = result["heading"]
                     myResult["second_line"] = result["alt"]
+                    myResult["heading_tag"] = result["heading_tag"];
                 } else if (this.collection == "files") {
                     // not implemented yet
                 }
                 this.results.push(myResult);
             }
+
+            if (this.collection == "auths") {
+                let authLookupMapUrl = `${this.api_prefix}marc/${this.collection}/lookup/map`
+                let authMapResponse = await fetch(authLookupMapUrl);
+                let authMapData = await authMapResponse.json();
+                this.lookup_maps['auths'] = authMapData.data;
+
+                let bibLookupMapUrl = `${this.api_prefix}marc/bibs/lookup/map`
+                let bibMapResponse = await fetch(bibLookupMapUrl);
+                let bibMapData = await bibMapResponse.json();
+                this.lookup_maps['bibs'] = bibMapData.data;
+            }
+            
+            
             this.buildPagination();
         }
     },
@@ -226,6 +249,7 @@ export let searchcomponent = {
         }
     },
     components: {
-        'sortcomponent': sortcomponent,
+        'sortcomponent': sortcomponent, 
+        'countcomponent': countcomponent
     }
 }
