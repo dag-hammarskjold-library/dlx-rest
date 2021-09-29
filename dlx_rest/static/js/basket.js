@@ -17,10 +17,14 @@ export let basketcomponent = {
                         <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
                     </div>
                     <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
-                        <span :title=record.title>{{record.title.substring(0,45)}}....</span>
+                        <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
+                        <span v-else :title=record.title>{{record.title}}</span>
                     </p>
                     <p v-if="record.symbol" class="mb-1">
-                        <small><span :title=record.symbol>{{record.symbol.substring(0,45)}}....</span></small>
+                        <small>
+                            <span v-if="record.symbol.length > 45" :title=record.symbol>{{record.symbol.substring(0,45)}}....</span>
+                            <span v-else :title=record.symbol>{{record.symbol}}</span>
+                        </small>
                     </p>
                 </a>
             </div>
