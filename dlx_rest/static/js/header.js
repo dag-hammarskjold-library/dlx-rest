@@ -7,6 +7,7 @@ import { modalmergecomponent } from "./merge.js";
 // HEADER COMPONENT
 /////////////////////////////////////////////////////////////////
 export let headercomponent = {
+    props: ["api_prefix"],
     template: `
               <nav class="navbar navbar-expand-lg navbar-light bg-light">
               <a class="navbar-brand" href="#">Editor Menu</a>
@@ -37,10 +38,24 @@ export let headercomponent = {
                     <a class="nav-link disabled" href="#">Feature4</a>
                   </li>
                 </ul>
-                <form class="form-inline my-2 my-lg-0">
-                  <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                  <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-                </form>
+                <div class="search-box">
+                    <form class="form-inline">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <button class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Collection</button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="#">Bibs</a>
+                                    <a class="dropdown-item" href="#">Auths</a>
+                                    <a class="dropdown-item" href="#">Files</a>
+                                </div>
+                            </div>
+                            <input class="form-control" type="search" placeholder="Search" aria-label="Search">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-success" type="submit">Search</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
               </div>
             </nav>  
             `
