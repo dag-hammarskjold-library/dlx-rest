@@ -373,6 +373,26 @@ def get_records_list(coll):
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
+    api_prefix = url_for('doc', _external=True)
+    limit = request.args.get('limit', 10)
+    sort =  request.args.get('sort', 'updated')
+    direction = request.args.get('direction', 'desc')
+    start = request.args.get('start', 1)
+    q = request.args.get('q', '')
+
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
+
+
+@app.route('/records/<coll>/facets')
+def facet_record(coll):
+    return {"Facets..."}
+
+
+
+
+def search_records_old(coll):
     '''Collect arguments'''
     #print(f"Args: {request.args}")
     limit = request.args.get('limit', 10)

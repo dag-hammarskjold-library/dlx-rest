@@ -1,0 +1,15 @@
+{% extends 'base1.html' %} {% block content %}
+<div style="background-color:grey;">
+    <div id="search_vm" v-show="true">
+        <messagecomponent></messagecomponent>
+        <div class="row">
+            <sidebarcomponent sbtype="facet"></sidebarcomponent>
+            <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}"></searchcomponent>
+            <sidebarcomponent sbtype="other"></sidebarcomponent>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="{{url_for('static', filename='js/search_vm.js')}}"></script>
+
+{% endblock %}

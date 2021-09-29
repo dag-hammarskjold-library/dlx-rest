@@ -1443,6 +1443,13 @@ class MyBasketRecord(Resource):
             'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in this_u.my_basket()['items']]
         }
 
+        # Recommend to shift return here from URLs of items to just a list of item objects, then let Jmarc do the rest.
+        data['item_data'] = []
+        for item in this_u.my_basket()['items']:
+            data['item_data'].append(
+                {'record_id': item['record_id'], 'collection': item['collection'], 'url': URL('api_my_basket_item', item_id=item['id']).to_str()}
+            )
+
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 
