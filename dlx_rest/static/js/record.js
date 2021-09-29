@@ -68,10 +68,14 @@ export let multiplemarcrecordcomponent = {
             this.records.split(",").forEach(
                 record => {
                     var split_rec = record.split("/")
-                    this.displayMarcRecord(split_rec[1], split_rec[0])
+                    
+                    if (split_rec.length === 2) {
+                        this.displayMarcRecord(split_rec[1], split_rec[0]); // record ID and collection
+                    }
                 }
             );
-            recup=this
+            
+            recup = this
         }
     },
     methods: {
@@ -164,14 +168,24 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(recId, myColl="bibs") {
+        async displayMarcRecord(recId, myColl="bibs", readOnly) {
             let component = this; // for use in event listeners
-            let jmarc = await Jmarc.get(myColl, recId);
+            let jmarc;
+            
+            if (recId) {
+                jmarc = await Jmarc.get(myColl, recId)
+            } 
+            else {
+                jmarc = new Jmarc(myColl);
+                jmarc.createField("___").createSubfield("a").value = "insert new subfield value";
+            }
+            
             let table = document.createElement("table");
             
             // table css in in base1.html
             table.className = myColl === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
+            readOnly && (table.className += " read-only");
             
             // Table header
             let tableHeader = table.createTHead();
