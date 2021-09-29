@@ -12,8 +12,8 @@ export let sortcomponent = {
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Sort:</a></li>
                 <li v-for="o in this.sortFields" class="nav-item">
-                    <a id="sort" v-if="o === params.sort" class="nav-link disabled sortcomponent">{{o}}</a>
-                    <a id="sort" v-else class="nav-link sortcomponent">{{o}}</a>
+                    <a id="sort" :data-searchString="o.searchString" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
+                    <a id="sort" :data-searchString="o.searchString" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
                 </li>
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Direction:</a></li>
@@ -26,13 +26,14 @@ export let sortcomponent = {
     </nav>
     `,
     data: function() {
-        let mySortFields = ['updated'];
+        let mySortFields = [{'displayName':'updated', 'searchString': 'updated'}];
         /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
-            mySortFields.push('title')
-            mySortFields.push('publication date')
+            mySortFields.push({'displayName':'title', 'searchString': 'title'});
+            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol'});
+            mySortFields.push({'displayName':'publication date', 'searchString': 'date'});
         } else if (this.collection == "auths") {
-            mySortFields.push('heading')
+            mySortFields.push({'displayName':'heading', 'searchString': 'heading'})
         }
         return {
             rpp: [10,50,100,500,1000],
@@ -42,7 +43,7 @@ export let sortcomponent = {
     },
     mounted: function() {
         for (let el of document.getElementsByClassName('sortcomponent')) {
-            el.href = this.rebuildUrl(el.id, el.innerText);
+            el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
         }
     },
     methods: {
