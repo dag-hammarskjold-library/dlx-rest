@@ -546,7 +546,7 @@ export let multiplemarcrecordcomponent = {
                         
                         let xrefLink = document.createElement("a");
                         xrefCell.appendChild(xrefLink);
-                        xrefLink.href = `/records/auths/${subfield.xref}`;
+                        xrefLink.href = `${this.prefix}/records/auths/${subfield.xref}`.replace('/api/','');
                         xrefLink.target="_blank";
                           
                         let xrefIcon = document.createElement("i");
