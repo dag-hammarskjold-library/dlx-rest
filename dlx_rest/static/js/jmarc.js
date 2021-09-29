@@ -71,11 +71,15 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	createSubfield(code) {
-		code || function() {throw new Error("subfield code required")};
-		
+	createSubfield(code, place) {
 		let subfield = new Subfield(code);
-		this.subfields.push(subfield);
+		
+        if (place) {
+            this.subfields.splice(place, 0, subfield);
+        }
+        else {
+            this.subfields.push(subfield);
+        }
 		
 		return subfield;
 	}
@@ -412,22 +416,43 @@ export class Jmarc {
 		return cloned
 	}
 	
-	createField(tag) {
-		tag || function() {throw new Error("tag required")};
-
-		let field;
+	createField(tag, place) {
+        let field;
 		
-		if (tag.match(/^00/)) {
+		if (tag && tag.match(/^00/)) {
 			field = new ControlField(tag)
-		} else {
-			if (this instanceof Bib) {
+		} 
+        else {
+			if (this.collection === "bibs") {
 				field = new BibDataField(tag)
-			} else if (this instanceof Auth) {
+			} else if (this.collection === "auths") {
 				field = new AuthDataField(tag)
+			} else {
+			    // other record types?
 			}
 		}
-
-		this.fields.push(field);
+        
+        if (field.tag && place) {
+            // field place
+            let i = 0;
+            
+            for (let [c, f] of Object.entries(this.fields)) {
+                if (f.tag === field.tag) {
+                    if (i === place) {
+                        this.fields.splice(c, 0, field)
+                    }
+                              
+                    i++;
+                } 
+            }
+        } 
+        else if (place) {
+            // record place
+            this.fields.splice(place, 0, field);
+        }
+        else {
+            this.fields.push(field);
+        }
 		
 		return field
 	}
