@@ -1,20 +1,11 @@
-{% extends 'base.html' %} {% block content %}    
+{% extends 'base1.html' %} {% block content %}    
 
-    <div id="oldui" class="col-lg"  class="container shadow text-left border border-success rounded mt-3" >
-            {% if record_id %}
-            <marc-record url="marc/{{ coll }}/records/{{ record_id }}" token="{{current_user.is_active}}" prefix="{{prefix}}"></marc-record>
-            {% else %}
-            <marc-record  url="" token="{{current_user.is_active}}" prefix="{{prefix}}" coll="{{coll}}"></marc-record>
-            {% endif %}
-
-            <div id='histo' v-show="visible">
-                <double-record-display id="double-record-display"></double-record-display>
-            </div>
+    <div id="record_vm" v-show="true">
+        <headercomponent></headercomponent>
+        <messagecomponent prefix="{{prefix}}"></messagecomponent>
+        <multiplemarcrecordcomponent prefix="{{prefix}}" records="{{coll}}/{{record_id}}" readonly></multiplemarcrecordcomponent>
     </div>
 
-<!-- <script src="{{url_for('static', filename='js/custom.js')}}" defer></script> -->
-<script src="{{url_for('static', filename='js/marc.js')}}" ></script>
-<script src="{{url_for('static', filename='js/new_ui_component.js')}}"></script>
-<script src="{{url_for('static', filename='js/marc-record-vue-component.js')}}"></script>
+<script type="module" src="{{url_for('static', filename='js/record_vm.js')}}" ></script>
 
 {% endblock %}

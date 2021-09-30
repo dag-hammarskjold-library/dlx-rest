@@ -19,29 +19,33 @@ export let multiplemarcrecordcomponent = {
         records: {
             type: String,
             required: false
+        },
+        readonly: {
+            type: Boolean,
+            default: false
         }
     },
     template: ` 
         <div class="container col-sm-10" id="app1" style="background-color:white;">
             <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
-                <div><h5 class="badge bg-success mt-2 ml-3">Editor</h5></div>
-                    <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
-                        <div class="ml-3 mr-3 jumbotron jumbotron-fluid">
-                            <div class="container">
-                                <h1 class="display-4 text-center">No record selected</h1>
-                                <p class="lead text-center">please select record from the basket,clicking on the title(green)!!!</p>
-                            </div>
-                        </div>                                
-                    </div>
-                    <div id="records" class="row ml-3">
-                        <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
-                            <div>
-                                <button id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
-                            </div>
+                <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
+                    <div class="ml-3 mr-3 jumbotron jumbotron-fluid">
+                        <div class="container">
+                            <h1 class="display-4 text-center">No record selected</h1>
+                        </div>
+                    </div>                                
+                </div>
+                <div id="records" class="row ml-3">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
+                        <div>
+                            <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
+                            <button v-else id="remove1" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
+                        </div>
                     </div>
                     <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
                         <div>
-                            <button id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
+                            <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
+                            <button v-else id="remove2" type="button" class="btn btn-outline-success" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                         </div>
                     </div>
                 </div>
@@ -70,7 +74,11 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        this.displayMarcRecord(split_rec[1], split_rec[0]); // record ID and collection
+                        if (this.readonly) {
+                            this.displayMarcRecord(split_rec[1], split_rec[0], true);
+                        } else {
+                            this.displayMarcRecord(split_rec[1], split_rec[0], false); // record ID and collection
+                        }
                     }
                 }
             );
@@ -185,7 +193,9 @@ export let multiplemarcrecordcomponent = {
             // table css in in base1.html
             table.className = myColl === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
-            readOnly && (table.className += " read-only");
+            if (readOnly) {
+                table.className += " read-only"
+            }
             
             // Table header
             let tableHeader = table.createTHead();
@@ -203,7 +213,7 @@ export let multiplemarcrecordcomponent = {
             idCell.appendChild(saveButton);
             saveButton.type = "button";
             saveButton.value = "save";
-            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1"
+            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
             saveButton.onclick = () => {
                 jmarc.put().then(
                     jmarc => {
@@ -231,7 +241,7 @@ export let multiplemarcrecordcomponent = {
             idCell.appendChild(cloneButton);
             cloneButton.type = "button";
             cloneButton.value = "clone";
-            cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1"
+            cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1 record-control"
             
             cloneButton.onclick = () => {
                 let recup = jmarc.clone();
@@ -254,7 +264,7 @@ export let multiplemarcrecordcomponent = {
             deleteButton.id = "deleteDropdown";
             deleteButton.type = "button";
             deleteButton.value = "delete";
-            deleteButton.className = "fas fa-trash-alt text-danger dropdown-toggle mr-2";
+            deleteButton.className = "fas fa-trash-alt text-danger dropdown-toggle mr-2 record-control";
             deleteButton.setAttribute("data-toggle", "dropdown");
             
             let deleteDropdown = document.createElement("div");

@@ -41,7 +41,7 @@ export let searchcomponent = {
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11">
                     <div class="row">
-                        <a class="lead" href="#">
+                        <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
                             {{result.first_line}}
                         </a>
                     </div>

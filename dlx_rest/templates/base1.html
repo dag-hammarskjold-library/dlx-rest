@@ -40,6 +40,22 @@
         table.marc-record.read-only {
             pointer-events: none;
         }
+
+        table.marc-record.read-only thead i.record-control {
+            display: none;
+        }
+
+        table.marc-record.read-only thead ul.list-group {
+            pointer-events: all;
+        }
+
+        table.marc-record.read-only td.dropdown-toggle::after {
+            display: none;
+        }
+
+        table.marc-record.read-only i.fa-link {
+            pointer-events: all;
+        }
         
         table.marc-record.read-only.subfield-value {
             cursor: text;
