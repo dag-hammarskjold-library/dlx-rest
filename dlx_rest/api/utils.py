@@ -114,7 +114,8 @@ def brief_auth(record):
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
-        'alt': '; '.join(record.get_values(alt_tag, 'a'))
+        'alt': '; '.join(record.get_values(alt_tag, 'a')),
+        'heading_tag': record.heading_field.tag
     }
 
 def validate_data(record):
