@@ -169,6 +169,11 @@ export let multiplemarcrecordcomponent = {
             let jmarc = await Jmarc.get(myColl, recId);
             let table = document.createElement("table");
             
+            window.addEventListener("click",  function() {
+                let dropdown = document.getElementById("typeahead-dropdown")
+                dropdown && dropdown.remove();
+            });
+            
             // table css in in base1.html
             table.className = myColl === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
@@ -566,8 +571,8 @@ export let multiplemarcrecordcomponent = {
                             valSpan.style.backgroundColor = "LightCoral";
                             xrefCell.innerHTML = null;
                     
-                            let popup = document.getElementById("typeahead-popup");
-                            popup && popup.remove();
+                            let dropdown = document.getElementById("typeahead-dropdown");
+                            dropdown && dropdown.remove();
                     
                             clearTimeout(timer);
                             subfield.value = valCell.innerText;
@@ -577,7 +582,7 @@ export let multiplemarcrecordcomponent = {
                                     function () {
                                         let dropdown = document.createElement("div");
                                         valCell.appendChild(dropdown);
-                                        dropdown.className = "typehead-dropdown";
+                                        dropdown.className = "typeahead-dropdown";
                                         dropdown.id = "typeahead-dropdown";
                                         dropdown.innerHTML = "searching...";
                                         
