@@ -22,7 +22,7 @@ export let multiplemarcrecordcomponent = {
         }
     },
     template: ` 
-        <div class="container mt-3 col-sm-10" id="app1" style="background-color:white;">
+        <div class="container col-sm-10" id="app1" style="background-color:white;">
             <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
                 <div><h5 class="badge bg-success mt-2 ml-3">Editor</h5></div>
                     <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
@@ -546,7 +546,7 @@ export let multiplemarcrecordcomponent = {
                         
                         let xrefLink = document.createElement("a");
                         xrefCell.appendChild(xrefLink);
-                        xrefLink.href = `/records/auths/${subfield.xref}`;
+                        xrefLink.href = `${this.prefix}/records/auths/${subfield.xref}`.replace('/api/','');
                         xrefLink.target="_blank";
                           
                         let xrefIcon = document.createElement("i");

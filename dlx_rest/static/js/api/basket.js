@@ -31,8 +31,13 @@ export default {
         });
         return true;
     },
-    getItem(api_prefix, basket_id='userprofile/my_profile/basket', item_id) {
-        let url = `${api_prefix}/${basket_id}/items/${item_id}`
+    async getItem(api_prefix, collection, record_id) {
+        Jmarc.api_prefix = api_prefix;
+        let returnObj = {};
+        await Jmarc.get(collection, record_id).then(jmarc => {
+            returnObj = jmarc;
+        });
+        return returnObj;
     },
     async deleteItem(api_prefix, basket_id='userprofile/my_profile/basket', myBasket, collection, record_id) {
         for (let item of myBasket) {
@@ -49,7 +54,7 @@ export default {
         let url = `${api_prefix}${basket_id}`
         const response = await fetch(url);
         const jsonData = await response.json();
-        return(jsonData.data.item_data);
+        return jsonData.data.item_data;
     },
     clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}/${basket_id}`
