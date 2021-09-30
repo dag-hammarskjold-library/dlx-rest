@@ -193,6 +193,7 @@ export let multiplemarcrecordcomponent = {
             // table css in in base1.html
             table.className = myColl === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
+          
             if (readOnly) {
                 table.className += " read-only"
             }
