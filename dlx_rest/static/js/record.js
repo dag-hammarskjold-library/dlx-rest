@@ -420,9 +420,11 @@ export let multiplemarcrecordcomponent = {
                 
                 // Controlfield
                 if (field.constructor.name == "ControlField") {
-                    field.row = fieldTable.insertRow();
-                    field.row.insertCell().className = "subfield-code"; // placeholder for subfield code column
-                    let valCell = field.row.insertCell();
+                    field.row.classList.add("hidden-field");
+                    
+                    let fieldRow = fieldTable.insertRow();
+                    fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                    let valCell = fieldRow.insertCell();
                     valCell.innerHTML = field.value;
                     
                     continue; 
