@@ -8,8 +8,7 @@ export default {
         let url = `${api_prefix}${basket_id}`;
         let myItemTitle = "";
         let myId = null;
-        await Jmarc.get(collection, record_id).then(jmarc => {
-            console.log("Trying to create a basket item...")
+        await Jmarc.get(collection, record_id).then(async jmarc => {
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);
                 let myTitle = [];
@@ -18,6 +17,7 @@ export default {
                 }
                 myItemTitle = myTitle.join(" ");
             } else if (collection == "auths") {
+                console.log("Trying to create an auth basket item...")
                 let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
                 let myTitle = [];
                 for (let s in myTitleField.subfields) {
@@ -26,13 +26,13 @@ export default {
                 myItemTitle = myTitle.join(" ");
             }
             let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}"}`
-            fetch(url, {
+            await fetch(url, {
                 method: 'POST',
                 body: data
+            }).then( () => {
+                console.log("and we did")
+                return true;
             });
-            return true;
-        }).catch(error => {
-            return false;
         });
     },
     async getItem(api_prefix, collection, record_id) {

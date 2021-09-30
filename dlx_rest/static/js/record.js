@@ -274,6 +274,12 @@ export let multiplemarcrecordcomponent = {
                 addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
                 addRemoveBasketButton.className="fas fa-edit edit-record";
                 addRemoveBasketButton.title = "Edit Record";
+                editLink.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", myColl, recId).then(res => {
+                        window.location.href = editLink.href;
+                    })
+                })
             }
             
             // Delete button

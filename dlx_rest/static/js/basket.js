@@ -52,9 +52,11 @@ export let basketcomponent = {
                 myItemTitle = myTitle.join(" ");
                 let mySymbolField = myItem.getField(191,0);
                 let mySymbol = [];
-                for (let s in mySymbolField.subfields) {
-                    if (mySymbolField.subfields[s].code === "a") {
-                        mySymbol.push(mySymbolField.subfields[s].value);
+                if (mySymbolField) {
+                    for (let s in mySymbolField.subfields) {
+                        if (mySymbolField.subfields[s].code === "a") {
+                            mySymbol.push(mySymbolField.subfields[s].value);
+                        }
                     }
                 }
                 myItem["symbol"] = mySymbol.join(" ")
