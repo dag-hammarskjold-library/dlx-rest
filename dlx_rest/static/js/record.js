@@ -5,6 +5,8 @@ let recup=""
 /////////////////////////////////////////////////////////////////
 
 import { Jmarc } from "./jmarc.js";
+import user from "./api/user.js";
+import basket from "./api/basket.js";
 
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -61,12 +63,18 @@ export let multiplemarcrecordcomponent = {
             collectionRecord2:"",
             isRecordOneDisplayed: false,
             isRecordTwoDisplayed: false,
-            id: ""
+            id: "",
+            user: null,
         }
     },
-    created() {
+    created: async function() {
         Jmarc.apiUrl = this.prefix;
         this.$root.$refs.multiplemarcrecordcomponent = this;
+
+        let myProfile = await user.getProfile(this.prefix, 'my_profile');
+        if (myProfile) {
+            this.user = myProfile.data.email;
+        }
         
         if (this.records) {
             this.records.split(",").forEach(
@@ -253,6 +261,20 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
             };
+
+            if(this.readonly && this.user !== null) {
+                let editLink = document.createElement("a");
+                let uibase = this.prefix.replace("/api/","");
+                editLink.href = `${uibase}/editor?records=${myColl}/${recId}`;
+                idCell.appendChild(editLink);
+                let addRemoveBasketButton = document.createElement("i");
+                editLink.appendChild(addRemoveBasketButton);
+                addRemoveBasketButton.type = "button";
+                addRemoveBasketButton.value = "edit";
+                addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
+                addRemoveBasketButton.className="fas fa-edit edit-record";
+                addRemoveBasketButton.title = "Edit Record";
+            }
             
             // Delete button
             let deleteCell = idRow.insertCell();

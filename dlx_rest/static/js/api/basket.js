@@ -3,11 +3,13 @@ import { Jmarc } from "../jmarc.js";
 export default {
     // Individual item methods
     async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id) {
+        
         Jmarc.apiUrl = api_prefix;
         let url = `${api_prefix}${basket_id}`;
         let myItemTitle = "";
         let myId = null;
         await Jmarc.get(collection, record_id).then(jmarc => {
+            console.log("Trying to create a basket item...")
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);
                 let myTitle = [];
@@ -28,8 +30,10 @@ export default {
                 method: 'POST',
                 body: data
             });
+            return true;
+        }).catch(error => {
+            return false;
         });
-        return true;
     },
     async getItem(api_prefix, collection, record_id) {
         Jmarc.api_prefix = api_prefix;
@@ -58,5 +62,13 @@ export default {
     },
     clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}/${basket_id}`
+    },
+    contains(collection, record_id, basket) {
+        for (let item of basket) {
+            if (item.collection == collection && item.record_id == record_id) {
+                return true;
+            }
+        }
+        return false;
     }
 }

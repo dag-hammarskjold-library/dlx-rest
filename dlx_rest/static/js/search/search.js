@@ -1,6 +1,7 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
+import user from "../api/user.js";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -147,13 +148,17 @@ export let searchcomponent = {
                 let bibMapData = await bibMapResponse.json();
                 this.lookup_maps['bibs'] = bibMapData.data;
             }
+
+            let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+            if (myProfile) {
+                this.user = myProfile.data.email;
+            } 
             
             
             this.buildPagination();
         }
     },
     mounted: async function() {
-        let myProfile = await this.checkAuthentication();
         if (this.user !== null) {
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
@@ -193,18 +198,6 @@ export let searchcomponent = {
             if (myEnd >= this.resultcount) {
                 this.end = this.resultcount
                 this.next = null
-            }
-        },
-        async checkAuthentication() {
-            let myProfileUrl = `${this.api_prefix}userprofile/my_profile`;
-            let response = await fetch(myProfileUrl);
-            if (response.redirected) {
-                this.user = null;
-                return null;
-            } else if (response.ok) {
-                let jsonData = await response.json();
-                this.user = jsonData.data.email;
-                return jsonData;
             }
         },
         async getMyBasket(url) {

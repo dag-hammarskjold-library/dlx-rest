@@ -1,6 +1,6 @@
 {% extends 'base1.html' %} {% block content %}    
 
-    <div id="record_vm" v-show="true">
+    <div id="record_vm" v-show="true" data-api_prefix="{{prefix}}">
         <headercomponent></headercomponent>
         <messagecomponent prefix="{{prefix}}"></messagecomponent>
         <multiplemarcrecordcomponent prefix="{{prefix}}" records="{{coll}}/{{record_id}}" readonly></multiplemarcrecordcomponent>
