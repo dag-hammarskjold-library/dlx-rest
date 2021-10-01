@@ -7,13 +7,13 @@
           display:block;
         }
     </style>
-    <div id="new_ui_component" v-show="true">  
-          <headercomponent></headercomponent>
-          <messagecomponent></messagecomponent>
-          <modalmergecomponent prefix="{{prefix}}"></modalmergecomponent>
-          <div class="row">
-              <basketcomponent basket_id="userprofile/my_profile/basket" api_prefix="{{prefix}}" ></basketcomponent>
-              <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>        
+    <div id="new_ui_component" v-show="true">
+        <headercomponent></headercomponent>
+        <messagecomponent></messagecomponent>
+        <modalmergecomponent prefix="{{prefix}}"></modalmergecomponent>
+        <div class="row">
+                <basketcomponent basket_id="userprofile/my_profile/basket" api_prefix="{{prefix}}" ></basketcomponent>
+                <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}"></multiplemarcrecordcomponent>        
         </div> 
   </div>
   <script type="module" src="{{url_for('static', filename='js/editor.js')}}"></script>
