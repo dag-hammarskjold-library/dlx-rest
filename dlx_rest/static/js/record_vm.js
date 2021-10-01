@@ -2,7 +2,7 @@
 // Imports
 /////////////////////////////////////////////////////////////////
 
-import { headercomponent } from "./header.js";
+//import { headercomponent } from "./header.js";
 import { multiplemarcrecordcomponent } from "./record.js";
 import { messagecomponent } from "./messagebar.js";
 
@@ -11,7 +11,7 @@ import { messagecomponent } from "./messagebar.js";
 /////////////////////////////////////////////////////////////////
 export let vm_new_ui_component = new Vue({
     el: '#record_vm',
-    components: { headercomponent, multiplemarcrecordcomponent, messagecomponent },
+    components: { multiplemarcrecordcomponent, messagecomponent },
     data: {
       visible: false,
     },
