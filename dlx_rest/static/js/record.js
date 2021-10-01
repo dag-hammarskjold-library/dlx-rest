@@ -198,6 +198,11 @@ export let multiplemarcrecordcomponent = {
             
             let table = document.createElement("table");
             
+            window.addEventListener("click",  function() {
+                let dropdown = document.getElementById("typeahead-dropdown")
+                dropdown && dropdown.remove();
+            });
+            
             // table css in in base1.html
             table.className = myColl === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
@@ -468,9 +473,11 @@ export let multiplemarcrecordcomponent = {
                 
                 // Controlfield
                 if (field.constructor.name == "ControlField") {
-                    field.row = fieldTable.insertRow();
-                    field.row.insertCell().className = "subfield-code"; // placeholder for subfield code column
-                    let valCell = field.row.insertCell();
+                    field.row.classList.add("hidden-field");
+                    
+                    let fieldRow = fieldTable.insertRow();
+                    fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                    let valCell = fieldRow.insertCell();
                     valCell.innerHTML = field.value;
                     
                     continue; 
@@ -619,8 +626,8 @@ export let multiplemarcrecordcomponent = {
                             valSpan.style.backgroundColor = "LightCoral";
                             xrefCell.innerHTML = null;
                     
-                            let popup = document.getElementById("typeahead-popup");
-                            popup && popup.remove();
+                            let dropdown = document.getElementById("typeahead-dropdown");
+                            dropdown && dropdown.remove();
                     
                             clearTimeout(timer);
                             subfield.value = valCell.innerText;
@@ -630,7 +637,7 @@ export let multiplemarcrecordcomponent = {
                                     function () {
                                         let dropdown = document.createElement("div");
                                         valCell.appendChild(dropdown);
-                                        dropdown.className = "typehead-dropdown";
+                                        dropdown.className = "typeahead-dropdown";
                                         dropdown.id = "typeahead-dropdown";
                                         dropdown.innerHTML = "searching...";
                                         
