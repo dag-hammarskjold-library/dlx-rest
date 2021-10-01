@@ -7,6 +7,10 @@
     <meta name="description" content="">
     <title>MARC Editor | {{title}}</title>
 
+    <!-- Customize CSS -->
+    <link href="{{url_for('static', filename='css/style.css')}}" rel="stylesheet">
+
+
     <!-- Bootstrap core CSS -->
     <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
 
@@ -31,6 +35,72 @@
             .bd-placeholder-img-lg {
                 font-size: 3.5rem;
             }
+        }
+        
+        table.marc-record.read-only {
+            pointer-events: none;
+        }
+
+        table.marc-record.read-only thead i.record-control {
+            display: none;
+        }
+
+        table.marc-record.read-only thead ul.list-group {
+            pointer-events: all;
+        }
+
+        table.marc-record.read-only td.dropdown-toggle::after {
+            display: none;
+        }
+
+        table.marc-record.read-only i.fa-link {
+            pointer-events: all;
+        }
+        
+        table.marc-record.read-only.subfield-value {
+            cursor: text;
+        }
+        
+        table.marc-record.bib {
+            border: 3px solid green;
+        }
+        
+        table.marc-record.auth {
+            border: 3px solid purple;
+        }
+        
+        table.marc-record thead {
+            background-color: white;
+            position: sticky;
+            top: 0;
+        }
+        
+        table.marc-record td {
+            border-top: 1px solid LightGray;
+        }
+        
+        table.marc-field tr:first-child {
+            border-top: hidden;
+        }
+           
+        table.marc-field td {
+            border-top: 1px solid LightGray;
+        }
+        
+        tr.hidden-field {
+            display: none;
+        }
+        
+        td.subfield-code {
+            width: 33px;
+        }
+        
+        td.subfield-value {
+            width: 350px;
+        }
+        
+        span.authority-controlled {
+            text-decoration: underline;;
         }
     </style>
 
@@ -73,7 +143,7 @@
         </nav>
     </header>
 
-    <main role="main" class="flex-shrink-0 mt-5">
+    <main role="main" class="flex-shrink-0">
         {% with messages = get_flashed_messages() %} {% if messages %}
         <ul>
             {% for message in messages %}
@@ -81,19 +151,11 @@
             {% endfor %}
         </ul>
         {% endif %} {% endwith %}
-        <div class="container">
             {% block content %} {% endblock %}
-        </div>
 
 
     </main>
-
     <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
-    <script src="{{url_for('static', filename='js/count.js')}}"></script>
-    <script src="{{url_for('static', filename='js/history_two_files_display.js')}}"></script>
-    <script src="{{url_for('static', filename='js/new_ui_component.js')}}"></script>
-
-</body>
 </body>
 
 </html>
