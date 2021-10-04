@@ -83,12 +83,14 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        let jmarc = Jmarc.get(split_rec[0], split_rec[1]);
-                        if (this.readonly) {
-                            this.displayMarcRecord(jmarc, true);
-                        } else {
-                            this.displayMarcRecord(jmarc, false); // record ID and collection
-                        }
+                        Jmarc.get(split_rec[0], split_rec[1]).then(jmarc => {
+                            if (this.readonly) {
+                                this.displayMarcRecord(jmarc, true);
+                            } else {
+                                this.displayMarcRecord(jmarc, false); // record ID and collection
+                            }
+                        })
+                        
                     } else {
                         let jmarc = new Jmarc(split_rec[0]);
                         if (split_rec[0] == "bibs") {
@@ -194,9 +196,7 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(myJmarc, readOnly) {
-            let jmarc = await myJmarc;
-            
+        async displayMarcRecord(jmarc, readOnly) {
             let component = this; // for use in event listeners 
             let table = document.createElement("table");
             
