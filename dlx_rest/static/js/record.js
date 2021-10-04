@@ -82,10 +82,11 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
+                        let jmarc = Jmarc.get(split_rec[0], split_rec[1]);
                         if (this.readonly) {
-                            this.displayMarcRecord(split_rec[1], split_rec[0], true);
+                            this.displayMarcRecord(jmarc, true);
                         } else {
-                            this.displayMarcRecord(split_rec[1], split_rec[0], false); // record ID and collection
+                            this.displayMarcRecord(jmarc, false); // record ID and collection
                         }
                     } else {
                         let jmarc = new Jmarc(split_rec[0]);
@@ -94,7 +95,6 @@ export let multiplemarcrecordcomponent = {
                         } else if (split_rec[0] == "auths") {
                             jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
                         }
-                        console.log(jmarc)
                         this.displayMarcRecord(jmarc, false);
                     }
                 }
@@ -193,7 +193,8 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(jmarc, readOnly) {
+        async displayMarcRecord(myJmarc, readOnly) {
+            let jmarc = await myJmarc;
             let component = this; // for use in event listeners 
             let table = document.createElement("table");
             
