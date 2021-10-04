@@ -87,6 +87,15 @@ export let multiplemarcrecordcomponent = {
                         } else {
                             this.displayMarcRecord(split_rec[1], split_rec[0], false); // record ID and collection
                         }
+                    } else {
+                        let jmarc = new Jmarc(split_rec[0]);
+                        if (split_rec[0] == "bibs") {
+                            jmarc.createField('245').createSubfield('a').value = "insert new subfield value";
+                        } else if (split_rec[0] == "auths") {
+                            jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
+                        }
+                        console.log(jmarc)
+                        this.displayMarcRecord(jmarc, false);
                     }
                 }
             );
@@ -334,50 +343,53 @@ export let multiplemarcrecordcomponent = {
                 return a.language > b.language;
             }
             
-            for (let f of jmarc.files.sort(fileSort)) {
-                let fileLI = document.createElement("li");
-                fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
-                
-                let itemUL = document.createElement("ul");
-                itemUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";                
-                
-                let fileLabel = document.createElement("span");
-                fileLabel.innerText = `${f['language']}`;
-                //itemLI.appendChild(fileLabel);
-                
-                let fileOpen = document.createElement("a");
-                fileOpen.href = `${f['url']}?action=open`;
-                fileOpen.target = "_blank";
-                fileOpen.title = "Open";
-                let openIcon = document.createElement("i");
-                openIcon.className = "fas fa-file text-dark";
-                fileOpen.appendChild(openIcon);
-                
-                let fileDownload = document.createElement("a");
-                fileDownload.href = `${f['url']}?action=download`;
-                fileDownload.title = "Download";
-                let downloadIcon = document.createElement("i");
-                downloadIcon.className = "fas fa-cloud-download-alt text-dark";
-                fileDownload.appendChild(downloadIcon);
-                
-                let labelLI = document.createElement("li");
-                labelLI.className = "list-group-item list-group-item-dark border-0 m-0 p-0 px-1";
-                let openLI = document.createElement("li");
-                openLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
-                let downloadLI = document.createElement("li");
-                downloadLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
-                labelLI.appendChild(fileLabel);
-                openLI.appendChild(fileOpen);
-                downloadLI.appendChild(fileDownload);
-                
-                itemUL.appendChild(labelLI);
-                itemUL.appendChild(openLI);
-                itemUL.appendChild(downloadLI);
-                
-                fileLI.appendChild(itemUL);
-                filesUL.appendChild(fileLI);
-                
+            if (jmarc.files) {
+                for (let f of jmarc.files.sort(fileSort)) {
+                    let fileLI = document.createElement("li");
+                    fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
+                    
+                    let itemUL = document.createElement("ul");
+                    itemUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";                
+                    
+                    let fileLabel = document.createElement("span");
+                    fileLabel.innerText = `${f['language']}`;
+                    //itemLI.appendChild(fileLabel);
+                    
+                    let fileOpen = document.createElement("a");
+                    fileOpen.href = `${f['url']}?action=open`;
+                    fileOpen.target = "_blank";
+                    fileOpen.title = "Open";
+                    let openIcon = document.createElement("i");
+                    openIcon.className = "fas fa-file text-dark";
+                    fileOpen.appendChild(openIcon);
+                    
+                    let fileDownload = document.createElement("a");
+                    fileDownload.href = `${f['url']}?action=download`;
+                    fileDownload.title = "Download";
+                    let downloadIcon = document.createElement("i");
+                    downloadIcon.className = "fas fa-cloud-download-alt text-dark";
+                    fileDownload.appendChild(downloadIcon);
+                    
+                    let labelLI = document.createElement("li");
+                    labelLI.className = "list-group-item list-group-item-dark border-0 m-0 p-0 px-1";
+                    let openLI = document.createElement("li");
+                    openLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                    let downloadLI = document.createElement("li");
+                    downloadLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                    labelLI.appendChild(fileLabel);
+                    openLI.appendChild(fileOpen);
+                    downloadLI.appendChild(fileDownload);
+                    
+                    itemUL.appendChild(labelLI);
+                    itemUL.appendChild(openLI);
+                    itemUL.appendChild(downloadLI);
+                    
+                    fileLI.appendChild(itemUL);
+                    filesUL.appendChild(fileLI);
+                    
+                }
             }
+
             
             // Table body
             let tableBody = table.createTBody();
