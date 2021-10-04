@@ -74,8 +74,9 @@ export let basketcomponent = {
         }
     },
     methods: {
-        displayRecord(myRecord, myCollection) {
-            this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(myRecord, myCollection)
+        async displayRecord(myRecord, myCollection) {
+            let jmarc = await Jmarc.get(myCollection, myRecord);
+            this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
             this.callChangeStyling("Record added to the editor", "row alert alert-success")
         },
         callChangeStyling(myText, myStyle) {
