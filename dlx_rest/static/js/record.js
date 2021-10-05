@@ -197,8 +197,6 @@ export let multiplemarcrecordcomponent = {
             }
         },
         displayMarcRecord(jmarc, readOnly) {
-            let table = this.buildRecordTable(jmarc, readOnly);
-            
             // Add to div
             let myDivId;
             
@@ -215,7 +213,9 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord2 = jmarc.collection; // used for auth merge
             }
             
-            document.getElementById(myDivId).appendChild(table);       
+            jmarc.div = document.getElementById(myDivId);
+            let table = this.buildRecordTable(jmarc, readOnly);
+            jmarc.div.appendChild(table);    
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this; // for use in event listeners 
@@ -256,16 +256,8 @@ export let multiplemarcrecordcomponent = {
                 
                 promise.then(
                     jmarc => {
-                        let parentElement = saveButton.parentElement
-                        let parentElementPlus=parentElement.parentElement
-                        let parentElementPlusPlus=parentElementPlus.parentElement
-                        let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                        let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-
-                        this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                        console.log(jmarc.recordId)
-                        this.displayMarcRecord(jmarc, false)
-
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
                     }
                 ).catch(
