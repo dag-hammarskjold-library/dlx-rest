@@ -503,6 +503,9 @@ export let multiplemarcrecordcomponent = {
                 deleteField.addEventListener("click", function() {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
+                    saveButton.classList.add("text-danger");
+                    saveButton.setAttribute("data-toggle", "tooltip");
+                    saveButton.title = "unsaved changes";
                 });
                 
                 // Field table
@@ -599,6 +602,10 @@ export let multiplemarcrecordcomponent = {
                         field.deleteSubfield(subfield);
                         // Remove the subfield row from the table
                         fieldTable.deleteRow(subfield.row.rowIndex);
+
+                        saveButton.classList.add("text-danger");
+                        saveButton.setAttribute("data-toggle", "tooltip");
+                        saveButton.title = "unsaved changes";
                     });
                     
                     // Subfield value
@@ -625,13 +632,26 @@ export let multiplemarcrecordcomponent = {
                         let savedState = new Jmarc(jmarc.collection);
                         savedState.parse(jmarc.savedState);
                         let i = field.subfields.indexOf(subfield);
-                        let check = savedState.getField(field.tag).getSubfield(subfield.code, i).value;
+                        let checkField = savedState.getField(field.tag);
+                        let checkSubfield = checkField ? checkField.subfields[i] : null;
 
-                        if (subfield.value !== check) {
+                        if (checkSubfield === null || subfield.value !== checkSubfield.value) {
                             valCell.style.background = "rgba(255, 255, 128, .5)"
                         } 
-                        else {
+                        else if (checkSubfield.value === subfield.value) {
                             valCell.style.background = "";
+                        }
+                    });
+
+                    valCell.addEventListener("blur", function() {
+                        if (jmarc.saved) {
+                            saveButton.classList.remove("text-danger");
+                            saveButton.title = "no new changes";
+                        }
+                        else {
+                            saveButton.classList.add("text-danger");
+                            saveButton.setAttribute("data-toggle", "tooltip");
+                            saveButton.title = "unsaved changes";
                         }
                     });
                     
