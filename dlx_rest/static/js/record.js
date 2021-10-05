@@ -621,7 +621,18 @@ export let multiplemarcrecordcomponent = {
 
                     valCell.addEventListener("input", function () {
                         subfield.value = valSpan.innerText;
-                        valCell.style.background = "rgba(255, 255, 128, .5)" 
+                        
+                        let savedState = new Jmarc(jmarc.collection);
+                        savedState.parse(jmarc.savedState);
+                        let i = field.subfields.indexOf(subfield);
+                        let check = savedState.getField(field.tag).getSubfield(subfield.code, i).value;
+
+                        if (subfield.value !== check) {
+                            valCell.style.background = "rgba(255, 255, 128, .5)"
+                        } 
+                        else {
+                            valCell.style.background = "";
+                        }
                     });
                     
                     valCell.addEventListener("keydown", function (event) {
