@@ -450,7 +450,7 @@ export let multiplemarcrecordcomponent = {
                     
                     let row = table.insertRow(field.row.rowIndex + 1);
                     let tagCell = row.insertCell();
-                    tagCell.style.background="rgba(255, 255, 128, .5)";
+                    
                     tagCell.contentEditable = true;
                     tagCell.innerText = "___";
                     
@@ -466,7 +466,6 @@ export let multiplemarcrecordcomponent = {
                     let subfieldRow = fieldTable.insertRow();
                     let codeCell = subfieldRow.insertCell();
                     codeCell.className = "subfield-code";
-                    codeCell.style.background="rgba(255, 255, 128, .5)";
                     codeCell.contentEditable = true;
                     codeCell.innerHTML = "_";
                     
@@ -476,7 +475,6 @@ export let multiplemarcrecordcomponent = {
                     
                     let valCell = subfieldRow.insertCell();
                     valCell.className = "subfield-value";
-                    valCell.style.background="rgba(255, 255, 128, .5)";
                     valCell.contentEditable = true;
                     valCell.innerHTML = "insert new subfield value";
                     
@@ -484,7 +482,16 @@ export let multiplemarcrecordcomponent = {
                         newSubfield.value = valCell.innerText;
                     });
 
-                    
+                    for (let cell of [tagCell, codeCell, valCell]) {
+                        cell.style.background="rgba(255, 255, 128, .5)";
+
+                        cell.addEventListener("keydown", function(event) {
+                            if (event.keyCode === 13) {
+                                event.preventDefault();
+                                cell.blur();
+                            }
+                        });
+                    }
                 });
                 
                 // delete field
