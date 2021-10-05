@@ -8,7 +8,7 @@ export let workformcomponent = {
             <div class="col-2">Auth Workforms</div>
             <div class="col-10">
                 <div v-for="w in auth_workforms" class="row">
-                    <a href="#">{{w.data.name}}</a>
+                    <a :href="'/editor?workform=auths/' + w.data.name">{{w.data.name}}</a>
                 </div>
             </div>
         </div>

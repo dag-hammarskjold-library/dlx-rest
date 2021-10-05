@@ -19,5 +19,16 @@ export default {
             );
         }
         return returnData;
+    },
+
+    async getWorkform(api_prefix, collection, id) {
+        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        console.log(url);
+        let response = await fetch(url);
+        let jsonData = await response.json();
+        let myData = jsonData.data;
+        let jmarc = new Jmarc(collection);
+        jmarc.parse(myData);
+        return jmarc;
     }
 }
