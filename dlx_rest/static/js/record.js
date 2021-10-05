@@ -209,7 +209,28 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(jmarc, readOnly) {
+        displayMarcRecord(jmarc, readOnly) {
+            // Add to div
+            let myDivId;
+            
+            if (this.isRecordOneDisplayed == false) {
+                myDivId = "record1";
+                this.isRecordOneDisplayed = true
+                this.record1 = jmarc.recordId;
+                this.collectionRecord1 = jmarc.collection; // used for auth merge
+            }
+            else if (this.isRecordTwoDisplayed == false) {
+                myDivId = "record2";
+                this.isRecordTwoDisplayed = true
+                this.record2 = jmarc.recordId;
+                this.collectionRecord2 = jmarc.collection; // used for auth merge
+            }
+            
+            jmarc.div = document.getElementById(myDivId);
+            let table = this.buildRecordTable(jmarc, readOnly);
+            jmarc.div.appendChild(table);    
+        },
+        buildRecordTable(jmarc, readOnly) {
             let component = this; // for use in event listeners 
             let table = document.createElement("table");
             
@@ -244,48 +265,19 @@ export let multiplemarcrecordcomponent = {
             saveButton.value = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
             saveButton.onclick = () => {
-                if (jmarc.recordId !== null) {
-                    jmarc.put().then(
-                        jmarc => {
-                            let parentElement = saveButton.parentElement
-                            let parentElementPlus=parentElement.parentElement
-                            let parentElementPlusPlus=parentElementPlus.parentElement
-                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-    
-                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                            console.log(jmarc.recordId)
-                            this.displayMarcRecord(jmarc, false)
-    
-                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                        }
-                    ).catch(
-                        error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger")
-                        }
-                    );
-                } else {
-                    jmarc.post().then(
-                        jmarc => {
-                            let parentElement = saveButton.parentElement
-                            let parentElementPlus=parentElement.parentElement
-                            let parentElementPlusPlus=parentElementPlus.parentElement
-                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-    
-                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                            console.log(jmarc.recordId)
-                            this.displayMarcRecord(jmarc, false)
-    
-                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                        }
-                    ).catch(
-                        error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger")
-                        }
-                    );                    
-                }
+                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
                 
+                promise.then(
+                    jmarc => {
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
+                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    }
+                ).catch(
+                    error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger")
+                    }
+                );
             };
                     
             // clone record  
@@ -463,6 +455,7 @@ export let multiplemarcrecordcomponent = {
                     
                     let row = table.insertRow(field.row.rowIndex + 1);
                     let tagCell = row.insertCell();
+                    
                     tagCell.contentEditable = true;
                     tagCell.innerText = "___";
                     
@@ -493,6 +486,17 @@ export let multiplemarcrecordcomponent = {
                     valCell.addEventListener("input", function() {
                         newSubfield.value = valCell.innerText;
                     });
+
+                    for (let cell of [tagCell, codeCell, valCell]) {
+                        cell.style.background="rgba(255, 255, 128, .5)";
+
+                        cell.addEventListener("keydown", function(event) {
+                            if (event.keyCode === 13) {
+                                event.preventDefault();
+                                cell.blur();
+                            }
+                        });
+                    }
                 });
                 
                 // delete field
@@ -504,6 +508,9 @@ export let multiplemarcrecordcomponent = {
                 deleteField.addEventListener("click", function() {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
+                    saveButton.classList.add("text-danger");
+                    saveButton.setAttribute("data-toggle", "tooltip");
+                    saveButton.title = "unsaved changes";
                 });
                 
                 // Field table
@@ -571,11 +578,6 @@ export let multiplemarcrecordcomponent = {
 
                         newValueCell.addEventListener('input', () => {
                             newSubfield.value = newValueCell.textContent;
-                        
-                            if (newSubfield.code !== "_" && newSubfield.value) {
-                                newCodeCell.style.background = "";
-                                newValueCell.style.background = "";
-                            }
                         });
                         
                         for (let cell of [newCodeCell, newValueCell]) {
@@ -605,6 +607,10 @@ export let multiplemarcrecordcomponent = {
                         field.deleteSubfield(subfield);
                         // Remove the subfield row from the table
                         fieldTable.deleteRow(subfield.row.rowIndex);
+
+                        saveButton.classList.add("text-danger");
+                        saveButton.setAttribute("data-toggle", "tooltip");
+                        saveButton.title = "unsaved changes";
                     });
                     
                     // Subfield value
@@ -627,6 +633,31 @@ export let multiplemarcrecordcomponent = {
 
                     valCell.addEventListener("input", function () {
                         subfield.value = valSpan.innerText;
+                        
+                        let savedState = new Jmarc(jmarc.collection);
+                        savedState.parse(jmarc.savedState);
+                        let i = field.subfields.indexOf(subfield);
+                        let checkField = savedState.getField(field.tag);
+                        let checkSubfield = checkField ? checkField.subfields[i] : null;
+
+                        if (checkSubfield === null || subfield.value !== checkSubfield.value) {
+                            valCell.style.background = "rgba(255, 255, 128, .5)"
+                        } 
+                        else if (checkSubfield.value === subfield.value) {
+                            valCell.style.background = "";
+                        }
+                    });
+
+                    valCell.addEventListener("blur", function() {
+                        if (jmarc.saved) {
+                            saveButton.classList.remove("text-danger");
+                            saveButton.title = "no new changes";
+                        }
+                        else {
+                            saveButton.classList.add("text-danger");
+                            saveButton.setAttribute("data-toggle", "tooltip");
+                            saveButton.title = "unsaved changes";
+                        }
                     });
                     
                     valCell.addEventListener("keydown", function (event) {
@@ -765,23 +796,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
             
-            // Add to div
-            let myDivId;
-            
-            if (this.isRecordOneDisplayed == false) {
-                myDivId = "record1";
-                this.isRecordOneDisplayed = true
-                this.record1 = jmarc.recordId;
-                this.collectionRecord1 = jmarc.collection; // used for auth merge
-            }
-            else if (this.isRecordTwoDisplayed == false) {
-                myDivId = "record2";
-                this.isRecordTwoDisplayed = true
-                this.record2 = jmarc.recordId;
-                this.collectionRecord2 = jmarc.collection; // used for auth merge
-            }
-
-            document.getElementById(myDivId).appendChild(table);            
+            return table       
         }
     }
 }
