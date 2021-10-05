@@ -450,6 +450,7 @@ export let multiplemarcrecordcomponent = {
                     
                     let row = table.insertRow(field.row.rowIndex + 1);
                     let tagCell = row.insertCell();
+                    
                     tagCell.contentEditable = true;
                     tagCell.innerText = "___";
                     
@@ -480,6 +481,17 @@ export let multiplemarcrecordcomponent = {
                     valCell.addEventListener("input", function() {
                         newSubfield.value = valCell.innerText;
                     });
+
+                    for (let cell of [tagCell, codeCell, valCell]) {
+                        cell.style.background="rgba(255, 255, 128, .5)";
+
+                        cell.addEventListener("keydown", function(event) {
+                            if (event.keyCode === 13) {
+                                event.preventDefault();
+                                cell.blur();
+                            }
+                        });
+                    }
                 });
                 
                 // delete field
@@ -491,6 +503,9 @@ export let multiplemarcrecordcomponent = {
                 deleteField.addEventListener("click", function() {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
+                    saveButton.classList.add("text-danger");
+                    saveButton.setAttribute("data-toggle", "tooltip");
+                    saveButton.title = "unsaved changes";
                 });
                 
                 // Field table
@@ -558,11 +573,6 @@ export let multiplemarcrecordcomponent = {
 
                         newValueCell.addEventListener('input', () => {
                             newSubfield.value = newValueCell.textContent;
-                        
-                            if (newSubfield.code !== "_" && newSubfield.value) {
-                                newCodeCell.style.background = "";
-                                newValueCell.style.background = "";
-                            }
                         });
                         
                         for (let cell of [newCodeCell, newValueCell]) {
@@ -592,6 +602,10 @@ export let multiplemarcrecordcomponent = {
                         field.deleteSubfield(subfield);
                         // Remove the subfield row from the table
                         fieldTable.deleteRow(subfield.row.rowIndex);
+
+                        saveButton.classList.add("text-danger");
+                        saveButton.setAttribute("data-toggle", "tooltip");
+                        saveButton.title = "unsaved changes";
                     });
                     
                     // Subfield value
@@ -614,6 +628,31 @@ export let multiplemarcrecordcomponent = {
 
                     valCell.addEventListener("input", function () {
                         subfield.value = valSpan.innerText;
+                        
+                        let savedState = new Jmarc(jmarc.collection);
+                        savedState.parse(jmarc.savedState);
+                        let i = field.subfields.indexOf(subfield);
+                        let checkField = savedState.getField(field.tag);
+                        let checkSubfield = checkField ? checkField.subfields[i] : null;
+
+                        if (checkSubfield === null || subfield.value !== checkSubfield.value) {
+                            valCell.style.background = "rgba(255, 255, 128, .5)"
+                        } 
+                        else if (checkSubfield.value === subfield.value) {
+                            valCell.style.background = "";
+                        }
+                    });
+
+                    valCell.addEventListener("blur", function() {
+                        if (jmarc.saved) {
+                            saveButton.classList.remove("text-danger");
+                            saveButton.title = "no new changes";
+                        }
+                        else {
+                            saveButton.classList.add("text-danger");
+                            saveButton.setAttribute("data-toggle", "tooltip");
+                            saveButton.title = "unsaved changes";
+                        }
                     });
                     
                     valCell.addEventListener("keydown", function (event) {
