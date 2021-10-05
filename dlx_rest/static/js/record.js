@@ -231,48 +231,27 @@ export let multiplemarcrecordcomponent = {
             saveButton.value = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
             saveButton.onclick = () => {
-                if (jmarc.recordId !== null) {
-                    jmarc.put().then(
-                        jmarc => {
-                            let parentElement = saveButton.parentElement
-                            let parentElementPlus=parentElement.parentElement
-                            let parentElementPlusPlus=parentElementPlus.parentElement
-                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-    
-                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                            console.log(jmarc.recordId)
-                            this.displayMarcRecord(jmarc, false)
-    
-                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                        }
-                    ).catch(
-                        error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger")
-                        }
-                    );
-                } else {
-                    jmarc.post().then(
-                        jmarc => {
-                            let parentElement = saveButton.parentElement
-                            let parentElementPlus=parentElement.parentElement
-                            let parentElementPlusPlus=parentElementPlus.parentElement
-                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-    
-                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                            console.log(jmarc.recordId)
-                            this.displayMarcRecord(jmarc, false)
-    
-                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                        }
-                    ).catch(
-                        error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger")
-                        }
-                    );                    
-                }
+                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
                 
+                promise.then(
+                    jmarc => {
+                        let parentElement = saveButton.parentElement
+                        let parentElementPlus=parentElement.parentElement
+                        let parentElementPlusPlus=parentElementPlus.parentElement
+                        let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                        let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+
+                        this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                        console.log(jmarc.recordId)
+                        this.displayMarcRecord(jmarc, false)
+
+                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    }
+                ).catch(
+                    error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger")
+                    }
+                );
             };
                     
             // clone record  
