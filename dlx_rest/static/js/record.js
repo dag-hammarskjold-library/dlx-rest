@@ -196,7 +196,28 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(jmarc, readOnly) {
+        displayMarcRecord(jmarc, readOnly) {
+            let table = this.buildRecordTable(jmarc, readOnly);
+            
+            // Add to div
+            let myDivId;
+            
+            if (this.isRecordOneDisplayed == false) {
+                myDivId = "record1";
+                this.isRecordOneDisplayed = true
+                this.record1 = jmarc.recordId;
+                this.collectionRecord1 = jmarc.collection; // used for auth merge
+            }
+            else if (this.isRecordTwoDisplayed == false) {
+                myDivId = "record2";
+                this.isRecordTwoDisplayed = true
+                this.record2 = jmarc.recordId;
+                this.collectionRecord2 = jmarc.collection; // used for auth merge
+            }
+            
+            document.getElementById(myDivId).appendChild(table);       
+        },
+        buildRecordTable(jmarc, readOnly) {
             let component = this; // for use in event listeners 
             let table = document.createElement("table");
             
@@ -731,23 +752,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
             
-            // Add to div
-            let myDivId;
-            
-            if (this.isRecordOneDisplayed == false) {
-                myDivId = "record1";
-                this.isRecordOneDisplayed = true
-                this.record1 = jmarc.recordId;
-                this.collectionRecord1 = jmarc.collection; // used for auth merge
-            }
-            else if (this.isRecordTwoDisplayed == false) {
-                myDivId = "record2";
-                this.isRecordTwoDisplayed = true
-                this.record2 = jmarc.recordId;
-                this.collectionRecord2 = jmarc.collection; // used for auth merge
-            }
-
-            document.getElementById(myDivId).appendChild(table);            
+            return table       
         }
     }
 }
