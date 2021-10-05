@@ -450,6 +450,7 @@ export let multiplemarcrecordcomponent = {
                     
                     let row = table.insertRow(field.row.rowIndex + 1);
                     let tagCell = row.insertCell();
+                    tagCell.style.background="rgba(255, 255, 128, .5)";
                     tagCell.contentEditable = true;
                     tagCell.innerText = "___";
                     
@@ -465,6 +466,7 @@ export let multiplemarcrecordcomponent = {
                     let subfieldRow = fieldTable.insertRow();
                     let codeCell = subfieldRow.insertCell();
                     codeCell.className = "subfield-code";
+                    codeCell.style.background="rgba(255, 255, 128, .5)";
                     codeCell.contentEditable = true;
                     codeCell.innerHTML = "_";
                     
@@ -474,12 +476,15 @@ export let multiplemarcrecordcomponent = {
                     
                     let valCell = subfieldRow.insertCell();
                     valCell.className = "subfield-value";
+                    valCell.style.background="rgba(255, 255, 128, .5)";
                     valCell.contentEditable = true;
                     valCell.innerHTML = "insert new subfield value";
                     
                     valCell.addEventListener("input", function() {
                         newSubfield.value = valCell.innerText;
                     });
+
+                    
                 });
                 
                 // delete field
@@ -558,11 +563,6 @@ export let multiplemarcrecordcomponent = {
 
                         newValueCell.addEventListener('input', () => {
                             newSubfield.value = newValueCell.textContent;
-                        
-                            if (newSubfield.code !== "_" && newSubfield.value) {
-                                newCodeCell.style.background = "";
-                                newValueCell.style.background = "";
-                            }
                         });
                         
                         for (let cell of [newCodeCell, newValueCell]) {
@@ -614,6 +614,7 @@ export let multiplemarcrecordcomponent = {
 
                     valCell.addEventListener("input", function () {
                         subfield.value = valSpan.innerText;
+                        valCell.style.background = "rgba(255, 255, 128, .5)" 
                     });
                     
                     valCell.addEventListener("keydown", function (event) {
