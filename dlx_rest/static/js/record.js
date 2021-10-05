@@ -34,6 +34,7 @@ export let multiplemarcrecordcomponent = {
                     <div class="ml-3 mr-3 jumbotron jumbotron-fluid">
                         <div class="container">
                             <h1 class="display-4 text-center">No record selected</h1>
+                            <p class="lead text-center">You can select one from the basket to the left or create one via the menu above.</p>
                         </div>
                     </div>                                
                 </div>
@@ -76,23 +77,34 @@ export let multiplemarcrecordcomponent = {
             this.user = myProfile.data.email;
         }
         
-        if (this.records) {
+        if (this.records !== "None") {
             this.records.split(",").forEach(
                 record => {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        if (this.readonly) {
-                            this.displayMarcRecord(split_rec[1], split_rec[0], true);
-                        } else {
-                            this.displayMarcRecord(split_rec[1], split_rec[0], false); // record ID and collection
+                        Jmarc.get(split_rec[0], split_rec[1]).then(jmarc => {
+                            if (this.readonly) {
+                                this.displayMarcRecord(jmarc, true);
+                            } else {
+                                this.displayMarcRecord(jmarc, false); // record ID and collection
+                            }
+                        })
+                        
+                    } else {
+                        let jmarc = new Jmarc(split_rec[0]);
+                        if (split_rec[0] == "bibs") {
+                            jmarc.createField('245').createSubfield('a').value = "insert new subfield value";
+                        } else if (split_rec[0] == "auths") {
+                            jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
                         }
+                        this.displayMarcRecord(jmarc, false);
                     }
                 }
             );
             
             recup = this
-        }
+        } 
     },
     methods: {
         justatest(){
@@ -184,18 +196,8 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
         },
-        async displayMarcRecord(recId, myColl="bibs", readOnly) {
-            let component = this; // for use in event listeners
-            let jmarc;
-            
-            if (recId) {
-                jmarc = await Jmarc.get(myColl, recId)
-            } 
-            else {
-                jmarc = new Jmarc(myColl);
-                jmarc.createField("___").createSubfield("a").value = "insert new subfield value";
-            }
-            
+        async displayMarcRecord(jmarc, readOnly) {
+            let component = this; // for use in event listeners 
             let table = document.createElement("table");
             
             window.addEventListener("click",  function() {
@@ -204,10 +206,10 @@ export let multiplemarcrecordcomponent = {
             });
             
             // table css in in base1.html
-            table.className = myColl === "bibs" ? "bib" : "auth"; 
+            table.className = jmarc.collection === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
           
-            if (readOnly) {
+            if (readOnly || jmarc.readOnly) {
                 table.className += " read-only"
             }
             
@@ -219,7 +221,7 @@ export let multiplemarcrecordcomponent = {
             
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
-            idField.innerText = `${myColl}/${recId}`;
+            idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
             idField.className = "float-left mx-2";
             
             // Save Button
@@ -229,25 +231,48 @@ export let multiplemarcrecordcomponent = {
             saveButton.value = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
             saveButton.onclick = () => {
-                jmarc.put().then(
-                    jmarc => {
-                        let parentElement = saveButton.parentElement
-                        let parentElementPlus=parentElement.parentElement
-                        let parentElementPlusPlus=parentElementPlus.parentElement
-                        let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
-                        let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
-
-                        this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
-                        console.log(jmarc.recordId)
-                        this.displayMarcRecord(jmarc.recordId,jmarc.collection)
-
-                        this.callChangeStyling("Record " + recId + " has been updated/saved", "row alert alert-success")
-                    }
-                ).catch(
-                    error => {
-                        this.callChangeStyling(error.message,"row alert alert-danger")
-                    }
-                );
+                if (jmarc.recordId !== null) {
+                    jmarc.put().then(
+                        jmarc => {
+                            let parentElement = saveButton.parentElement
+                            let parentElementPlus=parentElement.parentElement
+                            let parentElementPlusPlus=parentElementPlus.parentElement
+                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+    
+                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                            console.log(jmarc.recordId)
+                            this.displayMarcRecord(jmarc, false)
+    
+                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                        }
+                    ).catch(
+                        error => {
+                            this.callChangeStyling(error.message,"row alert alert-danger")
+                        }
+                    );
+                } else {
+                    jmarc.post().then(
+                        jmarc => {
+                            let parentElement = saveButton.parentElement
+                            let parentElementPlus=parentElement.parentElement
+                            let parentElementPlusPlus=parentElementPlus.parentElement
+                            let parentElementPlusPlusPlus=parentElementPlusPlus.parentElement
+                            let parentElementPlusPlusPlusPlus=parentElementPlusPlusPlus.parentElement
+    
+                            this.removeRecordFromEditor(""+parentElementPlusPlusPlusPlus.id)
+                            console.log(jmarc.recordId)
+                            this.displayMarcRecord(jmarc, false)
+    
+                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                        }
+                    ).catch(
+                        error => {
+                            this.callChangeStyling(error.message,"row alert alert-danger")
+                        }
+                    );                    
+                }
+                
             };
                     
             // clone record  
@@ -261,7 +286,7 @@ export let multiplemarcrecordcomponent = {
                 let recup = jmarc.clone();
                 try {
                     recup.post()
-                    this.callChangeStyling("Record " + recId + " has been cloned", "row alert alert-success")
+                    this.callChangeStyling("Record " + jmarc.recordId + " has been cloned", "row alert alert-success")
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
@@ -270,7 +295,7 @@ export let multiplemarcrecordcomponent = {
             if(this.readonly && this.user !== null) {
                 let editLink = document.createElement("a");
                 let uibase = this.prefix.replace("/api/","");
-                editLink.href = `${uibase}/editor?records=${myColl}/${recId}`;
+                editLink.href = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
                 idCell.appendChild(editLink);
                 let addRemoveBasketButton = document.createElement("i");
                 editLink.appendChild(addRemoveBasketButton);
@@ -281,7 +306,7 @@ export let multiplemarcrecordcomponent = {
                 addRemoveBasketButton.title = "Edit Record";
                 editLink.addEventListener("click", async (e) => {
                     e.preventDefault();
-                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", myColl, recId).then(res => {
+                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                         window.location.href = editLink.href;
                     })
                 })
@@ -316,14 +341,14 @@ export let multiplemarcrecordcomponent = {
                 try {
                     jmarc.delete();
                     
-                    if (this.record1 === String(recId)) {
+                    if (this.record1 === String(jmarc.recordId)) {
                         this.removeRecordFromEditor("record1")
                     }
-                    if (this.record2 === String(recId)) {
+                    if (this.record2 === String(jmarc.recordId)) {
                         this.removeRecordFromEditor("record2")
                     }
-                    this.callChangeStyling("Record " + recId + " has been deleted", "row alert alert-success")
-                    this.removeFromBasket(recId, myColl)                  
+                    this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
+                    this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }  
@@ -344,50 +369,53 @@ export let multiplemarcrecordcomponent = {
                 return a.language > b.language;
             }
             
-            for (let f of jmarc.files.sort(fileSort)) {
-                let fileLI = document.createElement("li");
-                fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
-                
-                let itemUL = document.createElement("ul");
-                itemUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";                
-                
-                let fileLabel = document.createElement("span");
-                fileLabel.innerText = `${f['language']}`;
-                //itemLI.appendChild(fileLabel);
-                
-                let fileOpen = document.createElement("a");
-                fileOpen.href = `${f['url']}?action=open`;
-                fileOpen.target = "_blank";
-                fileOpen.title = "Open";
-                let openIcon = document.createElement("i");
-                openIcon.className = "fas fa-file text-dark";
-                fileOpen.appendChild(openIcon);
-                
-                let fileDownload = document.createElement("a");
-                fileDownload.href = `${f['url']}?action=download`;
-                fileDownload.title = "Download";
-                let downloadIcon = document.createElement("i");
-                downloadIcon.className = "fas fa-cloud-download-alt text-dark";
-                fileDownload.appendChild(downloadIcon);
-                
-                let labelLI = document.createElement("li");
-                labelLI.className = "list-group-item list-group-item-dark border-0 m-0 p-0 px-1";
-                let openLI = document.createElement("li");
-                openLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
-                let downloadLI = document.createElement("li");
-                downloadLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
-                labelLI.appendChild(fileLabel);
-                openLI.appendChild(fileOpen);
-                downloadLI.appendChild(fileDownload);
-                
-                itemUL.appendChild(labelLI);
-                itemUL.appendChild(openLI);
-                itemUL.appendChild(downloadLI);
-                
-                fileLI.appendChild(itemUL);
-                filesUL.appendChild(fileLI);
-                
+            if (jmarc.files) {
+                for (let f of jmarc.files.sort(fileSort)) {
+                    let fileLI = document.createElement("li");
+                    fileLI.className = "list-group-item border-0 m-0 p-0 mr-1 float-left";
+                    
+                    let itemUL = document.createElement("ul");
+                    itemUL.className = "list-group list-group-horizontal list-group-flush m-0 p-0";                
+                    
+                    let fileLabel = document.createElement("span");
+                    fileLabel.innerText = `${f['language']}`;
+                    //itemLI.appendChild(fileLabel);
+                    
+                    let fileOpen = document.createElement("a");
+                    fileOpen.href = `${f['url']}?action=open`;
+                    fileOpen.target = "_blank";
+                    fileOpen.title = "Open";
+                    let openIcon = document.createElement("i");
+                    openIcon.className = "fas fa-file text-dark";
+                    fileOpen.appendChild(openIcon);
+                    
+                    let fileDownload = document.createElement("a");
+                    fileDownload.href = `${f['url']}?action=download`;
+                    fileDownload.title = "Download";
+                    let downloadIcon = document.createElement("i");
+                    downloadIcon.className = "fas fa-cloud-download-alt text-dark";
+                    fileDownload.appendChild(downloadIcon);
+                    
+                    let labelLI = document.createElement("li");
+                    labelLI.className = "list-group-item list-group-item-dark border-0 m-0 p-0 px-1";
+                    let openLI = document.createElement("li");
+                    openLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                    let downloadLI = document.createElement("li");
+                    downloadLI.className = "list-group-item list-group-item-action list-group-item-dark border-0 m-0 p-0 px-1";
+                    labelLI.appendChild(fileLabel);
+                    openLI.appendChild(fileOpen);
+                    downloadLI.appendChild(fileDownload);
+                    
+                    itemUL.appendChild(labelLI);
+                    itemUL.appendChild(openLI);
+                    itemUL.appendChild(downloadLI);
+                    
+                    fileLI.appendChild(itemUL);
+                    filesUL.appendChild(fileLI);
+                    
+                }
             }
+
             
             // Table body
             let tableBody = table.createTBody();
@@ -730,14 +758,14 @@ export let multiplemarcrecordcomponent = {
             if (this.isRecordOneDisplayed == false) {
                 myDivId = "record1";
                 this.isRecordOneDisplayed = true
-                this.record1 = recId;
-                this.collectionRecord1 = myColl; // used for auth merge
+                this.record1 = jmarc.recordId;
+                this.collectionRecord1 = jmarc.collection; // used for auth merge
             }
             else if (this.isRecordTwoDisplayed == false) {
                 myDivId = "record2";
                 this.isRecordTwoDisplayed = true
-                this.record2 = recId;
-                this.collectionRecord2 = myColl; // used for auth merge
+                this.record2 = jmarc.recordId;
+                this.collectionRecord2 = jmarc.collection; // used for auth merge
             }
 
             document.getElementById(myDivId).appendChild(table);            
