@@ -22,8 +22,8 @@ export let headercomponent = {
                     Create Record
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#">Auth Workform</a>
-                    <a class="dropdown-item" href="#">Bib Workforn</a>
+                    <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
+                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workforn</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item disabled" href="#">Load a Workform</a>
                 </div>
@@ -54,8 +54,10 @@ export let headercomponent = {
     </nav>`,
     data: function () {
 
+        let uibase = this.api_prefix.replace("/api","");
         return {
-            visible: true
+            visible: true,
+            uibase: uibase
         }
     },
     methods:{
