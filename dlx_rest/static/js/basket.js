@@ -2,7 +2,7 @@
 // BASKET COMPONENT
 
 import { Jmarc } from "./jmarc.js";
-import basket from "./api/basket.js";
+import basket_api from "./api/basket_api.js";
 
 /////////////////////////////////////////////////////////////////
 export let basketcomponent = {
@@ -38,9 +38,9 @@ export let basketcomponent = {
         }
     },
     created: async function () {
-        const myBasket = await basket.getBasket(this.api_prefix);
+        const myBasket = await basket_api.getBasket(this.api_prefix);
         for (let item of myBasket) {
-            let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
+            let myItem = await basket_api.getItem(this.api_prefix, item.collection, item.record_id);
             myItem['collection'] = item.collection;
             let myItemTitle = "";
             if (item.collection == "bibs") {
@@ -84,8 +84,8 @@ export let basketcomponent = {
         },
         async removeRecordFromList(collection, record_id) {
             let el = document.getElementById(`${collection}--${record_id}`);
-            const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
-            const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
+            const myBasket = await basket_api.getBasket(this.api_prefix, "userprofile/my_profile/basket");
+            const deleted = await basket_api.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
                 el.parentElement.remove();
                 this.callChangeStyling("Record removed from basket", "row alert alert-success")

@@ -1,6 +1,6 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
-import basket from "../api/basket.js";
+import basket_api from "../api/basket_api.js";
 import user from "../api/user.js";
 
 export let searchcomponent = {
@@ -160,12 +160,12 @@ export let searchcomponent = {
     },
     mounted: async function() {
         if (this.user !== null) {
-            const myBasket = await basket.getBasket(this.api_prefix);
+            const myBasket = await basket_api.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
                 iconEl.addEventListener("click", async () => {
-                    const myBasket = await basket.getBasket(this.api_prefix);
+                    const myBasket = await basket_api.getBasket(this.api_prefix);
                     this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
                 });
                 if (this.basketContains(myBasket, this.collection, result._id)) {
@@ -224,7 +224,7 @@ export let searchcomponent = {
         toggleAddRemove(el, myBasket, collection, record_id) {
             if (el.classList.value === "fas fa-folder-plus") {
                 // we can run an add
-                const added = basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
+                const added = basket_api.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
                 if (added) {
                     el.classList.remove("fa-folder-plus");
                     el.classList.add("fa-folder-minus");
@@ -232,7 +232,7 @@ export let searchcomponent = {
                 }
             } else {
                 // we can run a deletion
-                const deleted = basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
+                const deleted = basket_api.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
                 if (deleted) {
                     el.classList.remove("fa-folder-minus");
                     el.classList.add("fa-folder-plus");

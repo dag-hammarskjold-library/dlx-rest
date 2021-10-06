@@ -6,7 +6,7 @@ let recup=""
 
 import { Jmarc } from "./jmarc.js";
 import user from "./api/user.js";
-import basket from "./api/basket.js";
+import basket_api from "./api/basket_api.js";
 import workform_api from "./api/workform_api.js";
 
 /////////////////////////////////////////////////////////////////
@@ -311,7 +311,7 @@ export let multiplemarcrecordcomponent = {
                 addRemoveBasketButton.title = "Edit Record";
                 editLink.addEventListener("click", async (e) => {
                     e.preventDefault();
-                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+                    await basket_api.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                         window.location.href = editLink.href;
                     })
                 })
@@ -353,7 +353,13 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor("record2")
                     }
                     this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
-                    this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
+                    //this.removeFromBasket(jmarc.recordId, jmarc.collection)   
+                    basket_api.getBasket(this.prefix, "userprofile/my_profile/basket").then(myBasket => {
+                        basket_api.deleteItem(this.prefix, 'userprofile/my_profile/basket', myBasket, jmarc.collection, jmarc.recordId).then(deleted => {
+                            let el = document.getElementById(`${jmarc.collection}--${jmarc.recordId}`);
+                            el.parentElement.remove();
+                        });
+                    });
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }  

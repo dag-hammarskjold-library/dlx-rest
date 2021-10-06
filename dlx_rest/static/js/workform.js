@@ -16,7 +16,7 @@ export let workformcomponent = {
             <div class="col-2">Bib Workforms</div>
             <div class="col-10">
                 <div v-for="w in bib_workforms" class="row">
-                    <a href="#" >{{w.data.name}}</a>
+                    <a :href="'/editor?workform=bibs/' + w.data.name">{{w.data.name}}</a>
                 </div>
             </div>
         </div>
