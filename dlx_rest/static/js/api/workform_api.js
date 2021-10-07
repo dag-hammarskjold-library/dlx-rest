@@ -23,12 +23,41 @@ export default {
 
     async getWorkform(api_prefix, collection, id) {
         let url = `${api_prefix}marc/${collection}/templates/${id}`;
-        console.log(url);
         let response = await fetch(url);
         let jsonData = await response.json();
         let myData = jsonData.data;
         let jmarc = new Jmarc(collection);
         jmarc.parse(myData);
         return jmarc;
+    },
+    async createWorkform(api_prefix, collection, id, data) {
+        let url = `${api_prefix}marc/${collection}/templates`;
+        await fetch(url, {
+            method:"POST",
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            return true;
+        });
+    },
+    async updateWorkform(api_prefix, collection, id, data) {
+        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        await fetch(url, {
+            method:"PUT",
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            return true;
+        });
+    },
+    async deleteWorkform(api_prefix, collection, id) {
+        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        await fetch(url, {method:"DELETE"}).then(response => {
+            return true;
+        });
     }
 }

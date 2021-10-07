@@ -255,16 +255,36 @@ export let multiplemarcrecordcomponent = {
             
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
-            idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            if (jmarc.recordId) {
+                idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            } else {
+                idField.innerText = `New ${jmarc.collection} record`;
+            }
             idField.className = "float-left mx-2";
             
             // Save Button
+            let saveDiv = document.createElement("div");
+            idCell.appendChild(saveDiv);
+            saveDiv.className = "dropdown";
             let saveButton = document.createElement("i");
-            idCell.appendChild(saveButton);
+            saveDiv.appendChild(saveButton);
             saveButton.type = "button";
             saveButton.value = "save";
-            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
-            saveButton.onclick = () => {
+            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
+            saveButton.setAttribute("data-toggle", "dropdown");
+
+            let saveDropdown = document.createElement("div");
+            saveDiv.appendChild(saveDropdown);
+            saveDropdown.className = "dropdown-menu";
+            saveDropdown.setAttribute("aria-labelledBy", "saveDropdown");
+            
+            let saveItem = document.createElement("a");
+            saveDropdown.appendChild(saveItem);
+            saveItem.className = "dropdown-item";
+            saveItem.innerText = "Save Record";
+            saveItem.href="#";
+
+            saveItem.onclick = () => {
                 let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
                 
                 promise.then(
@@ -279,6 +299,30 @@ export let multiplemarcrecordcomponent = {
                     }
                 );
             };
+
+            let saveWorkformItem = document.createElement("a");
+            saveDropdown.appendChild(saveWorkformItem);
+            saveWorkformItem.className = "dropdown-item";
+            saveWorkformItem.innerText = "Save as workform";
+            saveWorkformItem.href="#";
+
+            saveWorkformItem.onclick = () => {
+                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
+                
+                promise.then(
+                    jmarc => {
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
+                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    }
+                ).catch(
+                    error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger")
+                    }
+                );
+            };
+
+            
                     
             // clone record  
             let cloneButton = document.createElement("i");
@@ -344,14 +388,17 @@ export let multiplemarcrecordcomponent = {
             
             deleteItem.onclick = () => {
                 try {
-                    jmarc.delete();
                     
+                    
+                    /*
                     if (this.record1 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record1")
+                        this.removeRecordFromEditor(jmarc.div)
                     }
                     if (this.record2 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record2")
+                        this.removeRecordFromEditor(div)
                     }
+                    */
+                    this.removeRecordFromEditor(jmarc.div.id);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
                     //this.removeFromBasket(jmarc.recordId, jmarc.collection)   
                     basket_api.getBasket(this.prefix, "userprofile/my_profile/basket").then(myBasket => {
@@ -360,6 +407,7 @@ export let multiplemarcrecordcomponent = {
                             el.parentElement.remove();
                         });
                     });
+                    jmarc.delete();
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }  
