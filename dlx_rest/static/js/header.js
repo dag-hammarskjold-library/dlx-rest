@@ -23,7 +23,7 @@ export let headercomponent = {
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
-                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workforn</a>
+                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workform</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" :href="uibase + 'workform'">Load a Workform</a>
                 </div>
