@@ -30,7 +30,7 @@ export default {
         jmarc.parse(myData);
         return jmarc;
     },
-    async createWorkform(api_prefix, collection, id, data) {
+    async createWorkform(api_prefix, collection, data) {
         let url = `${api_prefix}marc/${collection}/templates`;
         await fetch(url, {
             method:"POST",

@@ -10,14 +10,18 @@ export let workformcomponent = {
                 <div v-for="w in auth_workforms" class="row">
                     <a :href="'/editor?workform=auths/' + w.data.name">{{w.data.name}}</a>
                 </div>
+                <div class="row"><a href="#">Create a new auth workform</a></div>
             </div>
         </div>
         <div class="row pt-2">
             <div class="col-2">Bib Workforms</div>
             <div class="col-10">
                 <div v-for="w in bib_workforms" class="row">
-                    <a :href="'/editor?workform=bibs/' + w.data.name">{{w.data.name}}</a>
+                    <span class="mx-2" contenteditable="true">{{w.data.name}}</span>
+                    <span class="mx-2" contenteditable="true">{{w.data.description}}</span>
+                    <a :href="'/editor?workform=bibs/' + w.data._id"><i class="fas fa-edit"></i></a>
                 </div>
+                <div class="row"><a href="#">Create a new bib workform</a></div>
             </div>
         </div>
     </div>

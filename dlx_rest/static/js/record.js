@@ -307,7 +307,9 @@ export let multiplemarcrecordcomponent = {
             saveWorkformItem.href="#";
 
             saveWorkformItem.onclick = () => {
-                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
+                console.log(jmarc)
+                let promise = jmarc.recordId === null ? workform_api.createWorkform(this.prefix, jmarc.collection, jmarc) : workform_api.updateWorkform(this.prefix, jmarc.collection, jmarc.recordId, jmarc)
+                //jmarc.recordId === null ? jmarc.post() : jmarc.put();
                 
                 promise.then(
                     jmarc => {
@@ -689,6 +691,7 @@ export let multiplemarcrecordcomponent = {
                         subfield.value = valSpan.innerText;
                         
                         let savedState = new Jmarc(jmarc.collection);
+                        console.log(`Saved state: ${savedState.stringify()}`)
                         savedState.parse(jmarc.savedState);
                         let i = field.subfields.indexOf(subfield);
                         let checkField = savedState.getField(field.tag);
