@@ -106,104 +106,6 @@ def test_api_record(client, marc):
     
     res = client.delete(f'{API}/marc/auths/records/1')
     assert res.status_code == 204
-             
-def test_api_record_fields_list(client, marc):
-    for col in ('bibs', 'auths'):
-        for i in (1, 2):
-            res = client.get(f'{API}/marc/{col}/records/{i}/fields')
-            data = check_response(res)
-            assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-
-def test_api_record_field_place_list(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-                
-        # post
-        if col == 'bibs':    
-            field = Datafield(record_type="bib", tag="245")
-            field.set("a", "Edited")
-            res = client.post(f'{API}/marc/{col}/records/1/fields/245', data=field.to_json())
-        else:
-            field = Datafield(record_type="auth", tag="100")
-            field.set("a", "Heading 2")
-            res = client.post(f'{API}/marc/{col}/records/1/fields/100', data=field.to_json())
-            
-        assert res.status_code == 201
-
-def test_api_record_field_place(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/jmarc.datafield'
-                
-        # put
-        if col == 'bibs':    
-            field = Datafield(record_type="bib", tag="245")
-            field.set("a", "Edited")
-            res = client.put(f'{API}/marc/{col}/records/1/fields/245/0', data=field.to_json())
-        else:
-            field = Datafield(record_type="auth", tag="100")
-            field.set("a", "Heading 2")
-            res = client.put(f'{API}/marc/{col}/records/1/fields/100/0', data=field.to_json())
-            
-        assert res.status_code == 200
-        
-    # delete
-    res = client.delete(f'{API}/marc/bibs/records/1/fields/245/0')
-    assert res.status_code == 204
-    
-    res = client.delete(f'{API}/marc/auths/records/1/fields/100/0')
-    assert res.status_code == 204
-                
-def test_api_record_field_place_subfield_list(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-                
-def test_api_record_field_place_subfield_place_list(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields/a')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-                
-def test_api_record_field_subfield_value(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/fields/{tag}/0/subfields/a/0')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/jmarc.subfield.value'
-                
-def test_api_record_subfield_list(client, marc):
-    for col in ('bibs', 'auths'):
-        tags = ['245', '700'] if col == 'bibs' else ['100']
-        
-        for i in (1, 2):
-            for tag in tags:
-                res = client.get(f'{API}/marc/{col}/records/{i}/subfields')
-                data = check_response(res)
-                assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
                 
 def test_api_lookup_field_list(client, marc):
     res = client.get(f'{API}/marc/bibs/lookup')
@@ -289,8 +191,11 @@ def test_api_auth_merge(client, marc):
     res = client.get(f'{API}/marc/auths/records/2')
     assert res.status_code == 404
     
-    res = client.get(f'{API}/marc/bibs/records/2/fields/700/0/subfields/a/0')
-    assert json.loads(res.data)['data'] == "Heading 1"
+    res = client.get(f'{API}/marc/bibs/records/1')
+    # fields/700/0/subfields/a/0
+    data = json.loads(res.data)['data']
+    print(data)
+    assert json.loads(res.data)['data']["700"][0]["subfields"][0]["value"] == "Heading 1"
     
 # User profile testing
 def test_api_userprofile(client, default_users, users):

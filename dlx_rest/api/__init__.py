@@ -715,7 +715,7 @@ class TemplatesList(Resource):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         templates = template_collection.find({})
-        data = [URL('api_template', collection=collection, template_id=t['_id']).to_str() for t in templates]
+        data = [URL('api_template', collection=collection, template_name=t['_id']).to_str() for t in templates]
         
         links = {
             '_self': URL('api_templates_list', collection=collection).to_str()
@@ -752,15 +752,15 @@ class TemplatesList(Resource):
         
         template_collection.insert_one(data) or abort(500)
         
-        return {'result': URL('api_template', collection=collection, template_id=data['_id']).to_str()}, 201
+        return {'result': URL('api_template', collection=collection, template_name=data['_id']).to_str()}, 201
 
 # Template
-@ns.route('/marc/<string:collection>/templates/<string:template_id>')
+@ns.route('/marc/<string:collection>/templates/<string:template_name>')
 @ns.param('collection', '"bibs" or "auths"')
-@ns.param('template_id', 'The id of the template')
+@ns.param('template_name', 'The id of the template')
 class Template(Resource):
     @ns.doc(description='Return the the template with the given id for the given collection')
-    def get(self, collection, template_id):
+    def get(self, collection, template_name):
         # interim implementation
         cls = ClassDispatch.by_collection(collection) or abort(404)
         template_collection = DB.handle[f'{collection}_templates']
@@ -769,7 +769,7 @@ class Template(Resource):
         template['name'] = template_name
         
         links = {
-            '_self': URL('api_template', collection=collection, template_id=template_id).to_str(),
+            '_self': URL('api_template', collection=collection, template_name=template_name).to_str(),
             'related': {
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'templates': URL('api_templates_list', collection=collection).to_str()
@@ -785,7 +785,7 @@ class Template(Resource):
 
     @ns.doc(description='Replace a template with the given name with the given data', security='basic')
     @login_required
-    def put(self, collection, template_id):
+    def put(self, collection, template_name):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         old_data = template_collection.find_one({'name': template_name}) or abort(404, "Existing template not found")
@@ -804,14 +804,14 @@ class Template(Resource):
         result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
         result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
-        return {'result': URL('api_template', collection=collection, template_id=template_id).to_str()}, 201
+        return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201
 
     @ns.doc(description='Delete a template with the given name', security='basic')
     @login_required
-    def delete(self, collection, template_id):
+    def delete(self, collection, template_name):
         template_collection = DB.handle[f'{collection}_templates']
-        template_collection.find_one({'name': template_id}) or abort(404)
-        template_collection.delete_one({'name': template_id}) or abort(500, 'DELETE request failed for unknown reasons')
+        template_collection.find_one({'name': template_name}) or abort(404)
+        template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
 
 # Files records list
 @ns.route('/files')
