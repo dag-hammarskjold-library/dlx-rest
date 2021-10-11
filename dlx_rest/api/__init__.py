@@ -89,7 +89,7 @@ class SchemasList(Resource):
             'api.basket.item',
             'api.brieflist',
             'jmarc',
-            'jmarc.template', 
+            'jmarc.workform', 
             'jfile', 
             'jmarc.batch',
             'jmarc.controlfield', 
@@ -155,7 +155,7 @@ class Collection(Resource):
             '_self': URL('api_collection', collection=collection).to_str(),
             'related': {
                 'records': URL('api_records_list', collection=collection).to_str(),
-                'templates': URL('api_templates_list', collection=collection).to_str(),
+                'workforms': URL('api_workforms_list', collection=collection).to_str(),
                 'lookup': URL('api_lookup_fields_list', collection=collection).to_str()
             }
         }
@@ -706,23 +706,23 @@ class RecordHistoryEvent(Resource):
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
   
-# Templates
-@ns.route('/marc/<string:collection>/templates')
+# Workforms
+@ns.route('/marc/<string:collection>/workforms')
 @ns.param('collection', '"bibs" or "auths"')
-class TemplatesList(Resource):
-    @ns.doc(description='Return a list of templates for the given collection')
+class WorkformsList(Resource):
+    @ns.doc(description='Return a list of workforms for the given collection')
     def get(self, collection):
         # interim implementation
-        template_collection = DB.handle[f'{collection}_templates']
-        templates = template_collection.find({})
-        data = [URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
+        workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
+        workforms = workform_collection.find({})
+        data = [URL('api_workform', collection=collection, workform_name=t['name']).to_str() for t in workforms]
         
         links = {
-            '_self': URL('api_templates_list', collection=collection).to_str()
+            '_self': URL('api_workforms_list', collection=collection).to_str()
         }
         
         meta = {
-            'name': 'api_templates_list',
+            'name': 'api_workforms_list',
             'returns': URL('api_schema', schema_name='api.urllist').to_str()
         }
         
@@ -732,86 +732,86 @@ class TemplatesList(Resource):
     @login_required
     def post(self, collection):
         # interim implementation
-        template_collection = DB.handle[f'{collection}_templates']
+        workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         data = json.loads(request.data) or abort(400, 'Invalid JSON')
         data.get('_id') and data.pop('_id') # ignore any exisiting _id
-        data.get('name') or abort(400, 'template "name" field required')        
-        existing = template_collection.find_one({'name': data['name']})
+        data.get('name') or abort(400, 'workform "name" field required')        
+        existing = workform_collection.find_one({'name': data['name']})
         
         if existing:
-            abort(400, f'Template {data["name"]} already exists. Use PUT to update it')
+            abort(400, f'Workform {data["name"]} already exists. Use PUT to update it')
             
-        schema = Schemas.get('jmarc.template')
+        schema = Schemas.get('jmarc.workform')
 
         try:
             jsonschema.validate(instance=data, schema=schema, format_checker=jsonschema.FormatChecker())
         except jsonschema.exceptions.ValidationError as e:
-            abort(400, 'Invalid template')
+            abort(400, 'Invalid workform')
         except Exception as e:
             raise e
         
-        template_collection.insert_one(data) or abort(500)
+        workform_collection.insert_one(data) or abort(500)
         
-        return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
+        return {'result': URL('api_workform', collection=collection, workform_name=data['name']).to_str()}, 201
 
-# Template
-@ns.route('/marc/<string:collection>/templates/<string:template_name>')
+# Workform
+@ns.route('/marc/<string:collection>/workforms/<string:workform_name>')
 @ns.param('collection', '"bibs" or "auths"')
-@ns.param('template_name', 'The name of the template')
-class Template(Resource):
-    @ns.doc(description='Return the the template with the given id for the given collection')
-    def get(self, collection, template_name):
+@ns.param('workform_name', 'The name of the workform')
+class Workform(Resource):
+    @ns.doc(description='Return the the workform with the given name for the given collection')
+    def get(self, collection, workform_name):
         # interim implementation
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        template_collection = DB.handle[f'{collection}_templates']
-        template = template_collection.find_one({'name': template_name}) or abort(404)
-        template.pop('_id')
-        template['name'] = template_name
+        workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
+        workform = workform_collection.find_one({'name': workform_name}) or abort(404)
+        workform.pop('_id')
+        workform['name'] = workform_name
         
         links = {
-            '_self': URL('api_template', collection=collection, template_name=template_name).to_str(),
+            '_self': URL('api_workform', collection=collection, workform_name=workform_name).to_str(),
             'related': {
                 'collection': URL('api_collection', collection=collection).to_str(),
-                'templates': URL('api_templates_list', collection=collection).to_str()
+                'workforms': URL('api_workforms_list', collection=collection).to_str()
             }
         }
             
         meta = {
-            'name': 'api_template',
-            'returns': URL('api_schema', schema_name='jmarc.template').to_str()
+            'name': 'api_workform',
+            'returns': URL('api_schema', schema_name='jmarc.workform').to_str()
         }
         
-        return ApiResponse(links=links, meta=meta, data=template).jsonify()
+        return ApiResponse(links=links, meta=meta, data=workform).jsonify()
 
-    @ns.doc(description='Replace a template with the given name with the given data', security='basic')
+    @ns.doc(description='Replace a workform with the given name with the given data', security='basic')
     @login_required
-    def put(self, collection, template_name):
+    def put(self, collection, workform_name):
         # interim implementation
-        template_collection = DB.handle[f'{collection}_templates']
-        old_data = template_collection.find_one({'name': template_name}) or abort(404, "Existing template not found")
+        workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
+        old_data = workform_collection.find_one({'name': workform_name}) or abort(404, "Existing workform not found")
         new_data = json.loads(request.data) or abort(400, 'Invalid JSON')
         new_data['name'] = old_data['name']
         new_data.get('_id') and new_data.pop('_id') # ignore any exisitng id
-        schema = Schemas.get('jmarc.template')
+        schema = Schemas.get('jmarc.workform')
         
         try:
             jsonschema.validate(instance=new_data, schema=schema, format_checker=jsonschema.FormatChecker())
         except jsonschema.exceptions.ValidationError as e:
-            abort(400, 'Invalid template')
+            abort(400, 'Invalid workform')
         except Exception as e:
             raise e
 
-        result = template_collection.replace_one({'name': old_data['name']}, new_data)
+        result = workform_collection.replace_one({'_id': old_data['_id']}, new_data)
         result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
-        return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201
+        return {'result': URL('api_workform', collection=collection, workform_name=workform_name).to_str()}, 201
 
-    @ns.doc(description='Delete a template with the given name', security='basic')
+    @ns.doc(description='Delete a workform with the given name', security='basic')
     @login_required
-    def delete(self, collection, template_name):
-        template_collection = DB.handle[f'{collection}_templates']
-        template_collection.find_one({'name': template_name}) or abort(404)
-        template_collection.delete_one({'name': template_name}) or abort(500, 'DELETE request failed for unknown reasons')
+    def delete(self, collection, workform_name):
+        workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
+        workform_collection.find_one({'name': workform_name}) or abort(404)
+        workform_collection.delete_one({'name': workform_name}) or abort(500, 'DELETE request failed for unknown reasons')
 
 # Files records list
 @ns.route('/files')

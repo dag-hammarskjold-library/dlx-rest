@@ -116,7 +116,7 @@ class Schemas():
                     }
                 }
             }
-        elif schema_name == 'jmarc.template':
+        elif schema_name == 'jmarc.workform':
             data = deepcopy(DlxConfig.jmarc_schema)
             del data['properties']['_id']
             data['required'].remove('_id')

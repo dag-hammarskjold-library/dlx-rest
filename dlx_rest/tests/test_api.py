@@ -141,32 +141,32 @@ def test_api_record_history(client, marc):
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
 
-def test_api_template_list(client, marc):
+def test_api_workform_list(client, marc):
     for col in ('bibs', 'auths'):
         # get
-        res = client.get(f'{API}/marc/bibs/templates')
+        res = client.get(f'{API}/marc/bibs/workforms')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
         # post
         data = {'245': [{'subfields': [{'code': 'a', 'value': 'Val'}]}]}
-        res = client.post(f'{API}/marc/bibs/templates', data=json.dumps(data))
+        res = client.post(f'{API}/marc/bibs/workforms', data=json.dumps(data))
         assert res.status_code == 400 # name not set
         
-        data['name'] = 'test template'
-        res = client.post(f'{API}/marc/{col}/templates', data=json.dumps(data))
+        data['name'] = 'test workform'
+        res = client.post(f'{API}/marc/{col}/workforms', data=json.dumps(data))
         assert res.status_code == 201
         
-def test_api_template(client, marc):
+def test_api_workform(client, marc):
     for col in ('bibs', 'auths'):
         # get
-        res = client.get(f'{API}/marc/bibs/templates/test') # from marc fixture
+        res = client.get(f'{API}/marc/bibs/workforms/test') # from marc fixture
         data = check_response(res)
-        assert data['_meta']['returns'] == f'{API}/schemas/jmarc.template'
+        assert data['_meta']['returns'] == f'{API}/schemas/jmarc.workform'
         
         # put
-        template = data['data']
-        res = client.put(f'{API}/marc/{col}/templates/test', data=json.dumps(template))
+        workform = data['data']
+        res = client.put(f'{API}/marc/{col}/workforms/test', data=json.dumps(workform))
         assert res.status_code == 201
         
 def test_api_files(client, files):
