@@ -715,7 +715,7 @@ class TemplatesList(Resource):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         templates = template_collection.find({})
-        data = [URL('api_template', collection=collection, template_name=t['_id']).to_str() for t in templates]
+        data = [URL('api_template', collection=collection, template_name=t['name']).to_str() for t in templates]
         
         links = {
             '_self': URL('api_templates_list', collection=collection).to_str()
@@ -752,12 +752,12 @@ class TemplatesList(Resource):
         
         template_collection.insert_one(data) or abort(500)
         
-        return {'result': URL('api_template', collection=collection, template_name=data['_id']).to_str()}, 201
+        return {'result': URL('api_template', collection=collection, template_name=data['name']).to_str()}, 201
 
 # Template
 @ns.route('/marc/<string:collection>/templates/<string:template_name>')
 @ns.param('collection', '"bibs" or "auths"')
-@ns.param('template_name', 'The id of the template')
+@ns.param('template_name', 'The name of the template')
 class Template(Resource):
     @ns.doc(description='Return the the template with the given id for the given collection')
     def get(self, collection, template_name):
@@ -801,7 +801,7 @@ class Template(Resource):
         except Exception as e:
             raise e
 
-        result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
+        result = template_collection.replace_one({'name': old_data['name']}, new_data)
         result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
         return {'result': URL('api_template', collection=collection, template_name=template_name).to_str()}, 201

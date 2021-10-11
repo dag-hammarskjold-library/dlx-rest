@@ -19,7 +19,7 @@ export let workformcomponent = {
                 <div v-for="w in bib_workforms" class="row">
                     <span class="mx-2" contenteditable="true">{{w.data.name}}</span>
                     <span class="mx-2" contenteditable="true">{{w.data.description}}</span>
-                    <a :href="'/editor?workform=bibs/' + w.data._id"><i class="fas fa-edit"></i></a>
+                    <a :href="'/editor?workform=bibs/' + w.data.name"><i class="fas fa-edit"></i></a>
                 </div>
                 <div class="row"><a href="#">Create a new bib workform</a></div>
             </div>
