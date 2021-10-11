@@ -241,16 +241,32 @@ def test_api_record_history(client, marc):
 
 def test_api_template_list(client, marc):
     for col in ('bibs', 'auths'):
+        # get
         res = client.get(f'{API}/marc/bibs/templates')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
+        # post
+        data = {'245': [{'subfields': [{'code': 'a', 'value': 'Val'}]}]}
+        res = client.post(f'{API}/marc/bibs/templates', data=json.dumps(data))
+        assert res.status_code == 400 # name not set
+        
+        data['name'] = 'test template'
+        res = client.post(f'{API}/marc/{col}/templates', data=json.dumps(data))
+        assert res.status_code == 201
+        
 def test_api_template(client, marc):
     for col in ('bibs', 'auths'):
-        res = client.get(f'{API}/marc/bibs/templates/test')
+        # get
+        res = client.get(f'{API}/marc/bibs/templates/test') # from marc fixture
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc.template'
-     
+        
+        # put
+        template = data['data']
+        res = client.put(f'{API}/marc/{col}/templates/test', data=json.dumps(template))
+        assert res.status_code == 201
+        
 def test_api_files(client, files):
     res = client.get(f'{API}/files')
     data = check_response(res)

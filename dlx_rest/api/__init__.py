@@ -5,7 +5,7 @@ DLX REST API
 # external
 import requests
 from dlx_rest.routes import login
-import os, json, re, boto3, mimetypes
+import os, json, re, boto3, mimetypes, jsonschema
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -26,7 +26,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, validate_data
 
 # Init
 authorizations = {
@@ -87,6 +87,7 @@ class SchemasList(Resource):
             'api.basket',
             'api.basket.item.batch',
             'api.basket.item',
+            'api.brieflist',
             'jmarc',
             'jmarc.template', 
             'jfile', 
@@ -115,89 +116,9 @@ class SchemasList(Resource):
 class Schema(Resource):
     @ns.doc(description='Returns an instance of JSON Schema')
     def get(self, schema_name):
-        if schema_name == 'api.urllist':
-            data = {'type': 'array', 'items': {'type': 'string', 'format': 'uri'}}
-        elif schema_name == 'api.response':
-            data = {
-                'required' : ['_links', '_meta', 'data'],
-            	'additionalProperties': False,
-                'properties' : {
-                    '_links': {
-                        'properties': {
-                            '_next': {'type': 'string', 'format': 'uri'},
-                            '_prev': {'type': 'string', 'format': 'uri'},
-                            '_self': {'type': 'string', 'format': 'uri'},
-                            'related': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}},
-                            'format': {'type': 'object', 'items': {'type': 'string', 'format': 'uri'}}
-                        }
-                    },
-                    '_meta': {
-                        'properties': {
-                            'name': {'type': 'string'},
-                            'returns': {'type': 'string', 'format': 'uri'},
-                            'timestamp': {'bsonType': 'date'}
-                        }
-                    },
-                    'data': {}
-                },
-            }
-        elif schema_name == 'jmarc':
-            data = deepcopy(DlxConfig.jmarc_schema)
-            data['properties']['files'] = {
-                'type': 'array', 
-                'items': {
-                    'type': 'object', 
-                    'properties': {
-                        'mimetype': {'type': 'string', 'pattern': '^(text|application)/'}, 
-                        'language': {'type': 'string', 'pattern': '^[a-z]{2}$'},
-                        'url': {'type': 'string', 'format': 'uri'}
-                    }
-                }
-            }
-        elif schema_name == 'jmarc.template':
-            data = deepcopy(DlxConfig.jmarc_schema)
-            #del data['properties']['_id']
-            #data['required'].remove('_id')
-            data['properties']['_id'] = {'type': 'string'}
-            data['properties']['name'] = {'type': 'string'}
-            data['required'].append('name')
-            data['properties']['description'] = {'type': 'string'}
-            data['required'].append('description')
-            
-            #data = {'type': 'object', 'properties': {'name': {'type': 'string'}}}
-        elif schema_name == 'jmarc.controlfield':
-            data = DlxConfig.jmarc_schema['.controlfield']
-        elif schema_name == 'jmarc.datafield':
-            data = DlxConfig.jmarc_schema['.datafield']
-            data['properties']['subfields']['items'] = DlxConfig.jmarc_schema['.subfield']
-        elif schema_name == 'jmarc.subfield':
-            data = DlxConfig.jmarc_schema['.subfield']
-        elif schema_name == 'jmarc.subfield.value':
-            data = DlxConfig.jmarc_schema['.subfield']['properties']['value']
-        elif schema_name == 'jmarc.batch':
-            df = DlxConfig.jmarc_schema['.datafield']
-            df['properties']['subfields']['items'] = DlxConfig.jmarc_schema['.subfield']
-            data = {'type': 'array', 'items': df}
-        elif schema_name == 'api.authmap':
-            data = {'_notes': 'Not yet specified'}
-        elif schema_name == 'jfile':
-            data = DlxConfig.jfile_schema
-        elif schema_name == 'api.null':
-            data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
-        elif schema_name == 'api.count':
-            data = {'type': 'integer'}
-        elif schema_name == 'api.userprofile':
-            data = {'type': 'object'}
-        elif schema_name == 'api.basket':
-            data = {'type': 'object'}
-        elif schema_name == 'api.basket.item.batch':
-            data = {'type': 'array'}
-        elif schema_name == 'api.basket.item':
-            data = {'type': 'object'}
-        else:
-            abort(404)
+        schema = Schemas.get(schema_name)
         
-        return jsonify(data)
+        return jsonify(schema)
 
 # Collections
 @ns.route('/marc')
@@ -330,7 +251,7 @@ class RecordsList(Resource):
         elif fmt == 'mrk':
             return Response(recordset.to_mrk(), mimetype='text/plain')
         elif fmt == 'brief':
-            schema_name='api.brief'
+            schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
             data = [make_brief(r) for r in recordset]
         else:
@@ -358,6 +279,7 @@ class RecordsList(Resource):
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             },
             'related': {
+                'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
         }
@@ -812,8 +734,21 @@ class TemplatesList(Resource):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
         data = json.loads(request.data) or abort(400, 'Invalid JSON')
+        data.get('_id') and data.pop('_id') # ignore any exisiting _id
+        data.get('name') or abort(400, 'template "name" field required')        
+        existing = template_collection.find_one({'name': data['name']})
+        
+        if existing:
+            abort(400, f'Template {data["name"]} already exists. Use PUT to update it')
+            
+        schema = Schemas.get('jmarc.template')
 
-        print(data)
+        try:
+            jsonschema.validate(instance=data, schema=schema, format_checker=jsonschema.FormatChecker())
+        except jsonschema.exceptions.ValidationError as e:
+            abort(400, 'Invalid template')
+        except Exception as e:
+            raise e
         
         template_collection.insert_one(data) or abort(500)
         
@@ -829,27 +764,14 @@ class Template(Resource):
         # interim implementation
         cls = ClassDispatch.by_collection(collection) or abort(404)
         template_collection = DB.handle[f'{collection}_templates']
-        template = template_collection.find_one({'_id': objectid.ObjectId(template_id)}) or abort(404)
-        #template = template_collection.objects.get(_id=template_id)
-        
-        ''' We need a new validator for templates?
-        try:
-            record = cls(template)
-        except Exception as e:
-            print(e)
-            abort(404, str(e))
-        '''
-            
-        data = template
-        data['_id'] = str(template['_id'])
-        #data.pop('_id')
-        #data['template_id'] = template_id
-
+        template = template_collection.find_one({'name': template_name}) or abort(404)
+        template.pop('_id')
+        template['name'] = template_name
         
         links = {
             '_self': URL('api_template', collection=collection, template_id=template_id).to_str(),
             'related': {
-                
+                'collection': URL('api_collection', collection=collection).to_str(),
                 'templates': URL('api_templates_list', collection=collection).to_str()
             }
         }
@@ -859,18 +781,26 @@ class Template(Resource):
             'returns': URL('api_schema', schema_name='jmarc.template').to_str()
         }
         
-        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+        return ApiResponse(links=links, meta=meta, data=template).jsonify()
 
     @ns.doc(description='Replace a template with the given name with the given data', security='basic')
     @login_required
     def put(self, collection, template_id):
         # interim implementation
         template_collection = DB.handle[f'{collection}_templates']
-        old_data = template_collection.find_one({'_id': template_id}) or abort(404)
+        old_data = template_collection.find_one({'name': template_name}) or abort(404, "Existing template not found")
         new_data = json.loads(request.data) or abort(400, 'Invalid JSON')
-       
+        new_data['name'] = old_data['name']
+        new_data.get('_id') and new_data.pop('_id') # ignore any exisitng id
+        schema = Schemas.get('jmarc.template')
+        
+        try:
+            jsonschema.validate(instance=new_data, schema=schema, format_checker=jsonschema.FormatChecker())
+        except jsonschema.exceptions.ValidationError as e:
+            abort(400, 'Invalid template')
+        except Exception as e:
+            raise e
 
-        new_data['_id'], new_data['name'] = old_data['_id'], old_data['name']
         result = template_collection.replace_one({'_id': old_data['_id']}, new_data)
         result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
 
@@ -993,7 +923,6 @@ class FileRecord(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data={}).jsonify()
-
 
 #These routes all require a currently authenticated/authenticatable user.
 
