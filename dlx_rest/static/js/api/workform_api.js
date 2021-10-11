@@ -2,7 +2,7 @@ import { Jmarc } from "../jmarc.js"; //?
 
 export default {
     async listWorkforms(api_prefix, collection) {
-        let myUrl = `${api_prefix}marc/${collection}/templates`;
+        let myUrl = `${api_prefix}marc/${collection}/workforms`;
         let response = await fetch(myUrl);
         let jsonData = await response.json();
         let urlList = jsonData.data
@@ -22,7 +22,7 @@ export default {
     },
 
     async getWorkform(api_prefix, collection, id) {
-        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        let url = `${api_prefix}marc/${collection}/workforms/${id}`;
         let response = await fetch(url);
         let jsonData = await response.json();
         let myData = jsonData.data;
@@ -31,7 +31,7 @@ export default {
         return jmarc;
     },
     async createWorkform(api_prefix, collection, data) {
-        let url = `${api_prefix}marc/${collection}/templates`;
+        let url = `${api_prefix}marc/${collection}/workforms`;
         await fetch(url, {
             method:"POST",
             headers:{
@@ -43,7 +43,7 @@ export default {
         });
     },
     async updateWorkform(api_prefix, collection, id, data) {
-        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        let url = `${api_prefix}marc/${collection}/workforms/${id}`;
         await fetch(url, {
             method:"PUT",
             headers:{
@@ -55,7 +55,7 @@ export default {
         });
     },
     async deleteWorkform(api_prefix, collection, id) {
-        let url = `${api_prefix}marc/${collection}/templates/${id}`;
+        let url = `${api_prefix}marc/${collection}/workforms/${id}`;
         await fetch(url, {method:"DELETE"}).then(response => {
             return true;
         });
