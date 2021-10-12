@@ -3,6 +3,8 @@
 if (typeof window === "undefined") {
 	// probably running in Node
 	global.fetch = require('node-fetch')
+} else if (typeof global.fetch === "undefined") {
+    global.fetch = require('node-fetch')
 }
 	
 const authMap = {
@@ -225,7 +227,35 @@ export class Jmarc {
 		)
 	}
 	
-	post() {
+	static listWorkForms(collection) {
+	    fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
+	        response => {
+	            return reponse.json()
+	        }
+	    ).then(
+	        json => {
+	            return json['data']
+	        }
+	    )
+	}
+    
+    static fromWorkform(collection, workformName) {
+	    let jmarc = new Jmarc(collection);
+        
+        fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
+            response => {
+                return response.json()
+            }
+        ).then(
+            json => {
+                jmarc.parse(json);
+                
+                return jmarc
+            }
+        )
+	}
+    
+    post() {
 		if (this.recordId) {
 			throw new Error("Can't POST existing record")
 		}
