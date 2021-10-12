@@ -32,6 +32,8 @@ export default {
     },
     async createWorkform(api_prefix, collection, data) {
         let url = `${api_prefix}marc/${collection}/workforms`;
+        console.log(url);
+        console.log(data)
         await fetch(url, {
             method:"POST",
             headers:{

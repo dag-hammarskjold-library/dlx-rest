@@ -734,9 +734,10 @@ class WorkformsList(Resource):
         # interim implementation
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         data = json.loads(request.data) or abort(400, 'Invalid JSON')
+        print(data)
         data.get('_id') and data.pop('_id') # ignore any exisiting _id
-        data.get('name') or abort(400, 'workform "name" field required')        
-        existing = workform_collection.find_one({'name': data['name']})
+        data.get('name') or print("missing workform name") and abort(400, 'workform "name" field required')        
+        existing = workform_collection.find_one({'name': data["name"]})
         
         if existing:
             abort(400, f'Workform {data["name"]} already exists. Use PUT to update it')
@@ -746,13 +747,15 @@ class WorkformsList(Resource):
         try:
             jsonschema.validate(instance=data, schema=schema, format_checker=jsonschema.FormatChecker())
         except jsonschema.exceptions.ValidationError as e:
+            print(e)
             abort(400, 'Invalid workform')
         except Exception as e:
+            print(e)
             raise e
         
         workform_collection.insert_one(data) or abort(500)
         
-        return {'result': URL('api_workform', collection=collection, workform_name=data['name']).to_str()}, 201
+        return {'result': URL('api_workform', collection=collection, workform_name=data["name"]).to_str()}, 201
 
 # Workform
 @ns.route('/marc/<string:collection>/workforms/<string:workform_name>')

@@ -307,13 +307,19 @@ export let multiplemarcrecordcomponent = {
             saveWorkformItem.href="#";
 
             saveWorkformItem.onclick = () => {
-                console.log(jmarc)
-                let promise = jmarc.recordId === null ? workform_api.createWorkform(this.prefix, jmarc.collection, jmarc) : workform_api.updateWorkform(this.prefix, jmarc.collection, jmarc.recordId, jmarc)
+                //let promise = jmarc.name === null || jmarc.name === undefined ? workform_api.createWorkform(this.prefix, jmarc.collection, jmarc) : workform_api.updateWorkform(this.prefix, jmarc.collection, jmarc.name, jmarc)
                 //jmarc.recordId === null ? jmarc.post() : jmarc.put();
+
+                let postJmarc = jmarc.fields.to_json();
+                postJmarc.name = jmarc.recordId
+
+                //console.log(postJmarc)
                 
-                promise.then(
+                workform_api.createWorkform(this.prefix, jmarc.collection, jmarc).then(
                     jmarc => {
-                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        if (jmarc.div) {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        }
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
                     }
