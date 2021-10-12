@@ -3,6 +3,8 @@
 if (typeof window === "undefined") {
 	// probably running in Node
 	global.fetch = require('node-fetch')
+} else if (typeof global.fetch === "undefined") {
+    global.fetch = require('node-fetch')
 }
 	
 const authMap = {
@@ -225,7 +227,64 @@ export class Jmarc {
 		)
 	}
 	
-	post() {
+	static listWorkforms(collection) {
+	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
+	        response => {
+	            return response.json()
+	        }
+	    ).then(
+	        json => {
+                let names;
+                
+	            for (let url of json['data']) {
+	                names.push(url.split("/")[-1])
+	            }
+	        }
+	    )
+	}
+    
+    static fromWorkform(collection, workformName) {
+	    let jmarc = new Jmarc(collection);
+        
+        return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
+            response => {
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw new Error(`Workform "${workformName}" not found`)
+                }
+            }
+        ).then(
+            json => {
+                jmarc.parse(json);
+                jmarc.workformName = workformName;
+                jmarc.workformDescription = json['description']
+                
+                return jmarc
+            }
+        )
+	}
+    
+    saveAsWorkform(workformName, description) {
+        let data = this.compile()
+        data['name'] = workformName;
+        data['descrition'] = descrptions
+        
+        return fetch(
+            this.collectionUrl + '/workforms',
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: data.stringify()
+        ).then(
+            response => {
+                if (response.ok) {
+                    return true
+                }
+            }
+        )
+    }
+    
+    post() {
 		if (this.recordId) {
 			throw new Error("Can't POST existing record")
 		}
