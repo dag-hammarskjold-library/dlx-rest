@@ -1,9 +1,4 @@
 "use strict";
-
-if (typeof window === "undefined") {
-	// probably running in Node
-	global.fetch = require('node-fetch')
-}
 	
 const authMap = {
 	"bibs": {
