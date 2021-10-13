@@ -1,4 +1,4 @@
-import { Jmarc } from "./jmarc.js"
+import { Jmarc } from "./jmarc.mjs"
 
 export let workformcomponent = {
     props: ["api_prefix"],

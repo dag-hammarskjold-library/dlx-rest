@@ -2,7 +2,7 @@
 // Imports
 /////////////////////////////////////////////////////////////////
 
-//import { Jmarc } from "./jmarc.js";
+//import { Jmarc } from "./jmarc.mjs";
 import { messagecomponent } from "./messagebar.js";
 import { sidebarcomponent } from "./search/sidebar.js";
 import { searchcomponent } from "./search/search.js";

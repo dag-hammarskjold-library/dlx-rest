@@ -262,26 +262,17 @@ export class Jmarc {
         )
 	}
     
-    async saveAsWorkform(workformName, description) {
-        let data = this.compile()
-        data['name'] = workformName;
-        data['description'] = description;
-        delete data['_id'];
-        
+    static deleteWorkform(collection, workformName) {
         let error = false;
         
-        const response = await fetch(
-            this.collectionUrl + '/workforms',
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            }
+        return fetch(
+            Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
+            {method: 'DELETE'}
         ).then(
             response => {
                 if (! response.ok) {
-                    error = true
-                } 
+                    error = true;
+                }
                 
                 return response.json()
             }
@@ -296,17 +287,26 @@ export class Jmarc {
         )
     }
     
-    static deleteWorkform(collection, workformName) {
+    saveAsWorkform(workformName, description) {
+        let data = this.compile()
+        data['name'] = workformName;
+        data['description'] = description;
+        delete data['_id'];
+        
         let error = false;
         
         return fetch(
-            Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
-            {method: 'DELETE'}
+            this.collectionUrl + '/workforms',
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }
         ).then(
             response => {
                 if (! response.ok) {
-                    error = true;
-                }
+                    error = true
+                } 
                 
                 return response.json()
             }

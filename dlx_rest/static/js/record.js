@@ -4,7 +4,7 @@ let recup=""
 // IMPORT
 /////////////////////////////////////////////////////////////////
 
-import { Jmarc } from "./jmarc.js";
+import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 

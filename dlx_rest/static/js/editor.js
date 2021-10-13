@@ -2,7 +2,7 @@
 // Imports
 /////////////////////////////////////////////////////////////////
 
-import { Jmarc } from "./jmarc.js";
+import { Jmarc } from "./jmarc.mjs";
 import { headercomponent } from "./header.js";
 import { basketcomponent } from "./basket.js";
 import { multiplemarcrecordcomponent } from "./record.js";
