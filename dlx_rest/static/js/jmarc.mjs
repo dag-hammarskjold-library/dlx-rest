@@ -227,11 +227,15 @@ export class Jmarc {
 	        }
 	    ).then(
 	        json => {
-                let names;
+                let names = [];
                 
 	            for (let url of json['data']) {
-	                names.push(url.split("/")[-1])
+                    let wname = url.split("/").slice(-1)[0];
+                    wname = decodeURIComponent(wname)
+	                names.push(wname)
 	            }
+                
+                return names
 	        }
 	    )
 	}
@@ -249,7 +253,7 @@ export class Jmarc {
             }
         ).then(
             json => {
-                jmarc.parse(json);
+                jmarc.parse(json['data']);
                 jmarc.workformName = workformName;
                 jmarc.workformDescription = json['description']
                 
@@ -261,20 +265,58 @@ export class Jmarc {
     saveAsWorkform(workformName, description) {
         let data = this.compile()
         data['name'] = workformName;
-        data['descrition'] = descrptions
+        data['description'] = description;
+        delete data['_id'];
+        
+        let error = false;
         
         return fetch(
             this.collectionUrl + '/workforms',
             {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: data.stringify()
+                body: JSON.stringify(data)
             }
         ).then(
             response => {
-                if (response.ok) {
-                    return true
+                if (! response.ok) {
+                    error = true
+                } 
+                
+                return response.json()
+            }
+        ).then(
+            json => {
+                if (error === true) {
+                    throw new Error(json['message'])
                 }
+                
+                return true
+            }
+        )
+    }
+    
+    static deleteWorkform(collection, workformName) {
+        let error = false;
+        
+        return fetch(
+            Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
+            {method: 'DELETE'}
+        ).then(
+            response => {
+                if (! response.ok) {
+                    error = true;
+                }
+                
+                return response.json()
+            }
+        ).then(
+            json => {
+                if (error === true) {
+                    throw new Error(json['message'])
+                }
+                
+                return true
             }
         )
     }

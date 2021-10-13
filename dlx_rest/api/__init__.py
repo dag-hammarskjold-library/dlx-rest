@@ -1128,7 +1128,7 @@ class WorkformsList(Resource):
         existing = workform_collection.find_one({'name': data['name']})
         
         if existing:
-            abort(400, f'Workform {data["name"]} already exists. Use PUT to update it')
+            abort(400, f'Workform "{data["name"]}" already exists. Use PUT to update it')
             
         schema = Schemas.get('jmarc.workform')
 
