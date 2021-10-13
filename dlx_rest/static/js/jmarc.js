@@ -227,14 +227,18 @@ export class Jmarc {
 		)
 	}
 	
-	static listWorkForms(collection) {
-	    fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
+	static listWorkforms(collection) {
+	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
 	        response => {
-	            return reponse.json()
+	            return response.json()
 	        }
 	    ).then(
 	        json => {
-	            return json['data']
+                let names;
+                
+	            for (let url of json['data']) {
+	                names.push(url.split("/")[-1])
+	            }
 	        }
 	    )
 	}
@@ -242,18 +246,45 @@ export class Jmarc {
     static fromWorkform(collection, workformName) {
 	    let jmarc = new Jmarc(collection);
         
-        fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
+        return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
             response => {
-                return response.json()
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw new Error(`Workform "${workformName}" not found`)
+                }
             }
         ).then(
             json => {
                 jmarc.parse(json);
+                jmarc.workformName = workformName;
+                jmarc.workformDescription = json['description']
                 
                 return jmarc
             }
         )
 	}
+    
+    saveAsWorkform(workformName, description) {
+        let data = this.compile()
+        data['name'] = workformName;
+        data['descrition'] = descrptions
+        
+        return fetch(
+            this.collectionUrl + '/workforms', 
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: data.stringify()
+            }
+        ).then(
+            response => {
+                if (response.ok) {
+                    return true
+                }
+            }
+        )
+    }
     
     post() {
 		if (this.recordId) {
