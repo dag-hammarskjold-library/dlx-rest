@@ -22,6 +22,10 @@ export let multiplemarcrecordcomponent = {
             type: String,
             required: false
         },
+        workform: {
+            type: String,
+            required: false
+        },
         readonly: {
             type: Boolean,
             default: false
@@ -104,6 +108,11 @@ export let multiplemarcrecordcomponent = {
             );
             
             recup = this
+        } else if (this.workform !== 'None') {
+            let wfCollection = this.workform.split('/')[0];
+            let wfRecordId = this.workform.split('/')[1];
+            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+            this.displayMarcRecord(jmarc, false);
         } 
     },
     methods: {

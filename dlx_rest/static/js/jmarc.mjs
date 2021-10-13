@@ -262,7 +262,7 @@ export class Jmarc {
         )
 	}
     
-    saveAsWorkform(workformName, description) {
+    async saveAsWorkform(workformName, description) {
         let data = this.compile()
         data['name'] = workformName;
         data['description'] = description;
@@ -270,7 +270,7 @@ export class Jmarc {
         
         let error = false;
         
-        return fetch(
+        const response = await fetch(
             this.collectionUrl + '/workforms',
             {
                 method: 'POST',
