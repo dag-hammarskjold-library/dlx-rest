@@ -8,7 +8,9 @@ export let workformcomponent = {
             <div class="col-2">Auth Workforms</div>
             <div class="col-10">
                 <div v-for="w in auths_workforms" class="row">
-                    <a :href="'/editor?workform=auths/' + w.data.name">{{w.name}}</a>
+                    <span class="mx-2" contenteditable="true">{{w.name}}</span>
+                    <span class="mx-2" contenteditable="true">{{w.description}}</span>
+                    <a :href="'/editor?workform=bibs/' + w.name"><i class="fas fa-edit"></i></a>
                 </div>
                 <div class="row"><a href="#">Create a new auth workform</a></div>
             </div>
@@ -40,7 +42,6 @@ export let workformcomponent = {
         });
 
         await Jmarc.listWorkforms("bibs").then(wf => {
-            console.log(wf)
             this.bibs_workforms = wf;
         })
     }

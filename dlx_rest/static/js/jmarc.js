@@ -239,17 +239,11 @@ export class Jmarc {
     
     static async fromWorkform(collection, workformName) {
 	    let jmarc = new Jmarc(collection);
-        
-        const response = await fetch(jmarc.collectionUrl + '/workforms/' + workformName);
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error(`Workform "${workformName}" not found`);
-        }
-        const json = undefined;
-        jmarc.parse(json);
-        jmarc.workformName = workformName;
-        jmarc.workformDescription = json['description'];
+        let response = await fetch(jmarc.collectionUrl + '/workforms/' + workformName);
+        let jsonData = await response.json();
+        jmarc.parse(jsonData.data);
+        jmarc.workformName = jsonData.data.name;
+        jmarc.workformDescription = jsonData.data.description;
         return jmarc;
 	}
     
