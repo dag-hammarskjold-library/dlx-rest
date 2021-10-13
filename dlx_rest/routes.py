@@ -27,7 +27,14 @@ def newui():
 def editor():
     this_prefix = url_for('doc', _external=True)
     records = request.args.get('records', None)
-    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records)
+    workform = request.args.get('workform', None)
+    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform)
+
+
+@app.route('/workform')
+def workform():
+    this_prefix = url_for('doc', _external=True)
+    return render_template('workform.html', api_prefix=this_prefix)
 
 # Authentication
 @login_manager.user_loader
