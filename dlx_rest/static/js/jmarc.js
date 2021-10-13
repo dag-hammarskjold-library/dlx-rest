@@ -3,8 +3,6 @@
 if (typeof window === "undefined") {
 	// probably running in Node
 	global.fetch = require('node-fetch')
-} else if (typeof global.fetch === "undefined") {
-    global.fetch = require('node-fetch')
 }
 	
 const authMap = {
@@ -272,9 +270,11 @@ export class Jmarc {
         
         return fetch(
             this.collectionUrl + '/workforms',
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: data.stringify()
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: data.stringify()
+            }
         ).then(
             response => {
                 if (response.ok) {
