@@ -14,7 +14,9 @@
         <div class="row">
                 <basketcomponent basket_id="userprofile/my_profile/basket" api_prefix="{{prefix}}" ></basketcomponent>
                 <multiplemarcrecordcomponent url="dev/api" prefix="{{prefix}}" records="{{records}}" workform="{{workform}}"></multiplemarcrecordcomponent>        
-        </div> 
+        </div>
+        <selectworkform collection="auths"></selectworkform>
+        <selectworkform collection="bibs"></selectworkform>
   </div>
   <script type="module" src="{{url_for('static', filename='js/editor.js')}}"></script>
   {% endif %}

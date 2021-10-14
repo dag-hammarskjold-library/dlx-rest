@@ -220,74 +220,48 @@ export class Jmarc {
 		)
 	}
 	
-	static listWorkforms(collection) {
-	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
-	        response => {
-	            return response.json()
-	        }
-	    ).then(
-	        json => {
-                let names = [];
-                
-	            for (let url of json['data']) {
-                    let wname = url.split("/").slice(-1)[0];
-                    wname = decodeURIComponent(wname)
-	                names.push(wname)
-	            }
-                
-                return names
-	        }
-	    )
+	static async listWorkforms(collection) {
+	    const response = await fetch(Jmarc.apiUrl + `marc/${collection}/workforms`);
+        const json = await response.json();
+        let workforms = [];
+        for (let url of json['data']) {
+            let wname = url.split("/").slice(-1)[0];
+            wname = decodeURIComponent(wname);
+            const wfRes = await fetch(url);
+            const wfJson = await wfRes.json();
+            workforms.push({"name": wname, "description": wfJson.data.description});
+        }
+        return workforms;
 	}
     
-    static fromWorkform(collection, workformName) {
-	    let jmarc = new Jmarc(collection);
-        
-        return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
-            response => {
-                if (response.ok) {
-                    return response.json()
-                } else {
-                    throw new Error(`Workform "${workformName}" not found`)
-                }
-            }
-        ).then(
-            json => {
-                jmarc.parse(json['data']);
-                jmarc.workformName = workformName;
-                jmarc.workformDescription = json['description']
-                
-                return jmarc
-            }
-        )
+    static async fromWorkform(collection, workformName) {
+	    let jmarc = new Jmarc(collection);        
+        const response = await fetch(jmarc.collectionUrl + '/workforms/' + workformName);
+        const json = await response.json();
+        jmarc.parse(json.data);
+        jmarc.workformName = workformName;
+        jmarc.workformDescription = json['description'];
+        return jmarc;
 	}
     
-    static deleteWorkform(collection, workformName) {
+    static async deleteWorkform(collection, workformName) {
         let error = false;
         
-        return fetch(
+        const response = await fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
-            {method: 'DELETE'}
-        ).then(
-            response => {
-                if (! response.ok) {
-                    error = true;
-                }
-                
-                return response.json()
-            }
-        ).then(
-            json => {
-                if (error === true) {
-                    throw new Error(json['message'])
-                }
-                
-                return true
-            }
-        )
+            { method: 'DELETE' }
+        );
+        if (!response.ok) {
+            error = true;
+        }
+        const json = await response.json();
+        if (error === true) {
+            throw new Error(json['message']);
+        }
+        return true;
     }
     
-    saveAsWorkform(workformName, description) {
+    async saveAsWorkform(workformName, description) {
         let data = this.compile()
         data['name'] = workformName;
         data['description'] = description;
@@ -295,30 +269,22 @@ export class Jmarc {
         
         let error = false;
         
-        return fetch(
+        const response = await fetch(
             this.collectionUrl + '/workforms',
             {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }
-        ).then(
-            response => {
-                if (! response.ok) {
-                    error = true
-                } 
-                
-                return response.json()
-            }
-        ).then(
-            json => {
-                if (error === true) {
-                    throw new Error(json['message'])
-                }
-                
-                return true
-            }
-        )
+        );
+        if (!response.ok) {
+            error = true;
+        }
+        const json = await response.json();
+        if (error === true) {
+            throw new Error(json['message']);
+        }
+        return true;
     }
     
     post() {

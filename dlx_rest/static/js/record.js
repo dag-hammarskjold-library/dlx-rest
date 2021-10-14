@@ -118,6 +118,7 @@ export let multiplemarcrecordcomponent = {
             let wfCollection = this.workform.split('/')[0];
             let wfRecordId = this.workform.split('/')[1];
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+            jmarc.recordId = wfRecordId;
             this.displayMarcRecord(jmarc, false);
         } 
     },
