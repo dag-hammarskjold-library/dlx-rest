@@ -371,7 +371,7 @@ export let multiplemarcrecordcomponent = {
                 xxx.clearItemsToPast()
             };
 
-            if(this.readonly && this.user !== null) {
+            if (this.readonly && this.user !== null) {
                 let editLink = document.createElement("a");
                 let uibase = this.prefix.replace("/api/","");
                 editLink.href = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
@@ -582,7 +582,22 @@ export let multiplemarcrecordcomponent = {
                 field.tagCell = tagCell;
                 tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
                 tagCell.setAttribute("data-toggle", "dropdown");
-                tagCell.innerText = field.tag;
+                
+                let tagSpan = document.createElement("span");
+                tagCell.append(tagSpan);
+                tagSpan.innerText = field.tag;
+                
+                // Indicators
+                //space
+                let tagSpanSpace = document.createElement("span");
+                tagCell.append(tagSpanSpace);
+                //tagSpanSpace.innerText = "    ";
+                tagSpanSpace.innerHTML = "&nbsp&nbsp&nbsp&nbsp"
+                
+                let indSpan = document.createElement("span");
+                tagCell.append(indSpan);
+                let inds = field.indicators ? field.indicators.join("") : "  ";
+                indSpan.innerText = inds;
                 
                 // menu
                 let tagMenu = document.createElement("div");
