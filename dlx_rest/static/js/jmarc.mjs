@@ -1,9 +1,4 @@
 "use strict";
-
-if (typeof window === "undefined") {
-	// probably running in Node
-	global.fetch = require('node-fetch')
-}
 	
 const authMap = {
 	"bibs": {
@@ -225,7 +220,108 @@ export class Jmarc {
 		)
 	}
 	
-	post() {
+	static listWorkforms(collection) {
+	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
+	        response => {
+	            return response.json()
+	        }
+	    ).then(
+	        json => {
+                let names = [];
+                
+	            for (let url of json['data']) {
+                    let wname = url.split("/").slice(-1)[0];
+                    wname = decodeURIComponent(wname)
+	                names.push(wname)
+	            }
+                
+                return names
+	        }
+	    )
+	}
+    
+    static fromWorkform(collection, workformName) {
+	    let jmarc = new Jmarc(collection);
+        
+        return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
+            response => {
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw new Error(`Workform "${workformName}" not found`)
+                }
+            }
+        ).then(
+            json => {
+                jmarc.parse(json['data']);
+                jmarc.workformName = workformName;
+                jmarc.workformDescription = json['description']
+                
+                return jmarc
+            }
+        )
+	}
+    
+    static deleteWorkform(collection, workformName) {
+        let error = false;
+        
+        return fetch(
+            Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
+            {method: 'DELETE'}
+        ).then(
+            response => {
+                if (! response.ok) {
+                    error = true;
+                }
+                
+                return response.json()
+            }
+        ).then(
+            json => {
+                if (error === true) {
+                    throw new Error(json['message'])
+                }
+                
+                return true
+            }
+        )
+    }
+    
+    saveAsWorkform(workformName, description) {
+        let data = this.compile()
+        data['name'] = workformName;
+        data['description'] = description;
+        delete data['_id'];
+        
+        let error = false;
+        
+        return fetch(
+            this.collectionUrl + '/workforms',
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }
+        ).then(
+            response => {
+                if (! response.ok) {
+                    error = true
+                } 
+                
+                return response.json()
+            }
+        ).then(
+            json => {
+                if (error === true) {
+                    throw new Error(json['message'])
+                }
+                
+                return true
+            }
+        )
+    }
+    
+    post() {
 		if (this.recordId) {
 			throw new Error("Can't POST existing record")
 		}

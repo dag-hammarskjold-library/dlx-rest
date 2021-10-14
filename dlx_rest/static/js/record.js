@@ -4,7 +4,7 @@ let recup=""
 // IMPORT
 /////////////////////////////////////////////////////////////////
 
-import { Jmarc } from "./jmarc.js";
+import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 
@@ -19,6 +19,10 @@ export let multiplemarcrecordcomponent = {
             required: true
         },
         records: {
+            type: String,
+            required: false
+        },
+        workform: {
             type: String,
             required: false
         },
@@ -110,6 +114,11 @@ export let multiplemarcrecordcomponent = {
             );
             
             recup = this
+        } else if (this.workform !== 'None') {
+            let wfCollection = this.workform.split('/')[0];
+            let wfRecordId = this.workform.split('/')[1];
+            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+            this.displayMarcRecord(jmarc, false);
         } 
     },
     methods: {
