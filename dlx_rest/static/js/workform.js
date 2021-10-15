@@ -42,6 +42,7 @@ export let workformcomponent = {
         });
 
         await Jmarc.listWorkforms("bibs").then(wf => {
+            console.log(wf)
             this.bibs_workforms = wf;
         })
     }

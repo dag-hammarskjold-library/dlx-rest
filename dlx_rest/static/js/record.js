@@ -118,7 +118,6 @@ export let multiplemarcrecordcomponent = {
             let wfCollection = this.workform.split('/')[0];
             let wfRecordId = this.workform.split('/')[1];
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-            jmarc.recordId = wfRecordId;
             this.displayMarcRecord(jmarc, false);
         } 
     },
@@ -266,7 +265,12 @@ export let multiplemarcrecordcomponent = {
             
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
-            idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            if (jmarc.workformName) {
+                idField.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
+            } else {
+                idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            }
+            
             idField.className = "float-left mx-2";
             
             // Save Button
@@ -281,6 +285,8 @@ export let multiplemarcrecordcomponent = {
                 
                 promise.then(
                     jmarc => {
+                        jmarc.workformName = null;
+                        jmarc.workformDescription = null;
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -304,6 +310,7 @@ export let multiplemarcrecordcomponent = {
                 try {
                     recup.post()
                     this.callChangeStyling("Record " + jmarc.recordId + " has been cloned", "row alert alert-success")
+                    // add this to the basket?
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
@@ -420,13 +427,7 @@ export let multiplemarcrecordcomponent = {
             deleteItem.onclick = () => {
                 try {
                     jmarc.delete();
-                    
-                    if (this.record1 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record1")
-                    }
-                    if (this.record2 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record2")
-                    }
+                    this.removeRecordFromEditor(jmarc.div.id);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
                     this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
                 } catch (error) {
@@ -499,6 +500,28 @@ export let multiplemarcrecordcomponent = {
             
             // Table body
             let tableBody = table.createTBody();
+
+            if (jmarc.workformName) {
+                console.log(jmarc)
+                let wfNameRow = tableBody.insertRow();
+                let wfNameLabelCell = wfNameRow.insertCell();
+                wfNameLabelCell.colSpan = 2;
+                wfNameLabelCell.innerText = "Workform Name";
+                let wfNameCell = wfNameRow.insertCell();
+                wfNameCell.colSpan = 3;
+                wfNameCell.innerText = jmarc.workformName;
+                wfNameCell.contentEditable = true;
+            }
+            if (jmarc.workformDescription) {
+                let wfDescRow = tableBody.insertRow();
+                let wfDescLabelCell = wfDescRow.insertCell();
+                wfDescLabelCell.colSpan = 2;
+                wfDescLabelCell.innerText = "Workform Description";
+                let wfDescCell = wfDescRow.insertCell();
+                wfDescCell.colSpan = 3;
+                wfDescCell.innerText = jmarc.workformDescription;
+                wfDescCell.contentEditable = true;
+            }
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {

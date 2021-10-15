@@ -221,27 +221,45 @@ export class Jmarc {
 	}
 	
 	static async listWorkforms(collection) {
-	    const response = await fetch(Jmarc.apiUrl + `marc/${collection}/workforms`);
-        const json = await response.json();
-        let workforms = [];
-        for (let url of json['data']) {
-            let wname = url.split("/").slice(-1)[0];
-            wname = decodeURIComponent(wname);
-            const wfRes = await fetch(url);
-            const wfJson = await wfRes.json();
-            workforms.push({"name": wname, "description": wfJson.data.description});
-        }
-        return workforms;
+	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(response => {
+            return response.json();
+        }).then(json => {
+            let workforms = [];
+            for (let url of json.data) {
+                let wname = url.split("/").slice(-1)[0];
+                wname = decodeURIComponent(wname);
+                fetch(url).then(wfRes => {
+                    return wfRes.json();
+                }).then(wfJson => {
+                    workforms.push({"name": wname, "description": wfJson.data.description});
+                });
+            }
+            return workforms;
+        });
 	}
     
     static async fromWorkform(collection, workformName) {
-	    let jmarc = new Jmarc(collection);        
-        const response = await fetch(jmarc.collectionUrl + '/workforms/' + workformName);
-        const json = await response.json();
-        jmarc.parse(json.data);
-        jmarc.workformName = workformName;
-        jmarc.workformDescription = json['description'];
-        return jmarc;
+        let jmarc = new Jmarc(collection);
+        
+        return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
+            response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`Workform "${workformName}" not found`);
+                }
+            }
+        ).then(
+            json => {
+                console.log(json);
+                jmarc.parse(json.data);
+                jmarc.workformName = workformName;
+                jmarc.workformDescription = json.data.description;
+                
+                console.log(jmarc);
+                return jmarc;
+            }
+        )
 	}
     
     static async deleteWorkform(collection, workformName) {

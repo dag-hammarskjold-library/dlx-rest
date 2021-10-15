@@ -33,8 +33,9 @@ export let selectworkform = {
         }
     },
     created: async function() {
-        let workforms = await Jmarc.listWorkforms(this.collection);
-        this.workforms = workforms;
+        await Jmarc.listWorkforms(this.collection).then(workforms => {
+            this.workforms = workforms;
+        })
     }
 }
 
