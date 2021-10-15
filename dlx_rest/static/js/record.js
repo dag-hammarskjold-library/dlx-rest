@@ -225,7 +225,7 @@ export let multiplemarcrecordcomponent = {
             
             if (this.isRecordOneDisplayed == false) {
                 myDivId = "record1";
-                this.isRecordOneDisplayed = true
+                this.isRecordOneDisplayed = true;
                 this.record1 = jmarc.recordId;
                 this.collectionRecord1 = jmarc.collection; // used for auth merge
             }
@@ -506,6 +506,7 @@ export let multiplemarcrecordcomponent = {
 
                 // add the checkboxes
                 let checkCell = field.row.insertCell();
+                checkCell.style = "vertical-align: top";
                 let inputCheckboxCell = document.createElement("input");
                 inputCheckboxCell.setAttribute("type","checkbox")
                 checkCell.appendChild(inputCheckboxCell)
@@ -521,6 +522,8 @@ export let multiplemarcrecordcomponent = {
                     
                     // check if the box is checked
                     if (e.target.checked==true){
+                        // mark the jmarc field as selected
+                        field.checked = true;
 
                         // retrieve data in order to populate elemeToCopy
                         that.elementToCopy.collection=jmarc.collection
@@ -550,7 +553,9 @@ export let multiplemarcrecordcomponent = {
                     }
                     if (e.target.checked==false) // browse the list and find the element to remove
                     {
-
+                        // mark the jmarc field as unselected
+                        field.checked = false;
+                        
                         // console.log("valeur liste : " + that.listElemToCopy[0].fieldToCopy.tag)
                         // console.log("valeur field : " + field.tag)
 
@@ -577,28 +582,37 @@ export let multiplemarcrecordcomponent = {
                     //console.log("le tableau contient : " +  that.listElemToCopy.length)
                 });
 
-                // Tag
+                // Tag + inds
                 let tagCell = field.row.insertCell();
                 field.tagCell = tagCell;
                 tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
                 tagCell.setAttribute("data-toggle", "dropdown");
                 
+                let tagCellDiv = document.createElement("div");
+                tagCell.append(tagCellDiv);
+                
+                //let tagDiv = document.createElement("div");
+                //tagCellDiv.append(tagDiv);
+                //tagDiv.style = "width: 25%";
+                
                 let tagSpan = document.createElement("span");
-                tagCell.append(tagSpan);
+                //tagDiv.append(tagSpan);
+                tagCell.append(tagSpan)
                 tagSpan.innerText = field.tag;
                 
                 // Indicators
-                //space
-                let tagSpanSpace = document.createElement("span");
-                tagCell.append(tagSpanSpace);
-                //tagSpanSpace.innerText = "    ";
-                tagSpanSpace.innerHTML = "&nbsp&nbsp&nbsp&nbsp"
-                
-                let indSpan = document.createElement("span");
-                tagCell.append(indSpan);
-                let inds = field.indicators ? field.indicators.join("") : "  ";
-                indSpan.innerText = inds;
-                
+                if (! field.tag.match(/^00/)) {
+                    let ind1Span = document.createElement("span");
+                    tagCell.append(ind1Span);
+                    ind1Span.className = "mx-1 text-secondary"
+                    ind1Span.innerText = field.indicators[0] || " ";
+                    
+                    let ind2Span = document.createElement("span");
+                    tagCell.append(ind2Span);
+                    ind2Span.className = "mx-1 text-secondary"
+                    ind2Span.innerText = field.indicators[1] || " ";
+                }
+                    
                 // menu
                 let tagMenu = document.createElement("div");
                 tagCell.append(tagMenu);
