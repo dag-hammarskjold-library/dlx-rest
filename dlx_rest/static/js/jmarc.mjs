@@ -44,9 +44,7 @@ class LinkedSubfield extends Subfield {
 
 export class ControlField {
 	constructor(tag, value) {
-		if (tag) {
-			! tag.match(/^00/) && function() {throw new Error("invalid Control Field tag")};
-		}
+		if (tag && ! tag.match(/^00/)) {throw new Error("invalid Control Field tag")}
 		
 		this.tag = tag;
 		this.value = value;
@@ -55,14 +53,11 @@ export class ControlField {
 
 export class DataField {
 	constructor(tag, indicators, subfields) {
-		if (tag) {
-			tag.match(/^00/) && function() {throw new Error("invalid Data Field tag")};
-		}
+		if (tag && tag.match(/^00/)) {throw new Error("invalid Data Field tag")}
 		
-		indicators ||= [" ", " "];
-		
-		this.tag = tag;
-		this.indicators = indicators || [];
+        this.checked = false;
+        this.tag = tag;
+		this.indicators = indicators || [" ", " "];
 		this.subfields = subfields || [];
 	}
 	
@@ -167,10 +162,11 @@ class AuthDataField extends DataField {
 
 export class Jmarc {
 	constructor(collection) {
-		Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-		this.collection = collection || function() {throw new Error("Collection required")};
+        if (! collection) {throw new Error("Collection required")}
+		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
@@ -189,11 +185,14 @@ export class Jmarc {
 	}
 	
 	static get(collection, recordId) {
-		Jmarc.apiUrl || function() {throw new Error("Jmarc.apiUrl must be set")};
+		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-		let jmarc = new Jmarc(collection || function() {throw new Error("Collection required")});
-		jmarc.recordId = parseInt(recordId) || function() {throw new Error("Record ID required")};
+        if (! collection) {throw new Error("Collection required")}
+		let jmarc = new Jmarc(collection);
+        
+        if (! recordId) {throw new Error("Record ID required")}
+		jmarc.recordId = parseInt(recordId);
 		jmarc.url = Jmarc.apiUrl + `marc/${collection}/records/${recordId}`;
 		
 		let savedResponse;
@@ -492,7 +491,7 @@ export class Jmarc {
 		let historyRecords = [];
 		
 		for (let url of data) {
-			let record = new Jmarc();
+			let record = new Jmarc(this.collection);
 			let response = await fetch(url);
 			let json = await response.json();
 			record.parse(json['data']);
