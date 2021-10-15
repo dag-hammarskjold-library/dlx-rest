@@ -17,7 +17,7 @@ export let selectworkform = {
                     <tr class="border-0" v-for="w in workforms">
                         <td>{{w.name}}</td>
                         <td>{{w.description}}</td>
-                        <td><a :href="'/editor?workform=' + collection + '/' + w.name"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
+                        <td><a :href="'/editor?workform=' + collection + '/' + w.name"  target="_blank"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
                     </tr>
                 </table>
             </div>
