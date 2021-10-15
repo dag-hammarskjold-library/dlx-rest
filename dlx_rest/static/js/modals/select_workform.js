@@ -38,20 +38,3 @@ export let selectworkform = {
         })
     }
 }
-
-
-
-/*
-        <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
-            <div class="row pt-2">
-                <div class="col-2">{{collection}} Workforms</div>
-                <div class="col-10">
-                    <div v-for="w in workforms" class="row">
-                        <span class="mx-2">{{w.name}}</span>
-                        <span class="mx-2">{{w.description}}</span>
-                        <i class="fas fa-check-square"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-*/

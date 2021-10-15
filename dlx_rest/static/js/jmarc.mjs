@@ -278,6 +278,28 @@ export class Jmarc {
         }
         return true;
     }
+
+    async saveWorkform(workformName, description) {
+        let data = this.compile();
+        data.name = workformName;
+        data.description = description;
+        delete data["_id"];
+
+        await fetch(
+            `${this.collectionUrl}/workforms/${encodeURIComponent(workformName)}`,
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }
+        ).then(response => {
+            if (response.ok) {
+                return true;
+            }
+        }).catch(json => {
+            throw new Error(json['message']);
+        });
+    }
     
     async saveAsWorkform(workformName, description) {
         let data = this.compile()
