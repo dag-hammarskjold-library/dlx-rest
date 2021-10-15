@@ -315,11 +315,19 @@ export let multiplemarcrecordcomponent = {
                 saveWorkform.innerText = "Save This Workform";
                 saveWorkform.href = "#";
                 saveWorkform.onclick = () => {
-                    jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                        this.displayMarcRecord(jmarc, false);
-                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
-                    });
+                    if (jmarc.newWorkForm) {
+                        jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                        })
+                    } else {
+                        jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                        });
+                    }
                 }
             } else {
                 let saveRecord  = document.createElement("a");
@@ -343,11 +351,12 @@ export let multiplemarcrecordcomponent = {
                 saveToWorkform.setAttribute("data-toggle", "modal");
                 saveToWorkform.setAttribute("data-target", "#nameWorkform");
                 saveToWorkform.onclick = () => {
-                    //jmarc.workformName = "<new>";
-                    //jmarc.workformDescription = " ";
-                    //this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                    //this.displayMarcRecord(jmarc, false);
-                    //this.callChangeStyling("Name your new workform, then choose Save -> Save This Workform", "row alert alert-warning")
+                    jmarc.workformName = "<new>";
+                    jmarc.workformDescription = " ";
+                    jmarc.newWorkForm = true;
+                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                    this.displayMarcRecord(jmarc, false);
+                    this.callChangeStyling("Name your new workform, then choose Save -> Save This Workform", "row alert alert-warning")
                 }
             }
                     
@@ -564,7 +573,11 @@ export let multiplemarcrecordcomponent = {
                 wfNameCell.innerText = jmarc.workformName;
                 wfNameCell.contentEditable = true;
                 wfNameCell.addEventListener("input", function() {
+                    let originalName = jmarc.workformName;
                     jmarc.workformName = wfNameCell.innerText;
+                    if (jmarc.workformName != originalName) {
+                        jmarc.newWorkForm = true;
+                    }
                 });
             }
 
@@ -578,7 +591,7 @@ export let multiplemarcrecordcomponent = {
                 wfDescCell.innerText = jmarc.workformDescription;
                 wfDescCell.contentEditable = true;
                 wfDescCell.addEventListener("input", function() {
-                    jmarc.workforDescription = wfDescCell.innerText;
+                    jmarc.workformDescription = wfDescCell.innerText;
                 });
             }
             
