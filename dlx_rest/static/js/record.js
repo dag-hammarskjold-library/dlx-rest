@@ -76,6 +76,7 @@ export let multiplemarcrecordcomponent = {
             },
             id: "",
             user: null,
+            myBasket: null
         }
     },
     created: async function() {
@@ -85,6 +86,7 @@ export let multiplemarcrecordcomponent = {
         let myProfile = await user.getProfile(this.prefix, 'my_profile');
         if (myProfile) {
             this.user = myProfile.data.email;
+            this.myBasket = await basket.getBasket(this.prefix);
         }
         
         if (this.records !== "None") {
@@ -191,9 +193,14 @@ export let multiplemarcrecordcomponent = {
                 );
             }
         },
-        removeFromBasket(recId, coll) {
-            this.getIdFromRecordId(recId, coll)
-            this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+        async removeFromBasket(recId, coll) {
+            //this.getIdFromRecordId(recId, coll)
+            //this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+            basketcomponent.removeRecordFromList(recId, coll)
+            basket.deleteItem(this.prefix, 'userprofile/my_profile/basket', this.myBasket, coll, recId).then( () => {
+                return true;
+            })
+
         },
         removeRecordFromEditor(recordID) {
             /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
@@ -486,16 +493,30 @@ export let multiplemarcrecordcomponent = {
             deleteItem.innerText = "Delete Record";
             deleteItem.href="#";
             
-            deleteItem.onclick = () => {
-                try {
-                    jmarc.delete();
+            if (jmarc.workformName) {
+                deleteItem.innerText = "Delete Workform";
+                deleteItem.onclick = () => {
+                    Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
+                        this.removeRecordFromEditor(jmarc.div.id);
+                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
+                        //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
+                    })
+                }
+            } else {
+                deleteItem.onclick = () => {
+                    let deletedRid = jmarc.recordId;
+                    let deletedColl = jmarc.collection;
                     this.removeRecordFromEditor(jmarc.div.id);
-                    this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
-                    this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
-                } catch (error) {
-                    this.callChangeStyling(error.message,"row alert alert-danger")
-                }  
-            };
+                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
+                        jmarc.delete().then( () => {
+                            this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
+                        }).catch( error => {
+                            this.callChangeStyling(error.message,"row alert alert-danger");
+                        });
+                    })
+                };
+            }
+            
                     
             // Files
             let filesRow = tableHeader.insertRow();
