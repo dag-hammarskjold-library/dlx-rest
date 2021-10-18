@@ -802,7 +802,8 @@ export let multiplemarcrecordcomponent = {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
                     saveButton.classList.add("text-danger");
-                    saveButton.setAttribute("data-toggle", "tooltip");
+                    saveButton.classList.remove("text-primary");
+                    //saveButton.setAttribute("data-toggle", "tooltip");
                     saveButton.title = "unsaved changes";
                 });
                 
@@ -902,7 +903,8 @@ export let multiplemarcrecordcomponent = {
                         fieldTable.deleteRow(subfield.row.rowIndex);
 
                         saveButton.classList.add("text-danger");
-                        saveButton.setAttribute("data-toggle", "tooltip");
+                        saveButton.classList.remove("text-primary");
+                        //saveButton.setAttribute("data-toggle", "tooltip");
                         saveButton.title = "unsaved changes";
                     });
                     
@@ -944,11 +946,13 @@ export let multiplemarcrecordcomponent = {
                     valCell.addEventListener("blur", function() {
                         if (jmarc.saved) {
                             saveButton.classList.remove("text-danger");
+                            saveButton.classList.add("text-primary");
                             saveButton.title = "no new changes";
                         }
                         else {
                             saveButton.classList.add("text-danger");
-                            saveButton.setAttribute("data-toggle", "tooltip");
+                            saveButton.classList.remove("text-primary");
+                            //saveButton.setAttribute("data-toggle", "tooltip");
                             saveButton.title = "unsaved changes";
                         }
                     });
