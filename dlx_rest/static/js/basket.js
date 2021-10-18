@@ -73,6 +73,10 @@ export let basketcomponent = {
             this.basketItems.push(myItem);
         }
     },
+    /*
+    updated: function () {
+        console.log(this);
+    },*/
     methods: {
         async displayRecord(myRecord, myCollection) {
             let jmarc = await Jmarc.get(myCollection, myRecord);

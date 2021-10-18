@@ -1368,8 +1368,10 @@ class MyBasketRecord(Resource):
             'returns': URL('api_schema', schema_name='api.basket').to_str()
         }
 
+        items = sorted(this_u.my_basket()['items'], key=lambda item: item['id'], reverse=True)
+
         data = {
-            'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in this_u.my_basket()['items']]
+            'items': [URL('api_my_basket_item', item_id=item['id']).to_str() for item in items]
         }
 
         # Recommend to shift return here from URLs of items to just a list of item objects, then let Jmarc do the rest.
@@ -1387,6 +1389,7 @@ class MyBasketRecord(Resource):
     def post(self):
         try:
             this_u = User.objects.get(id=current_user.id)
+            print(request.data)
             item = json.loads(request.data)
             if 'collection' in item and 'record_id' in item:
                 this_u.my_basket().add_item(item)

@@ -7,7 +7,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 from functools import wraps
+from ulid import ULID
 import time, datetime, uuid
+
 
 from dlx_rest.config import Config
 
@@ -50,7 +52,8 @@ class Basket(Document):
     def add_item(self, item):
         existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
         if len(existing_item) == 0:
-            item['id'] = str(uuid.uuid4())
+            ulid = ULID()
+            item['id'] = str(ulid.to_uuid())
             self.items.append(item)
             self.save()
 

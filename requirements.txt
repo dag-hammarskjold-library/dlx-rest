@@ -9,4 +9,5 @@ mongoengine
 mongomock
 pymongo
 pytest
+python-ulid
 troposphere<3
