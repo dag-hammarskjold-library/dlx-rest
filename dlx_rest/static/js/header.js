@@ -74,6 +74,7 @@ export let headercomponent = {
           let el = document.getElementById("searchCollection");
           el.innerText = collection;
           this.searchCollection = collection;
+          this.action = `${this.uibase}/records/${this.searchCollection}/search`;
       },
     },
     components: {
