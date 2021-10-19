@@ -1,7 +1,7 @@
 import { Jmarc } from "../jmarc.mjs"
 
 export let selectworkform = {
-    props: ["collection"],
+    props: ["api_prefix", "collection"],
     template: `
     <div class="modal fade" :id="'select-' + collection + '-WorkformModal'" tabindex="-1" role="dialog" aria-labelledby="selectWorkformModalTitle" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -17,7 +17,7 @@ export let selectworkform = {
                     <tr class="border-0" v-for="w in workforms">
                         <td>{{w.name}}</td>
                         <td>{{w.description}}</td>
-                        <td><a :href="'/editor?workform=' + collection + '/' + w.name"  target="_blank"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
+                        <td><a :href="uibase + '/editor?workform=' + collection + '/' + w.name"  target="_blank"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
                     </tr>
                 </table>
             </div>
@@ -28,7 +28,9 @@ export let selectworkform = {
         </div>
     </div>`,
     data: function() {
+        let uibase = this.api_prefix.replace("/api/","")
         return {
+            uibase: uibase,
             workforms: []
         }
     },
