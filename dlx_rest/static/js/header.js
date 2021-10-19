@@ -25,7 +25,8 @@ export let headercomponent = {
                     <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
                     <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workforn</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" :href="uibase + 'workform'">Load a Workform</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-auths-WorkformModal">Load an auths Workform</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-bibs-WorkformModal">Load a bibs Workform</a>
                 </div>
             </li>
             <li class="nav-item active">

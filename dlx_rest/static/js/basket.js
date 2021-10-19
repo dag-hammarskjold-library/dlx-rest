@@ -38,6 +38,7 @@ export let basketcomponent = {
         }
     },
     created: async function () {
+        this.$root.$refs.basketcomponent = this;
         const myBasket = await basket.getBasket(this.api_prefix);
         for (let item of myBasket) {
             let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
@@ -77,6 +78,7 @@ export let basketcomponent = {
         async displayRecord(myRecord, myCollection) {
             let jmarc = await Jmarc.get(myCollection, myRecord);
             this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
+            //this.$root.multiplemarcrecordcomponent.displayMarcRecord(jmarc);
             this.callChangeStyling("Record added to the editor", "row alert alert-success")
         },
         callChangeStyling(myText, myStyle) {
@@ -88,7 +90,8 @@ export let basketcomponent = {
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
                 el.parentElement.remove();
-                this.callChangeStyling("Record removed from basket", "row alert alert-success")
+                this.callChangeStyling("Record removed from basket", "row alert alert-success");
+                return true;
             }
         }
     }

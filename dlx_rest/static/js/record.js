@@ -76,6 +76,7 @@ export let multiplemarcrecordcomponent = {
             },
             id: "",
             user: null,
+            myBasket: null
         }
     },
     created: async function() {
@@ -85,6 +86,7 @@ export let multiplemarcrecordcomponent = {
         let myProfile = await user.getProfile(this.prefix, 'my_profile');
         if (myProfile) {
             this.user = myProfile.data.email;
+            this.myBasket = await basket.getBasket(this.prefix);
         }
         
         if (this.records !== "None") {
@@ -191,9 +193,14 @@ export let multiplemarcrecordcomponent = {
                 );
             }
         },
-        removeFromBasket(recId, coll) {
-            this.getIdFromRecordId(recId, coll)
-            this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+        async removeFromBasket(recId, coll) {
+            //this.getIdFromRecordId(recId, coll)
+            //this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+            basketcomponent.removeRecordFromList(recId, coll)
+            basket.deleteItem(this.prefix, 'userprofile/my_profile/basket', this.myBasket, coll, recId).then( () => {
+                return true;
+            })
+
         },
         removeRecordFromEditor(recordID) {
             /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
@@ -265,31 +272,100 @@ export let multiplemarcrecordcomponent = {
             
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
-            idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            if (jmarc.workformName) {
+                idField.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
+            } else {
+                idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+            }
+            
             idField.className = "float-left mx-2";
             
             // Save Button
+            let saveDiv = document.createElement("div");
+            idCell.appendChild(saveDiv);
+            saveDiv.className = "dropdown";
+
             let saveButton = document.createElement("i");
-            idCell.appendChild(saveButton);
+            saveDiv.appendChild(saveButton);
             saveButton.id="saveButton"
             saveButton.type = "button";
             saveButton.value = "save";
-            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control"
-            saveButton.onclick = () => {
-                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
-                
-                promise.then(
-                    jmarc => {
+            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
+            saveButton.setAttribute("data-toggle", "dropdown");
+
+            let saveDropdown = document.createElement("div");
+            saveDiv.appendChild(saveDropdown);
+            saveDropdown.className = "dropdown-menu";
+            saveDropdown.setAttribute("aria-labelledBy", "saveDropdow");
+
+            // This could be DRYer I think
+            if (jmarc.workformName) {
+                let saveToRecord  = document.createElement("a");
+                saveDropdown.appendChild(saveToRecord);
+                saveToRecord.className = "dropdown-item";
+                saveToRecord.innerText = "Create Record from This Workform";
+                saveToRecord.href = "#";
+                saveToRecord.onclick = () => {
+                    // This only creates new records, so we only need post
+                    jmarc.post().then(jmarc => {
+                        jmarc.workformName = null;
+                        jmarc.workformDescription = null;
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
+                        this.callChangeStyling(`Record ${jmarc.collection}/${jmarc.recordId} created from workform.`, "row alert alert-success")
+                    });
+                }
+
+                let saveWorkform  = document.createElement("a");
+                saveDropdown.appendChild(saveWorkform);
+                saveWorkform.className = "dropdown-item";
+                saveWorkform.innerText = "Save This Workform";
+                saveWorkform.href = "#";
+                saveWorkform.onclick = () => {
+                    if (jmarc.newWorkForm) {
+                        jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                        })
+                    } else {
+                        jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                        });
+                    }
+                }
+            } else {
+                let saveRecord  = document.createElement("a");
+                saveDropdown.appendChild(saveRecord);
+                saveRecord.className = "dropdown-item";
+                saveRecord.innerText = "Save This Record";
+                saveRecord.href = "#";
+                saveRecord.onclick = () => {
+                    jmarc.put().then(jmarc => {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                    }
-                ).catch(
-                    error => {
-                        this.callChangeStyling(error.message,"row alert alert-danger")
-                    }
-                );
-            };
+                    });
+                }
+
+                let saveToWorkform  = document.createElement("a");
+                saveDropdown.appendChild(saveToWorkform);
+                saveToWorkform.className = "dropdown-item";
+                saveToWorkform.innerText = "Create Workform from This Record";
+                saveToWorkform.href = "#";
+                saveToWorkform.setAttribute("data-toggle", "modal");
+                saveToWorkform.setAttribute("data-target", "#nameWorkform");
+                saveToWorkform.onclick = () => {
+                    jmarc.workformName = "<new>";
+                    jmarc.workformDescription = " ";
+                    jmarc.newWorkForm = true;
+                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                    this.displayMarcRecord(jmarc, false);
+                    this.callChangeStyling("Name your new workform, then choose Save -> Save This Workform", "row alert alert-warning")
+                }
+            }
                     
             // clone record  
             let cloneButton = document.createElement("i");
@@ -303,6 +379,7 @@ export let multiplemarcrecordcomponent = {
                 try {
                     recup.post()
                     this.callChangeStyling("Record " + jmarc.recordId + " has been cloned", "row alert alert-success")
+                    // add this to the basket?
                 } catch (error) {
                     this.callChangeStyling(error.message,"row alert alert-danger")
                 }              
@@ -416,22 +493,30 @@ export let multiplemarcrecordcomponent = {
             deleteItem.innerText = "Delete Record";
             deleteItem.href="#";
             
-            deleteItem.onclick = () => {
-                try {
-                    jmarc.delete();
-                    
-                    if (this.record1 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record1")
-                    }
-                    if (this.record2 === String(jmarc.recordId)) {
-                        this.removeRecordFromEditor("record2")
-                    }
-                    this.callChangeStyling("Record " + jmarc.recordId + " has been deleted", "row alert alert-success")
-                    this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
-                } catch (error) {
-                    this.callChangeStyling(error.message,"row alert alert-danger")
-                }  
-            };
+            if (jmarc.workformName) {
+                deleteItem.innerText = "Delete Workform";
+                deleteItem.onclick = () => {
+                    Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
+                        this.removeRecordFromEditor(jmarc.div.id);
+                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
+                        //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
+                    })
+                }
+            } else {
+                deleteItem.onclick = () => {
+                    let deletedRid = jmarc.recordId;
+                    let deletedColl = jmarc.collection;
+                    this.removeRecordFromEditor(jmarc.div.id);
+                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
+                        jmarc.delete().then( () => {
+                            this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
+                        }).catch( error => {
+                            this.callChangeStyling(error.message,"row alert alert-danger");
+                        });
+                    })
+                };
+            }
+            
                     
             // Files
             let filesRow = tableHeader.insertRow();
@@ -498,6 +583,38 @@ export let multiplemarcrecordcomponent = {
             
             // Table body
             let tableBody = table.createTBody();
+
+            if (jmarc.workformName) {
+                let wfNameRow = tableBody.insertRow();
+                let wfNameLabelCell = wfNameRow.insertCell();
+                wfNameLabelCell.colSpan = 2;
+                wfNameLabelCell.innerText = "Workform Name";
+                let wfNameCell = wfNameRow.insertCell();
+                wfNameCell.colSpan = 3;
+                wfNameCell.innerText = jmarc.workformName;
+                wfNameCell.contentEditable = true;
+                wfNameCell.addEventListener("input", function() {
+                    let originalName = jmarc.workformName;
+                    jmarc.workformName = wfNameCell.innerText;
+                    if (jmarc.workformName != originalName) {
+                        jmarc.newWorkForm = true;
+                    }
+                });
+            }
+
+            if (jmarc.workformDescription) {
+                let wfDescRow = tableBody.insertRow();
+                let wfDescLabelCell = wfDescRow.insertCell();
+                wfDescLabelCell.colSpan = 2;
+                wfDescLabelCell.innerText = "Workform Description";
+                let wfDescCell = wfDescRow.insertCell();
+                wfDescCell.colSpan = 3;
+                wfDescCell.innerText = jmarc.workformDescription;
+                wfDescCell.contentEditable = true;
+                wfDescCell.addEventListener("input", function() {
+                    jmarc.workformDescription = wfDescCell.innerText;
+                });
+            }
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
@@ -685,7 +802,8 @@ export let multiplemarcrecordcomponent = {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
                     saveButton.classList.add("text-danger");
-                    saveButton.setAttribute("data-toggle", "tooltip");
+                    saveButton.classList.remove("text-primary");
+                    //saveButton.setAttribute("data-toggle", "tooltip");
                     saveButton.title = "unsaved changes";
                 });
                 
@@ -785,7 +903,8 @@ export let multiplemarcrecordcomponent = {
                         fieldTable.deleteRow(subfield.row.rowIndex);
 
                         saveButton.classList.add("text-danger");
-                        saveButton.setAttribute("data-toggle", "tooltip");
+                        saveButton.classList.remove("text-primary");
+                        //saveButton.setAttribute("data-toggle", "tooltip");
                         saveButton.title = "unsaved changes";
                     });
                     
@@ -827,11 +946,13 @@ export let multiplemarcrecordcomponent = {
                     valCell.addEventListener("blur", function() {
                         if (jmarc.saved) {
                             saveButton.classList.remove("text-danger");
+                            saveButton.classList.add("text-primary");
                             saveButton.title = "no new changes";
                         }
                         else {
                             saveButton.classList.add("text-danger");
-                            saveButton.setAttribute("data-toggle", "tooltip");
+                            saveButton.classList.remove("text-primary");
+                            //saveButton.setAttribute("data-toggle", "tooltip");
                             saveButton.title = "unsaved changes";
                         }
                     });
