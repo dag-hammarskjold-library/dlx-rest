@@ -407,20 +407,20 @@ export let multiplemarcrecordcomponent = {
                             // instanciate a new jmarc with the data of the new field to display and add the field
                             jmarc.fields.push(xxx.listElemToCopy[i].fieldToCopy)  
                             
-                            ///////// we probably should refactor this part using a function
-                            let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
+                            // ///////// we probably should refactor this part using a function
+                            // let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
 
-                            promise.then(
-                                jmarc => {
-                                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                                    this.displayMarcRecord(jmarc, false);
-                                    this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                                }
-                            ).catch(
-                                error => {
-                                    this.callChangeStyling(error.message,"row alert alert-danger")
-                                }
-                            );
+                            // promise.then(
+                            //     jmarc => {
+                            //         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            //         this.displayMarcRecord(jmarc, false);
+                            //         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                            //     }
+                            // ).catch(
+                            //     error => {
+                            //         this.callChangeStyling(error.message,"row alert alert-danger")
+                            //     }
+                            // );
 
                             // clear all the checkboxes using jquery jajajaja
                             $('input[type=checkbox]').prop('checked', false);
@@ -443,6 +443,21 @@ export let multiplemarcrecordcomponent = {
                     }
 
                 }
+
+                ///////// we probably should refactor this part using a function
+                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
+
+                promise.then(
+                    jmarc => {
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
+                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    }
+                ).catch(
+                    error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger")
+                    }
+                );
 
                 // clear the list of Items
                 xxx.clearItemsToPast()
