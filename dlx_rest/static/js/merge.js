@@ -59,17 +59,18 @@ export let modalmergecomponent = {
     // getting the select object
     let select = document.getElementById('selectElementId');  
     let value  = select.options[select.selectedIndex].text;
-    
+
     // defining the gaining and the losing 
-    if (value===myVal[0]) {
+    if (parseInt(value)===myVal[0]) {
        gaining=myVal[0]
        losing=myVal[1] 
     }
     
-    if (value===myVal[1]) {
-      gaining=myVal[1]
-      losing=myVal[0] 
+    if (parseInt(value)===myVal[1]) {
+      gaining = myVal[1]
+      losing = myVal[0] 
     }
+
      // fetch the data from the api
      let url = this.prefix + "marc/auths/records/" + gaining +"/merge?target=" + losing
 

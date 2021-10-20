@@ -115,13 +115,14 @@ export let multiplemarcrecordcomponent = {
                 }
             );
             
-            recup = this
+            //recup = this
         } else if (this.workform !== 'None') {
             let wfCollection = this.workform.split('/')[0];
             let wfRecordId = this.workform.split('/')[1];
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
             this.displayMarcRecord(jmarc, false);
         } 
+        recup=this
     },
     methods: {
         clearItemsToPast(){
@@ -165,12 +166,13 @@ export let multiplemarcrecordcomponent = {
             return myVar
         },
         canDisplay() {
-
             if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
                 return true
+                console.log("true")
             } 
             else {
                 return false
+                console.log("false")
             }
         },
         callChangeStyling(myText, myStyle) {
