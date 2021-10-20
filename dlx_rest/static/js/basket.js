@@ -41,37 +41,42 @@ export let basketcomponent = {
         this.$root.$refs.basketcomponent = this;
         const myBasket = await basket.getBasket(this.api_prefix);
         for (let item of myBasket) {
-            let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
-            myItem['collection'] = item.collection;
-            let myItemTitle = "";
-            if (item.collection == "bibs") {
-                let myTitleField = myItem.getField(245,0);
-                let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                }
-                myItemTitle = myTitle.join(" ");
-                let mySymbolField = myItem.getField(191,0);
-                let mySymbol = [];
-                if (mySymbolField) {
-                    for (let s in mySymbolField.subfields) {
-                        if (mySymbolField.subfields[s].code === "a") {
-                            mySymbol.push(mySymbolField.subfields[s].value);
+            //let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
+            basket.getItem(this.api, item.collection, item.record_id).then(myItem => {
+                myItem['collection'] = item.collection;
+                let myItemTitle = "";
+                if (item.collection == "bibs") {
+                    let myTitleField = myItem.getField(245,0);
+                    let myTitle = [];
+                    for (let s in myTitleField.subfields) {
+                        myTitle.push(myTitleField.subfields[s].value);
+                    }
+                    myItemTitle = myTitle.join(" ");
+                    let mySymbolField = myItem.getField(191,0);
+                    let mySymbol = [];
+                    if (mySymbolField) {
+                        for (let s in mySymbolField.subfields) {
+                            if (mySymbolField.subfields[s].code === "a") {
+                                mySymbol.push(mySymbolField.subfields[s].value);
+                            }
                         }
                     }
+                    myItem["symbol"] = mySymbol.join(" ")
+                } else if (item.collection == "auths") {
+                    let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
+                    let myTitle = [];
+                    for (let s in myTitleField.subfields) {
+                        myTitle.push(myTitleField.subfields[s].value);
+                    }
+                    myItemTitle = myTitle.join(" ");
                 }
-                myItem["symbol"] = mySymbol.join(" ")
-            } else if (item.collection == "auths") {
-                let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-                let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                }
-                myItemTitle = myTitle.join(" ");
-            }
-            myItem["title"] = myItemTitle;
-            myItem["_id"] = item.record_id;
-            this.basketItems.push(myItem);
+                myItem["title"] = myItemTitle;
+                myItem["_id"] = item.record_id;
+                this.basketItems.push(myItem);
+            }).catch(error => {
+                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, item.collection, item.record_id);
+            })
+            
         }
     },
     methods: {
