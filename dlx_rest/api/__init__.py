@@ -315,7 +315,7 @@ class RecordsList(Resource):
             except Exception as e:
                 abort(400, str(e))
         
-            if result.acknowledged:
+            if result:
                 data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
                 
                 return data, 201
@@ -409,6 +409,8 @@ class Record(Resource):
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
         }
+        
+        if collection == "auths": links['related']['use count'] = URL('api_auth_use_count', record_id=record_id, use_type="bibs").to_str()
 
         response = ApiResponse(links=links, meta=meta, data=data)
         
@@ -438,7 +440,7 @@ class Record(Resource):
             except Exception as e:
                 abort(400, str(e))
         
-        if result.acknowledged:
+        if result:
             data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
             
             return data, 200
@@ -458,7 +460,7 @@ class Record(Resource):
         except AuthInUse as e:
             abort(403, 'Authority record in use')
         
-        if result.acknowledged:
+        if result:
             # We should make sure this record is removed from any baskets that contained it.
             for basket in Basket.objects:
                 # Normally the record_id is an integer, but it's being stored here as a string.
@@ -585,7 +587,7 @@ class RecordFieldPlaceList(Resource):
         validate_data(record)
         result = record.commit(user=user)
         
-        if result.acknowledged:
+        if result:
             url = URL(
                 'api_record_field_place',
                 collection=collection,
@@ -659,7 +661,7 @@ class RecordFieldPlace(Resource):
         except Exception as e:
             abort(400, str(e))
 
-        if result.acknowledged:
+        if result:
             url = URL(
                 'api_record_field_place',
                 collection=collection,
@@ -1027,7 +1029,35 @@ class RecordMerge(Resource):
         losing.delete(user=user)
         
         return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+
+# Auth usage count
+@ns.route('/marc/auths/records/<int:record_id>/use_count')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class AuthUseCount(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument('use_type', type=str, choices=['bibs', 'auths'])
+    
+    @ns.doc(description='Return the count of records that use the authority')
+    @ns.expect(args)
+    def get(self, record_id):
+        args = AuthUseCount.args.parse_args()
+        auth = Auth.from_id(record_id) or abort(404)
+        args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
+        count = auth.in_use(usage_type=args.use_type[:-1])
         
+        links = {
+            '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
+            'related': {
+                'record': URL('api_record', collection='auths', record_id=record_id).to_str(),
+                'auths': URL('api_records_list', collection='auths').to_str()
+            }
+        }
+        
+        meta = {'name': 'api_auth_use_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
+        
+        return ApiResponse(links=links, meta=meta, data=count).jsonify()
+    
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
@@ -1191,7 +1221,7 @@ class Workform(Resource):
             raise e
 
         result = workform_collection.replace_one({'_id': old_data['_id']}, new_data)
-        result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
+        result or abort(500, 'PUT request failed for unknown reasons')
 
         return {'result': URL('api_workform', collection=collection, workform_name=workform_name).to_str()}, 201
 

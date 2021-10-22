@@ -108,7 +108,8 @@ def marc():
         bib.set('245', 'a', 'Title').set('700', 'a', f'Heading {i}')
         bib.commit()
         bibs.append(bib)
-        
+    
+    # templates
     for col in ('bibs', 'auths'):
         template = Bib() if col == 'bibs' else Auth()
         template.id = 1
