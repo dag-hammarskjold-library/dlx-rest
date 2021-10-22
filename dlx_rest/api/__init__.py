@@ -349,6 +349,22 @@ class RecordsListCount(Resource):
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
+# Records list browse
+@ns.route('/marc/<string:collection>/records/browse')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordsListBrowse(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'search', 
+        type=str, 
+        help='Consult documentation for query syntax' # todo
+    )
+    
+    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
+    @ns.expect(args)
+    def get(self, collection):
+        return 1
+
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
