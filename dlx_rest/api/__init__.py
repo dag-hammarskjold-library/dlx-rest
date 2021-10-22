@@ -355,16 +355,29 @@ class RecordsListCount(Resource):
 class RecordsListBrowse(Resource):
     args = reqparse.RequestParser()
     args.add_argument(
-        'search', 
+        'search',
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
     
-    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
+    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by "logical field"')
     @ns.expect(args)
     def get(self, collection):
-        return 1
-
+        args = RecordsListBrowse.args.parse_args()
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
+        querystring = request.args.get('search') or abort(400, 'Param "search" required')
+        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        field = match.group(1)
+        logical_fields = DlxConfig.logical_fields
+        field in logical_fields or abort(400, 'Unrecognized "logical field"')
+        query = Query.from_string(querystring)
+        
+        #sort = [] # todo
+        #index = cls.index_of(query) # todo # return the index of the matched query among all values of the field
+        #results = cls.from_query(query, sort=sort, start=index-10, limit=index+10)
+        
+        return 'Work in progress'
+        
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
