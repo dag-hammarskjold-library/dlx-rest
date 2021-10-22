@@ -126,7 +126,7 @@ export let searchcomponent = {
                 let myResult = { "_id": result["_id"]}
                 if (this.collection == "bibs") {
                     myResult["first_line"] = result["title"]
-                    myResult["second_line"] = [result["types"], result["date"], result["symbol"]].join(" | ")
+                    myResult["second_line"] = [result["types"], result["date"], result["symbol"]].filter(Boolean).join(" | ")
                 } else if (this.collection == "auths") {
                     myResult["first_line"] = result["heading"]
                     myResult["second_line"] = result["alt"]
