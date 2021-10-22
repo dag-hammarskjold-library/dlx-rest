@@ -5,21 +5,21 @@ export let sortcomponent = {
         <div class="collapse navbar-collapse" id="resultsNavbarToggle">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item"><a class="nav-link disabled">Results per page:</a></li>
-                <li v-for="o in this.rpp" class="nav-item">
-                    <a id="limit" v-if="o === parseInt(params.limit)" class="nav-link disabled sortcomponent">{{o}}</a>
-                    <a id="limit" v-else class="nav-link sortcomponent">{{o}}</a>
+                <li v-for="o in rpp" class="nav-item">
+                    <a id="limit" :data-searchString="o.searchString" v-if="o.searchString === parseInt(params.limit)" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
+                    <a id="limit" :data-searchString="o.searchString" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
                 </li>
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Sort:</a></li>
-                <li v-for="o in this.sortFields" class="nav-item">
+                <li v-for="o in sortFields" class="nav-item">
                     <a id="sort" :data-searchString="o.searchString" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
                     <a id="sort" :data-searchString="o.searchString" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
                 </li>
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Direction:</a></li>
-                <li v-for="o in this.sortDirections" class="nav-item">
-                    <a id="direction" v-if="o === params.direction" class="nav-link disabled sortcomponent">{{o}}</a>
-                    <a id="direction" v-else class="nav-link sortcomponent">{{o}}</a>
+                <li v-for="o in sortDirections" class="nav-item">
+                    <a id="direction" :data-searchString="o.searchString" v-if="o.searchString === params.direction" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
+                    <a id="direction" :data-searchString="o.searchString" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
                 </li>
             </ul>
         </div>
@@ -36,9 +36,16 @@ export let sortcomponent = {
             mySortFields.push({'displayName':'heading', 'searchString': 'heading'})
         }
         return {
-            rpp: [10,50,100,500,1000],
+            rpp: [
+                {"displayName": "10", "searchString": 10},
+                {"displayName": "50", "searchString": 50},
+                {"displayName": "100", "searchString": 100}
+            ],
             sortFields: mySortFields,
-            sortDirections: ["asc", "desc"]
+            sortDirections: [
+                {"displayName": "asc", "searchString": "asc"},
+                {"displayName": "desc", "searchString": "desc"}
+            ]
         }
     },
     mounted: function() {

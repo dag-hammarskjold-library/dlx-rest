@@ -45,15 +45,10 @@ export let searchcomponent = {
                         <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
                             {{result.first_line}}
                         </a>
+                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
                         <p>{{result.second_line}}</p>
-                    </div>
-                    <div v-if="collection == 'auths'" class="row">
-                        <p>
-                            <countcomponent search_name="bibs" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
-                            <countcomponent search_name="auths" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
-                        </p>
                     </div>
                 </div>
                 <div class="col-sm-1">
