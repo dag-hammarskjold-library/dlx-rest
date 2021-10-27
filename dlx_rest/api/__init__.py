@@ -372,9 +372,31 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Unrecognized "logical field"')
         query = Query.from_string(querystring)
         
+        #cls.browse(field, query)
+        
         #sort = [] # todo
-        #index = cls.index_of(query) # todo # return the index of the matched query among all values of the field
+        #index = cls.index_of(field, query) # todo # return the index of the matched query among all values of the field
         #results = cls.from_query(query, sort=sort, start=index-10, limit=index+10)
+        
+        tag, code = '191', 'a'
+        
+        from dlx import DB
+        
+        results = DB.handle['bibs'].aggregate(
+            [
+                {'$match': {f'{tag}.subfields.code': code}}, 
+                {'$unwind': f'${tag}'}, 
+                {'$unwind': f'${tag}.subfields'}, 
+                {'$match': {f'{tag}.subfields.code': code, f'{tag}.subfields.value': Regex('^[A-Z]')}}, 
+                {'$sort': {f'{tag}.subfields.value': 1}}, 
+                {'$limit': 25},
+                {'$project': {f'{tag}.subfields.value': 1}}
+            ],
+            collation={'locale': "en_US", 'numericOrdering': True},
+            allowDiskUse=True
+        )
+        
+        return jsonify((list(results)))
         
         return 'Work in progress'
         
