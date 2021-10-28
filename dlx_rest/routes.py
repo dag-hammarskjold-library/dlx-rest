@@ -442,3 +442,9 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
+
+@app.route('/files')
+@login_required
+def upload_files():
+    return render_template('process_files.html')
+    #return "ok"
