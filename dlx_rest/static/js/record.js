@@ -76,7 +76,8 @@ export let multiplemarcrecordcomponent = {
             },
             id: "",
             user: null,
-            myBasket: null
+            myBasket: null,
+            targetedTable:""
         }
     },
     created: async function() {
@@ -125,6 +126,70 @@ export let multiplemarcrecordcomponent = {
         recup=this
     },
     methods: {
+
+        optimizeEditorDisplay(table){
+
+            // // only record1 displayed
+            if (this.isRecordOneDisplayed == true && this.isRecordTwoDisplayed == false){
+                let myDiv=document.getElementById("records")
+                
+                // change the class
+                myDiv.className="ml-3"
+
+                // get the record1 div and change the style
+                let myRecord1=document.getElementById("record1")
+
+                // change the class
+                myRecord1.className="col-sm-12 mt-1"
+
+                // change the styling of the table
+                table.style.width="100%"
+
+            }
+
+            // // only record2 displayed
+            if (this.isRecordOneDisplayed == false && this.isRecordTwoDisplayed == true){
+                let myDiv=document.getElementById("records")
+                
+                // change the class
+                myDiv.className="ml-3"
+
+                // get the record1 div and change the style
+                let myRecord2=document.getElementById("record2")
+
+                // change the class
+                myRecord2.className="col-sm-12 mt-1"
+
+                // change the styling of the table
+                table.style.width="100%"
+    
+            }
+
+            // restore the default values
+            if (this.isRecordOneDisplayed == true && this.isRecordTwoDisplayed == true){
+                let myDiv=document.getElementById("records")
+                
+                // change the class
+                myDiv.className="row ml-3"
+
+                // get the record1 div and change the style
+                let myRecord1=document.getElementById("record1")
+
+                // change the class
+                myRecord1.className="col-sm-6 mt-1"
+
+                // get the record2 div and change the style
+                let myRecord2=document.getElementById("record2")
+
+                // change the class
+                myRecord2.className="col-sm-6 mt-1"
+
+                // change the styling of the table
+                table.style.width=""
+    
+            }
+        },
+
         clearItemsToPast(){
             this.listElemToCopy=[]
         },
@@ -227,6 +292,9 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord2=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
+            // optimize the display
+            this.optimizeEditorDisplay(this.targetedTable)
+            this.targetedTable=""
         },
         displayMarcRecord(jmarc, readOnly) {
             // Add to div
@@ -248,7 +316,16 @@ export let multiplemarcrecordcomponent = {
             jmarc.div = document.getElementById(myDivId);
             let table = this.buildRecordTable(jmarc, readOnly);
             jmarc.div.appendChild(table);    
+
+            //////////////////////////////////////////////////////////////////////////////
+            // optimize the display just when you have one record displayed
+            //////////////////////////////////////////////////////////////////////////////
+
+            this.targetedTable=table
+            this.optimizeEditorDisplay(table)
+
         },
+
         buildRecordTable(jmarc, readOnly) {
             let component = this; // for use in event listeners 
             let table = document.createElement("table");

@@ -1,12 +1,17 @@
 export let countcomponent = {
-    props: ['search_name', 'heading_tag', 'lookup_map', 'search_term'],
-    template: `<a href="#"><span class="badge badge-secondary">{{search_name}}: {{search_count}}</span></a>`,
+    props: ["api_prefix", "recordId"],
+    template: `<span class="lead mx-2">(<a :href="uiBase + 'records/bibs/search?q=xref:' + recordId">{{search_count}}</a>)</span>`,
     data: function() {
+        let uiBase = this.api_prefix.replace("/api", "")
         return {
-            search_count: 0
+            search_count: 0,
+            uiBase: uiBase
         }
     },
     created: async function() {
-        // Find the source of the authority control and run the count search for it
+        let url = `${this.api_prefix}/marc/auths/records/${this.recordId}/use_count?use_type=bibs`;
+        const response = await fetch(url);
+        const json = await response.json();
+        this.search_count = json.data;
     }
 }
