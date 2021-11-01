@@ -241,7 +241,6 @@ class RecordsList(Resource):
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
-        
             project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
@@ -249,8 +248,8 @@ class RecordsList(Resource):
             project = {'_id': 1}
 
         # exec query
-        collation = {'locale': 'en', 'numericOrdering': True} if sort_by in ('symbol') else None
-        recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort, collation=collation)
+        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
         if fmt == 'xml':
