@@ -368,9 +368,12 @@ class RecordsListBrowse(Resource):
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
         match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
-        logical_fields = DlxConfig.logical_fields
-        field in logical_fields or abort(400, 'Unrecognized "logical field"')
+        logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
+        field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         query = Query.from_string(querystring)
+        
+        for record in cls.from_query(query):
+            return jsonify(record.logical_fields().get(field))
         
         #cls.browse(field, query)
         
@@ -378,27 +381,29 @@ class RecordsListBrowse(Resource):
         #index = cls.index_of(field, query) # todo # return the index of the matched query among all values of the field
         #results = cls.from_query(query, sort=sort, start=index-10, limit=index+10)
         
-        tag, code = '191', 'a'
+        #tag, code = '191', 'a'
         
-        from dlx import DB
+        #from dlx import DB
         
-        results = DB.handle['bibs'].aggregate(
-            [
-                {'$match': {f'{tag}.subfields.code': code}}, 
-                {'$unwind': f'${tag}'}, 
-                {'$unwind': f'${tag}.subfields'}, 
-                {'$match': {f'{tag}.subfields.code': code, f'{tag}.subfields.value': Regex('^[A-Z]')}}, 
-                {'$sort': {f'{tag}.subfields.value': 1}}, 
-                {'$limit': 25},
-                {'$project': {f'{tag}.subfields.value': 1}}
-            ],
-            collation={'locale': "en_US", 'numericOrdering': True},
-            allowDiskUse=True
-        )
+        #results = DB.handle['bibs'].aggregate(
+        #    [
+        #        {'$match': {f'{tag}.subfields.code': code}}, 
+        #        {'$unwind': f'${tag}'}, 
+        #        {'$unwind': f'${tag}.subfields'}, 
+        #        {'$match': {f'{tag}.subfields.code': code, f'{tag}.subfields.value': Regex('^[A-Z]')}}, 
+        #        {'$sort': {f'{tag}.subfields.value': 1}}, 
+        #        {'$limit': 25},
+        #        {'$project': {f'{tag}.subfields.value': 1}}
+        #    ],
+        #    collation={'locale': "en_US", 'numericOrdering': True},
+        #    allowDiskUse=True
+        #)
         
-        return jsonify((list(results)))
         
-        return 'Work in progress'
+        
+        #return jsonify((list(results)))
+        
+        #return 'Work in progress'
         
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
