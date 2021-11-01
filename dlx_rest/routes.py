@@ -449,9 +449,15 @@ def create_record(coll):
 
 @app.route('/files')
 @login_required
+def list_files():
+    this_prefix = url_for('doc', _external=True)
+    return render_template('list_files.html', api_prefix=this_prefix)
+
+
+@app.route('/files/submit')
+@login_required
 def upload_files():
     return render_template('process_files.html')
-
 
 @app.route('/files/process', methods=["POST"])
 @login_required

@@ -1236,10 +1236,35 @@ class Workform(Resource):
 @ns.route('/files')
 class FilesRecordsList(Resource):
     args = reqparse.RequestParser()
-    args.add_argument('start')
-    args.add_argument('limit')
+    args.add_argument(
+        'start', 
+        type=int, 
+        help='Result to start list at',
+        default=1
+    )
+    args.add_argument(
+        'limit', type=int,
+        help='Number of results to return. Max is 1000',
+        default=100,
+    )
+    args.add_argument(
+        'sort',
+        type=str,
+        choices=['updated'],
+    )
+    args.add_argument(
+        'direction', type=str, 
+        choices=['asc', 'desc'],
+        help='Sort direction', 
+    )
+    args.add_argument(
+        'search', 
+        type=str, 
+        help='Consult documentation for query syntax' # todo
+    )
     
     @ns.doc(description='Return a list of file records')
+    @ns.expect(args)
     def get(self):
         args = FilesRecordsList.args.parse_args()
         
@@ -1282,7 +1307,7 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
-        print(args)
+        print(record_id)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1301,7 +1326,6 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
-        print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1338,10 +1362,26 @@ class FileRecord(Resource):
         
         meta = {
             'name': 'api_file_record',
-            'returns': URL('api_schema', schema_name='api.null').to_str()
+            'returns': URL('api_schema', schema_name='jfile').to_str()
+        }
+
+        identifiers = []
+        for idx in record.identifiers:
+            identifiers.append({'type': idx.type, 'value': idx.value})
+
+        data = {
+            '_id': record_id,
+            'filename': record.filename,
+            'identifiers': identifiers,
+            'languages': record.languages,
+            'mimetype': record.mimetype,
+            'size': record.size,
+            'source': record.source,
+            'uri': record.uri,
+            'timestamp': record.timestamp
         }
         
-        return ApiResponse(links=links, meta=meta, data={}).jsonify()
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 #These routes all require a currently authenticated/authenticatable user.
 

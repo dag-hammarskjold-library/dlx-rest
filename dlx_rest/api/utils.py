@@ -60,10 +60,11 @@ class ApiResponse():
         self.meta.setdefault('timestamp', datetime.now(timezone.utc))
            
         schema = Schemas.get(self.meta['returns'].split('/')[-1])
+        print(f"Schema ${schema}")
         
         try:
             jsonschema.validate(instance=self.data, schema=schema, format_checker=jsonschema.FormatChecker())
-        except jsonschema.exceptions.ValidatioonError as e:
+        except jsonschema.exceptions.ValidationError as e:
             abort(500, f'Server data does not match expected JSON schema "{schema}"')
 
     def jsonify(self):
