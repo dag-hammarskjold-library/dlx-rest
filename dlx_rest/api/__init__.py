@@ -18,6 +18,7 @@ from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import Raw
 from dlx.file import File, Identifier
 from werkzeug import security
 
@@ -210,7 +211,7 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search, record_type=collection[:-1]) if search else {}
+        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -226,6 +227,8 @@ class RecordsList(Resource):
         
         if sort_by:
             sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
+            # only include results wiht the sorted field. desired?
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
         else:
             sort = None
         
@@ -246,7 +249,7 @@ class RecordsList(Resource):
             project = {'_id': 1}
 
         # exec query
-        collation = {'locale': 'en', 'numericOrdering': True} if sort_by in ('date', 'symbol') else None
+        collation = {'locale': 'en', 'numericOrdering': True} if sort_by in ('symbol') else None
         recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort, collation=collation)
         
         # process
