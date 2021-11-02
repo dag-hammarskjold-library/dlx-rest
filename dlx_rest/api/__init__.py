@@ -18,6 +18,7 @@ from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import Raw
 from dlx.file import File, Identifier
 from werkzeug import security
 
@@ -181,7 +182,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated'],
+        choices=['updated', 'date', 'symbol', 'title'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -210,7 +211,7 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search, record_type=collection[:-1]) if search else {}
+        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -222,19 +223,24 @@ class RecordsList(Resource):
             abort(404, 'Maximum limit is 1000')
             
         # sort
-        if args['sort'] == 'updated':
-            sort_by = 'updated'
-            sort = [('updated', ASC)] if (args['direction'] or '').lower() == 'asc' else [('updated', DESC)]
+        sort_by = args.get('sort')
+        
+        if sort_by:
+            sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
+            # only include results wiht the sorted field. desired?
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
         else:
-            sort_by = sort = None
+            sort = None
         
         # format
         fmt = args['format'] or None
         
         if fmt == 'brief':
-            tags = ('191', '245', '269', '700', '710', '791', '989') if collection == 'bibs' \
-                else ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491')
+            tags = ['191', '245', '269', '700', '710', '791', '989'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
             
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
@@ -242,7 +248,8 @@ class RecordsList(Resource):
             project = {'_id': 1}
 
         # exec query
-        recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort)
+        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
         if fmt == 'xml':
