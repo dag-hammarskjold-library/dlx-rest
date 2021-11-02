@@ -26,7 +26,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth
 
 # Init
 authorizations = {
@@ -182,7 +182,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated', 'date', 'symbol', 'title'],
+        choices=['updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
