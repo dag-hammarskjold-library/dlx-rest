@@ -46,7 +46,8 @@ def test_api_collection(client):
 def test_api_records_list(client, marc):
     from dlx.marc import Bib, Auth
     
-    for col in ('bibs', 'auths'):
+    for col in ['bibs', 'auths']:
+        
         res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
@@ -58,7 +59,7 @@ def test_api_records_list(client, marc):
         if col == 'bibs':    
             cls = Bib
             bib = Bib()
-            bib.set('245', 'a', 'Title')
+            bib.set('245', 'a', 'AAA')
             res = client.post(f'{API}/marc/{col}/records', data=bib.to_json())
         else:
             cls = Auth
@@ -67,7 +68,31 @@ def test_api_records_list(client, marc):
             res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
             
         assert res.status_code == 201
-
+        
+        # search
+        res = client.get(f'{API}/marc/{col}/records?search=title:AAA')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+        assert len(data['data']) == (1 if col == 'bibs' else 0)
+        
+        # sort
+        res = client.get(f'{API}/marc/{col}/records?sort=title&direction=asc')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+        
+        if col == 'bibs':
+            assert '/records/3' in data['data'][0]
+            
+        # format
+        for fmt in ['mrk', 'xml']:
+            res = client.get(f'{API}/marc/{col}/records?format={fmt}')
+            assert type(res.data) == bytes
+            assert type(res.data.decode()) == str
+            
+        res = client.get(f'{API}/marc/{col}/records?format=brief')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
+        
 def test_api_records_list_count(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records/count')
