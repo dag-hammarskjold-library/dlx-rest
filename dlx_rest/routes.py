@@ -1,4 +1,5 @@
 # Imports from requirements.txt
+import re
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
@@ -469,10 +470,15 @@ def process_files():
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
     i = 0
+    fileResults = []
+    record = {}
     
     for f in request.files.getlist('file[]'):
         try:
-            
+            record['filename'] = f.filename
+            record['docSymbol'] = fileTxt[i]["docSymbol"]
+            record['languages'] = fileTxt[i]["language"]
+
             result = File.import_from_handle(
                 f,
                 filename=File.encode_fn(fileTxt[i]["docSymbol"], fileTxt[i]["language"], 'pdf'),
@@ -483,17 +489,21 @@ def process_files():
                 source='ME::File::Uploader',
                 overwrite=False
             )
-            #result = "File uploaded successfully"
+            record['result'] = "File uploaded successfully"
         except FileExistsLanguageConflict as e:
-            result = e.message
+            record['result'] = e.message
         except FileExistsIdentifierConflict as e:
-            result = e.message
+            record['result'] = e.message
         except FileExists:
-            result = "File already exists in the system"
+            record['result'] = "File already exists in the system"
         except:
             raise
 
         i = i + 1
-        print(result)
+        
+        fileResults.append(record)
+        record = {}
 
-    return render_template('process_files.html')
+    #print(fileResults)    
+
+    return render_template('file_results.html', submitted=fileResults)

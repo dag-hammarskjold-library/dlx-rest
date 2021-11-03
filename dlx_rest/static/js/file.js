@@ -28,8 +28,7 @@ function createFileObjects() {
   //otherwise, create objects and display table
   else {
     const table = document.createElement("table");
-    table.classList.add("table");
-    table.classList.add("table-striped");
+    table.classList.add("table", "table-sm", "table-hover");
 
     preview.appendChild(table);
 
@@ -54,71 +53,190 @@ function createFileObjects() {
       fileObjectArray.push(new FileContent(i, file.name, setDocSymbol(file.name), setLanguage(file.name)));
       i = i + 1;
     }
-    //fileObjectArray.forEach(element => console.log(element));
+
     fileObjectArray.forEach((element) => {
       const row = document.createElement("tr");
-      //   row.innerHTML = `
-      //   <td>${element.name}</td>
-      //   <td>${element.docSymbol}</td>
-      //   <td>${element.language}</td>
-      // `;
 
       //column #1 - name of each file
       const col_1 = document.createElement("td");
       col_1.textContent = element.name;
 
-
-
       //column #2 - document symbol
       const col_2 = document.createElement("td");
       col_2.textContent = element.docSymbol;
+      col_2.setAttribute("id", element.id); //new
+      col_2.setAttribute("contenteditable", true); //new
 
-      col_2.addEventListener("click", (e) => {
-        console.log(`Event fired in col2: ${e}`);
+      col_2.addEventListener("blur", function (e) {
+        element.updateSymbol(this.textContent);
+        txt.value = JSON.stringify(fileObjectArray);
       });
-
 
       //column #3 - language
       const col_3 = document.createElement("td");
+      const lang_div = document.createElement("div");
+      //English
+      const span_e = document.createElement("span");
+      span_e.classList.add("badge", "rounded-pill", "outlined-primary");
+      span_e.textContent = "EN";
+
+      span_e.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-primary") == true) {
+          this.classList.replace("outlined-primary", "bg-primary");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-primary", "outlined-primary");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_e);
+
+      //French
+      const span_f = document.createElement("span");
+      span_f.classList.add("badge", "rounded-pill", "outlined-secondary");
+      span_f.textContent = "FR";
+
+      span_f.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-secondary") == true) {
+          this.classList.replace("outlined-secondary", "bg-secondary");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-secondary", "outlined-secondary");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_f);
+
+      //Spanish
+      const span_s = document.createElement("span");
+      span_s.classList.add("badge", "rounded-pill", "outlined-success");
+      span_s.textContent = "ES";
+
+      span_s.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-success") == true) {
+          this.classList.replace("outlined-success", "bg-success");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-success", "outlined-success");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_s);
+
+      //Arabic
+      const span_a = document.createElement("span");
+      span_a.classList.add("badge", "rounded-pill", "outlined-warning");
+      span_a.textContent = "AR";
+
+      span_a.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-warning") == true) {
+          this.classList.replace("outlined-warning", "bg-warning");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-warning", "outlined-warning");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_a);
+
+      //Chinese
+      const span_c = document.createElement("span");
+      span_c.classList.add("badge", "rounded-pill", "outlined-danger");
+      span_c.textContent = "ZH";
+
+      span_c.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-danger") == true) {
+          this.classList.replace("outlined-danger", "bg-danger");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-danger", "outlined-danger");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_c);
+
+      //Russian
+      const span_r = document.createElement("span");
+      span_r.classList.add("badge", "rounded-pill", "outlined-dark");
+      span_r.textContent = "RU";
+
+      span_r.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-dark") == true) {
+          this.classList.replace("outlined-dark", "bg-dark");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-dark", "outlined-dark");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_r);
+
+      //German
+      const span_g = document.createElement("span");
+      span_g.classList.add("badge", "rounded-pill", "outlined-info");
+      span_g.textContent = "DE";
+
+      span_g.addEventListener("click", function (e) {
+        if (this.classList.contains("outlined-info") == true) {
+          this.classList.replace("outlined-info", "bg-info");
+          element.addLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        } else {
+          this.classList.replace("bg-info", "outlined-info");
+          element.removeLanguage(this.textContent);
+          txt.value = JSON.stringify(fileObjectArray);
+        }
+      });
+
+      lang_div.appendChild(span_g);
+
+      col_3.appendChild(lang_div);
 
       for (let l in element.language) {
-        const span = document.createElement("span");
-        span.textContent = element.language[l];
-        span.classList.add("badge");
-        span.classList.add("rounded-pill");
-
         switch (element.language[l]) {
           case "EN":
-            span.classList.add("bg-primary");
+            span_e.classList.replace("outlined-primary", "bg-primary");
             break;
           case "FR":
-            span.classList.add("bg-secondary");
+            span_f.classList.replace("outlined-secondary", "bg-secondary");
             break;
           case "ES":
-            span.classList.add("bg-success");
+            span_s.classList.replace("outlined-success", "bg-success");
             break;
           case "AR":
-            span.classList.add("bg-warning");
+            span_a.classList.replace("outlined-warning", "bg-warning");
             break;
           case "ZH":
-            span.classList.add("bg-danger");
+            span_c.classList.replace("outlined-danger", "bg-danger");
             break;
           case "RU":
-            span.classList.add("bg-dark");
+            span_r.classList.replace("outlined-dark", "bg-dark");
             break;
           case "DE":
-            span.classList.add("bg-info");
+            span_g.classList.replace("outline-info", "bg-info");
             break;
           default:
             break;
         }
-
-        col_3.appendChild(span);
       }
-      col_3.addEventListener("click", (e) => {
-        console.log(`Event fired in col3: ${e}`);
-      });
-
       row.appendChild(col_1);
       row.appendChild(col_2);
       row.appendChild(col_3);
@@ -126,7 +244,6 @@ function createFileObjects() {
       table.appendChild(row);
     });
     txt.value = JSON.stringify(fileObjectArray);
-    
   }
 }
 
