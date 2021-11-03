@@ -1,4 +1,5 @@
 # Imports from requirements.txt
+import re
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
@@ -6,6 +7,9 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from mongoengine.errors import DoesNotExist
+from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
+from dlx.file.s3 import S3
+from dlx import DB
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -13,6 +17,7 @@ from dlx_rest.config import Config
 from dlx_rest.models import User, SyncLog, Permission, Role, requires_permission, register_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
+
 
 # Main app routes
 @app.route('/')
@@ -442,3 +447,63 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
+
+@app.route('/files')
+@login_required
+def upload_files():
+    return render_template('process_files.html')
+
+
+@app.route('/files/process', methods=["POST"])
+@login_required
+def process_files():
+
+    DB.connect(Config.connect_string)
+    creds = json.loads(Config.client.get_parameter(Name='default-aws-credentials')['Parameter']['Value'])
+
+
+    # Connects to the undl files bucket
+    S3.connect(
+        access_key_id=creds['aws_access_key_id'], access_key=creds['aws_secret_access_key'], bucket=Config.bucket
+    )
+
+    fileInfo = request.form.get("fileText")
+    fileTxt = json.loads(fileInfo)
+    i = 0
+    fileResults = []
+    record = {}
+    
+    for f in request.files.getlist('file[]'):
+        try:
+            record['filename'] = f.filename
+            record['docSymbol'] = fileTxt[i]["docSymbol"]
+            record['languages'] = fileTxt[i]["language"]
+
+            result = File.import_from_handle(
+                f,
+                filename=File.encode_fn(fileTxt[i]["docSymbol"], fileTxt[i]["language"], 'pdf'),
+                #identifiers=[Identifier('symbol', s) for s in fileTxt[i]["docSymbol"]],
+                identifiers=[Identifier('symbol', fileTxt[i]["docSymbol"])],
+                languages=fileTxt[i]["language"],
+                mimetype='application/pdf',
+                source='ME::File::Uploader',
+                overwrite=False
+            )
+            record['result'] = "File uploaded successfully"
+        except FileExistsLanguageConflict as e:
+            record['result'] = e.message
+        except FileExistsIdentifierConflict as e:
+            record['result'] = e.message
+        except FileExists:
+            record['result'] = "File already exists in the system"
+        except:
+            raise
+
+        i = i + 1
+        
+        fileResults.append(record)
+        record = {}
+
+    #print(fileResults)    
+
+    return render_template('file_results.html', submitted=fileResults)

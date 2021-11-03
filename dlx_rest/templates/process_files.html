@@ -1,0 +1,44 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container">
+<div class="card border-white">
+  <div class="card-body">
+    <div class="dashed_upload">
+      <div class="wrapper">
+        <div class="drop">
+          <div class="cont">
+            <!--<i class="fa fa-cloud-upload"></i>
+             Figure out why the icons aren't displaying  -->
+            <div class="tit"> Drag & Drop </div>
+            <div class="desc"> or </div>
+            <div class="browse"> click here to browse </div>
+          </div>
+            <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
+              <input id="files" name="file[]" type="file" multiple/>
+              <!-- <input type="submit" value="Submit">
+            </form> -->
+              <!-- <button type="submit" class="btn btn-primary">Process Files</button>
+            </form> -->
+          <!-- <output id="list"></output> -->
+        </div>
+      </div>
+    </div>
+    <div class="preview">
+      <p>No files currently selected for upload</p>
+    </div>
+
+    <div class="toSend">
+      <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
+    </div>
+    <!-- Figure out how to move the button after the drag and drop section but still in the form -->
+    <!-- <button type="button" class="btn btn-primary" onclick="toggle_form()">Process Files</button> -->
+    <button type="submit" class="btn btn-primary">Process Files</button>
+            </form>
+            
+  </div>
+  
+</div>
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/file.js') }}" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
+  {% endblock %}
