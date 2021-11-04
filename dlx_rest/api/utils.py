@@ -140,6 +140,8 @@ class Schemas():
             data = {'_notes': 'Not yet specified'}
         elif schema_name == 'api.brieflist':
             data = {'type': 'array'}
+        elif schema_name == 'api.browselist':
+            data = {'type': 'array'}
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':
