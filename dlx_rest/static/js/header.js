@@ -23,7 +23,7 @@ export let headercomponent = {
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
-                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workforn</a>
+                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workform</a>
                     <div class="dropdown-divider"></div>
                     <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-auths-WorkformModal">Load an auths Workform</a>
                     <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-bibs-WorkformModal">Load a bibs Workform</a>
@@ -55,7 +55,7 @@ export let headercomponent = {
     </nav>`,
     data: function () {
 
-        let uibase = this.api_prefix.replace("/api/","");
+        let uibase = this.api_prefix.replace("/api","");
         return {
             visible: true,
             uibase: uibase,
