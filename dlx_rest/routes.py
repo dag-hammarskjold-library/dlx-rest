@@ -396,6 +396,15 @@ def search_records(coll):
 
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
 
+@app.route('/records/browse')
+def browse():
+    return render_template('browse.html')
+
+@app.route('/records/<coll>/browse/<index>')
+def browse_list(coll, index):
+    q = request.args.get('q', 'a')
+    api_prefix = url_for('doc', _external=True)
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q)
 
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
