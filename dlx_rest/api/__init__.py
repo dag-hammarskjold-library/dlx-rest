@@ -26,7 +26,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth
 
 # Init
 authorizations = {
@@ -182,7 +182,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated', 'date', 'symbol', 'title'],
+        choices=['updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -322,7 +322,6 @@ class RecordsList(Resource):
                         abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
-                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -524,7 +523,6 @@ class Record(Resource):
             try:
                 jmarc = json.loads(request.data)
                 record = cls(jmarc, auth_control=True)
-                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
@@ -672,8 +670,7 @@ class RecordFieldPlaceList(Resource):
         except Exception as e:
             print(record.to_dict())
             abort(400, str(e))
-        
-        validate_data(record)
+
         result = record.commit(user=user)
         
         if result:
@@ -745,7 +742,6 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-            validate_data(record)
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
