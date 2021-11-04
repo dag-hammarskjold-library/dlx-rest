@@ -68,7 +68,7 @@ def test_api_records_list(client, marc):
             res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
             
         assert res.status_code == 201
-        
+
         # search
         res = client.get(f'{API}/marc/{col}/records?search=title:AAA')
         data = check_response(res)
@@ -92,7 +92,14 @@ def test_api_records_list(client, marc):
         res = client.get(f'{API}/marc/{col}/records?format=brief')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
-        
+
+def test_api_records_list_browse(client, marc):
+    res = client.get(f'{API}/marc/bibs/records/browse?search=title:Title&copare=greater')
+    data = check_response(res)
+    
+    res = client.get(f'{API}/marc/auths/records/browse?search=heading:Heading&compare=less')
+    data = check_response(res)
+
 def test_api_records_list_count(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records/count')
