@@ -200,6 +200,11 @@ class RecordsList(Resource):
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
+    args.add_argument(
+        'browse', 
+        type=str, 
+        help='Consult documentation for query syntax' # todo
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -355,6 +360,83 @@ class RecordsListCount(Resource):
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
+# Records list browse
+@ns.route('/marc/<string:collection>/records/browse')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordsListBrowse(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'search',
+        type=str, 
+        help='Consult documentation for query syntax. The logical field to browse by must be the first search term'
+    )
+    args.add_argument(
+        'compare',
+        type=str,
+        choices=['greater', 'less'],
+        help='Return the results "greater than" or "less than" the match, with the matched field first or last last if there is one'
+    )
+    args.add_argument(
+        'start', 
+        type=int, 
+        help='Result to start list at',
+        default=1
+    )
+    args.add_argument(
+        'limit', 
+        type=int,
+        help='Number of results to return. Max is 100',
+        default=10,
+    )
+    
+    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
+    @ns.expect(args)
+    def get(self, collection):
+        args = RecordsListBrowse.args.parse_args()
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
+        querystring = request.args.get('search') or abort(400, 'Param "search" required')
+        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        field = match.group(1)
+        logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
+        field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
+        query = Query.from_string(querystring)
+        condition = query.conditions[0].condition
+        type(condition[field]) == Regex and abort(400, 'Can\'t browse by regex search')
+        matcher = condition[field]
+        operators = ['$lte', '$gt'] if args.compare == 'less' else ['$gte', '$lt']
+        direction = DESC if args.compare == 'less' else ASC
+        query = Query(Raw({'$and': [
+            {field: {operators[0]: matcher}}, 
+            {field: {'$not': {operators[1]: matcher}}}
+        ]}))
+        collation = {'locale': 'en', 'numericOrdering': True} if field == 'symbol' else None
+        start, limit = int(args.start), int(args.limit)
+        records = cls.from_query(query, skip=start-1, limit=limit, sort=[(field, direction)], collation=collation)
+        
+        if args.compare == 'less':
+            records = list(reversed(list(records)))
+    
+        data = [{'field': field, 'value': record.logical_fields(field)[field], 'url': URL('api_record', collection=collection, record_id=record.id).to_str()} for record in records]
+
+        links = {
+            '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
+            '_next': URL('api_records_list_browse', collection=collection, start=start+limit, limit=limit, search=args.search, compare=args.compare).to_str(),
+            '_prev': URL('api_records_list_browse', collection=collection, start=start-limit, limit=limit, search=args.search, compare=args.compare).to_str() if start - limit > 0 else None,
+            'format': None,
+            'sort': None,
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str(),
+                'records': URL('api_records_list_count', collection=collection, search=args.search).to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_records_list_browse',
+            'returns': URL('api_schema', schema_name='api.browselist').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+        
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
