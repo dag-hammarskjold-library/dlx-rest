@@ -1,5 +1,6 @@
 # Imports from requirements.txt
 import re
+import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
@@ -396,6 +397,18 @@ def search_records(coll):
 
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
 
+@app.route('/records/<coll>/browse')
+def browse(coll):
+    api_prefix = url_for('doc', _external=True)
+    logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
+    index_list = json.dumps(list(logical_fields.keys()))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list)
+
+@app.route('/records/<coll>/browse/<index>')
+def browse_list(coll, index):
+    q = request.args.get('q', 'a')
+    api_prefix = url_for('doc', _external=True)
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q)
 
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
