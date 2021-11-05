@@ -4,7 +4,11 @@
         <messagecomponent></messagecomponent>
         <div class="row">
             <sidebarcomponent sbtype="facet"></sidebarcomponent>
+            {% if index and q %}
             <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
+            {% else %}
+            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}"></browsecomponent>
+            {% endif %}
             <sidebarcomponent sbtype="other"></sidebarcomponent>
         </div>
     </div>
