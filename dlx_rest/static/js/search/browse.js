@@ -6,7 +6,7 @@ export let browsecomponent = {
         },
         collection: {
             type: String,
-            required: false
+            required: true
         },
         index: {
             type: String,
@@ -24,6 +24,8 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
+            <a href="#" onclick="window.history.back()"><i class="fas fa-angle-double-left mr-2"></i>Back</a>
+            <!--
             <nav>
                 <ul class="pagination pagination-md justify-content-center">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -32,6 +34,7 @@ export let browsecomponent = {
                     <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
                 </ul>
             </nav>
+            -->
             <div class="row">
                 <div id="before-spinner" class="col d-flex justify-content-center">
                     <div class="spinner-border" role="status">
@@ -66,12 +69,12 @@ export let browsecomponent = {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="item in indexListJson">
+                        <tr v-for="(item, index) in indexListJson">
                             <td>{{item}}</td>
                             <td>
-                                <form @submit.prevent="submitBrowse">
-                                    <input id="q" :name="item" v-model="item" type="text" placeholder="starts with..."></input>
-                                    <button type="button mx-2" class="btn btn-primary" value="Search">Search</button>
+                                <form @submit.prevent="submitBrowse(index)">
+                                    <input autofocus autocomplete="off" :id="indexListJson[index]" placeholder="starts with..." type="text">
+                                    <button type="button mx-2" class="btn btn-primary" value="Search">Submit</button>
                                 </form>
                             </td>
                         </tr>
@@ -124,13 +127,21 @@ export let browsecomponent = {
                 spinner.remove()
             })
         } else {
-            console.log(this.index_list)
             this.indexListJson = JSON.parse(this.index_list)
         }
     },
     methods: {
-        submitBrowse(submitEvent) {
-            console.log(submitEvent)
+        submitBrowse(index) {
+            let id = this.indexListJson[index]
+            let el = document.getElementById(id)
+            let val = el.value
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${val}`
+            if (val) { 
+                history.pushState({}, window.location.href);
+                setTimeout(function(){
+                    window.location.href=targetUrl;
+                },0)
+            }
         }
     }
 }
