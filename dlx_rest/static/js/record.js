@@ -903,8 +903,11 @@ export let multiplemarcrecordcomponent = {
                         newSubfield.value = valCell.innerText;
                     });
 
-                    for (let cell of [tagCell, codeCell, valCell]) {
+                    for (let cell of [codeCell, valCell]) {
                         cell.style.background="rgba(255, 255, 128, .5)";
+                        jmarc.saveButton.classList.add("text-danger");
+                        jmarc.saveButton.classList.remove("text-primary");
+                        jmarc.saveButton.title = "unsaved changes";
 
                         cell.addEventListener("keydown", function(event) {
                             if (event.keyCode === 13) {
@@ -995,6 +998,9 @@ export let multiplemarcrecordcomponent = {
                         // visual effect to show the update status
                         newCodeCell.style.background="rgba(255, 255, 128, .5)";
                         newValueCell.style.background="rgba(255, 255, 128, .5)";
+                        jmarc.saveButton.classList.add("text-danger");
+                        jmarc.saveButton.classList.remove("text-primary");
+                        jmarc.saveButton.title = "unsaved changes";
 
                         newValueCell.addEventListener('input', () => {
                             newSubfield.value = newValueCell.textContent;
@@ -1037,7 +1043,7 @@ export let multiplemarcrecordcomponent = {
                     // Subfield value
                     let valCell = subfield.row.insertCell();
                     valCell.className = "subfield-value";
-                    valCell.contentEditable = true; // not used but makes cell clickable
+                    //valCell.contentEditable = true; // not used but makes cell clickable
                     valCell.setAttribute("data-taggle", "tooltip");
                     valCell.title = `The human-readable field name for ${field.tag}\$${subfield.code}`;
                     
@@ -1046,11 +1052,12 @@ export let multiplemarcrecordcomponent = {
                     valSpan.style.width = "100%"
                     valCell.appendChild(valSpan);
                     subfield.valueElement = valSpan; // save the value HTML element in the subfield object
-                    valSpan.innerHTML = subfield.value;
+                    valSpan.innerText = subfield.value;
                     valSpan.contentEditable = true;
                     
-                    // change focus to span when cell is clicked
-                    valCell.addEventListener("focus", function () {valSpan.focus()});
+                    // change focus to span
+                    valCell.addEventListener("mouseover", function () {valSpan.focus()});
+                    valCell.addEventListener("click", function () {valSpan.focus()});
 
                     valCell.addEventListener("input", function () {
                         subfield.value = valSpan.innerText;
@@ -1067,9 +1074,7 @@ export let multiplemarcrecordcomponent = {
                         else if (checkSubfield.value === subfield.value) {
                             valCell.style.background = "";
                         }
-                    });
-
-                    valCell.addEventListener("blur", function() {
+                        
                         if (jmarc.saved) {
                             saveButton.classList.remove("text-danger");
                             saveButton.classList.add("text-primary");
@@ -1078,7 +1083,6 @@ export let multiplemarcrecordcomponent = {
                         else {
                             saveButton.classList.add("text-danger");
                             saveButton.classList.remove("text-primary");
-                            //saveButton.setAttribute("data-toggle", "tooltip");
                             saveButton.title = "unsaved changes";
                         }
                     });
