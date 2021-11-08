@@ -448,7 +448,7 @@ export class Jmarc {
 		return JSON.stringify(this.savedState) === JSON.stringify(this.compile());
 	}
 
-	parse(data) {
+	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
 		

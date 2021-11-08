@@ -329,7 +329,8 @@ export let multiplemarcrecordcomponent = {
         buildRecordTable(jmarc, readOnly) {
             let component = this; // for use in event listeners 
             let table = document.createElement("table");
-            
+            jmarc.table = table;
+
             window.addEventListener("click",  function() {
                 let dropdown = document.getElementById("typeahead-dropdown")
                 dropdown && dropdown.remove();
@@ -365,6 +366,7 @@ export let multiplemarcrecordcomponent = {
             saveDiv.className = "dropdown";
 
             let saveButton = document.createElement("i");
+            jmarc.saveButton = saveButton;
             saveDiv.appendChild(saveButton);
             saveButton.id="saveButton"
             saveButton.type = "button";
@@ -424,8 +426,11 @@ export let multiplemarcrecordcomponent = {
                 saveRecord.className = "dropdown-item";
                 saveRecord.innerText = "Save This Record";
                 saveRecord.href = "#";
+
                 saveRecord.onclick = () => {
-                    jmarc.put().then(jmarc => {
+                    let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+
+                    promise.then(jmarc => {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -460,13 +465,17 @@ export let multiplemarcrecordcomponent = {
             
             cloneButton.onclick = () => {
                 let recup = jmarc.clone();
-                try {
-                    recup.post()
-                    this.callChangeStyling("Record " + jmarc.recordId + " has been cloned", "row alert alert-success")
-                    // add this to the basket?
-                } catch (error) {
-                    this.callChangeStyling(error.message,"row alert alert-danger")
-                }              
+                this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
+                this.displayMarcRecord(recup, false); // add this to the basket?
+                recup.saveButton.classList.add("text-danger");
+                recup.saveButton.classList.remove("text-primary");
+                recup.saveButton.title = "unsaved changes";
+                
+                for (let field of recup.fields) {
+                    //field.tagCell.style.background="rgba(255, 255, 128, .5)";
+                    field.fieldTable.style.background = "rgba(255, 255, 128, .5)";
+                }
             };
 
             // paste button
@@ -605,9 +614,10 @@ export let multiplemarcrecordcomponent = {
                 deleteItem.onclick = () => {
                     let deletedRid = jmarc.recordId;
                     let deletedColl = jmarc.collection;
-                    this.removeRecordFromEditor(jmarc.div.id);
+
                     this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
                         jmarc.delete().then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id);
                             this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
                         }).catch( error => {
                             this.callChangeStyling(error.message,"row alert alert-danger");
@@ -923,12 +933,13 @@ export let multiplemarcrecordcomponent = {
                 // Field table
                 let fieldCell = field.row.insertCell();
                 let fieldTable = document.createElement("table");
+                field.fieldTable = fieldTable;
                 fieldCell.append(fieldTable);
                 fieldTable.className = "marc-field";
                 
                 // Controlfield
                 if (field.constructor.name == "ControlField") {
-                    //field.row.classList.add("hidden-field");
+                    field.row.classList.add("hidden-field");
                     
                     let fieldRow = fieldTable.insertRow();
                     fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
