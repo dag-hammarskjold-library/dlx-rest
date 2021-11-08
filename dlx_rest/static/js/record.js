@@ -355,7 +355,8 @@ export let multiplemarcrecordcomponent = {
             if (jmarc.workformName) {
                 idField.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
             } else {
-                idField.innerText = `${jmarc.collection}/${jmarc.recordId}`;
+                let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
+                idField.innerText = `${jmarc.collection}/${recordId}`;
             }
             
             idField.className = "float-left mx-2";
