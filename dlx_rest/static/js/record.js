@@ -392,7 +392,9 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling(`Record ${jmarc.collection}/${jmarc.recordId} created from workform.`, "row alert alert-success")
-                    });
+                    }).catch(error => {
+                        this.callChangeStyling(error.message, "row alert alert-danger");
+                    })
                 }
 
                 let saveWorkform  = document.createElement("a");
@@ -415,7 +417,8 @@ export let multiplemarcrecordcomponent = {
                         });
                     }
                 }
-            } else {
+            } 
+            else {
                 let saveRecord  = document.createElement("a");
                 saveDropdown.appendChild(saveRecord);
                 saveRecord.className = "dropdown-item";
@@ -426,6 +429,8 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    }).catch(error => {
+                        this.callChangeStyling(error.message, "row alert alert-danger");
                     });
                 }
 
@@ -838,15 +843,25 @@ export let multiplemarcrecordcomponent = {
                 
                 addField.addEventListener("click", function() {
                     let newField = jmarc.createField(null, (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+                    newField.indicators = ["_", "_"];
                     let newSubfield = newField.createSubfield();
                     
                     let row = table.insertRow(field.row.rowIndex + 1);
+                    row.insertCell(); // placeholder for check cell
                     let tagCell = row.insertCell();
+                    tagCell.className = "badge badge-pill badge-warning";
                     
                     tagCell.contentEditable = true;
                     tagCell.innerText = "___";
                     
-                    tagCell.addEventListener("input", function() {
+                    tagCell.addEventListener("focus", function() {
+                        document.execCommand("selectall", null, false);
+                    });
+                    
+                    tagCell.focus();
+                    document.execCommand("selectall", null, false);
+                    
+                    tagCell.addEventListener("input", function(e) { 
                         newField.tag = tagCell.innerText;
                     });
                     
@@ -857,9 +872,13 @@ export let multiplemarcrecordcomponent = {
                     
                     let subfieldRow = fieldTable.insertRow();
                     let codeCell = subfieldRow.insertCell();
-                    codeCell.className = "subfield-code";
+                    codeCell.className = "subfield-code badge-pill";
                     codeCell.contentEditable = true;
                     codeCell.innerHTML = "_";
+                    
+                    codeCell.addEventListener("focus", function() {
+                        document.execCommand("selectall", null, false);
+                    });
                     
                     codeCell.addEventListener("input", function() {
                         newSubfield.code = codeCell.innerText;
@@ -868,7 +887,7 @@ export let multiplemarcrecordcomponent = {
                     let valCell = subfieldRow.insertCell();
                     valCell.className = "subfield-value";
                     valCell.contentEditable = true;
-                    valCell.innerHTML = "insert new subfield value";
+                    valCell.innerHTML = "";
                     
                     valCell.addEventListener("input", function() {
                         newSubfield.value = valCell.innerText;
@@ -909,7 +928,7 @@ export let multiplemarcrecordcomponent = {
                 
                 // Controlfield
                 if (field.constructor.name == "ControlField") {
-                    field.row.classList.add("hidden-field");
+                    //field.row.classList.add("hidden-field");
                     
                     let fieldRow = fieldTable.insertRow();
                     fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
@@ -924,6 +943,7 @@ export let multiplemarcrecordcomponent = {
                     subfield.row  = fieldTable.insertRow();
 
                     // Subfield code
+                    //let codeCell = codeCell();
                     let codeCell = subfield.row.insertCell();
                     codeCell.innerText = subfield.code;
                     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
@@ -948,6 +968,7 @@ export let multiplemarcrecordcomponent = {
 
                         // New code
                         let newCodeCell = newRow.insertCell();
+                        newCodeCell.className = "subfield-code badge-pill";
                         newCodeCell.textContent = "_";
                         newCodeCell.contentEditable = true;
                         
@@ -957,7 +978,7 @@ export let multiplemarcrecordcomponent = {
                         
                         // New value
                         let newValueCell = newRow.insertCell();                                          
-                        newValueCell.textContent = "insert new subfield value";
+                        newValueCell.textContent = "";
                         newValueCell.contentEditable = true;
                         
                         // visual effect to show the update status

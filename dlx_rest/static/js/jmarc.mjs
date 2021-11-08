@@ -49,6 +49,8 @@ export class ControlField {
 		this.tag = tag;
 		this.value = value;
 	}
+    
+    validate() {}
 }
 
 export class DataField {
@@ -61,7 +63,23 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	createSubfield(code, place) {
+	validate() {
+        if (! this.subfields) {
+            throw new Error("Subfield required")
+        }
+        
+        for (let subfield of this.subfields) {
+            if (! subfield.code) {
+                throw new Error("Subfield code required")
+            }
+            
+            if (! subfield.value) {
+                throw new Error("Subfield value required")
+            }
+        }
+	}
+    
+    createSubfield(code, place) {
 		let subfield = new Subfield(code);
 		
         if (place) {
@@ -342,6 +360,7 @@ export class Jmarc {
 			}	
 		).then(
 			response => {
+                this.validate();
 				savedResponse = response;
 				return response.json()
 			}
@@ -366,7 +385,7 @@ export class Jmarc {
 		}
 		
 		let savedResponse;
-		
+
 		return fetch(
 			this.url,
 			{
@@ -376,8 +395,8 @@ export class Jmarc {
 			}	
 		).then(
 			response => {
+                this.validate();
 				savedResponse = response;
-				
 				return response.json();
 			}
 		).then(
@@ -600,6 +619,20 @@ export class Jmarc {
 		
 		return
 	}
+
+    validate() {
+        for (let field of this.fields) {
+            if (! field.tag) {
+                throw new Error("Tag required")
+            }
+            
+            if (! field.tag.match(/\d{3}/) ) {
+                throw new Error("Invalid tag")
+            }
+            
+            field.validate()
+        }
+    }
 }
 
 export class Bib extends Jmarc {
