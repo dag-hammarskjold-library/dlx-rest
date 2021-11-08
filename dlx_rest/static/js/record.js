@@ -469,7 +469,7 @@ export let multiplemarcrecordcomponent = {
             idCell.appendChild(pasteButton);
             pasteButton.type = "button";
             pasteButton.value = "paste";
-            pasteButton.className = "far fa-arrow-alt-circle-down text-warning float-left mr-2 mt-1"
+            pasteButton.className = "far fa-arrow-alt-circle-down text-warning float-left mr-2 mt-1 record-control"
             let xxx=this    
             pasteButton.onclick = () => {
                 // retrieve length of the list
