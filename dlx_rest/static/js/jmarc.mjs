@@ -268,12 +268,10 @@ export class Jmarc {
             }
         ).then(
             json => {
-                console.log(json);
                 jmarc.parse(json.data);
                 jmarc.workformName = workformName;
                 jmarc.workformDescription = json.data.description;
-                
-                console.log(jmarc);
+
                 return jmarc;
             }
         )
@@ -406,7 +404,7 @@ export class Jmarc {
 				}
 				
 				this.savedState = this.compile();
-				
+
 				return this;
 			} 
 		)

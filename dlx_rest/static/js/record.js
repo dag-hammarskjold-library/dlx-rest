@@ -430,6 +430,7 @@ export let multiplemarcrecordcomponent = {
 
                 saveRecord.onclick = () => {
                     if (jmarc.saved) {
+                        // todo: not detecting changes to indicators
                         this.callChangeStyling("No unsaved changes", "row alert alert-danger");
                         return
                     }
@@ -833,6 +834,11 @@ export let multiplemarcrecordcomponent = {
                 tagSpan.innerText = field.tag;
                 
                 tagSpan.addEventListener("input", function () {
+                    if (tagSpan.innerText.length > 3) {
+                        // don't allow more than 3 chars
+                        tagSpan.innerText = tagSpan.innerText.substring(0, 3)
+                    }
+                    
                     field.tag = tagSpan.innerText;
                 });
                 
@@ -861,11 +867,29 @@ export let multiplemarcrecordcomponent = {
                     ind1Span.innerText = field.indicators[0] || " ";
                     ind1Span.contentEditable = true;
                     
+                    ind1Span.addEventListener("input", function() {
+                        if (ind1Span.innerText.length > 1) {    
+                            ind1Span.innerText = ind1Span.innerText.substring(0, 1);
+                        }
+                        
+                        field.indicators[0] = ind1Span.innerText;
+                    });
+                    
                     let ind2Span = document.createElement("span");
                     tagCell.append(ind2Span);
                     ind2Span.className = "mx-1 text-secondary"
                     ind2Span.innerText = field.indicators[1] || " ";
                     ind2Span.contentEditable = true;
+                    
+                    ind2Span.addEventListener("input", function() {
+                        if (ind2Span.innerText.length > 1) {    
+                            ind2Span.innerText = ind2Span.innerText.substring(0, 1);
+                        }
+                        
+                        field.indicators[1] = ind2Span.innerText;
+                        
+                        //console.log(field.indicators)
+                    });
                 }
                     
                 // menu
@@ -908,6 +932,10 @@ export let multiplemarcrecordcomponent = {
                     });
                     
                     tagCell.addEventListener("input", function(e) { 
+                        if (tagCell.innerText.length > 3) {
+                            tagCell.innerText = tagCell.innerText.substring(0, 3);
+                        }
+                        
                         newField.tag = tagCell.innerText;
                     });
                     
@@ -986,6 +1014,11 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
     codeSpan.innerText = subfield.code;
 
     codeSpan.addEventListener("input", function() {
+        if (codeSpan.innerText.length > 1) {
+            // don't allow more than 1 char
+            codeSpan.innerText = codeSpan.innerText.substring(0, 1)
+        }
+        
         subfield.code = codeSpan.innerText;
     });
     
