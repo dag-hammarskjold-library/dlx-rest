@@ -442,7 +442,7 @@ export let multiplemarcrecordcomponent = {
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
                     }).catch(error => {
-                        this.callChangeStyling(error.message.substring(0, 100) + '...', "row alert alert-danger");
+                        this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                     });
                 }
 
@@ -736,6 +736,10 @@ export let multiplemarcrecordcomponent = {
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 // Field row
                 field.row = tableBody.insertRow();
+                
+                // refactor here
+                //field = createField(component, jmarc, field);
+                //continue;
 
                 // add the checkboxes
                 let checkCell = field.row.insertCell();
@@ -887,8 +891,6 @@ export let multiplemarcrecordcomponent = {
                         }
                         
                         field.indicators[1] = ind2Span.innerText;
-                        
-                        //console.log(field.indicators)
                     });
                 }
                     
@@ -950,6 +952,9 @@ export let multiplemarcrecordcomponent = {
                     
                     newSubfield = createSubfield(component, jmarc, fieldTable, newField, newSubfield);
                     newSubfield.valueCell.style.background = "rgba(255, 255, 128, .5)";
+                    saveButton.classList.add("text-danger");
+                    saveButton.classList.remove("text-primary");
+                    saveButton.title = "unsaved changes";
                 });
                 
                 // delete field
@@ -961,10 +966,17 @@ export let multiplemarcrecordcomponent = {
                 deleteField.addEventListener("click", function() {
                     jmarc.deleteField(field);
                     table.deleteRow(field.row.rowIndex);
-                    saveButton.classList.add("text-danger");
-                    saveButton.classList.remove("text-primary");
-                    //saveButton.setAttribute("data-toggle", "tooltip");
-                    saveButton.title = "unsaved changes";
+                    
+                    if (jmarc.saved) {
+                        saveButton.classList.remove("text-danger");
+                        saveButton.classList.add("text-primary");
+                        saveButton.title = "no new changes";
+                    }
+                    else {
+                        saveButton.classList.add("text-danger");
+                        saveButton.classList.remove("text-primary");
+                        saveButton.title = "unsaved changes";
+                    }
                 });
                 
                 // Field table
@@ -1051,9 +1063,14 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         let newSubfield = field.createSubfield("_", place);
         newSubfield.value = "";
         newSubfield = createSubfield(component, jmarc, table, field, newSubfield, place);
-        newSubfield.valueCell.style.background = "rgba(255, 255, 128, .5)";
+        
         newSubfield.codeSpan.focus();
         document.execCommand("selectall", null, false);
+        
+        newSubfield.valueCell.style.background = "rgba(255, 255, 128, .5)";
+        saveButton.classList.add("text-danger");
+        saveButton.classList.remove("text-primary");
+        saveButton.title = "unsaved changes";
         
         return
     });
@@ -1075,10 +1092,16 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         // Remove the subfield row from the table
         table.deleteRow(subfield.row.rowIndex);
 
-        saveButton.classList.add("text-danger");
-        saveButton.classList.remove("text-primary");
-        //saveButton.setAttribute("data-toggle", "tooltip");
-        saveButton.title = "unsaved changes";
+        if (jmarc.saved) {
+            saveButton.classList.remove("text-danger");
+            saveButton.classList.add("text-primary");
+            saveButton.title = "no new changes";
+        }
+        else {
+            saveButton.classList.add("text-danger");
+            saveButton.classList.remove("text-primary");
+            saveButton.title = "unsaved changes";
+        }
     });
     
     // Subfield value
