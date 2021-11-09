@@ -569,15 +569,21 @@ export class Jmarc {
         if (field.tag && place) {
             // field place
             let i = 0;
+            let found = false
             
             for (let [c, f] of Object.entries(this.fields)) {
                 if (f.tag === field.tag) {
                     if (i === place) {
-                        this.fields.splice(c, 0, field)
+                        this.fields.splice(c, 0, field);
+                        found = true;
                     }
                               
                     i++;
-                } 
+                }
+            }
+            
+            if (! found) {
+                this.fields.push(field);
             }
         } 
         else if (place) {
