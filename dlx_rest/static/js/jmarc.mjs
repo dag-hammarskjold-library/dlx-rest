@@ -63,7 +63,7 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	validate() {
+	validate() {        
         if (! this.subfields) {
             throw new Error("Subfield required")
         }
@@ -73,7 +73,7 @@ export class DataField {
                 throw new Error("Subfield code required")
             }
             
-            if (! subfield.value) {
+            if (! subfield.value || ! subfield.value.match(/^\w/)) {
                 throw new Error("Subfield value required")
             }
         }
@@ -183,7 +183,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required")}
+        if (! collection) {throw new Error("Collection required")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -361,7 +361,7 @@ export class Jmarc {
 		).then(
 			response => {
                 this.validate();
-				savedResponse = response;
+                savedResponse = response;
 				return response.json()
 			}
 		).then(
@@ -527,11 +527,27 @@ export class Jmarc {
 	}
 	
 	clone() {
-		let cloned = new this.recordClass;
-		cloned.parse(this.compile());
-		cloned.deleteField("001");
+		let cloned = (new this.recordClass).parse(this.compile());
+		
+        cloned.deleteField("001");
 		cloned.deleteField("005");
 		cloned.deleteField("008");
+        cloned.deleteField("035");
+        cloned.deleteField("998");
+        cloned.deleteField("999");
+        cloned.createField("999").createSubfield("a").value = "";
+        
+        if (this.recordClass === Auth) {
+            return cloned
+        }
+        
+        for (let field of cloned.getFields("029")) {
+            if (field.getSubfield("b")) {
+                field.getSubfield("b").value = "" 
+            } else {
+                field.createSubfield("b").value = ""
+            }
+        }
 		
 		return cloned
 	}
@@ -644,7 +660,13 @@ export class Bib extends Jmarc {
 		return Jmarc.get("bibs", recordId)
 	}
 	
-	validate() {}
+    clone() {
+        return super.clone();
+    }
+    
+	validate() {
+        super.validate();
+    }
 }
 
 export class Auth extends Jmarc {
@@ -655,6 +677,12 @@ export class Auth extends Jmarc {
 	static get(recordId) {
 		return Jmarc.get("auths", recordId)
 	}
-			
-	validate() {}
+	
+    clone() {
+        return super.clone()
+    }
+    
+	validate() {
+        super.validate();
+    }
 }
