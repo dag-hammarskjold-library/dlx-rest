@@ -73,7 +73,7 @@ export class DataField {
                 throw new Error("Subfield code required")
             }
             
-            if (! subfield.value || ! subfield.value.match(/^\w/)) {
+            if (! subfield.value || subfield.value.match(/^\s+/)) {
                 throw new Error("Subfield value required")
             }
         }
