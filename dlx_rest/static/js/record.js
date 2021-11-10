@@ -1165,6 +1165,7 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
     
             clearTimeout(timer);
             subfield.value = valCell.innerText;
+            delete subfield.xref;
     
             if (subfield.value) {
                 timer = setTimeout(
@@ -1205,7 +1206,7 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
                                 });
                                 
                                 item.addEventListener("mousedown", function () {
-                                    dropdown.remove()
+                                    dropdown.remove();
                         
                                     for (let newSubfield of choice.subfields) {
                                         let currentSubfield = field.getSubfield(newSubfield.code);
