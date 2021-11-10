@@ -68,6 +68,8 @@ export class DataField {
             throw new Error("Subfield required")
         }
         
+        let amap = this instanceof BibDataField ? authMap['bibs'] : authMap['auths'];
+        
         for (let subfield of this.subfields) {
             if (! subfield.code) {
                 throw new Error("Subfield code required")
@@ -76,7 +78,11 @@ export class DataField {
             if (! subfield.value || subfield.value.match(/^\s+/)) {
                 throw new Error("Subfield value required")
             }
-        }
+            
+            if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
+                throw new Error("Invalid authority-controlled value")
+            }
+        }   
 	}
     
     createSubfield(code, place) {
@@ -395,6 +401,9 @@ export class Jmarc {
 			response => {
                 this.validate();
 				savedResponse = response;
+                
+                
+                
 				return response.json();
 			}
 		).then(
@@ -404,6 +413,8 @@ export class Jmarc {
 				}
 				
 				this.savedState = this.compile();
+                
+                
 
 				return this;
 			} 
