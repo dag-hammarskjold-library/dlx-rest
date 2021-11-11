@@ -987,6 +987,7 @@ class LookupField(Resource):
             
         for code in codes:
             val = request.args[code]
+            val = re.escape(val)
             sparams[code] = val
             auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
             
