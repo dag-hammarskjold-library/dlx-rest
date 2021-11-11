@@ -740,7 +740,7 @@ export let multiplemarcrecordcomponent = {
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
-                field = createField(component, jmarc, table, tableBody, field);
+                field = buildFieldRow(component, jmarc, table, tableBody, field);
             }
             
             table.addEventListener("input", function() {
@@ -760,7 +760,7 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
-function createField(component, jmarc, table, tableBody, field, place) {
+function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     field.row = tableBody.insertRow(place);
     
     // add the checkboxes
@@ -853,7 +853,7 @@ function createField(component, jmarc, table, tableBody, field, place) {
     tagSpan.contentEditable = true;
     tagSpan.innerText = field.tag;
     
-    tagSpan.addEventListener("input", function () {
+    tagSpan.addEventListener("input", function () {        
         if (tagSpan.innerText.length > 3) {
             // don't allow more than 3 chars
             tagSpan.innerText = tagSpan.innerText.substring(0, 3)
@@ -966,6 +966,12 @@ function createField(component, jmarc, table, tableBody, field, place) {
     tagCell.append(tagMenu);
     tagMenu.className = "dropdown-menu";
     tagMenu.style.cursor = "default";
+    tagSpan.setAttribute("data-toggle", "dropdown");
+    
+    // hide menu
+    tagSpan.addEventListener("input", function() {
+        $(tagMenu).dropdown('toggle');
+    });
     
     // add field
     let addField = document.createElement("i");
@@ -981,7 +987,7 @@ function createField(component, jmarc, table, tableBody, field, place) {
         newSubfield.code = "_";
         newSubfield.value = "";
         
-        newField = createField(component, jmarc, table, tableBody, newField, field.row.rowIndex - 1);
+        newField = buildFieldRow(component, jmarc, table, tableBody, newField, field.row.rowIndex - 1);
         newField.tagSpan.focus();
         document.execCommand("selectall");
         newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
@@ -1046,6 +1052,8 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     codeCell.append(codeSpan);
     codeSpan.contentEditable = true;
     codeSpan.innerText = subfield.code;
+    
+    codeSpan.setAttribute("data-toggle", "dropdown");
 
     codeSpan.addEventListener("input", function() {
         if (codeSpan.innerText.length > 1) {
@@ -1093,6 +1101,11 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     codeCell.append(codeMenu);
     codeMenu.className = "dropdown-menu";
     codeMenu.style.cursor = "default";
+    
+    // hide menu
+    codeSpan.addEventListener("input", function() {
+        $(codeMenu).dropdown('toggle')
+    });
     
     // add subfield
     let addSubfield = document.createElement("i");
