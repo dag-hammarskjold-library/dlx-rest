@@ -63,7 +63,7 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	validate() {        
+	validate() {
         if (! this.subfields) {
             throw new Error("Subfield required")
         }
@@ -75,7 +75,7 @@ export class DataField {
                 throw new Error("Subfield code required")
             }
             
-            if (! subfield.value || subfield.value.match(/^\s+/)) {
+            if (! subfield.value || subfield.value.match(/^\s+$/)) {
                 throw new Error("Subfield value required")
             }
             
@@ -94,6 +94,8 @@ export class DataField {
         else {
             this.subfields.push(subfield);
         }
+        
+        subfield.parentField = this;
 		
 		return subfield;
 	}
@@ -413,8 +415,6 @@ export class Jmarc {
 				}
 				
 				this.savedState = this.compile();
-                
-                
 
 				return this;
 			} 
@@ -466,19 +466,18 @@ export class Jmarc {
 		
 		for (let tag of tags) {
 			for (let field of data[tag]) {
+                let newField = this.createField(tag);
+                
 				if (tag.match(/^00/)) {
-					let cf = new ControlField(tag, field);
-					this.fields.push(cf)
-				} else {
-					let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
-					df.indicators = field.indicators.map(x => x.replace(" ", "_"));
+                    newField.value = field;
+                } else {
+                    newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
 					
 					for (let subfield of field.subfields) {
-						let sf = new Subfield(subfield.code, subfield.value, subfield.xref);
-						df.subfields.push(sf)
+						let newSub = newField.createSubfield(subfield.code);
+                        newSub.value = subfield.value;
+                        newSub.xref = subfield.xref;
 					}
-					
-					this.fields.push(df)
 				}
 			}
 		}
@@ -604,6 +603,8 @@ export class Jmarc {
         else {
             this.fields.push(field);
         }
+        
+        field.parentRecord = this;
 		
 		return field
 	}

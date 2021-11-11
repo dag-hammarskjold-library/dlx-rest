@@ -480,8 +480,11 @@ export let multiplemarcrecordcomponent = {
                 recup.saveButton.title = "unsaved changes";
                 
                 for (let field of recup.fields) {
-                    //field.tagCell.style.background="rgba(255, 255, 128, .5)";
-                    field.fieldTable.style.background = "rgba(255, 255, 128, .5)";
+                    if (! field.tag.match(/^00/)) {
+                        for (let subfield of field.subfields) {
+                            subfield.valueCell.classList.add("subfield-value-unsaved");
+                        }
+                    }
                 }
             };
 
@@ -740,6 +743,18 @@ export let multiplemarcrecordcomponent = {
                 field = createField(component, jmarc, table, tableBody, field);
             }
             
+            table.addEventListener("input", function() {
+                if (jmarc.saved) {
+                    saveButton.classList.remove("text-danger");
+                    saveButton.classList.add("text-primary");
+                    saveButton.title = "no new changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "save";
+                }
+            });
+            
             return table       
         }
     }
@@ -831,26 +846,58 @@ function createField(component, jmarc, table, tableBody, field, place) {
     field.tagCell = tagCell;
     tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
     tagCell.setAttribute("data-toggle", "dropdown");
-    
-    let tagCellDiv = document.createElement("div");
-    tagCell.append(tagCellDiv);
-    
-    //let tagDiv = document.createElement("div");
-    //tagCellDiv.append(tagDiv);
-    //tagDiv.style = "width: 25%";
-    
+ 
     let tagSpan = document.createElement("span");
+    tagCell.append(tagSpan);
+    field.tagSpan = tagSpan;
     tagSpan.contentEditable = true;
-    tagCell.append(tagSpan)
     tagSpan.innerText = field.tag;
     
     tagSpan.addEventListener("input", function () {
         if (tagSpan.innerText.length > 3) {
             // don't allow more than 3 chars
             tagSpan.innerText = tagSpan.innerText.substring(0, 3)
+            document.execCommand("selectall");
         }
         
         field.tag = tagSpan.innerText;
+        
+        let savedState = new Jmarc(jmarc.collection);
+        savedState.parse(jmarc.savedState);
+
+        for (let subfield of field.subfields) {
+            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                setAuthControl(component, field, subfield, subfield.valueCell, subfield.valueSpan)
+            } else {
+                removeAuthControl(subfield);
+            }
+            
+            let i = field.subfields.indexOf(subfield);
+            let j = jmarc.fields.indexOf(field);
+            let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+            let checkSubfield = checkField ? checkField.subfields[i] : null;
+
+            if (! checkField || field.tag !== checkField.tag || ! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
+                field.tagCell.classList.remove("field-tag-saved");
+                field.tagCell.classList.add("field-tag-unsaved");
+                
+                subfield.codeCell.classList.remove("subfield-code-saved");
+                subfield.codeCell.classList.add("subfield-code-unsaved");
+                
+                subfield.valueCell.classList.remove("subfield-value-saved");
+                subfield.valueCell.classList.add("subfield-value-unsaved");
+            } 
+            else {
+                field.tagCell.classList.remove("field-tag-saved");
+                field.tagCell.classList.add("field-tag-unsaved");
+                
+                subfield.codeCell.classList.remove("subfield-code-unsaved");
+                subfield.codeCell.classList.add("subfield-code-saved");
+                
+                subfield.valueCell.classList.remove("subfield-value-usaved");
+                subfield.valueCell.classList.add("subfield-value-saved");
+            } 
+        }
     });
     
     tagSpan.addEventListener("keydown", function (event) {
@@ -871,6 +918,7 @@ function createField(component, jmarc, table, tableBody, field, place) {
     });
 
     // Indicators
+    //can be refactored
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
         tagCell.append(ind1Span);
@@ -881,9 +929,15 @@ function createField(component, jmarc, table, tableBody, field, place) {
         ind1Span.addEventListener("input", function() {
             if (ind1Span.innerText.length > 1) {    
                 ind1Span.innerText = ind1Span.innerText.substring(0, 1);
+                document.execCommand("selectall");
             }
             
             field.indicators[0] = ind1Span.innerText;
+        });
+        
+        ind1Span.addEventListener("focus", function() {
+            ind1Span.focus();
+            document.execCommand("selectall");
         });
         
         let ind2Span = document.createElement("span");
@@ -895,9 +949,15 @@ function createField(component, jmarc, table, tableBody, field, place) {
         ind2Span.addEventListener("input", function() {
             if (ind2Span.innerText.length > 1) {    
                 ind2Span.innerText = ind2Span.innerText.substring(0, 1);
+                document.execCommand("selectall");
             }
             
             field.indicators[1] = ind2Span.innerText;
+        });
+        
+        ind2Span.addEventListener("focus", function() {
+            ind2Span.focus();
+            document.execCommand("selectall");
         });
     }
         
@@ -922,11 +982,9 @@ function createField(component, jmarc, table, tableBody, field, place) {
         newSubfield.value = "";
         
         newField = createField(component, jmarc, table, tableBody, newField, field.row.rowIndex - 1);
-        newField.subfields[0].valueCell.style.background = "rgba(255, 255, 128, .5)";
-        
-        saveButton.classList.add("text-danger");
-        saveButton.classList.remove("text-primary");
-        saveButton.title = "unsaved changes";
+        newField.tagSpan.focus();
+        document.execCommand("selectall");
+        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
 
         return
     });
@@ -940,17 +998,6 @@ function createField(component, jmarc, table, tableBody, field, place) {
     deleteField.addEventListener("click", function() {
         jmarc.deleteField(field);
         table.deleteRow(field.row.rowIndex);
-        
-        if (jmarc.saved) {
-            saveButton.classList.remove("text-danger");
-            saveButton.classList.add("text-primary");
-            saveButton.title = "no new changes";
-        }
-        else {
-            saveButton.classList.add("text-danger");
-            saveButton.classList.remove("text-primary");
-            saveButton.title = "unsaved changes";
-        }
     });
     
     // Field table
@@ -974,17 +1021,21 @@ function createField(component, jmarc, table, tableBody, field, place) {
     
     // Datafield
     for (let subfield of field.subfields) {
-        createSubfield(component, jmarc, fieldTable, field, subfield);   
+        buildSubfieldRow(component, jmarc, fieldTable, field, subfield);   
     }
     
     return field
 }
 
-function createSubfield(component, jmarc, table, field, subfield, place) {
+function buildSubfieldRow(component, z, y, x, subfield, place) {
+    let field = subfield.parentField;
+    let table = field.fieldTable;
+    let jmarc = field.parentRecord;
+    
+    // create the row
     subfield.row = table.insertRow(place);
 
     // Subfield code
-    //let codeCell = codeCell();
     let codeCell = subfield.row.insertCell();
     subfield.codeCell = codeCell;
     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
@@ -1003,6 +1054,26 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         }
         
         subfield.code = codeSpan.innerText;
+        
+        let savedState = new Jmarc(jmarc.collection);
+        savedState.parse(jmarc.savedState);
+        let i = field.subfields.indexOf(subfield);
+        let j = jmarc.fields.indexOf(field);
+        let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+        let checkSubfield = checkField ? checkField.subfields[i] : null;
+
+        if (! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
+            subfield.codeCell.classList.add("subfield-code-saved");
+            subfield.codeCell.classList.add("subfield-code-unsaved");
+            subfield.valueCell.classList.remove("subfield-value-saved");
+            subfield.valueCell.classList.add("subfield-value-unsaved");
+        } 
+        else {
+            subfield.codeCell.classList.add("subfield-code-unsaved");
+            subfield.codeCell.classList.add("subfield-code-saved");
+            subfield.valueCell.classList.remove("subfield-value-unsaved");
+            subfield.valueCell.classList.add("subfield-value-saved");
+        }
     });
     
     codeSpan.addEventListener("keydown", function (event) {
@@ -1033,12 +1104,12 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         let place = field.subfields.indexOf(subfield) + 1;
         let newSubfield = field.createSubfield("_", place);
         newSubfield.value = "";
-        newSubfield = createSubfield(component, jmarc, table, field, newSubfield, place);
+        newSubfield = buildSubfieldRow(component, jmarc, table, field, newSubfield, place);
         
         newSubfield.codeSpan.focus();
         document.execCommand("selectall", null, false);
         
-        newSubfield.valueCell.style.background = "rgba(255, 255, 128, .5)";
+        newSubfield.valueCell.classList.add("subfield-value-unsaved");
         saveButton.classList.add("text-danger");
         saveButton.classList.remove("text-primary");
         saveButton.title = "unsaved changes";
@@ -1062,36 +1133,23 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         field.deleteSubfield(subfield);
         // Remove the subfield row from the table
         table.deleteRow(subfield.row.rowIndex);
-
-        if (jmarc.saved) {
-            saveButton.classList.remove("text-danger");
-            saveButton.classList.add("text-primary");
-            saveButton.title = "no new changes";
-        }
-        else {
-            saveButton.classList.add("text-danger");
-            saveButton.classList.remove("text-primary");
-            saveButton.title = "unsaved changes";
-        }
     });
     
     // Subfield value
     let valCell = subfield.row.insertCell();
     valCell.className = "subfield-value";
     valCell.setAttribute("data-taggle", "tooltip");
-    valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
+    //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
     
     let valSpan = document.createElement("span");
     valSpan.align = "left";
     valSpan.style.width = "100%";
     valCell.appendChild(valSpan);
     subfield.valueCell = valCell;
-    subfield.valueElement = valSpan; // save the value HTML element in the subfield object
+    subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
     valSpan.innerText = subfield.value;
     valSpan.contentEditable = true;
-    
-    // change focus to span
-    //valCell.addEventListener("mouseover", function () {valSpan.focus()});
+
     valCell.addEventListener("click", function () {valSpan.focus()});
 
     valCell.addEventListener("input", function () {
@@ -1100,25 +1158,17 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         let savedState = new Jmarc(jmarc.collection);
         savedState.parse(jmarc.savedState);
         let i = field.subfields.indexOf(subfield);
-        let checkField = savedState.getField(field.tag);
+        let j = jmarc.fields.indexOf(field);
+        let checkField = savedState.fields[j];
         let checkSubfield = checkField ? checkField.subfields[i] : null;
-
-        if (! checkSubfield || subfield.value !== checkSubfield.value) {
-            valCell.style.background = "rgba(255, 255, 128, .5)"
-        } 
-        else if (checkSubfield.value === subfield.value) {
-            valCell.style.background = "";
-        }
         
-        if (jmarc.saved) {
-            saveButton.classList.remove("text-danger");
-            saveButton.classList.add("text-primary");
-            saveButton.title = "no new changes";
-        }
+        if (! checkSubfield || subfield.value !== checkSubfield.value) {
+            valCell.classList.remove("subfield-value-saved");
+            valCell.classList.add("subfield-value-unsaved");
+        } 
         else {
-            saveButton.classList.add("text-danger");
-            saveButton.classList.remove("text-primary");
-            saveButton.title = "unsaved changes";
+            valCell.classList.remove("subfield-value-unsaved");
+            valCell.classList.add("subfield-value-saved");
         }
     });
     
@@ -1130,132 +1180,162 @@ function createSubfield(component, jmarc, table, field, subfield, place) {
         }
     });
     
+    codeSpan.addEventListener("input", function() {
+        if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+            setAuthControl(component,field, subfield, valCell, valSpan)
+        } else {
+            removeAuthControl(subfield)
+        }
+    });
+    
+    // create the last cell
+    subfield.xrefCell = subfield.row.insertCell()
+    
     // auth controlled
     if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-        valSpan.className = "authority-controlled"; // for styling
-          
-        // xref
-        let xrefCell = subfield.row.insertCell();
-        subfield.xrefElement = xrefCell; // save the xref HTML element in the subfield object
-        
-        let xrefLink = document.createElement("a");
-        xrefCell.appendChild(xrefLink);
-        xrefLink.href = `/records/auths/${subfield.xref}`;
-        xrefLink.target="_blank";
-          
-        let xrefIcon = document.createElement("i");
-        xrefIcon.className = "fas fa-link float-left mr-2";
-        xrefLink.appendChild(xrefIcon);
-          
-        // lookup
-        let timer;
-          
-        valCell.addEventListener("keyup", function (event) {
-            if (event.keyCode < 45 && event.keyCode !== 8) {
-                // non ascii or delete keys
-                return
-            }
-                
-            let originalColor = valSpan.style.backgroundColor;
-            valSpan.style.backgroundColor = "LightCoral";
-            xrefCell.innerHTML = null;
-    
-            let dropdown = document.getElementById("typeahead-dropdown");
-            dropdown && dropdown.remove();
-    
-            clearTimeout(timer);
-            subfield.value = valCell.innerText;
-            delete subfield.xref;
-    
-            if (subfield.value) {
-                timer = setTimeout(
-                    function () {
-                        let dropdown = document.createElement("div");
-                        valCell.appendChild(dropdown);
-                        dropdown.className = "typeahead-dropdown";
-                        dropdown.id = "typeahead-dropdown";
-                        dropdown.innerHTML = "searching...";
-                        
-                        field.lookup().then(choices => {
-                            if (choices.length == 0) {
-                                dropdown.innerHTML = "not found";
-                                setTimeout(function () { dropdown.remove() }, 1000)
-                                return
-                            }
-                            
-                            dropdown.innerHTML = null;
-                        
-                            let list = document.createElement("ul");
-                            dropdown.appendChild(list);
-                            list.className = "list-group";
-                        
-                            for (let choice of choices) {
-                                let item = document.createElement("li");
-                                list.appendChild(item);
-                                item.className = "list-group-item";
-                                
-                                item.innerHTML = choice.subfields.map(x => `<span style="color: blue">$${x.code}</span> ${x.value}`).join("<br>");
-                                
-                                item.addEventListener("mouseover", function () {
-                                    item.style.backgroundColor = "gray"
-                                });
-                                
-                                item.addEventListener("mouseout", function () {
-                                    item.style.backgroundColor = "";
-                                    subfield.value = valSpan.innerText
-                                });
-                                
-                                item.addEventListener("mousedown", function () {
-                                    dropdown.remove();
-                        
-                                    for (let newSubfield of choice.subfields) {
-                                        let currentSubfield = field.getSubfield(newSubfield.code);
-                                        
-                                        if (typeof currentSubfield === "undefined") {
-                                            // the field does not already exist
-                                            field.subfields.push(newSubfield);
-                                            currentSubfield = newSubfield;
-                                                
-                                            // create new subfield in table (again)
-                                            // get the place of the previous subfield
-                                            let place = field.subfields.indexOf(currentSubfield);
-                                            let newRow = table.insertRow(subfield.row.rowIndex + 1); // needs fix
-                                            newRow.insertCell().innerText = currentSubfield.code;
-                                            // value element does not have event listeners
-                                            currentSubfield.valueElement = newRow.insertCell();
-                                            currentSubfield.innerText = currentSubfield.value;
-                                            currentSubfield.xrefElement = newRow.insertCell();
-                                        }
-                        
-                                        currentSubfield.value = newSubfield.value;
-                                        currentSubfield.xref = newSubfield.xref;
-                        
-                                        currentSubfield.valueElement.innerText = currentSubfield.value;
-                                        currentSubfield.valueElement.style.backgroundColor = "";
-                                            
-                                        let xrefLink = document.createElement("a");
-                                        xrefLink.href = `/records/auths/${newSubfield.xref}`;
-                                        xrefLink.target="_blank";
-                                            
-                                        let xrefIcon = document.createElement("i");
-                                        xrefIcon.className = "fas fa-link float-left mr-2";
-                                        xrefLink.appendChild(xrefIcon);
-                                            
-                                        while (currentSubfield.xrefElement.firstChild) {
-                                            currentSubfield.xrefElement.removeChild(currentSubfield.xrefElement.firstChild)
-                                        }
-                                            
-                                        currentSubfield.xrefElement.append(xrefLink);
-                                    }
-                                });
-                            }
-                        });
-                    }, 
-                    750
-                );
-            }
-        });
+        setAuthControl(component, field, subfield, valCell, valSpan)
     }
     
     return subfield
+}
+
+function setAuthControl(component, field, subfield) {
+    subfield.valueSpan.classList.add("authority-controlled");
+    
+    if (subfield.valueCell.classList.contains("subfield-value-unsaved")) {
+        subfield.valueSpan.classList.add("authority-controlled-unmatched")
+    }
+
+    if (subfield.xrefCell.children.length === 0) {
+        let xrefLink = document.createElement("a");
+        subfield.xrefCell.appendChild(xrefLink);
+        xrefLink.href = `/records/auths/${subfield.xref}`;
+        xrefLink.target="_blank";
+      
+        let xrefIcon = document.createElement("i");
+        xrefIcon.className = "fas fa-link float-left mr-2";
+        xrefLink.appendChild(xrefIcon);
+    }
+      
+    // lookup
+    subfield.valueCell.eventParams = [component, subfield];
+    subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+}
+
+function removeAuthControl(subfield) {
+    if (subfield.xrefCell) {
+        delete subfield.xref;
+        subfield.xrefCell.innerHTML = "";
+    }
+    
+    subfield.valueSpan.classList.remove("authority-controlled");
+    subfield.valueSpan.classList.remove("authority-controlled-unmatched");
+    subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+}
+
+// auth-contiolled field keyup event function
+function keyupAuthLookup(event) {
+    //target: subfield value cell 
+    let component = event.currentTarget.eventParams[0];
+    let subfield = event.currentTarget.eventParams[1];
+    let field = subfield.parentField;
+    
+    if (event.keyCode < 45 && event.keyCode !== 8) {
+        // non ascii or delete keys
+        return
+    }
+
+    subfield.valueSpan.classList.add("authority-controlled-unmatched"); // style.backgroundColor = "LightCoral";
+    subfield.xrefCell.innerHTML = null;
+
+    let dropdown = document.getElementById("typeahead-dropdown");
+    dropdown && dropdown.remove();
+
+    clearTimeout(subfield.timer);
+    subfield.value = subfield.valueCell.innerText;
+    delete subfield.xref;
+
+    if (subfield.value) {
+        subfield.timer = setTimeout(
+            function () {
+                let dropdown = document.createElement("div");
+                subfield.valueCell.appendChild(dropdown);
+                dropdown.className = "typeahead-dropdown";
+                dropdown.id = "typeahead-dropdown";
+                dropdown.innerHTML = "searching...";
+                
+                field.lookup().then(choices => {
+                    if (choices.length == 0) {
+                        dropdown.innerHTML = "not found";
+                        setTimeout(function () { dropdown.remove() }, 1000)
+                        return
+                    }
+                    
+                    dropdown.innerHTML = null;
+                
+                    let list = document.createElement("ul");
+                    dropdown.appendChild(list);
+                    list.className = "list-group";
+                
+                    for (let choice of choices) {
+                        let item = document.createElement("li");
+                        list.appendChild(item);
+                        item.className = "list-group-item";
+                        
+                        item.innerHTML = choice.subfields.map(x => `<span style="color: blue">$${x.code}</span> ${x.value}`).join("<br>");
+                        
+                        item.addEventListener("mouseover", function () {
+                            item.style.backgroundColor = "gray"
+                        });
+                        
+                        item.addEventListener("mouseout", function () {
+                            item.style.backgroundColor = "";
+                            subfield.value = subfield.valueSpan.innerText
+                        });
+                        
+                        item.addEventListener("mousedown", function () {
+                            dropdown.remove();
+
+                            for (let s of field.subfields) {
+                                s.valueSpan.classList.remove("authority-controlled-unmatched");
+                                s.valueSpan.classList.add("authority-controlled-matched");
+                            }
+                
+                            for (let choiceSubfield of choice.subfields) {
+                                let currentSubfield = field.getSubfield(choiceSubfield.code);
+                                
+                                if (typeof currentSubfield === "undefined") {
+                                    let place = choice.subfields.indexOf(choiceSubfield);
+                                    let newSubfield = field.createSubfield(choiceSubfield.code, place);
+                                    newSubfield.value = choiceSubfield.value;
+                                    currentSubfield = newSubfield;
+                                    buildSubfieldRow(component, null, null, null, newSubfield, place);
+                                }
+                
+                                currentSubfield.value = choiceSubfield.value;
+                                currentSubfield.xref = choiceSubfield.xref;
+                                currentSubfield.valueElement.innerText = currentSubfield.value;
+                                currentSubfield.valueElement.style.backgroundColor = "";
+                                    
+                                let xrefLink = document.createElement("a");
+                                xrefLink.href = `/records/auths/${choiceSubfield.xref}`;
+                                xrefLink.target="_blank";
+                                    
+                                let xrefIcon = document.createElement("i");
+                                xrefIcon.className = "fas fa-link float-left mr-2";
+                                xrefLink.appendChild(xrefIcon);
+                                    
+                                while (currentSubfield.xrefCell.firstChild) {
+                                    currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+                                }
+                                    
+                                currentSubfield.xrefCell.append(xrefLink);
+                            }
+                        });
+                    }
+                });
+            }, 
+            750
+        );
+    }
 }
