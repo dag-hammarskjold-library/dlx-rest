@@ -703,6 +703,7 @@ export let multiplemarcrecordcomponent = {
             
             // Table body
             let tableBody = table.createTBody();
+            jmarc.tableBody = tableBody;
 
             // Workform fields
             // Possibly move to header
@@ -740,7 +741,7 @@ export let multiplemarcrecordcomponent = {
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
-                field = buildFieldRow(component, jmarc, table, tableBody, field);
+                field = buildFieldRow(component, field);
             }
             
             table.addEventListener("input", function() {
@@ -760,8 +761,12 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
-function buildFieldRow(component, jmarc, table, tableBody, field, place) {
-    field.row = tableBody.insertRow(place);
+function buildFieldRow(component, field, place) {
+    let jmarc = field.parentRecord;
+    let table = jmarc.table;
+    let tableBody = jmarc.tableBody;
+    
+    field.row = jmarc.tableBody.insertRow(place);
     
     // add the checkboxes
     let checkCell = field.row.insertCell();
@@ -904,7 +909,7 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
         
         // store control/command key press
         if (event.keyCode === 17 || event.keyCode === 224) {
-            metaKey == true
+            metaKey = true
         }
         
         // prevent typing more than 3 characters
@@ -914,8 +919,9 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     });
     
     tagSpan.addEventListener("keyup", function (event) {
+        // clear control/command key press
         if (event.keyCode === 17 || event.keyCode === 224) {
-            metaKey == false
+            metaKey = false
         }
     });
     
@@ -1012,7 +1018,7 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
         newSubfield.code = "_";
         newSubfield.value = "";
         
-        newField = buildFieldRow(component, jmarc, table, tableBody, newField, field.row.rowIndex - 1);
+        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
         newField.tagSpan.focus();
         document.execCommand("selectall");
         newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
@@ -1052,13 +1058,13 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     
     // Datafield
     for (let subfield of field.subfields) {
-        buildSubfieldRow(component, jmarc, fieldTable, field, subfield);   
+        buildSubfieldRow(component, subfield);   
     }
     
     return field
 }
 
-function buildSubfieldRow(component, z, y, x, subfield, place) {
+function buildSubfieldRow(component, subfield, place) {
     let field = subfield.parentField;
     let table = field.fieldTable;
     let jmarc = field.parentRecord;
@@ -1149,7 +1155,7 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
         let place = field.subfields.indexOf(subfield) + 1;
         let newSubfield = field.createSubfield("_", place);
         newSubfield.value = "";
-        newSubfield = buildSubfieldRow(component, jmarc, table, field, newSubfield, place);
+        newSubfield = buildSubfieldRow(component, newSubfield, place);
         
         newSubfield.codeSpan.focus();
         document.execCommand("selectall", null, false);
@@ -1354,7 +1360,7 @@ function keyupAuthLookup(event) {
                                     let newSubfield = field.createSubfield(choiceSubfield.code, place);
                                     newSubfield.value = choiceSubfield.value;
                                     currentSubfield = newSubfield;
-                                    buildSubfieldRow(component, null, null, null, newSubfield, place);
+                                    buildSubfieldRow(component, newSubfield, place);
                                 }
                 
                                 currentSubfield.value = choiceSubfield.value;
