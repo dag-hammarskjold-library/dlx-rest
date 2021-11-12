@@ -845,7 +845,6 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     let tagCell = field.row.insertCell();
     field.tagCell = tagCell;
     tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
-    tagCell.setAttribute("data-toggle", "dropdown");
  
     let tagSpan = document.createElement("span");
     tagCell.append(tagSpan);
@@ -966,13 +965,16 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     tagCell.append(tagMenu);
     tagMenu.className = "dropdown-menu";
     tagMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    tagCell.setAttribute("data-toggle", "dropdown");
     tagSpan.setAttribute("data-toggle", "dropdown");
     
-    // hide menu
-    tagSpan.addEventListener("input", function() {
-        $(tagMenu).dropdown('toggle');
+    // hide menu when typing
+    tagSpan.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("toggle");
     });
-    
+
     // add field
     let addField = document.createElement("i");
     tagMenu.append(addField);
@@ -1045,15 +1047,12 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     let codeCell = subfield.row.insertCell();
     subfield.codeCell = codeCell;
     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
-    codeCell.setAttribute("data-toggle", "dropdown");
     
     let codeSpan = document.createElement("span");
     subfield.codeSpan = codeSpan;
     codeCell.append(codeSpan);
     codeSpan.contentEditable = true;
     codeSpan.innerText = subfield.code;
-    
-    codeSpan.setAttribute("data-toggle", "dropdown");
 
     codeSpan.addEventListener("input", function() {
         if (codeSpan.innerText.length > 1) {
@@ -1102,9 +1101,13 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     codeMenu.className = "dropdown-menu";
     codeMenu.style.cursor = "default";
     
-    // hide menu
-    codeSpan.addEventListener("input", function() {
-        $(codeMenu).dropdown('toggle')
+    // enable elems to toggle menu
+    codeCell.setAttribute("data-toggle", "dropdown");
+    codeSpan.setAttribute("data-toggle", "dropdown");
+    
+    // hide menu when typing
+    codeSpan.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("toggle")
     });
     
     // add subfield
