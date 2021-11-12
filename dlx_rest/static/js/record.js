@@ -703,6 +703,7 @@ export let multiplemarcrecordcomponent = {
             
             // Table body
             let tableBody = table.createTBody();
+            jmarc.tableBody = tableBody;
 
             // Workform fields
             // Possibly move to header
@@ -740,7 +741,7 @@ export let multiplemarcrecordcomponent = {
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
-                field = buildFieldRow(component, jmarc, table, tableBody, field);
+                field = buildFieldRow(component, field);
             }
             
             table.addEventListener("input", function() {
@@ -760,8 +761,12 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
-function buildFieldRow(component, jmarc, table, tableBody, field, place) {
-    field.row = tableBody.insertRow(place);
+function buildFieldRow(component, field, place) {
+    let jmarc = field.parentRecord;
+    let table = jmarc.table;
+    let tableBody = jmarc.tableBody;
+    
+    field.row = jmarc.tableBody.insertRow(place);
     
     // add the checkboxes
     let checkCell = field.row.insertCell();
@@ -845,7 +850,6 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     let tagCell = field.row.insertCell();
     field.tagCell = tagCell;
     tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
-    tagCell.setAttribute("data-toggle", "dropdown");
  
     let tagSpan = document.createElement("span");
     tagCell.append(tagSpan);
@@ -853,12 +857,8 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     tagSpan.contentEditable = true;
     tagSpan.innerText = field.tag;
     
-    tagSpan.addEventListener("input", function () {        
-        if (tagSpan.innerText.length > 3) {
-            // don't allow more than 3 chars
-            tagSpan.innerText = tagSpan.innerText.substring(0, 3)
-            document.execCommand("selectall");
-        }
+    tagSpan.addEventListener("input", function () {
+        tagSpan.style.background = null;
         
         field.tag = tagSpan.innerText;
         
@@ -894,17 +894,49 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
                 subfield.codeCell.classList.remove("subfield-code-unsaved");
                 subfield.codeCell.classList.add("subfield-code-saved");
                 
-                subfield.valueCell.classList.remove("subfield-value-usaved");
+                subfield.valueCell.classList.remove("subfield-value-unsaved");
                 subfield.valueCell.classList.add("subfield-value-saved");
             } 
         }
     });
+    
+    let metaKey = false;
     
     tagSpan.addEventListener("keydown", function (event) {
         // prevent newline and blur on return key
         if (event.keyCode === 13) {
             event.preventDefault();
             tagSpan.blur();
+        }
+        
+        // store control/command key press
+        if (event.keyCode === 17 || event.keyCode === 224) {
+            metaKey = true
+        }
+        
+        // prevent typing more than 3 characters
+        if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
+            tagSpan.innerText = ''
+        }
+    });
+    
+    tagSpan.addEventListener("keyup", function (event) {
+        // clear control/command key press
+        if (event.keyCode === 17 || event.keyCode === 224) {
+            metaKey = false
+        }
+    });
+    
+    tagSpan.addEventListener("blur", function() {
+        while (tagSpan.innerText.length < 3) {
+            tagSpan.innerText += '_';
+        }
+        
+        // move to css
+        if (! tagSpan.innerText.match(/^\d{3}/)) {
+            tagSpan.style.background = "LightCoral";
+        } else {
+            tagSpan.style.background = null;
         }
     });
 
@@ -922,43 +954,48 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
         tagCell.append(ind1Span);
-        ind1Span.className = "mx-1 text-secondary"
-        ind1Span.innerText = field.indicators[0] || " ";
-        ind1Span.contentEditable = true;
-        
-        ind1Span.addEventListener("input", function() {
-            if (ind1Span.innerText.length > 1) {    
-                ind1Span.innerText = ind1Span.innerText.substring(0, 1);
-                document.execCommand("selectall");
-            }
-            
-            field.indicators[0] = ind1Span.innerText;
-        });
-        
-        ind1Span.addEventListener("focus", function() {
-            ind1Span.focus();
-            document.execCommand("selectall");
-        });
         
         let ind2Span = document.createElement("span");
         tagCell.append(ind2Span);
-        ind2Span.className = "mx-1 text-secondary"
-        ind2Span.innerText = field.indicators[1]; // || " ";
-        ind2Span.contentEditable = true;
         
-        ind2Span.addEventListener("input", function() {
-            if (ind2Span.innerText.length > 1) {    
-                ind2Span.innerText = ind2Span.innerText.substring(0, 1);
-                document.execCommand("selectall");
-            }
+        for (let span of [ind1Span, ind2Span]) {
+            let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
+            span.className = "mx-1 text-secondary"
+            span.innerText = indicator;
+            span.contentEditable = true;
+        
+            span.addEventListener("input", function() {
+                if (span.innerText.length > 1) {    
+                    span.innerText = span.innerText.substring(0, 1);
+                    document.execCommand("selectall");
+                }
             
-            field.indicators[1] = ind2Span.innerText;
-        });
+                if (span == ind1Span) {
+                    field.indicators[0] = span.innerText;
+                } else {
+                    field.indicators[1] = span.innerText;
+                }
+            });
         
-        ind2Span.addEventListener("focus", function() {
-            ind2Span.focus();
-            document.execCommand("selectall");
-        });
+            span.addEventListener("focus", function() {
+                span.focus();
+                document.execCommand("selectall");
+            });
+        
+            span.addEventListener("keydown", function (event) {
+                // prevent newline and blur on return key
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    span.blur();
+                }
+            });
+            
+            span.addEventListener("blur", function() {
+                while (span.innerText.length < 1) {
+                    span.innerText += '_';
+                }
+            });
+        }
     }
         
     // menu
@@ -966,13 +1003,21 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     tagCell.append(tagMenu);
     tagMenu.className = "dropdown-menu";
     tagMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    tagCell.setAttribute("data-toggle", "dropdown");
     tagSpan.setAttribute("data-toggle", "dropdown");
     
-    // hide menu
-    tagSpan.addEventListener("input", function() {
-        $(tagMenu).dropdown('toggle');
+    // hide menu when typing
+    tagSpan.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("toggle");
     });
     
+    // returns the toggle control to default
+    tagCell.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("toggle");
+    });
+
     // add field
     let addField = document.createElement("i");
     tagMenu.append(addField);
@@ -987,7 +1032,7 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
         newSubfield.code = "_";
         newSubfield.value = "";
         
-        newField = buildFieldRow(component, jmarc, table, tableBody, newField, field.row.rowIndex - 1);
+        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
         newField.tagSpan.focus();
         document.execCommand("selectall");
         newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
@@ -1027,13 +1072,13 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     
     // Datafield
     for (let subfield of field.subfields) {
-        buildSubfieldRow(component, jmarc, fieldTable, field, subfield);   
+        buildSubfieldRow(component, subfield);   
     }
     
     return field
 }
 
-function buildSubfieldRow(component, z, y, x, subfield, place) {
+function buildSubfieldRow(component, subfield, place) {
     let field = subfield.parentField;
     let table = field.fieldTable;
     let jmarc = field.parentRecord;
@@ -1045,17 +1090,16 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     let codeCell = subfield.row.insertCell();
     subfield.codeCell = codeCell;
     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
-    codeCell.setAttribute("data-toggle", "dropdown");
     
     let codeSpan = document.createElement("span");
     subfield.codeSpan = codeSpan;
     codeCell.append(codeSpan);
     codeSpan.contentEditable = true;
     codeSpan.innerText = subfield.code;
-    
-    codeSpan.setAttribute("data-toggle", "dropdown");
 
     codeSpan.addEventListener("input", function() {
+        codeSpan.style.background = null;
+        
         if (codeSpan.innerText.length > 1) {
             // don't allow more than 1 char
             codeSpan.innerText = codeSpan.innerText.substring(0, 1)
@@ -1093,7 +1137,20 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     });
     
     subfield.codeSpan.addEventListener("focus", function() {
-        document.execCommand("selectall", null, false);
+        document.execCommand("selectall");
+    });
+    
+    codeSpan.addEventListener("blur", function() {
+        while (codeSpan.innerText.length < 1) {
+            codeSpan.innerText += '_';
+        }
+        
+        // move to css
+        if (codeSpan.innerText === '_') {
+            codeSpan.style.background = "LightCoral";
+        } else {
+            codeSpan.style.background = null;
+        }
     });
     
     // menu
@@ -1102,9 +1159,18 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     codeMenu.className = "dropdown-menu";
     codeMenu.style.cursor = "default";
     
-    // hide menu
-    codeSpan.addEventListener("input", function() {
-        $(codeMenu).dropdown('toggle')
+    // enable elems to toggle menu
+    codeCell.setAttribute("data-toggle", "dropdown");
+    codeSpan.setAttribute("data-toggle", "dropdown");
+    
+    // hide menu when typing
+    codeSpan.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("toggle")
+    });
+    
+    // return toggle to default
+    codeCell.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("toggle")
     });
     
     // add subfield
@@ -1117,7 +1183,7 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
         let place = field.subfields.indexOf(subfield) + 1;
         let newSubfield = field.createSubfield("_", place);
         newSubfield.value = "";
-        newSubfield = buildSubfieldRow(component, jmarc, table, field, newSubfield, place);
+        newSubfield = buildSubfieldRow(component, newSubfield, place);
         
         newSubfield.codeSpan.focus();
         document.execCommand("selectall", null, false);
@@ -1322,7 +1388,7 @@ function keyupAuthLookup(event) {
                                     let newSubfield = field.createSubfield(choiceSubfield.code, place);
                                     newSubfield.value = choiceSubfield.value;
                                     currentSubfield = newSubfield;
-                                    buildSubfieldRow(component, null, null, null, newSubfield, place);
+                                    buildSubfieldRow(component, newSubfield, place);
                                 }
                 
                                 currentSubfield.value = choiceSubfield.value;
