@@ -352,9 +352,15 @@ export class Jmarc {
     
     post() {
 		if (this.recordId) {
-			throw new Error("Can't POST existing record")
+			return Promise.reject("Can't POST existing record")
 		}
-		
+        
+        try {
+            this.validate();
+		} catch (error) {
+		    return Promise.reject(error)
+		}
+        
 		let savedResponse;
 
 		return fetch(
@@ -366,8 +372,8 @@ export class Jmarc {
 			}	
 		).then(
 			response => {
-                this.validate();
                 savedResponse = response;
+                
 				return response.json()
 			}
 		).then(
@@ -387,7 +393,13 @@ export class Jmarc {
 
 	put() {
 		if (! this.recordId) {
-			throw new Error("Can't PUT new record")
+			return Promise.reject("Can't PUT new record")
+		}
+        
+        try {
+            this.validate();
+		} catch (error) {
+		    return Promise.reject(error)
 		}
 		
 		let savedResponse;
@@ -401,11 +413,8 @@ export class Jmarc {
 			}	
 		).then(
 			response => {
-                this.validate();
 				savedResponse = response;
-                
-                
-                
+
 				return response.json();
 			}
 		).then(
