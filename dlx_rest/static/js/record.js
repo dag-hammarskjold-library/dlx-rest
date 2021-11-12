@@ -852,13 +852,7 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     tagSpan.contentEditable = true;
     tagSpan.innerText = field.tag;
     
-    tagSpan.addEventListener("input", function () {        
-        if (tagSpan.innerText.length > 3) {
-            // don't allow more than 3 chars
-            tagSpan.innerText = tagSpan.innerText.substring(0, 3)
-            document.execCommand("selectall");
-        }
-        
+    tagSpan.addEventListener("input", function () {
         field.tag = tagSpan.innerText;
         
         let savedState = new Jmarc(jmarc.collection);
@@ -899,11 +893,35 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
         }
     });
     
+    let metaKey = false;
+    
     tagSpan.addEventListener("keydown", function (event) {
         // prevent newline and blur on return key
         if (event.keyCode === 13) {
             event.preventDefault();
             tagSpan.blur();
+        }
+        
+        // store control/command key press
+        if (event.keyCode === 17 || event.keyCode === 224) {
+            metaKey == true
+        }
+        
+        // prevent typing more than 3 characters
+        if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
+            tagSpan.innerText = ''
+        }
+    });
+    
+    tagSpan.addEventListener("keyup", function (event) {
+        if (event.keyCode === 17 || event.keyCode === 224) {
+            metaKey == false
+        }
+    });
+    
+    tagSpan.addEventListener("blur", function() {
+        while (tagSpan.innerText.length < 3) {
+            tagSpan.innerText += '_';
         }
     });
 
@@ -921,43 +939,48 @@ function buildFieldRow(component, jmarc, table, tableBody, field, place) {
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
         tagCell.append(ind1Span);
-        ind1Span.className = "mx-1 text-secondary"
-        ind1Span.innerText = field.indicators[0] || " ";
-        ind1Span.contentEditable = true;
-        
-        ind1Span.addEventListener("input", function() {
-            if (ind1Span.innerText.length > 1) {    
-                ind1Span.innerText = ind1Span.innerText.substring(0, 1);
-                document.execCommand("selectall");
-            }
-            
-            field.indicators[0] = ind1Span.innerText;
-        });
-        
-        ind1Span.addEventListener("focus", function() {
-            ind1Span.focus();
-            document.execCommand("selectall");
-        });
         
         let ind2Span = document.createElement("span");
         tagCell.append(ind2Span);
-        ind2Span.className = "mx-1 text-secondary"
-        ind2Span.innerText = field.indicators[1]; // || " ";
-        ind2Span.contentEditable = true;
         
-        ind2Span.addEventListener("input", function() {
-            if (ind2Span.innerText.length > 1) {    
-                ind2Span.innerText = ind2Span.innerText.substring(0, 1);
-                document.execCommand("selectall");
-            }
+        for (let span of [ind1Span, ind2Span]) {
+            let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
+            span.className = "mx-1 text-secondary"
+            span.innerText = indicator;
+            span.contentEditable = true;
+        
+            span.addEventListener("input", function() {
+                if (span.innerText.length > 1) {    
+                    span.innerText = span.innerText.substring(0, 1);
+                    document.execCommand("selectall");
+                }
             
-            field.indicators[1] = ind2Span.innerText;
-        });
+                if (span == ind1Span) {
+                    field.indicators[0] = span.innerText;
+                } else {
+                    field.indicators[1] = span.innerText;
+                }
+            });
         
-        ind2Span.addEventListener("focus", function() {
-            ind2Span.focus();
-            document.execCommand("selectall");
-        });
+            span.addEventListener("focus", function() {
+                span.focus();
+                document.execCommand("selectall");
+            });
+        
+            span.addEventListener("keydown", function (event) {
+                // prevent newline and blur on return key
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    span.blur();
+                }
+            });
+            
+            span.addEventListener("blur", function() {
+                while (span.innerText.length < 1) {
+                    span.innerText += '_';
+                }
+            });
+        }
     }
         
     // menu
@@ -1092,7 +1115,13 @@ function buildSubfieldRow(component, z, y, x, subfield, place) {
     });
     
     subfield.codeSpan.addEventListener("focus", function() {
-        document.execCommand("selectall", null, false);
+        document.execCommand("selectall");
+    });
+    
+    codeSpan.addEventListener("blur", function() {
+        while (codeSpan.innerText.length < 1) {
+            codeSpan.innerText += '_';
+        }
     });
     
     // menu
