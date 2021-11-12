@@ -858,6 +858,8 @@ function buildFieldRow(component, field, place) {
     tagSpan.innerText = field.tag;
     
     tagSpan.addEventListener("input", function () {
+        tagSpan.style.background = null;
+        
         field.tag = tagSpan.innerText;
         
         let savedState = new Jmarc(jmarc.collection);
@@ -892,7 +894,7 @@ function buildFieldRow(component, field, place) {
                 subfield.codeCell.classList.remove("subfield-code-unsaved");
                 subfield.codeCell.classList.add("subfield-code-saved");
                 
-                subfield.valueCell.classList.remove("subfield-value-usaved");
+                subfield.valueCell.classList.remove("subfield-value-unsaved");
                 subfield.valueCell.classList.add("subfield-value-saved");
             } 
         }
@@ -928,6 +930,13 @@ function buildFieldRow(component, field, place) {
     tagSpan.addEventListener("blur", function() {
         while (tagSpan.innerText.length < 3) {
             tagSpan.innerText += '_';
+        }
+        
+        // move to css
+        if (! tagSpan.innerText.match(/^\d{3}/)) {
+            tagSpan.style.background = "LightCoral";
+        } else {
+            tagSpan.style.background = null;
         }
     });
 
@@ -1001,6 +1010,11 @@ function buildFieldRow(component, field, place) {
     
     // hide menu when typing
     tagSpan.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("toggle");
+    });
+    
+    // returns the toggle control to default
+    tagCell.addEventListener("keydown", function() {
         $(tagMenu).dropdown("toggle");
     });
 
@@ -1084,6 +1098,8 @@ function buildSubfieldRow(component, subfield, place) {
     codeSpan.innerText = subfield.code;
 
     codeSpan.addEventListener("input", function() {
+        codeSpan.style.background = null;
+        
         if (codeSpan.innerText.length > 1) {
             // don't allow more than 1 char
             codeSpan.innerText = codeSpan.innerText.substring(0, 1)
@@ -1128,6 +1144,13 @@ function buildSubfieldRow(component, subfield, place) {
         while (codeSpan.innerText.length < 1) {
             codeSpan.innerText += '_';
         }
+        
+        // move to css
+        if (codeSpan.innerText === '_') {
+            codeSpan.style.background = "LightCoral";
+        } else {
+            codeSpan.style.background = null;
+        }
     });
     
     // menu
@@ -1142,6 +1165,11 @@ function buildSubfieldRow(component, subfield, place) {
     
     // hide menu when typing
     codeSpan.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("toggle")
+    });
+    
+    // return toggle to default
+    codeCell.addEventListener("keydown", function() {
         $(codeMenu).dropdown("toggle")
     });
     
