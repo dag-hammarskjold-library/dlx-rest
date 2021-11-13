@@ -878,24 +878,14 @@ function buildFieldRow(component, field, place) {
             let checkSubfield = checkField ? checkField.subfields[i] : null;
 
             if (! checkField || field.tag !== checkField.tag || ! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-                field.tagCell.classList.remove("field-tag-saved");
                 field.tagCell.classList.add("field-tag-unsaved");
-                
-                subfield.codeCell.classList.remove("subfield-code-saved");
                 subfield.codeCell.classList.add("subfield-code-unsaved");
-                
-                subfield.valueCell.classList.remove("subfield-value-saved");
                 subfield.valueCell.classList.add("subfield-value-unsaved");
             } 
             else {
-                field.tagCell.classList.remove("field-tag-saved");
-                field.tagCell.classList.add("field-tag-unsaved");
-                
+                field.tagCell.classList.remove("field-tag-unsaved");
                 subfield.codeCell.classList.remove("subfield-code-unsaved");
-                subfield.codeCell.classList.add("subfield-code-saved");
-                
                 subfield.valueCell.classList.remove("subfield-value-unsaved");
-                subfield.valueCell.classList.add("subfield-value-saved");
             } 
         }
     });
@@ -910,7 +900,7 @@ function buildFieldRow(component, field, place) {
         }
         
         // store control/command key press
-        if (event.keyCode === 17 || event.keyCode === 224) {
+        if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
             metaKey = true
         }
         
@@ -922,7 +912,7 @@ function buildFieldRow(component, field, place) {
     
     tagSpan.addEventListener("keyup", function (event) {
         // clear control/command key press
-        if (event.keyCode === 17 || event.keyCode === 224) {
+        if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
             metaKey = false
         }
     });
@@ -950,7 +940,6 @@ function buildFieldRow(component, field, place) {
     });
 
     // Indicators
-    //can be refactored
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
         tagCell.append(ind1Span);
@@ -967,7 +956,6 @@ function buildFieldRow(component, field, place) {
             span.addEventListener("input", function() {
                 if (span.innerText.length > 1) {    
                     span.innerText = span.innerText.substring(0, 1);
-                    document.execCommand("selectall");
                 }
             
                 if (span == ind1Span) {
@@ -975,11 +963,6 @@ function buildFieldRow(component, field, place) {
                 } else {
                     field.indicators[1] = span.innerText;
                 }
-            });
-        
-            span.addEventListener("focus", function() {
-                span.focus();
-                document.execCommand("selectall");
             });
         
             span.addEventListener("keydown", function (event) {
@@ -1109,16 +1092,14 @@ function buildSubfieldRow(component, subfield, place) {
         let checkSubfield = checkField ? checkField.subfields[i] : null;
 
         if (! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-            subfield.codeCell.classList.add("subfield-code-saved");
             subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.valueCell.classList.remove("subfield-value-saved");
+            subfield.codeCell.classList.add("subfield-code-unsaved");
             subfield.valueCell.classList.add("subfield-value-unsaved");
         } 
         else {
-            subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.codeCell.classList.add("subfield-code-saved");
+            subfield.codeCell.classList.remove("subfield-code-unsaved");
+            subfield.codeCell.classList.remove("subfield-code-unsaved");
             subfield.valueCell.classList.remove("subfield-value-unsaved");
-            subfield.valueCell.classList.add("subfield-value-saved");
         }
     });
     
@@ -1128,10 +1109,6 @@ function buildSubfieldRow(component, subfield, place) {
             event.preventDefault();
             codeSpan.blur();
         }
-    });
-    
-    subfield.codeSpan.addEventListener("focus", function() {
-        document.execCommand("selectall");
     });
     
     codeSpan.addEventListener("blur", function() {
@@ -1174,7 +1151,7 @@ function buildSubfieldRow(component, subfield, place) {
         newSubfield = buildSubfieldRow(component, newSubfield, place);
         
         newSubfield.codeSpan.focus();
-        document.execCommand("selectall", null, false);
+        document.execCommand("selectall");
         
         newSubfield.valueCell.classList.add("subfield-value-unsaved");
         saveButton.classList.add("text-danger");
@@ -1230,12 +1207,10 @@ function buildSubfieldRow(component, subfield, place) {
         let checkSubfield = checkField ? checkField.subfields[i] : null;
         
         if (! checkSubfield || subfield.value !== checkSubfield.value) {
-            valCell.classList.remove("subfield-value-saved");
             valCell.classList.add("subfield-value-unsaved");
         } 
         else {
             valCell.classList.remove("subfield-value-unsaved");
-            valCell.classList.add("subfield-value-saved");
         }
     });
     
