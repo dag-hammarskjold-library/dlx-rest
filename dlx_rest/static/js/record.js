@@ -1006,18 +1006,12 @@ function buildFieldRow(component, field, place) {
     
     // enable elems to toggle menu
     tagCell.setAttribute("data-toggle", "dropdown");
-    tagSpan.setAttribute("data-toggle", "dropdown");
     
     // hide menu when typing
     tagSpan.addEventListener("keydown", function() {
-        $(tagMenu).dropdown("toggle");
+        $(tagMenu).dropdown("hide");
     });
     
-    // returns the toggle control to default
-    tagCell.addEventListener("keydown", function() {
-        $(tagMenu).dropdown("toggle");
-    });
-
     // add field
     let addField = document.createElement("i");
     tagMenu.append(addField);
@@ -1161,16 +1155,10 @@ function buildSubfieldRow(component, subfield, place) {
     
     // enable elems to toggle menu
     codeCell.setAttribute("data-toggle", "dropdown");
-    codeSpan.setAttribute("data-toggle", "dropdown");
     
     // hide menu when typing
     codeSpan.addEventListener("keydown", function() {
-        $(codeMenu).dropdown("toggle")
-    });
-    
-    // return toggle to default
-    codeCell.addEventListener("keydown", function() {
-        $(codeMenu).dropdown("toggle")
+        $(codeMenu).dropdown("hide")
     });
     
     // add subfield
