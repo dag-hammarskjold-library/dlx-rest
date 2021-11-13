@@ -846,16 +846,62 @@ function buildFieldRow(component, field, place) {
         //console.log("le tableau contient : " +  that.listElemToCopy.length)
     });
 
-    // Tag + inds
+    // Tag cell
     let tagCell = field.row.insertCell();
     field.tagCell = tagCell;
     tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
- 
+    
+    // menu
+    let tagMenu = document.createElement("div");
+    tagCell.append(tagMenu);
+    tagMenu.className = "dropdown-menu";
+    tagMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    tagCell.setAttribute("data-toggle", "dropdown");
+
+    // menu item add field
+    let addField = document.createElement("i");
+    tagMenu.append(addField);
+    addField.className = "dropdown-item";
+    addField.innerText = "Add field";
+    
+    addField.addEventListener("click", function() {
+        let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+        newField.indicators = ["_", "_"];
+        
+        let newSubfield = newField.createSubfield();
+        newSubfield.code = "_";
+        newSubfield.value = "";
+        
+        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
+        newField.tagSpan.focus();
+        document.execCommand("selectall");
+        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
+
+        return
+    });
+    
+    // menu item delete field
+    let deleteField = document.createElement("i");
+    tagMenu.append(deleteField);
+    deleteField.className = "dropdown-item";
+    deleteField.innerText = "Delete field";
+    
+    deleteField.addEventListener("click", function() {
+        jmarc.deleteField(field);
+        table.deleteRow(field.row.rowIndex);
+    });
+    
+    // Tag span
     let tagSpan = document.createElement("span");
     tagCell.append(tagSpan);
     field.tagSpan = tagSpan;
     tagSpan.contentEditable = true;
     tagSpan.innerText = field.tag;
+    
+    // for storing the state of the contro/command keypress
+    let metaKey = false;
     
     tagSpan.addEventListener("input", function () {
         tagSpan.style.background = null;
@@ -889,8 +935,6 @@ function buildFieldRow(component, field, place) {
             } 
         }
     });
-    
-    let metaKey = false;
     
     tagSpan.addEventListener("keydown", function (event) {
         // prevent newline and blur on return key
@@ -939,6 +983,16 @@ function buildFieldRow(component, field, place) {
         document.execCommand("selectall", null, false);
     });
 
+    // keep menu on click
+    tagSpan.addEventListener("click", function() {
+        $(tagMenu).dropdown("hide");
+    });
+    
+    // hide menu when typing
+    tagSpan.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("hide");
+    });
+    
     // Indicators
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
@@ -978,55 +1032,18 @@ function buildFieldRow(component, field, place) {
                     span.innerText += '_';
                 }
             });
+            
+            // keep menu on click
+            span.addEventListener("click", function() {
+                $(tagMenu).dropdown("hide");
+            });
+    
+            // hide menu when typing
+            span.addEventListener("keydown", function() {
+                $(tagMenu).dropdown("hide")
+            });
         }
     }
-        
-    // menu
-    let tagMenu = document.createElement("div");
-    tagCell.append(tagMenu);
-    tagMenu.className = "dropdown-menu";
-    tagMenu.style.cursor = "default";
-    
-    // enable elems to toggle menu
-    tagCell.setAttribute("data-toggle", "dropdown");
-    
-    // hide menu when typing
-    tagSpan.addEventListener("keydown", function() {
-        $(tagMenu).dropdown("hide");
-    });
-    
-    // add field
-    let addField = document.createElement("i");
-    tagMenu.append(addField);
-    addField.className = "dropdown-item";
-    addField.innerText = "Add field";
-    
-    addField.addEventListener("click", function() {
-        let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-        newField.indicators = ["_", "_"];
-        
-        let newSubfield = newField.createSubfield();
-        newSubfield.code = "_";
-        newSubfield.value = "";
-        
-        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
-        newField.tagSpan.focus();
-        document.execCommand("selectall");
-        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
-
-        return
-    });
-    
-    // delete field
-    let deleteField = document.createElement("i");
-    tagMenu.append(deleteField);
-    deleteField.className = "dropdown-item";
-    deleteField.innerText = "Delete field";
-    
-    deleteField.addEventListener("click", function() {
-        jmarc.deleteField(field);
-        table.deleteRow(field.row.rowIndex);
-    });
     
     // Field table
     let fieldCell = field.row.insertCell();
@@ -1068,11 +1085,30 @@ function buildSubfieldRow(component, subfield, place) {
     subfield.codeCell = codeCell;
     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
     
+    // menu
+    let codeMenu = document.createElement("div");
+    codeCell.append(codeMenu);
+    codeMenu.className = "dropdown-menu";
+    codeMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    codeCell.setAttribute("data-toggle", "dropdown");
+    
     let codeSpan = document.createElement("span");
     subfield.codeSpan = codeSpan;
     codeCell.append(codeSpan);
     codeSpan.contentEditable = true;
     codeSpan.innerText = subfield.code;
+    
+    // keep menu on click
+    codeSpan.addEventListener("click", function() {
+        $(codeMenu).dropdown("hide");
+    });
+    
+    // hide menu when typing
+    codeSpan.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("hide")
+    });
 
     codeSpan.addEventListener("input", function() {
         codeSpan.style.background = null;
@@ -1122,20 +1158,6 @@ function buildSubfieldRow(component, subfield, place) {
         } else {
             codeSpan.style.background = null;
         }
-    });
-    
-    // menu
-    let codeMenu = document.createElement("div");
-    codeCell.append(codeMenu);
-    codeMenu.className = "dropdown-menu";
-    codeMenu.style.cursor = "default";
-    
-    // enable elems to toggle menu
-    codeCell.setAttribute("data-toggle", "dropdown");
-    
-    // hide menu when typing
-    codeSpan.addEventListener("keydown", function() {
-        $(codeMenu).dropdown("hide")
     });
     
     // add subfield
