@@ -1,0 +1,7 @@
+# These libraries are required to deploy the app but may not be installed in the 
+# host environment(?). Use `zappa tail` to detect import errors during the build.
+# Install them locally to include them in the deployment package.
+
+dataclasses
+importlib_metadata
+typing_extensions
