@@ -378,6 +378,7 @@ export let multiplemarcrecordcomponent = {
             saveButton.id="saveButton"
             saveButton.type = "button";
             saveButton.value = "save";
+            saveButton.title = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
             saveButton.setAttribute("data-toggle", "dropdown");
 
@@ -481,6 +482,7 @@ export let multiplemarcrecordcomponent = {
             cloneButton.type = "button";
             cloneButton.value = "clone";
             cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1 record-control"
+            cloneButton.title = "clone record";
             
             cloneButton.onclick = () => {
                 let recup = jmarc.clone();
@@ -506,6 +508,7 @@ export let multiplemarcrecordcomponent = {
             pasteButton.type = "button";
             pasteButton.value = "paste";
             pasteButton.className = "far fa-arrow-alt-circle-down text-warning float-left mr-2 mt-1 record-control"
+            pasteButton.title = "paste checked fields"
             
             pasteButton.onclick = () => {
                 for (let field of component.copiedFields || []) {
