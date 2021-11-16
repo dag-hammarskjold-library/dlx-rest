@@ -447,6 +447,12 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                        
+                        for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                            for (let subfield of field.subfields) {
+                                subfield.copied = false;
+                            }
+                        }
                     }).catch(error => {
                         this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                     });
@@ -503,21 +509,43 @@ export let multiplemarcrecordcomponent = {
             
             pasteButton.onclick = () => {
                 for (let field of component.copiedFields || []) {
-                    let newField = Object.assign(field);
-                    jmarc.fields.push(newField);
-                    newField.parentRecord = jmarc; // necessary since the field was created outide the record
+                    // recreate the field
+                    let newField = jmarc.createField(field.tag);
+                    newField.indicators = field.indicators || ["_", "_"];
                     
-                    component.removeRecordFromEditor(jmarc.div.id);
-                    component.displayMarcRecord(jmarc);
+                    for (let subfield of field.subfields) {
+                        let newSubfield = newField.createSubfield(subfield.code);
+                        newSubfield.value = subfield.value;
+                        newSubfield.xref = subfield.xref;
+                        newSubfield.copied = true;
+                    }
                 }
-
-                // clear the list of Items
+                
+                // clear the list of copied items
                 component.copiedFields = [];
                 
                 // clear all checkboxes
                 for (let checkbox of document.getElementsByClassName("field-checkbox")) {
                     checkbox.checked = false;
                 }
+                
+                // refresh    
+                component.removeRecordFromEditor(jmarc.div.id);
+                component.displayMarcRecord(jmarc);
+                
+                for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                    for (let subfield of field.subfields.filter(x => x.copied)) {
+                        // subfield acquires valueCell after refresh
+                        subfield.valueCell.classList.add("subfield-value-unsaved")
+                    }
+                }
+                
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "unsaved changes";
+                
+                // display unsaved changes
+                //checkSavedState(jmarc); // not implemented
             };
 
             if (this.readonly && this.user !== null) {
