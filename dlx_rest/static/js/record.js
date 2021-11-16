@@ -82,6 +82,7 @@ export let multiplemarcrecordcomponent = {
     },
     created: async function() {
         Jmarc.apiUrl = this.prefix;
+        this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
 
         let myProfile = await user.getProfile(this.prefix, 'my_profile');
@@ -132,7 +133,7 @@ export let multiplemarcrecordcomponent = {
             // // only record1 displayed
             if (this.isRecordOneDisplayed == true && this.isRecordTwoDisplayed == false){
                 let myDiv=document.getElementById("records")
-                
+
                 // change the class
                 myDiv.className="ml-3"
 
@@ -143,7 +144,7 @@ export let multiplemarcrecordcomponent = {
                 myRecord1.className="col-sm-12 mt-1"
 
                 // change the styling of the table
-                table.style.width="100%"
+                //table.style.width="100%"
 
             }
 
@@ -185,7 +186,7 @@ export let multiplemarcrecordcomponent = {
                 myRecord2.className="col-sm-6 mt-1"
 
                 // change the styling of the table
-                table.style.width=""
+                //table.style.width=""
     
             }
         },
@@ -233,11 +234,9 @@ export let multiplemarcrecordcomponent = {
         canDisplay() {
             if (recup.collectionRecord1==="auths" && recup.collectionRecord2==="auths"){
                 return true
-                console.log("true")
             } 
             else {
                 return false
-                console.log("false")
             }
         },
         callChangeStyling(myText, myStyle) {
@@ -269,10 +268,11 @@ export let multiplemarcrecordcomponent = {
             })
 
         },
-        removeRecordFromEditor(recordID) {
+        removeRecordFromEditor(divID) {
             /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
             // get the parent
-            if (recordID === "record1") {
+            
+            if (divID === "record1") {
                 // remove the div
                 let myDiv = document.getElementById("record1")
                 myDiv.children[1].remove()
@@ -281,8 +281,8 @@ export let multiplemarcrecordcomponent = {
                 this.isRecordOneDisplayed = false
                 this.collectionRecord1=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
-            }
-            if (recordID === "record2") {
+            } 
+            else if (divID === "record2") {
                 let myDiv = document.getElementById("record2")
                 // remove the div
                 myDiv.children[1].remove()
@@ -291,7 +291,10 @@ export let multiplemarcrecordcomponent = {
                 this.isRecordTwoDisplayed = false
                 this.collectionRecord2=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+            } else {
+                 // replace record?
             }
+            
             // optimize the display
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
@@ -311,6 +314,9 @@ export let multiplemarcrecordcomponent = {
                 this.isRecordTwoDisplayed = true
                 this.record2 = jmarc.recordId;
                 this.collectionRecord2 = jmarc.collection; // used for auth merge
+            }
+            else {
+                // replace record?
             }
             
             jmarc.div = document.getElementById(myDivId);
@@ -372,6 +378,7 @@ export let multiplemarcrecordcomponent = {
             saveButton.id="saveButton"
             saveButton.type = "button";
             saveButton.value = "save";
+            saveButton.title = "save";
             saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
             saveButton.setAttribute("data-toggle", "dropdown");
 
@@ -441,6 +448,12 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                        
+                        for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                            for (let subfield of field.subfields) {
+                                subfield.copied = false;
+                            }
+                        }
                     }).catch(error => {
                         this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                     });
@@ -469,6 +482,7 @@ export let multiplemarcrecordcomponent = {
             cloneButton.type = "button";
             cloneButton.value = "clone";
             cloneButton.className = "fas fa-copy text-warning float-left mr-2 mt-1 record-control"
+            cloneButton.title = "clone record";
             
             cloneButton.onclick = () => {
                 let recup = jmarc.clone();
@@ -494,76 +508,47 @@ export let multiplemarcrecordcomponent = {
             pasteButton.type = "button";
             pasteButton.value = "paste";
             pasteButton.className = "far fa-arrow-alt-circle-down text-warning float-left mr-2 mt-1 record-control"
-            let xxx=this    
+            pasteButton.title = "paste checked fields"
+            
             pasteButton.onclick = () => {
-                // retrieve length of the list
-                let sizeSubfields=xxx.listElemToCopy.length
-
-                // browse the list in order to find the records eligible for pasting
-                for (let i = 0; i < sizeSubfields; i++) {
-
-                    if (jmarc.collection==xxx.listElemToCopy[i].collection){
-
-                        // check the different recordIDs
-                        if (jmarc.recordId!=xxx.listElemToCopy[i].recordIdToCopy){
-                            
-                            // instanciate a new jmarc with the data of the new field to display and add the field
-                            jmarc.fields.push(xxx.listElemToCopy[i].fieldToCopy)  
-                            
-                            // ///////// we probably should refactor this part using a function
-                            // let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
-
-                            // promise.then(
-                            //     jmarc => {
-                            //         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                            //         this.displayMarcRecord(jmarc, false);
-                            //         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                            //     }
-                            // ).catch(
-                            //     error => {
-                            //         this.callChangeStyling(error.message,"row alert alert-danger")
-                            //     }
-                            // );
-
-                            // clear all the checkboxes using jquery jajajaja
-                            $('input[type=checkbox]').prop('checked', false);
-
-                            this.callChangeStyling("Field copied, click save button to see the changes", "row alert alert-success")
-
-
-                        }
-                        else
-                        {
-                            this.callChangeStyling("Oops , please destination and source records should be different ", "row alert alert-danger")
-                            return
-                        }
-
-                    } 
-                    else 
-                    {
-                        this.callChangeStyling("Oops , please destination and source records should have the same collection ", "row alert alert-danger")
-                        return
+                for (let field of component.copiedFields || []) {
+                    // recreate the field
+                    let newField = jmarc.createField(field.tag);
+                    newField.indicators = field.indicators || ["_", "_"];
+                    
+                    for (let subfield of field.subfields) {
+                        let newSubfield = newField.createSubfield(subfield.code);
+                        newSubfield.value = subfield.value;
+                        newSubfield.xref = subfield.xref;
+                        newSubfield.copied = true;
                     }
-
                 }
-
-                ///////// we probably should refactor this part using a function
-                let promise = jmarc.recordId === null ? jmarc.post() : jmarc.put();
-
-                promise.then(
-                    jmarc => {
-                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                        this.displayMarcRecord(jmarc, false);
-                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                
+                // clear the list of copied items
+                component.copiedFields = [];
+                
+                // clear all checkboxes
+                for (let checkbox of document.getElementsByClassName("field-checkbox")) {
+                    checkbox.checked = false;
+                }
+                
+                // refresh    
+                component.removeRecordFromEditor(jmarc.div.id);
+                component.displayMarcRecord(jmarc);
+                
+                for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                    for (let subfield of field.subfields.filter(x => x.copied)) {
+                        // subfield acquires valueCell after refresh
+                        subfield.valueCell.classList.add("subfield-value-unsaved")
                     }
-                ).catch(
-                    error => {
-                        this.callChangeStyling(error.message,"row alert alert-danger")
-                    }
-                );
-
-                // clear the list of Items
-                xxx.clearItemsToPast()
+                }
+                
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "unsaved changes";
+                
+                // display unsaved changes
+                //checkSavedState(jmarc); // not implemented
             };
 
             if (this.readonly && this.user !== null) {
@@ -772,6 +757,7 @@ function buildFieldRow(component, field, place) {
     let checkCell = field.row.insertCell();
     checkCell.style = "vertical-align: top";
     let inputCheckboxCell = document.createElement("input");
+    inputCheckboxCell.className = "field-checkbox";
     inputCheckboxCell.setAttribute("type","checkbox")
     checkCell.appendChild(inputCheckboxCell)
     
@@ -779,71 +765,18 @@ function buildFieldRow(component, field, place) {
     let that = component;
 
     // define the on click event
-    checkCell.addEventListener('click', (e)=>{
-
-        console.log("the value is : " + e.target.checked)
-        console.log("the collection is: "+ jmarc.collection)
-        
+    checkCell.addEventListener('click', (e)=> {
         // check if the box is checked
-        if (e.target.checked==true){
-            // mark the jmarc field as selected
-            field.checked = true;
-
-            // retrieve data in order to populate elemeToCopy
-            that.elementToCopy.collection=jmarc.collection
-            that.elementToCopy.recordIdToCopy=jmarc.recordId
-            that.elementToCopy.fieldToCopy=field
+        if (e.target.checked === true){
             
-            // add the element inside the list
-            that.listElemToCopy.push(that.elementToCopy)
             
-            // release the element
-            that.elementToCopy={}
-
-            // display content list
-            // for (let i = 0; i < that.listElemToCopy.length; i++) {
-            //     console.log("-----------------")
-            //     console.log("tag: "+ that.listElemToCopy[i].fieldToCopy.tag)
-            //     let sizeSubfields=that.listElemToCopy[i].fieldToCopy.subfields.length
-            //     for (let j = 0; j < sizeSubfields; j++) {
-            //         console.log("code: "+ that.listElemToCopy[i].fieldToCopy.subfields[j].code)
-            //         console.log("value: "+that.listElemToCopy[i].fieldToCopy.subfields[j].value)
-            //         if (that.listElemToCopy[i].fieldToCopy.subfields[j].xref){
-            //             console.log("value: "+that.listElemToCopy[i].fieldToCopy.subfields[j].value)
-            //         }
-            //     }
-            // }
-
-        }
-        if (e.target.checked==false) // browse the list and find the element to remove
-        {
-            // mark the jmarc field as unselected
-            field.checked = false;
-            
-            // console.log("valeur liste : " + that.listElemToCopy[0].fieldToCopy.tag)
-            // console.log("valeur field : " + field.tag)
-
-            for (let i = 0; i < that.listElemToCopy.length; i++) {
-                if (that.listElemToCopy[i].fieldToCopy.tag == field.tag) {
-                    console.log("la valeur du field est:" + field.tag)
-                        let findRecord=true
-                        let sizeSubfields=that.listElemToCopy[i].fieldToCopy.subfields.length
-                        for (let j = 0; j < sizeSubfields; j++) {
-                            if (that.listElemToCopy[i].fieldToCopy.subfields[j].code!=field.subfields[j].code || that.listElemToCopy[i].fieldToCopy.subfields[j].value!=field.subfields[j].value){
-                                findRecord=false
-                            }
-                        }
-
-                        if (findRecord) {
-                            // remove the value from the list
-                            that.listElemToCopy.splice(i,1)
-                        }
-
-                    }
-                }
-            
-        }
-        //console.log("le tableau contient : " +  that.listElemToCopy.length)
+            component.copiedFields.push(field);
+        } else {
+           if (component.copiedFields) {
+               // remove from the list of copied fields
+               component.copiedFields.splice(component.copiedFields.indexOf(field, 1))
+           }
+        }    
     });
 
     // Tag + inds
