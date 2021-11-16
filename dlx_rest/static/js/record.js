@@ -779,16 +779,62 @@ function buildFieldRow(component, field, place) {
         }    
     });
 
-    // Tag + inds
+    // Tag cell
     let tagCell = field.row.insertCell();
     field.tagCell = tagCell;
     tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
- 
+    
+    // menu
+    let tagMenu = document.createElement("div");
+    tagCell.append(tagMenu);
+    tagMenu.className = "dropdown-menu";
+    tagMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    tagCell.setAttribute("data-toggle", "dropdown");
+
+    // menu item add field
+    let addField = document.createElement("i");
+    tagMenu.append(addField);
+    addField.className = "dropdown-item";
+    addField.innerText = "Add field";
+    
+    addField.addEventListener("click", function() {
+        let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+        newField.indicators = ["_", "_"];
+        
+        let newSubfield = newField.createSubfield();
+        newSubfield.code = "_";
+        newSubfield.value = "";
+        
+        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
+        newField.tagSpan.focus();
+        document.execCommand("selectall");
+        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
+
+        return
+    });
+    
+    // menu item delete field
+    let deleteField = document.createElement("i");
+    tagMenu.append(deleteField);
+    deleteField.className = "dropdown-item";
+    deleteField.innerText = "Delete field";
+    
+    deleteField.addEventListener("click", function() {
+        jmarc.deleteField(field);
+        table.deleteRow(field.row.rowIndex);
+    });
+    
+    // Tag span
     let tagSpan = document.createElement("span");
     tagCell.append(tagSpan);
     field.tagSpan = tagSpan;
     tagSpan.contentEditable = true;
     tagSpan.innerText = field.tag;
+    
+    // for storing the state of the contro/command keypress
+    let metaKey = false;
     
     tagSpan.addEventListener("input", function () {
         tagSpan.style.background = null;
@@ -811,29 +857,17 @@ function buildFieldRow(component, field, place) {
             let checkSubfield = checkField ? checkField.subfields[i] : null;
 
             if (! checkField || field.tag !== checkField.tag || ! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-                field.tagCell.classList.remove("field-tag-saved");
                 field.tagCell.classList.add("field-tag-unsaved");
-                
-                subfield.codeCell.classList.remove("subfield-code-saved");
                 subfield.codeCell.classList.add("subfield-code-unsaved");
-                
-                subfield.valueCell.classList.remove("subfield-value-saved");
                 subfield.valueCell.classList.add("subfield-value-unsaved");
             } 
             else {
-                field.tagCell.classList.remove("field-tag-saved");
-                field.tagCell.classList.add("field-tag-unsaved");
-                
+                field.tagCell.classList.remove("field-tag-unsaved");
                 subfield.codeCell.classList.remove("subfield-code-unsaved");
-                subfield.codeCell.classList.add("subfield-code-saved");
-                
                 subfield.valueCell.classList.remove("subfield-value-unsaved");
-                subfield.valueCell.classList.add("subfield-value-saved");
             } 
         }
     });
-    
-    let metaKey = false;
     
     tagSpan.addEventListener("keydown", function (event) {
         // prevent newline and blur on return key
@@ -843,7 +877,7 @@ function buildFieldRow(component, field, place) {
         }
         
         // store control/command key press
-        if (event.keyCode === 17 || event.keyCode === 224) {
+        if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
             metaKey = true
         }
         
@@ -855,7 +889,7 @@ function buildFieldRow(component, field, place) {
     
     tagSpan.addEventListener("keyup", function (event) {
         // clear control/command key press
-        if (event.keyCode === 17 || event.keyCode === 224) {
+        if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
             metaKey = false
         }
     });
@@ -882,8 +916,17 @@ function buildFieldRow(component, field, place) {
         document.execCommand("selectall", null, false);
     });
 
+    // keep menu on click
+    tagSpan.addEventListener("click", function() {
+        $(tagMenu).dropdown("hide");
+    });
+    
+    // hide menu when typing
+    tagSpan.addEventListener("keydown", function() {
+        $(tagMenu).dropdown("hide");
+    });
+    
     // Indicators
-    //can be refactored
     if (! field.tag.match(/^00/)) {
         let ind1Span = document.createElement("span");
         tagCell.append(ind1Span);
@@ -900,7 +943,6 @@ function buildFieldRow(component, field, place) {
             span.addEventListener("input", function() {
                 if (span.innerText.length > 1) {    
                     span.innerText = span.innerText.substring(0, 1);
-                    document.execCommand("selectall");
                 }
             
                 if (span == ind1Span) {
@@ -908,11 +950,6 @@ function buildFieldRow(component, field, place) {
                 } else {
                     field.indicators[1] = span.innerText;
                 }
-            });
-        
-            span.addEventListener("focus", function() {
-                span.focus();
-                document.execCommand("selectall");
             });
         
             span.addEventListener("keydown", function (event) {
@@ -928,61 +965,18 @@ function buildFieldRow(component, field, place) {
                     span.innerText += '_';
                 }
             });
+            
+            // keep menu on click
+            span.addEventListener("click", function() {
+                $(tagMenu).dropdown("hide");
+            });
+    
+            // hide menu when typing
+            span.addEventListener("keydown", function() {
+                $(tagMenu).dropdown("hide")
+            });
         }
     }
-        
-    // menu
-    let tagMenu = document.createElement("div");
-    tagCell.append(tagMenu);
-    tagMenu.className = "dropdown-menu";
-    tagMenu.style.cursor = "default";
-    
-    // enable elems to toggle menu
-    tagCell.setAttribute("data-toggle", "dropdown");
-    tagSpan.setAttribute("data-toggle", "dropdown");
-    
-    // hide menu when typing
-    tagSpan.addEventListener("keydown", function() {
-        $(tagMenu).dropdown("toggle");
-    });
-    
-    // returns the toggle control to default
-    tagCell.addEventListener("keydown", function() {
-        $(tagMenu).dropdown("toggle");
-    });
-
-    // add field
-    let addField = document.createElement("i");
-    tagMenu.append(addField);
-    addField.className = "dropdown-item";
-    addField.innerText = "Add field";
-    
-    addField.addEventListener("click", function() {
-        let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-        newField.indicators = ["_", "_"];
-        
-        let newSubfield = newField.createSubfield();
-        newSubfield.code = "_";
-        newSubfield.value = "";
-        
-        newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
-        newField.tagSpan.focus();
-        document.execCommand("selectall");
-        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
-
-        return
-    });
-    
-    // delete field
-    let deleteField = document.createElement("i");
-    tagMenu.append(deleteField);
-    deleteField.className = "dropdown-item";
-    deleteField.innerText = "Delete field";
-    
-    deleteField.addEventListener("click", function() {
-        jmarc.deleteField(field);
-        table.deleteRow(field.row.rowIndex);
-    });
     
     // Field table
     let fieldCell = field.row.insertCell();
@@ -1024,11 +1018,30 @@ function buildSubfieldRow(component, subfield, place) {
     subfield.codeCell = codeCell;
     codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
     
+    // menu
+    let codeMenu = document.createElement("div");
+    codeCell.append(codeMenu);
+    codeMenu.className = "dropdown-menu";
+    codeMenu.style.cursor = "default";
+    
+    // enable elems to toggle menu
+    codeCell.setAttribute("data-toggle", "dropdown");
+    
     let codeSpan = document.createElement("span");
     subfield.codeSpan = codeSpan;
     codeCell.append(codeSpan);
     codeSpan.contentEditable = true;
     codeSpan.innerText = subfield.code;
+    
+    // keep menu on click
+    codeSpan.addEventListener("click", function() {
+        $(codeMenu).dropdown("hide");
+    });
+    
+    // hide menu when typing
+    codeSpan.addEventListener("keydown", function() {
+        $(codeMenu).dropdown("hide")
+    });
 
     codeSpan.addEventListener("input", function() {
         codeSpan.style.background = null;
@@ -1048,16 +1061,14 @@ function buildSubfieldRow(component, subfield, place) {
         let checkSubfield = checkField ? checkField.subfields[i] : null;
 
         if (! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-            subfield.codeCell.classList.add("subfield-code-saved");
             subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.valueCell.classList.remove("subfield-value-saved");
+            subfield.codeCell.classList.add("subfield-code-unsaved");
             subfield.valueCell.classList.add("subfield-value-unsaved");
         } 
         else {
-            subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.codeCell.classList.add("subfield-code-saved");
+            subfield.codeCell.classList.remove("subfield-code-unsaved");
+            subfield.codeCell.classList.remove("subfield-code-unsaved");
             subfield.valueCell.classList.remove("subfield-value-unsaved");
-            subfield.valueCell.classList.add("subfield-value-saved");
         }
     });
     
@@ -1067,10 +1078,6 @@ function buildSubfieldRow(component, subfield, place) {
             event.preventDefault();
             codeSpan.blur();
         }
-    });
-    
-    subfield.codeSpan.addEventListener("focus", function() {
-        document.execCommand("selectall");
     });
     
     codeSpan.addEventListener("blur", function() {
@@ -1086,26 +1093,6 @@ function buildSubfieldRow(component, subfield, place) {
         }
     });
     
-    // menu
-    let codeMenu = document.createElement("div");
-    codeCell.append(codeMenu);
-    codeMenu.className = "dropdown-menu";
-    codeMenu.style.cursor = "default";
-    
-    // enable elems to toggle menu
-    codeCell.setAttribute("data-toggle", "dropdown");
-    codeSpan.setAttribute("data-toggle", "dropdown");
-    
-    // hide menu when typing
-    codeSpan.addEventListener("keydown", function() {
-        $(codeMenu).dropdown("toggle")
-    });
-    
-    // return toggle to default
-    codeCell.addEventListener("keydown", function() {
-        $(codeMenu).dropdown("toggle")
-    });
-    
     // add subfield
     let addSubfield = document.createElement("i");
     codeMenu.append(addSubfield);
@@ -1119,7 +1106,7 @@ function buildSubfieldRow(component, subfield, place) {
         newSubfield = buildSubfieldRow(component, newSubfield, place);
         
         newSubfield.codeSpan.focus();
-        document.execCommand("selectall", null, false);
+        document.execCommand("selectall");
         
         newSubfield.valueCell.classList.add("subfield-value-unsaved");
         saveButton.classList.add("text-danger");
@@ -1175,12 +1162,10 @@ function buildSubfieldRow(component, subfield, place) {
         let checkSubfield = checkField ? checkField.subfields[i] : null;
         
         if (! checkSubfield || subfield.value !== checkSubfield.value) {
-            valCell.classList.remove("subfield-value-saved");
             valCell.classList.add("subfield-value-unsaved");
         } 
         else {
             valCell.classList.remove("subfield-value-unsaved");
-            valCell.classList.add("subfield-value-saved");
         }
     });
     
