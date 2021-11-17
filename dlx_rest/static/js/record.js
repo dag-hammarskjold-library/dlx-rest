@@ -82,6 +82,8 @@ export let multiplemarcrecordcomponent = {
     },
     created: async function() {
         Jmarc.apiUrl = this.prefix;
+        this.baseUrl = this.prefix.replace("/api", "");
+        
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
 
@@ -1206,7 +1208,7 @@ function setAuthControl(component, field, subfield) {
     if (subfield.xrefCell.children.length === 0) {
         let xrefLink = document.createElement("a");
         subfield.xrefCell.appendChild(xrefLink);
-        xrefLink.href = `/records/auths/${subfield.xref}`;
+        xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
         xrefLink.target="_blank";
       
         let xrefIcon = document.createElement("i");
@@ -1315,7 +1317,7 @@ function keyupAuthLookup(event) {
                                 currentSubfield.valueElement.style.backgroundColor = "";
                                     
                                 let xrefLink = document.createElement("a");
-                                xrefLink.href = `/records/auths/${choiceSubfield.xref}`;
+                                xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
                                 xrefLink.target="_blank";
                                     
                                 let xrefIcon = document.createElement("i");
