@@ -710,16 +710,9 @@ export let multiplemarcrecordcomponent = {
                 }
             }
             
-            return tableHeader
-        },
-        buildTableBody(jmarc) {
-            let tableBody = jmarc.table.createTBody();
-            jmarc.tableBody = tableBody;
-
             // Workform fields
-            // Possibly move to header
             if (jmarc.workformName) {
-                let wfNameRow = tableBody.insertRow();
+                let wfNameRow = tableHeader.insertRow();
                 let wfNameLabelCell = wfNameRow.insertCell();
                 wfNameLabelCell.colSpan = 2;
                 wfNameLabelCell.innerText = "Workform Name";
@@ -737,7 +730,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             if (jmarc.workformDescription) {
-                let wfDescRow = tableBody.insertRow();
+                let wfDescRow = tableHeader.insertRow();
                 let wfDescLabelCell = wfDescRow.insertCell();
                 wfDescLabelCell.colSpan = 2;
                 wfDescLabelCell.innerText = "Workform Description";
@@ -750,6 +743,14 @@ export let multiplemarcrecordcomponent = {
                 });
             }
             
+            
+            return tableHeader
+        },
+        buildTableBody(jmarc) {
+            let tableBody = jmarc.table.createTBody();
+            jmarc.tableBody = tableBody;
+
+           
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 this.buildFieldRow(field);
@@ -1244,7 +1245,7 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
-// auth-contiolled field keyup event function
+// auth-controlled field keyup event function
 function keyupAuthLookup(event) {
     //target: subfield value cell 
     let component = event.currentTarget.eventParams[0];
