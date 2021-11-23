@@ -342,7 +342,7 @@ export let multiplemarcrecordcomponent = {
                 dropdown && dropdown.remove();
             });
             
-            // table css in in base1.html
+            // record.css
             table.className = jmarc.collection === "bibs" ? "bib" : "auth"; 
             table.className += " marc-record table-hover";
           
@@ -350,8 +350,33 @@ export let multiplemarcrecordcomponent = {
                 table.className += " read-only"
             }
             
+            // Header: record ID, save, clone, paste
+            let tableHeader = this.buildTableHeader(jmarc);
+            
+            // Table body: record data
+            let tableBody = this.buildTableBody(jmarc);
+            
+            // check the save status on any input
+            table.addEventListener("input", function() {
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "no new changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "save";
+                }
+            });
+            
+            return table       
+        },
+        buildTableHeader(jmarc) {
+            let table = jmarc.table;
+            
             // Table header
             let tableHeader = table.createTHead();
+            jmarc.tableHEader = tableHeader;
             let idRow = tableHeader.insertRow();
             let idCell = idRow.insertCell();
             idCell.colSpan = 3;
@@ -684,10 +709,11 @@ export let multiplemarcrecordcomponent = {
                     
                 }
             }
-
             
-            // Table body
-            let tableBody = table.createTBody();
+            return tableHeader
+        },
+        buildTableBody(jmarc) {
+            let tableBody = jmarc.table.createTBody();
             jmarc.tableBody = tableBody;
 
             // Workform fields
@@ -726,22 +752,10 @@ export let multiplemarcrecordcomponent = {
             
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
-                field = this.buildFieldRow(field);
+                this.buildFieldRow(field);
             }
             
-            table.addEventListener("input", function() {
-                if (jmarc.saved) {
-                    saveButton.classList.remove("text-danger");
-                    saveButton.classList.add("text-primary");
-                    saveButton.title = "no new changes";
-                } else {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
-                }
-            });
-            
-            return table       
+            return tableBody
         },
         buildFieldRow(field, place) {
             let component = this;
