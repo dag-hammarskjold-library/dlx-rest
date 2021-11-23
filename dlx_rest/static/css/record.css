@@ -1,0 +1,91 @@
+/* marc record */
+
+table.marc-record {
+    width: 100%;
+}
+
+table.marc-record.read-only {
+    pointer-events: none;
+}
+
+table.marc-record.read-only thead i.record-control {
+    display: none;
+}
+
+table.marc-record.read-only thead i.edit-record {
+    pointer-events: all;
+}
+
+table.marc-record.read-only thead ul.list-group {
+    pointer-events: all;
+}
+
+table.marc-record.read-only td.dropdown-toggle::after {
+    display: none;
+}
+
+table.marc-record.read-only i.fa-link {
+    pointer-events: all;
+}
+
+table.marc-record.read-only.subfield-value {
+    cursor: text;
+}
+
+table.marc-record.bib {
+    border: 3px solid green;
+}
+
+table.marc-record.auth {
+    border: 3px solid purple;
+}
+
+table.marc-record thead {
+    background-color: white;
+    position: sticky;
+    top: 0;
+}
+
+table.marc-record td {
+    border-top: 1px solid LightGray;
+}
+
+table.marc-field tr:first-child {
+    border-top: hidden;
+}
+   
+table.marc-field td {
+    border-top: 1px solid LightGray;
+}
+
+tr.hidden-field {
+    display: none;
+}
+
+td.subfield-code {
+    width: 33px;
+}
+
+td.subfield-value {
+    width: 100%; 
+}
+
+td.unsaved {
+    background-color: rgba(255, 255, 128, .5);
+}
+
+span.authority-controlled {
+    text-decoration: underline;;
+}
+
+span.authority-controlled-unmatched {
+    background-color: LightCoral;
+}
+
+span.invalid {
+    background: LightCoral;
+}
+
+span.unsaved {
+    background-color: rgba(255, 255, 128, .5);
+}

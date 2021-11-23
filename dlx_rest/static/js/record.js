@@ -164,7 +164,7 @@ export let multiplemarcrecordcomponent = {
                 myRecord2.className="col-sm-12 mt-1"
 
                 // change the styling of the table
-                table.style.width="100%"
+                //table.style.width="100%"
     
             }
 
@@ -498,7 +498,7 @@ export let multiplemarcrecordcomponent = {
                 for (let field of recup.fields) {
                     if (! field.tag.match(/^00/)) {
                         for (let subfield of field.subfields) {
-                            subfield.valueCell.classList.add("subfield-value-unsaved");
+                            subfield.valueCell.classList.add("unsaved");
                         }
                     }
                 }
@@ -541,7 +541,7 @@ export let multiplemarcrecordcomponent = {
                 for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                     for (let subfield of field.subfields.filter(x => x.copied)) {
                         // subfield acquires valueCell after refresh
-                        subfield.valueCell.classList.add("subfield-value-unsaved")
+                        subfield.valueCell.classList.add("unsaved")
                     }
                 }
                 
@@ -812,7 +812,7 @@ function buildFieldRow(component, field, place) {
         newField = buildFieldRow(component, newField, field.row.rowIndex - 1);
         newField.tagSpan.focus();
         document.execCommand("selectall");
-        newField.subfields[0].valueCell.classList.add("subfield-value-unsaved");
+        newField.subfields[0].valueCell.classList.add("unsaved");
 
         return
     });
@@ -839,7 +839,8 @@ function buildFieldRow(component, field, place) {
     let metaKey = false;
     
     tagSpan.addEventListener("input", function () {
-        tagSpan.style.background = null;
+        tagSpan.classList.remove("invalid");
+        field.tagSpan.classList.remove("unsaved");
         
         field.tag = tagSpan.innerText;
         
@@ -847,6 +848,9 @@ function buildFieldRow(component, field, place) {
         savedState.parse(jmarc.savedState);
 
         for (let subfield of field.subfields) {
+            subfield.codeCell.classList.remove("unsaved");
+            subfield.valueCell.classList.remove("unsaved");
+            
             if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
                 setAuthControl(component, field, subfield, subfield.valueCell, subfield.valueSpan)
             } else {
@@ -858,16 +862,17 @@ function buildFieldRow(component, field, place) {
             let checkField = savedState.fields[j] ? savedState.fields[j] : null;
             let checkSubfield = checkField ? checkField.subfields[i] : null;
 
-            if (! checkField || field.tag !== checkField.tag || ! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-                field.tagCell.classList.add("field-tag-unsaved");
-                subfield.codeCell.classList.add("subfield-code-unsaved");
-                subfield.valueCell.classList.add("subfield-value-unsaved");
-            } 
-            else {
-                field.tagCell.classList.remove("field-tag-unsaved");
-                subfield.codeCell.classList.remove("subfield-code-unsaved");
-                subfield.valueCell.classList.remove("subfield-value-unsaved");
-            } 
+            if (! checkField || field.tag !== checkField.tag) {
+                field.tagSpan.classList.add("unsaved");
+            }
+            
+            if (! checkSubfield || checkSubfield.code !== subfield.code) {
+                subfield.codeCell.classList.add("unsaved");
+            }
+            
+            if (checkSubfield.value !== subfield.value) {
+                subfield.valueCell.classList.add("unsaved");
+            }
         }
     });
     
@@ -900,12 +905,10 @@ function buildFieldRow(component, field, place) {
         while (tagSpan.innerText.length < 3) {
             tagSpan.innerText += '_';
         }
-        
-        // move to css
+
         if (! tagSpan.innerText.match(/^\d{3}/)) {
-            tagSpan.style.background = "LightCoral";
-        } else {
-            tagSpan.style.background = null;
+            field.tagSpan.classList.remove("unsaved");
+            field.tagSpan.classList.add("invalid");
         }
     });
 
@@ -1046,7 +1049,9 @@ function buildSubfieldRow(component, subfield, place) {
     });
 
     codeSpan.addEventListener("input", function() {
-        codeSpan.style.background = null;
+        subfield.codeSpan.classList.remove("invalid");
+        subfield.codeSpan.classList.remove("unsaved");
+        subfield.valueCell.classList.remove("unsaved");
         
         if (codeSpan.innerText.length > 1) {
             // don't allow more than 1 char
@@ -1062,15 +1067,12 @@ function buildSubfieldRow(component, subfield, place) {
         let checkField = savedState.fields[j] ? savedState.fields[j] : null;
         let checkSubfield = checkField ? checkField.subfields[i] : null;
 
-        if (! checkSubfield || checkSubfield.code !== subfield.code || checkSubfield.value !== subfield.value) {
-            subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.codeCell.classList.add("subfield-code-unsaved");
-            subfield.valueCell.classList.add("subfield-value-unsaved");
-        } 
-        else {
-            subfield.codeCell.classList.remove("subfield-code-unsaved");
-            subfield.codeCell.classList.remove("subfield-code-unsaved");
-            subfield.valueCell.classList.remove("subfield-value-unsaved");
+        if (! checkSubfield || checkSubfield.code !== subfield.code) {
+            subfield.codeSpan.classList.add("unsaved");
+        }
+        
+        if (checkSubfield.value !== subfield.value) {
+            subfield.valueCell.classList.add("unsaved");
         }
     });
     
@@ -1089,9 +1091,8 @@ function buildSubfieldRow(component, subfield, place) {
         
         // move to css
         if (codeSpan.innerText === '_') {
-            codeSpan.style.background = "LightCoral";
-        } else {
-            codeSpan.style.background = null;
+            codeSpan.classList.remove("unsaved");
+            codeSpan.classList.add("invalid");
         }
     });
     
@@ -1110,7 +1111,7 @@ function buildSubfieldRow(component, subfield, place) {
         newSubfield.codeSpan.focus();
         document.execCommand("selectall");
         
-        newSubfield.valueCell.classList.add("subfield-value-unsaved");
+        newSubfield.valueCell.classList.add("unsaved");
         saveButton.classList.add("text-danger");
         saveButton.classList.remove("text-primary");
         saveButton.title = "unsaved changes";
@@ -1164,10 +1165,10 @@ function buildSubfieldRow(component, subfield, place) {
         let checkSubfield = checkField ? checkField.subfields[i] : null;
         
         if (! checkSubfield || subfield.value !== checkSubfield.value) {
-            valCell.classList.add("subfield-value-unsaved");
+            valCell.classList.add("unsaved");
         } 
         else {
-            valCell.classList.remove("subfield-value-unsaved");
+            valCell.classList.remove("unsaved");
         }
     });
     
@@ -1201,7 +1202,7 @@ function buildSubfieldRow(component, subfield, place) {
 function setAuthControl(component, field, subfield) {
     subfield.valueSpan.classList.add("authority-controlled");
     
-    if (subfield.valueCell.classList.contains("subfield-value-unsaved")) {
+    if (subfield.valueCell.classList.contains("unsaved")) {
         subfield.valueSpan.classList.add("authority-controlled-unmatched")
     }
 
@@ -1244,7 +1245,7 @@ function keyupAuthLookup(event) {
         return
     }
 
-    subfield.valueSpan.classList.add("authority-controlled-unmatched"); // style.backgroundColor = "LightCoral";
+    subfield.valueSpan.classList.add("authority-controlled-unmatched");
     subfield.xrefCell.innerHTML = null;
 
     let dropdown = document.getElementById("typeahead-dropdown");
@@ -1297,7 +1298,6 @@ function keyupAuthLookup(event) {
 
                             for (let s of field.subfields) {
                                 s.valueSpan.classList.remove("authority-controlled-unmatched");
-                                s.valueSpan.classList.add("authority-controlled-matched");
                             }
                 
                             for (let choiceSubfield of choice.subfields) {
@@ -1313,8 +1313,8 @@ function keyupAuthLookup(event) {
                 
                                 currentSubfield.value = choiceSubfield.value;
                                 currentSubfield.xref = choiceSubfield.xref;
-                                currentSubfield.valueElement.innerText = currentSubfield.value;
-                                currentSubfield.valueElement.style.backgroundColor = "";
+                                currentSubfield.valueSpan.innerText = currentSubfield.value;
+                                currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
                                     
                                 let xrefLink = document.createElement("a");
                                 xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
