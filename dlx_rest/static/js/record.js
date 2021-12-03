@@ -144,10 +144,6 @@ export let multiplemarcrecordcomponent = {
 
                 // change the class
                 myRecord1.className="col-sm-12 mt-1"
-
-                // change the styling of the table
-                //table.style.width="100%"
-
             }
 
             // // only record2 displayed
@@ -162,10 +158,6 @@ export let multiplemarcrecordcomponent = {
 
                 // change the class
                 myRecord2.className="col-sm-12 mt-1"
-
-                // change the styling of the table
-                //table.style.width="100%"
-    
             }
 
             // restore the default values
@@ -185,11 +177,7 @@ export let multiplemarcrecordcomponent = {
                 let myRecord2=document.getElementById("record2")
 
                 // change the class
-                myRecord2.className="col-sm-6 mt-1"
-
-                // change the styling of the table
-                //table.style.width=""
-    
+                myRecord2.className="col-sm-6 mt-1"    
             }
         },
 
@@ -764,7 +752,7 @@ export let multiplemarcrecordcomponent = {
     
             // add the checkboxes
             let checkCell = field.row.insertCell();
-            checkCell.style = "vertical-align: top";
+            checkCell.className = "field-checkbox";
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
             inputCheckboxCell.setAttribute("type","checkbox")
@@ -796,9 +784,8 @@ export let multiplemarcrecordcomponent = {
             // menu
             let tagMenu = document.createElement("div");
             tagCell.append(tagMenu);
-            tagMenu.className = "dropdown-menu";
-            tagMenu.style.cursor = "default";
-    
+            tagMenu.className = "dropdown-menu tag-menu";
+
             // enable elems to toggle menu
             tagCell.setAttribute("data-toggle", "dropdown");
 
@@ -842,7 +829,7 @@ export let multiplemarcrecordcomponent = {
             tagSpan.contentEditable = true;
             tagSpan.innerText = field.tag;
     
-            // for storing the state of the contro/command keypress
+            // for storing the state of the control/command keypress
             let metaKey = false;
     
             tagSpan.addEventListener("input", function () {
@@ -1033,8 +1020,7 @@ export let multiplemarcrecordcomponent = {
             // menu
             let codeMenu = document.createElement("div");
             codeCell.append(codeMenu);
-            codeMenu.className = "dropdown-menu";
-            codeMenu.style.cursor = "default";
+            codeMenu.className = "dropdown-menu subfield-menu";
     
             // enable elems to toggle menu
             codeCell.setAttribute("data-toggle", "dropdown");
@@ -1151,8 +1137,6 @@ export let multiplemarcrecordcomponent = {
             //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
     
             let valSpan = document.createElement("span");
-            valSpan.align = "left";
-            valSpan.style.width = "100%";
             valCell.appendChild(valSpan);
             subfield.valueCell = valCell;
             subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
@@ -1288,17 +1272,17 @@ function keyupAuthLookup(event) {
                     for (let choice of choices) {
                         let item = document.createElement("li");
                         list.appendChild(item);
-                        item.className = "list-group-item";
+                        item.className = "list-group-item lookup-choice";
                         
-                        item.innerHTML = choice.subfields.map(x => `<span style="color: blue">$${x.code}</span> ${x.value}`).join("<br>");
+                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                         
                         item.addEventListener("mouseover", function () {
-                            item.style.backgroundColor = "gray"
+                            item.classList.add("lookup-choice");
                         });
                         
                         item.addEventListener("mouseout", function () {
-                            item.style.backgroundColor = "";
-                            subfield.value = subfield.valueSpan.innerText
+                            item.classList.remove("lookup-choice");
+                            subfield.value = subfield.valueSpan.innerText;
                         });
                         
                         item.addEventListener("mousedown", function () {
