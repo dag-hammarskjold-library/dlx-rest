@@ -333,7 +333,6 @@ export let multiplemarcrecordcomponent = {
             this.optimizeEditorDisplay(table)
         },
         buildRecordTable(jmarc, readOnly) {
-            let component = this; // for use in event listeners 
             let table = document.createElement("table");
             jmarc.table = table;
 
@@ -646,8 +645,7 @@ export let multiplemarcrecordcomponent = {
                     })
                 };
             }
-            
-                    
+
             // Files
             let filesRow = tableHeader.insertRow();
             let filesCell = filesRow.insertCell();
@@ -710,7 +708,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
             
-            // Workform fields
+            // Workform fields  
             if (jmarc.workformName) {
                 let wfNameRow = tableHeader.insertRow();
                 let wfNameLabelCell = wfNameRow.insertCell();
@@ -742,15 +740,13 @@ export let multiplemarcrecordcomponent = {
                     jmarc.workformDescription = wfDescCell.innerText;
                 });
             }
-            
-            
+
             return tableHeader
         },
         buildTableBody(jmarc) {
             let tableBody = jmarc.table.createTBody();
             jmarc.tableBody = tableBody;
 
-           
             // Fields
             for (let field of jmarc.fields.sort((a, b) => parseInt(a.tag) - parseInt(b.tag))) {
                 this.buildFieldRow(field);
@@ -795,7 +791,7 @@ export let multiplemarcrecordcomponent = {
             // Tag cell
             let tagCell = field.row.insertCell();
             field.tagCell = tagCell;
-            tagCell.className = "badge badge-pill badge-warning dropdown-toggle";
+            tagCell.className = "field-tag badge badge-pill badge-warning dropdown-toggle";
     
             // menu
             let tagMenu = document.createElement("div");
@@ -881,7 +877,7 @@ export let multiplemarcrecordcomponent = {
                         subfield.codeCell.classList.add("unsaved");
                     }
             
-                    if (checkSubfield.value !== subfield.value) {
+                    if (checkSubfield && checkSubfield.value !== subfield.value) {
                         subfield.valueCell.classList.add("unsaved");
                     }
                 }
@@ -1082,7 +1078,7 @@ export let multiplemarcrecordcomponent = {
                     subfield.codeSpan.classList.add("unsaved");
                 }
         
-                if (checkSubfield.value !== subfield.value) {
+                if (checkSubfield && checkSubfield.value !== subfield.value) {
                     subfield.valueCell.classList.add("unsaved");
                 }
             });
@@ -1193,9 +1189,9 @@ export let multiplemarcrecordcomponent = {
     
             codeSpan.addEventListener("input", function() {
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                    setAuthControl(component,field, subfield, valCell, valSpan)
+                    component.setAuthControl(field, subfield)
                 } else {
-                    removeAuthControl(subfield)
+                    component.removeAuthControl(subfield)
                 }
             });
     
@@ -1204,7 +1200,7 @@ export let multiplemarcrecordcomponent = {
     
             // auth controlled
             if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                this.setAuthControl(field, subfield, valCell, valSpan)
+                this.setAuthControl(field, subfield)
             }
     
             return subfield

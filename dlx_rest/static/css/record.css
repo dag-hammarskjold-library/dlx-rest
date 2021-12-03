@@ -4,6 +4,10 @@ table.marc-record {
     width: 100%;
 }
 
+table.marc-field {
+    width: 100%;
+}
+
 table.marc-record.read-only {
     pointer-events: none;
 }
@@ -60,6 +64,10 @@ table.marc-field td {
 
 tr.hidden-field {
     display: none;
+}
+
+td.field-tag {
+    width: 99px;
 }
 
 td.subfield-code {
