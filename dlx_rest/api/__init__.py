@@ -982,7 +982,7 @@ class LookupField(Resource):
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         codes = filter(lambda x: len(x) == 1, request.args.keys())
-        conditions = []
+        conditions_1, conditions_2 = [], []
         sparams = {}
             
         for code in codes:
@@ -996,16 +996,26 @@ class LookupField(Resource):
                 
             tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
             
-            conditions.append(Or(*[Condition(tag, {code: Regex(val, 'i')}, record_type='auth') for tag in tags]))
+            # matches start
+            conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+            # matches anywhere
+            conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
             
-        if not conditions:
+        if not sparams:
             abort(400, 'Request parameters required')
-            pass
             
-        query = Query(*conditions)
+        query = Query(*conditions_1)
         proj = dict.fromkeys(tags, 1)
         start = int(request.args.get('start', 1))
-        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1)
+        cln = {'locale': 'en', 'strength': 1}
+        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+        auths = list(auths)
+        
+        if len(auths) < 25:
+            query = Query(*conditions_2)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        
         processed = []
         
         for auth in auths:
