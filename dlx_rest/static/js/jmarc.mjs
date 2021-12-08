@@ -672,6 +672,12 @@ export class Jmarc {
             }
             
             field.validate()
+            
+            if (this.collection == "auths") {
+                if (! this.fields.map(x => x.tag.substring(0, 1)).includes("1")) {
+                    throw new Error("Heading field required")
+                }
+            }
         }
     }
 }
