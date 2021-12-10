@@ -1083,14 +1083,13 @@ class RecordMerge(Resource):
 
         def update_records(record_type, gaining, losing):
             authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
-            
             conditions = []
                  
             for ref_tag, d in authmap.items():
                 for subfield_code, auth_tag in d.items():
                     if auth_tag == losing.heading_field.tag:
                         val = losing.heading_field.get_value(subfield_code)
-                        
+                                   
                         if val:
                             conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
             
@@ -1099,21 +1098,22 @@ class RecordMerge(Resource):
             query = Query(Or(*conditions))
             changed = 0
 
-            for record in cls.from_query(query):
-                state = record.to_bson()
-                
-                for i, field in enumerate(record.fields):
-                    if isinstance(field, Datafield):
-                        for subfield in field.subfields:
-                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                                subfield.xref = gaining.id
-                        
-                                if field in record.fields[0:i] + record.fields[i+1:]:
-                                    del record.fields[i] # duplicate field
-                        
-                if record.to_bson() != state:    
-                    record.commit(user=user)
-                    changed += 1
+            if len(conditions) > 0:
+                for record in cls.from_query(query):
+                    state = record.to_bson()
+                    
+                    for i, field in enumerate(record.fields):
+                        if isinstance(field, Datafield):
+                            for subfield in field.subfields:
+                                if hasattr(subfield, 'xref') and subfield.xref == losing_id:
+                                    subfield.xref = gaining.id
+                            
+                                    if field in record.fields[0:i] + record.fields[i+1:]:
+                                        del record.fields[i] # duplicate field
+                            
+                    if record.to_bson() != state:    
+                        record.commit(user=user)
+                        changed += 1
                     
             return changed
         
