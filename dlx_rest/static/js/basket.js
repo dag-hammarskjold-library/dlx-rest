@@ -48,8 +48,12 @@ export let basketcomponent = {
                 if (item.collection == "bibs") {
                     let myTitleField = myItem.getField(245,0);
                     let myTitle = [];
-                    for (let s in myTitleField.subfields) {
-                        myTitle.push(myTitleField.subfields[s].value);
+                    if (myTitleField) {
+                        for (let s in myTitleField.subfields) {
+                            myTitle.push(myTitleField.subfields[s].value);
+                        }
+                    } else {
+                        myTitle.push("[No Title]")
                     }
                     myItemTitle = myTitle.join(" ");
                     let mySymbolField = myItem.getField(191,0);
@@ -65,8 +69,12 @@ export let basketcomponent = {
                 } else if (item.collection == "auths") {
                     let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
                     let myTitle = [];
-                    for (let s in myTitleField.subfields) {
-                        myTitle.push(myTitleField.subfields[s].value);
+                    if (myTitleField) {
+                        for (let s in myTitleField.subfields) {
+                            myTitle.push(myTitleField.subfields[s].value);
+                        }
+                    } else {
+                        myTitle.push("[No Title]")
                     }
                     myItemTitle = myTitle.join(" ");
                 }
@@ -74,6 +82,7 @@ export let basketcomponent = {
                 myItem["_id"] = item.record_id;
                 this.basketItems.push(myItem);
             }).catch(error => {
+                console.log(error)
                 basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, item.collection, item.record_id);
             })
             
