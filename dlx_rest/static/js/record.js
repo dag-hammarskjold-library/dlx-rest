@@ -460,6 +460,7 @@ export let multiplemarcrecordcomponent = {
                         this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                         this.displayMarcRecord(jmarc, false);
                         this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                        basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                         
                         for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                             for (let subfield of field.subfields) {
@@ -500,7 +501,9 @@ export let multiplemarcrecordcomponent = {
                 let recup = jmarc.clone();
                 this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                 this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
-                this.displayMarcRecord(recup, false); // add this to the basket?
+                this.displayMarcRecord(recup, false);
+                // Adding to basket happens now whenever the record is saved.
+                //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, recup.recordId)
                 recup.saveButton.classList.add("text-danger");
                 recup.saveButton.classList.remove("text-primary");
                 recup.saveButton.title = "unsaved changes";
