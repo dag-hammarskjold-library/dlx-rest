@@ -12,9 +12,14 @@ export default {
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);
                 let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
+                if (myTitleField) {
+                    for (let s in myTitleField.subfields) {
+                        myTitle.push(myTitleField.subfields[s].value);
+                    }
+                } else {
+                    myTitle.push("[No Title]")
                 }
+                
                 myItemTitle = myTitle.join(" ");
             } else if (collection == "auths") {
                 console.log("Trying to create an auth basket item...")
