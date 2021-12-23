@@ -23,9 +23,10 @@ export let headercomponent = {
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
-                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workforn</a>
+                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workform</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" :href="uibase + 'workform'">Load a Workform</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-auths-WorkformModal">Load an auths Workform</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-bibs-WorkformModal">Load a bibs Workform</a>
                 </div>
             </li>
             <li class="nav-item active">
@@ -33,17 +34,17 @@ export let headercomponent = {
             </li>
         </ul>
         <div class="search-box">
-            <form class="form-inline">
+            <form class="form-inline" :action="action">
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <button class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Collection</button>
+                        <button id="searchCollection" class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Collection</button>
                         <div class="dropdown-menu">
-                            <a class="dropdown-item" href="#">Bibs</a>
-                            <a class="dropdown-item" href="#">Auths</a>
-                            <a class="dropdown-item" href="#">Files</a>
+                            <a class="dropdown-item" href="#" @click="setSearchCollection('bibs')">Bibs</a>
+                            <a class="dropdown-item" href="#" @click="setSearchCollection('auths')">Auths</a>
+                            <a class="dropdown-item disabled" href="#">Files</a>
                         </div>
                     </div>
-                    <input class="form-control" type="search" placeholder="Search" aria-label="Search">
+                    <input id="q" name="q" class="form-control" type="search" placeholder="Search" aria-label="Search">
                     <div class="input-group-append">
                         <button class="btn btn-outline-success" type="submit">Search</button>
                     </div>
@@ -57,13 +58,24 @@ export let headercomponent = {
         let uibase = this.api_prefix.replace("/api","");
         return {
             visible: true,
-            uibase: uibase
+            uibase: uibase,
+            searchCollection: "bibs",
+            action: null
         }
+    },
+    created: async function () {
+        this.action = `${this.uibase}/records/${this.searchCollection}/search`;
     },
     methods:{
       displayModal(){
         modalmergecomponent.methods.toggleModal()
-      }
+      },
+      setSearchCollection(collection) {
+          let el = document.getElementById("searchCollection");
+          el.innerText = collection;
+          this.searchCollection = collection;
+          this.action = `${this.uibase}/records/${this.searchCollection}/search`;
+      },
     },
     components: {
         'modalmergecomponent': modalmergecomponent

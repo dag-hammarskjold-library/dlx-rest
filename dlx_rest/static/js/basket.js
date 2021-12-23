@@ -10,6 +10,7 @@ export let basketcomponent = {
     template: ` 
     <div class="container col-sm-2" id="app0" style="background-color:white;">
         <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
+            <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div>
             <div v-for="record in this.basketItems" :key="record._id" class="list-group" >
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id">
                     <div class="d-flex w-100 justify-content-between">
@@ -38,40 +39,11 @@ export let basketcomponent = {
         }
     },
     created: async function () {
-        const myBasket = await basket.getBasket(this.api_prefix);
-        for (let item of myBasket) {
-            let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
-            myItem['collection'] = item.collection;
-            let myItemTitle = "";
-            if (item.collection == "bibs") {
-                let myTitleField = myItem.getField(245,0);
-                let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                }
-                myItemTitle = myTitle.join(" ");
-                let mySymbolField = myItem.getField(191,0);
-                let mySymbol = [];
-                if (mySymbolField) {
-                    for (let s in mySymbolField.subfields) {
-                        if (mySymbolField.subfields[s].code === "a") {
-                            mySymbol.push(mySymbolField.subfields[s].value);
-                        }
-                    }
-                }
-                myItem["symbol"] = mySymbol.join(" ")
-            } else if (item.collection == "auths") {
-                let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-                let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                }
-                myItemTitle = myTitle.join(" ");
-            }
-            myItem["title"] = myItemTitle;
-            myItem["_id"] = item.record_id;
-            this.basketItems.push(myItem);
-        }
+        this.$root.$refs.basketcomponent = this;
+        this.buildBasket();
+    },
+    mounted: async function() {
+        this.timer = setInterval(this.rebuildBasket, 20000)
     },
     /*
     updated: function () {
@@ -81,6 +53,7 @@ export let basketcomponent = {
         async displayRecord(myRecord, myCollection) {
             let jmarc = await Jmarc.get(myCollection, myRecord);
             this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
+            //this.$root.multiplemarcrecordcomponent.displayMarcRecord(jmarc);
             this.callChangeStyling("Record added to the editor", "row alert alert-success")
         },
         callChangeStyling(myText, myStyle) {
@@ -92,8 +65,64 @@ export let basketcomponent = {
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
                 el.parentElement.remove();
-                this.callChangeStyling("Record removed from basket", "row alert alert-success")
+                this.callChangeStyling("Record removed from basket", "row alert alert-success");
+                return true;
             }
+        },
+        async buildBasket() {
+            const myBasket = await basket.getBasket(this.api_prefix);
+            for (let item of myBasket) {
+                //let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
+                basket.getItem(this.api, item.collection, item.record_id).then(myItem => {
+                    myItem['collection'] = item.collection;
+                    let myItemTitle = "";
+                    if (item.collection == "bibs") {
+                        let myTitleField = myItem.getField(245,0);
+                        let myTitle = [];
+                        if (myTitleField) {
+                            for (let s in myTitleField.subfields) {
+                                myTitle.push(myTitleField.subfields[s].value);
+                            }
+                        } else {
+                            myTitle.push("[No Title]")
+                        }
+                        myItemTitle = myTitle.join(" ");
+                        let mySymbolField = myItem.getField(191,0);
+                        let mySymbol = [];
+                        if (mySymbolField) {
+                            for (let s in mySymbolField.subfields) {
+                                if (mySymbolField.subfields[s].code === "a") {
+                                    mySymbol.push(mySymbolField.subfields[s].value);
+                                }
+                            }
+                        }
+                        myItem["symbol"] = mySymbol.join(" ")
+                    } else if (item.collection == "auths") {
+                        let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
+                        let myTitle = [];
+                        if (myTitleField) {
+                            for (let s in myTitleField.subfields) {
+                                myTitle.push(myTitleField.subfields[s].value);
+                            }
+                        } else {
+                            myTitle.push("[No Title]")
+                        }
+                        myItemTitle = myTitle.join(" ");
+                    }
+                    myItem["title"] = myItemTitle;
+                    myItem["_id"] = item.record_id;
+                    this.basketItems.push(myItem);
+                }).catch(error => {
+                    console.log(error)
+                    basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, item.collection, item.record_id);
+                })
+            }
+            return true
+        },
+        rebuildBasket() {
+            //const myBasket = await basket.getBasket(this.api_prefix);
+            this.basketItems = [];
+            this.buildBasket()
         }
     }
 }

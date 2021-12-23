@@ -18,6 +18,7 @@ from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import Raw
 from dlx.file import File, Identifier
 from werkzeug import security
 
@@ -25,7 +26,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, validate_data
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth
 
 # Init
 authorizations = {
@@ -181,7 +182,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated'],
+        choices=['updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -199,6 +200,11 @@ class RecordsList(Resource):
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
+    args.add_argument(
+        'browse', 
+        type=str, 
+        help='Consult documentation for query syntax' # todo
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -210,7 +216,7 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search) if search else {}
+        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -222,19 +228,24 @@ class RecordsList(Resource):
             abort(404, 'Maximum limit is 1000')
             
         # sort
-        if args['sort'] == 'updated':
-            sort_by = 'updated'
-            sort = [('updated', ASC)] if (args['direction'] or '').lower() == 'asc' else [('updated', DESC)]
+        sort_by = args.get('sort')
+        
+        if sort_by:
+            sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
+            # only include results wiht the sorted field. desired?
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
         else:
-            sort_by = sort = None
+            sort = None
         
         # format
         fmt = args['format'] or None
         
         if fmt == 'brief':
-            tags = ('191', '245', '269', '700', '710', '791', '989') if collection == 'bibs' \
-                else ('100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491')
+            tags = ['191', '245', '269', '700', '710', '791', '989'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
             
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
@@ -242,7 +253,8 @@ class RecordsList(Resource):
             project = {'_id': 1}
 
         # exec query
-        recordset = cls.from_query(query, projection=project, skip=start - 1, limit=limit, sort=sort)
+        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
         if fmt == 'xml':
@@ -310,12 +322,11 @@ class RecordsList(Resource):
                         abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
-                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
-            if result.acknowledged:
+            if result:
                 data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
                 
                 return data, 201
@@ -333,7 +344,7 @@ class RecordsListCount(Resource):
 
         if args.search:
             search = unquote(args.search)
-            query = Query.from_string(search)
+            query = Query.from_string(search, record_type=collection[:-1])
         else:
             query = {}
         
@@ -349,6 +360,83 @@ class RecordsListCount(Resource):
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
+# Records list browse
+@ns.route('/marc/<string:collection>/records/browse')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordsListBrowse(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'search',
+        type=str, 
+        help='Consult documentation for query syntax. The logical field to browse by must be the first search term'
+    )
+    args.add_argument(
+        'compare',
+        type=str,
+        choices=['greater', 'less'],
+        help='Return the results "greater than" or "less than" the match, with the matched field first or last last if there is one'
+    )
+    args.add_argument(
+        'start', 
+        type=int, 
+        help='Result to start list at',
+        default=1
+    )
+    args.add_argument(
+        'limit', 
+        type=int,
+        help='Number of results to return. Max is 100',
+        default=10,
+    )
+    
+    @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
+    @ns.expect(args)
+    def get(self, collection):
+        args = RecordsListBrowse.args.parse_args()
+        cls = ClassDispatch.batch_by_collection(collection) or abort(404)
+        querystring = request.args.get('search') or abort(400, 'Param "search" required')
+        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        field = match.group(1)
+        logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
+        field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
+        query = Query.from_string(querystring)
+        condition = query.conditions[0].condition
+        type(condition[field]) == Regex and abort(400, 'Can\'t browse by regex search')
+        matcher = condition[field]
+        operators = ['$lte', '$gt'] if args.compare == 'less' else ['$gte', '$lt']
+        direction = DESC if args.compare == 'less' else ASC
+        query = Query(Raw({'$and': [
+            {field: {operators[0]: matcher}}, 
+            {field: {'$not': {operators[1]: matcher}}}
+        ]}))
+        collation = {'locale': 'en', 'numericOrdering': True} if field == 'symbol' else None
+        start, limit = int(args.start), int(args.limit)
+        records = cls.from_query(query, skip=start-1, limit=limit, sort=[(field, direction)], collation=collation)
+        
+        if args.compare == 'less':
+            records = list(reversed(list(records)))
+    
+        data = [{'field': field, 'value': record.logical_fields(field)[field], 'url': URL('api_record', collection=collection, record_id=record.id).to_str()} for record in records]
+
+        links = {
+            '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
+            '_next': URL('api_records_list_browse', collection=collection, start=start+limit, limit=limit, search=args.search, compare=args.compare).to_str(),
+            '_prev': URL('api_records_list_browse', collection=collection, start=start-limit, limit=limit, search=args.search, compare=args.compare).to_str() if start - limit > 0 else None,
+            'format': None,
+            'sort': None,
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str(),
+                'records': URL('api_records_list_count', collection=collection, search=args.search).to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_records_list_browse',
+            'returns': URL('api_schema', schema_name='api.browselist').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+        
 # Record
 @ns.route('/marc/<string:collection>/records/<int:record_id>')
 @ns.param('record_id', 'The record identifier')
@@ -409,6 +497,8 @@ class Record(Resource):
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
         }
+        
+        if collection == "auths": links['related']['use count'] = URL('api_auth_use_count', record_id=record_id, use_type="bibs").to_str()
 
         response = ApiResponse(links=links, meta=meta, data=data)
         
@@ -433,12 +523,11 @@ class Record(Resource):
             try:
                 jmarc = json.loads(request.data)
                 record = cls(jmarc, auth_control=True)
-                validate_data(record)
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         
-        if result.acknowledged:
+        if result:
             data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
             
             return data, 200
@@ -458,7 +547,7 @@ class Record(Resource):
         except AuthInUse as e:
             abort(403, 'Authority record in use')
         
-        if result.acknowledged:
+        if result:
             # We should make sure this record is removed from any baskets that contained it.
             for basket in Basket.objects:
                 # Normally the record_id is an integer, but it's being stored here as a string.
@@ -581,11 +670,10 @@ class RecordFieldPlaceList(Resource):
         except Exception as e:
             print(record.to_dict())
             abort(400, str(e))
-        
-        validate_data(record)
+
         result = record.commit(user=user)
         
-        if result.acknowledged:
+        if result:
             url = URL(
                 'api_record_field_place',
                 collection=collection,
@@ -654,12 +742,11 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
-            validate_data(record)
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
 
-        if result.acknowledged:
+        if result:
             url = URL(
                 'api_record_field_place',
                 collection=collection,
@@ -895,11 +982,12 @@ class LookupField(Resource):
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         codes = filter(lambda x: len(x) == 1, request.args.keys())
-        conditions = []
+        conditions_1, conditions_2 = [], []
         sparams = {}
             
         for code in codes:
             val = request.args[code]
+            val = re.escape(val)
             sparams[code] = val
             auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
             
@@ -908,16 +996,26 @@ class LookupField(Resource):
                 
             tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
             
-            conditions.append(Or(*[Condition(tag, {code: Regex(val, 'i')}, record_type='auth') for tag in tags]))
+            # matches start
+            conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+            # matches anywhere
+            conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
             
-        if not conditions:
+        if not sparams:
             abort(400, 'Request parameters required')
-            pass
             
-        query = Query(*conditions)
+        query = Query(*conditions_1)
         proj = dict.fromkeys(tags, 1)
         start = int(request.args.get('start', 1))
-        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1)
+        cln = {'locale': 'en', 'strength': 1}
+        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+        auths = list(auths)
+        
+        if len(auths) < 25:
+            query = Query(*conditions_2)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        
         processed = []
         
         for auth in auths:
@@ -1027,7 +1125,35 @@ class RecordMerge(Resource):
         losing.delete(user=user)
         
         return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+
+# Auth usage count
+@ns.route('/marc/auths/records/<int:record_id>/use_count')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class AuthUseCount(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument('use_type', type=str, choices=['bibs', 'auths'])
+    
+    @ns.doc(description='Return the count of records that use the authority')
+    @ns.expect(args)
+    def get(self, record_id):
+        args = AuthUseCount.args.parse_args()
+        auth = Auth.from_id(record_id) or abort(404)
+        args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
+        count = auth.in_use(usage_type=args.use_type[:-1])
         
+        links = {
+            '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
+            'related': {
+                'record': URL('api_record', collection='auths', record_id=record_id).to_str(),
+                'auths': URL('api_records_list', collection='auths').to_str()
+            }
+        }
+        
+        meta = {'name': 'api_auth_use_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
+        
+        return ApiResponse(links=links, meta=meta, data=count).jsonify()
+    
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')
 @ns.param('collection', '"bibs" or "auths"')
@@ -1191,7 +1317,7 @@ class Workform(Resource):
             raise e
 
         result = workform_collection.replace_one({'_id': old_data['_id']}, new_data)
-        result.acknowledged or abort(500, 'PUT request failed for unknown reasons')
+        result or abort(500, 'PUT request failed for unknown reasons')
 
         return {'result': URL('api_workform', collection=collection, workform_name=workform_name).to_str()}, 201
 

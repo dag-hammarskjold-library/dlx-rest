@@ -1,5 +1,5 @@
-# Use this to quickstart the Flask shell. Note that the environment must
-# be in all caps, e.g., DEV, QAT, UAT, PROD
+# Use this script to activate  one of the four deployment environments we have
+# configured: DEV, QAT, UAT, and PROD
 
 ENV=$1
 
@@ -8,7 +8,7 @@ then
 	ENV="DEV"
 fi
 
-echo "Starting shell for the $ENV environment"
+echo "Activating $ENV environment"
 
 PWD=`pwd`
 
@@ -20,4 +20,3 @@ unset DLX_REST_UAT
 unset DLX_REST_PROD
 export FLASK_APP="dlx_rest.app"
 export DLX_REST_$ENV="True"
-flask shell

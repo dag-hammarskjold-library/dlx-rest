@@ -63,7 +63,7 @@ class ApiResponse():
         
         try:
             jsonschema.validate(instance=self.data, schema=schema, format_checker=jsonschema.FormatChecker())
-        except jsonschema.exceptions.ValidatioonError as e:
+        except jsonschema.exceptions.ValidationError as e:
             abort(500, f'Server data does not match expected JSON schema "{schema}"')
 
     def jsonify(self):
@@ -140,6 +140,8 @@ class Schemas():
             data = {'_notes': 'Not yet specified'}
         elif schema_name == 'api.brieflist':
             data = {'type': 'array'}
+        elif schema_name == 'api.browselist':
+            data = {'type': 'array'}
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':
@@ -194,7 +196,7 @@ def brief_bib(record):
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
-    
+
     return {
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
@@ -202,11 +204,3 @@ def brief_auth(record):
         'alt': '; '.join(record.get_values(alt_tag, 'a')),
         'heading_tag': record.heading_field.tag
     }
-
-def validate_data(record):
-    if type(record) == Bib:
-        if record.get_field('245') is None:
-            abort(400, 'Bib field 245 is required')
-    else:
-        if record.heading_field is None:
-            abort(400, 'Auth heading field is required')

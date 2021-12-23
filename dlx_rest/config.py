@@ -16,24 +16,31 @@ class Config(object):
         dbname = 'dlx'
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_DEV' in os.environ:
+        environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='dev-dlx-connect-string')['Parameter']['Value']
         dbname = 'dev_undlFiles'
         sync_log_collection = 'sync_log'
+        bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
+        environment = 'qat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
         dbname = 'qat_undlFiles'
         sync_log_collection = 'sync_log'
+        bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
+        environment = 'uat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
         dbname = 'uat_undlFiles'
         sync_log_collection = 'sync_log'
+        bucket = 'dev-undl-files'
     elif 'DLX_REST_PRODUCTION' in os.environ:
+        environment = 'prod'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         #connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']

@@ -49,6 +49,8 @@ export class ControlField {
 		this.tag = tag;
 		this.value = value;
 	}
+    
+    validate() {}
 }
 
 export class DataField {
@@ -61,7 +63,29 @@ export class DataField {
 		this.subfields = subfields || [];
 	}
 	
-	createSubfield(code, place) {
+	validate() {
+        if (! this.subfields) {
+            throw new Error("Subfield required")
+        }
+        
+        let amap = this instanceof BibDataField ? authMap['bibs'] : authMap['auths'];
+        
+        for (let subfield of this.subfields) {
+            if (! subfield.code) {
+                throw new Error("Subfield code required")
+            }
+            
+            if (! subfield.value || subfield.value.match(/^\s+$/)) {
+                throw new Error("Subfield value required")
+            }
+            
+            if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
+                throw new Error("Invalid authority-controlled value")
+            }
+        }   
+	}
+    
+    createSubfield(code, place) {
 		let subfield = new Subfield(code);
 		
         if (place) {
@@ -70,6 +94,8 @@ export class DataField {
         else {
             this.subfields.push(subfield);
         }
+        
+        subfield.parentField = this;
 		
 		return subfield;
 	}
@@ -165,7 +191,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required")}
+        if (! collection) {throw new Error("Collection required")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -219,74 +245,86 @@ export class Jmarc {
 		)
 	}
 	
-	static listWorkforms(collection) {
-	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(
-	        response => {
-	            return response.json()
-	        }
-	    ).then(
-	        json => {
-                let names = [];
-                
-	            for (let url of json['data']) {
-                    let wname = url.split("/").slice(-1)[0];
-                    wname = decodeURIComponent(wname)
-	                names.push(wname)
-	            }
-                
-                return names
-	        }
-	    )
+	static async listWorkforms(collection) {
+	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(response => {
+            return response.json();
+        }).then(json => {
+            let workforms = [];
+            for (let url of json.data) {
+                let wname = url.split("/").slice(-1)[0];
+                wname = decodeURIComponent(wname);
+                fetch(url).then(wfRes => {
+                    return wfRes.json();
+                }).then(wfJson => {
+                    workforms.push({"name": wname, "description": wfJson.data.description});
+                });
+            }
+            return workforms;
+        });
 	}
     
-    static fromWorkform(collection, workformName) {
-	    let jmarc = new Jmarc(collection);
+    static async fromWorkform(collection, workformName) {
+        let jmarc = new Jmarc(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
             response => {
                 if (response.ok) {
-                    return response.json()
+                    return response.json();
                 } else {
-                    throw new Error(`Workform "${workformName}" not found`)
+                    throw new Error(`Workform "${workformName}" not found`);
                 }
             }
         ).then(
             json => {
-                jmarc.parse(json['data']);
+                jmarc.parse(json.data);
                 jmarc.workformName = workformName;
-                jmarc.workformDescription = json['description']
-                
-                return jmarc
+                jmarc.workformDescription = json.data.description;
+
+                return jmarc;
             }
         )
 	}
     
-    static deleteWorkform(collection, workformName) {
+    static async deleteWorkform(collection, workformName) {
         let error = false;
         
-        return fetch(
+        const response = await fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
-            {method: 'DELETE'}
-        ).then(
-            response => {
-                if (! response.ok) {
-                    error = true;
-                }
-                
-                return response.json()
+            { method: 'DELETE' }
+        );
+        if (!response.ok) {
+            error = true;
+        }
+        const json = await response.json();
+        if (error === true) {
+            throw new Error(json['message']);
+        }
+        return true;
+    }
+
+    async saveWorkform(workformName, description) {
+        let data = this.compile();
+        data.name = workformName;
+        data.description = description;
+        delete data["_id"];
+
+        await fetch(
+            `${this.collectionUrl}/workforms/${encodeURIComponent(workformName)}`,
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             }
-        ).then(
-            json => {
-                if (error === true) {
-                    throw new Error(json['message'])
-                }
-                
-                return true
+        ).then(response => {
+            if (response.ok) {
+                return true;
             }
-        )
+        }).catch(json => {
+            throw new Error(json['message']);
+        });
     }
     
-    saveAsWorkform(workformName, description) {
+    async saveAsWorkform(workformName, description) {
         let data = this.compile()
         data['name'] = workformName;
         data['description'] = description;
@@ -294,37 +332,35 @@ export class Jmarc {
         
         let error = false;
         
-        return fetch(
+        const response = await fetch(
             this.collectionUrl + '/workforms',
             {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }
-        ).then(
-            response => {
-                if (! response.ok) {
-                    error = true
-                } 
-                
-                return response.json()
-            }
-        ).then(
-            json => {
-                if (error === true) {
-                    throw new Error(json['message'])
-                }
-                
-                return true
-            }
-        )
+        );
+        if (!response.ok) {
+            error = true;
+        }
+        const json = await response.json();
+        if (error === true) {
+            throw new Error(json['message']);
+        }
+        return true;
     }
     
     post() {
 		if (this.recordId) {
-			throw new Error("Can't POST existing record")
+			return Promise.reject("Can't POST existing record")
 		}
-		
+        
+        try {
+            this.validate();
+		} catch (error) {
+		    return Promise.reject(error)
+		}
+        
 		let savedResponse;
 
 		return fetch(
@@ -336,7 +372,8 @@ export class Jmarc {
 			}	
 		).then(
 			response => {
-				savedResponse = response;
+                savedResponse = response;
+                
 				return response.json()
 			}
 		).then(
@@ -356,11 +393,17 @@ export class Jmarc {
 
 	put() {
 		if (! this.recordId) {
-			throw new Error("Can't PUT new record")
+			return Promise.reject("Can't PUT new record")
+		}
+        
+        try {
+            this.validate();
+		} catch (error) {
+		    return Promise.reject(error)
 		}
 		
 		let savedResponse;
-		
+
 		return fetch(
 			this.url,
 			{
@@ -371,7 +414,7 @@ export class Jmarc {
 		).then(
 			response => {
 				savedResponse = response;
-				
+
 				return response.json();
 			}
 		).then(
@@ -381,7 +424,7 @@ export class Jmarc {
 				}
 				
 				this.savedState = this.compile();
-				
+
 				return this;
 			} 
 		)
@@ -423,7 +466,7 @@ export class Jmarc {
 		return JSON.stringify(this.savedState) === JSON.stringify(this.compile());
 	}
 
-	parse(data) {
+	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
 		
@@ -432,19 +475,18 @@ export class Jmarc {
 		
 		for (let tag of tags) {
 			for (let field of data[tag]) {
+                let newField = this.createField(tag);
+                
 				if (tag.match(/^00/)) {
-					let cf = new ControlField(tag, field);
-					this.fields.push(cf)
-				} else {
-					let df = this.collection == "bibs" ? new BibDataField(tag) : new AuthDataField(tag);
-					df.indicators = field.indicators.map(x => x.replace(" ", "_"));
+                    newField.value = field;
+                } else {
+                    newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
 					
 					for (let subfield of field.subfields) {
-						let sf = new Subfield(subfield.code, subfield.value, subfield.xref);
-						df.subfields.push(sf)
+						let newSub = newField.createSubfield(subfield.code);
+                        newSub.value = subfield.value;
+                        newSub.xref = subfield.xref;
 					}
-					
-					this.fields.push(df)
 				}
 			}
 		}
@@ -502,11 +544,27 @@ export class Jmarc {
 	}
 	
 	clone() {
-		let cloned = new this.recordClass;
-		cloned.parse(this.compile());
-		cloned.deleteField("001");
+		let cloned = (new this.recordClass).parse(this.compile());
+		
+        cloned.deleteField("001");
 		cloned.deleteField("005");
 		cloned.deleteField("008");
+        cloned.deleteField("035");
+        cloned.deleteField("998");
+        cloned.deleteField("999");
+        cloned.createField("999").createSubfield("a").value = "";
+        
+        if (this.recordClass === Auth) {
+            return cloned
+        }
+        
+        for (let field of cloned.getFields("029")) {
+            if (field.getSubfield("b")) {
+                field.getSubfield("b").value = "" 
+            } else {
+                field.createSubfield("b").value = ""
+            }
+        }
 		
 		return cloned
 	}
@@ -530,15 +588,21 @@ export class Jmarc {
         if (field.tag && place) {
             // field place
             let i = 0;
+            let found = false
             
             for (let [c, f] of Object.entries(this.fields)) {
                 if (f.tag === field.tag) {
                     if (i === place) {
-                        this.fields.splice(c, 0, field)
+                        this.fields.splice(c, 0, field);
+                        found = true;
                     }
                               
                     i++;
-                } 
+                }
+            }
+            
+            if (! found) {
+                this.fields.push(field);
             }
         } 
         else if (place) {
@@ -548,6 +612,8 @@ export class Jmarc {
         else {
             this.fields.push(field);
         }
+        
+        field.parentRecord = this;
 		
 		return field
 	}
@@ -594,6 +660,26 @@ export class Jmarc {
 		
 		return
 	}
+
+    validate() {
+        for (let field of this.fields) {
+            if (! field.tag) {
+                throw new Error("Tag required")
+            }
+            
+            if (! field.tag.match(/\d{3}/) ) {
+                throw new Error("Invalid tag")
+            }
+            
+            field.validate()
+            
+            if (this.collection == "auths") {
+                if (! this.fields.map(x => x.tag.substring(0, 1)).includes("1")) {
+                    throw new Error("Heading field required")
+                }
+            }
+        }
+    }
 }
 
 export class Bib extends Jmarc {
@@ -605,7 +691,13 @@ export class Bib extends Jmarc {
 		return Jmarc.get("bibs", recordId)
 	}
 	
-	validate() {}
+    clone() {
+        return super.clone();
+    }
+    
+	validate() {
+        super.validate();
+    }
 }
 
 export class Auth extends Jmarc {
@@ -616,6 +708,12 @@ export class Auth extends Jmarc {
 	static get(recordId) {
 		return Jmarc.get("auths", recordId)
 	}
-			
-	validate() {}
+	
+    clone() {
+        return super.clone()
+    }
+    
+	validate() {
+        super.validate();
+    }
 }

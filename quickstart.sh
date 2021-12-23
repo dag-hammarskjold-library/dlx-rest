@@ -1,7 +1,23 @@
+# Use this to quickstart the Flask application. Note that the environment must
+# be in all caps, e.g., DEV, QAT, UAT, PROD
 
-echo "Starting $1 environment"
+ENV=$1
 
-source venv/bin/activate
+if [ -z $1 ]
+then
+	ENV="DEV"
+fi
+
+echo "Starting $ENV environment"
+
+PWD=`pwd`
+
+. $PWD/venv/bin/activate
+unset DLX_REST_
+unset DLX_REST_DEV
+unset DLX_REST_QAT
+unset DLX_REST_UAT
+unset DLX_REST_PROD
 export FLASK_APP="dlx_rest.app"
-export DLX_REST_$1="True"
+export DLX_REST_$ENV="True"
 flask run --reload

@@ -46,7 +46,8 @@ def test_api_collection(client):
 def test_api_records_list(client, marc):
     from dlx.marc import Bib, Auth
     
-    for col in ('bibs', 'auths'):
+    for col in ['bibs', 'auths']:
+        
         res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
@@ -58,7 +59,7 @@ def test_api_records_list(client, marc):
         if col == 'bibs':    
             cls = Bib
             bib = Bib()
-            bib.set('245', 'a', 'Title')
+            bib.set('245', 'a', 'AAA')
             res = client.post(f'{API}/marc/{col}/records', data=bib.to_json())
         else:
             cls = Auth
@@ -68,6 +69,37 @@ def test_api_records_list(client, marc):
             
         assert res.status_code == 201
 
+        # search
+        res = client.get(f'{API}/marc/{col}/records?search=title:AAA')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+        assert len(data['data']) == (1 if col == 'bibs' else 0)
+        
+        # sort
+        res = client.get(f'{API}/marc/{col}/records?sort=title&direction=asc')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+        
+        if col == 'bibs':
+            assert '/records/3' in data['data'][0]
+            
+        # format
+        for fmt in ['mrk', 'xml']:
+            res = client.get(f'{API}/marc/{col}/records?format={fmt}')
+            assert type(res.data) == bytes
+            assert type(res.data.decode()) == str
+            
+        res = client.get(f'{API}/marc/{col}/records?format=brief')
+        data = check_response(res)
+        assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
+
+def test_api_records_list_browse(client, marc):
+    res = client.get(f'{API}/marc/bibs/records/browse?search=title:Title&copare=greater')
+    data = check_response(res)
+    
+    res = client.get(f'{API}/marc/auths/records/browse?search=heading:Heading&compare=less')
+    data = check_response(res)
+
 def test_api_records_list_count(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records/count')
@@ -75,6 +107,7 @@ def test_api_records_list_count(client, marc):
         assert data['data'] == 2
         
 def test_api_record(client, marc):
+    # get
     for col in ('bibs', 'auths'):
         for i in (1, 2):
             res = client.get(f'{API}/marc/{col}/records/{i}')
@@ -100,6 +133,8 @@ def test_api_record(client, marc):
     # delete
     res = client.delete(f'{API}/marc/bibs/records/1')
     assert res.status_code == 204
+    
+    print(Auth.from_id(2).in_use())
     
     res = client.delete(f'{API}/marc/auths/records/2')
     assert res.status_code == 403 # auth in use
@@ -291,6 +326,12 @@ def test_api_auth_merge(client, marc):
     
     res = client.get(f'{API}/marc/bibs/records/2/fields/700/0/subfields/a/0')
     assert json.loads(res.data)['data'] == "Heading 1"
+
+def test_api_auth_use_count(client, marc):
+    res = client.get(f'{API}/marc/auths/records/1/use_count?use_type=bibs')
+    data = check_response(res)
+    
+    assert data['data'] == 1
     
 # User profile testing
 def test_api_userprofile(client, default_users, users):
@@ -380,11 +421,8 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
     assert len(data['data']['items']) == 0
-
-
     
-# util
-
+### util
 
 def check_response(response):
     client = app.test_client()
@@ -408,8 +446,9 @@ def check_response(response):
         if sublinks:
             for linktype in sublinks:
                 res = client.get(sublinks[linktype])
-                assert res.status_code == 200
                 
+                assert res.status_code == 200
+ 
     return data    
 
 
