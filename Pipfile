@@ -7,6 +7,7 @@ name = "pypi"
 dlx = {git = "https://github.com/dag-hammarskjold-library/dlx"}
 flask-mongoengine = "*"
 flask-restx = "*"
+lxml = ">=4.6.5"
 mongoengine = "*"
 mongomock = "*"
 pymongo = "*"
