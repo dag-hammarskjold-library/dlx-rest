@@ -5,6 +5,7 @@ Flask-Login
 flask-mongoengine
 flask-restx
 Flask-WTF
+lxml ">=4.6.5"
 mongoengine
 mongomock
 pymongo
