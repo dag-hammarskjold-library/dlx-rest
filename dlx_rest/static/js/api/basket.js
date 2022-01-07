@@ -63,7 +63,7 @@ export default {
         let url = `${api_prefix}${basket_id}`
         const response = await fetch(url);
         const jsonData = await response.json();
-        return jsonData.data.item_data;
+        return jsonData.data.item_data.sort((a,b) => a - b);
     },
     clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}/${basket_id}`
