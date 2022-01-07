@@ -49,7 +49,6 @@ export let basketcomponent = {
     },
     mounted: async function() {
         this.timer = setInterval(this.rebuildBasket, 20000)
-        
     },
     /*
     updated: function () {
@@ -124,7 +123,6 @@ export let basketcomponent = {
                     basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, item.collection, item.record_id);
                 })
             }
-            
             return true
         },
         rebuildBasket() {
