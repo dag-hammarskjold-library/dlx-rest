@@ -14,12 +14,16 @@ from flask_restx import reqparse
 class ClassDispatch():
     index = {
         'bibs': Bib,
-        'auths': Auth
+        'auths': Auth,
+        'speeches': Bib,
+        'votes': Bib
     }
     
     batch_index = {
         'bibs': BibSet,
-        'auths': AuthSet
+        'auths': AuthSet,
+        'speeches': BibSet,
+        'votes': BibSet
     }
     
     @classmethod

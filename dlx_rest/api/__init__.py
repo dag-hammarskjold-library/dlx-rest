@@ -135,7 +135,7 @@ class CollectionsList(Resource):
             '_self': URL('api_collections_list').to_str()
         }
         
-        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths')])
+        response = ApiResponse(links=links, meta=meta, data=[URL('api_collection', collection=col).to_str() for col in ('bibs', 'auths', 'speeches', 'votes')])
         
         return response.jsonify()
 
@@ -165,7 +165,7 @@ class Collection(Resource):
 
 # Records
 @ns.route('/marc/<string:collection>/records')
-@ns.param('collection', '"bibs" or "auths"')
+@ns.param('collection', '"bibs", "auths", "speeches", or "votes"')
 class RecordsList(Resource):
     args = reqparse.RequestParser()
     args.add_argument(
@@ -214,8 +214,23 @@ class RecordsList(Resource):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
         
-        # search
-        search = unquote(args.search) if args.search else None
+        '''
+        This should be more configurable, rather than hardcoded here, but it *does* work.
+        '''
+        if collection == "speeches":
+            if args.search:
+                search = "089__b:B22 AND " + unquote(args.search)
+            else:
+                search = "089__b:B22"
+        elif collection == "votes":
+            if args.search:
+                search = "089__b:B23 AND " + unquote(args.search)
+            else:
+                search = "089__b:B23"
+        else:
+            search = unquote(args.search) if args.search else None
+
+        print(search)
         query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
