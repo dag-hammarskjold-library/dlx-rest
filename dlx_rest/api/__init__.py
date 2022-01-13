@@ -214,23 +214,8 @@ class RecordsList(Resource):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
         
-        '''
-        This should be more configurable, rather than hardcoded here, but it *does* work.
-        '''
-        if collection == "speeches":
-            if args.search:
-                search = "089__b:B22 AND " + unquote(args.search)
-            else:
-                search = "089__b:B22"
-        elif collection == "votes":
-            if args.search:
-                search = "089__b:B23 AND " + unquote(args.search)
-            else:
-                search = "089__b:B23"
-        else:
-            search = unquote(args.search) if args.search else None
+        search = unquote(args.search) if args.search else None
 
-        print(search)
         query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
