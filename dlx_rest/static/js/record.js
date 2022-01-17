@@ -614,26 +614,32 @@ export let multiplemarcrecordcomponent = {
             if (jmarc.workformName) {
                 deleteItem.innerText = "Delete Workform";
                 deleteItem.onclick = () => {
-                    Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
-                        this.removeRecordFromEditor(jmarc.div.id);
-                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
-                        //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
-                    })
+                    // Confirm the deletion 
+                    if (confirm("Are you sure you want to delete Workform ?") == true) {
+                            Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
+                                this.removeRecordFromEditor(jmarc.div.id);
+                                this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
+                                //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
+                            })
+                     }
                 }
             } 
             else {
                 deleteItem.onclick = () => {
-                    let deletedRid = jmarc.recordId;
-                    let deletedColl = jmarc.collection;
+                    // Confirm the deletion 
+                    if (confirm("Are you sure you want to delete this record ?") == true) {
+                        let deletedRid = jmarc.recordId;
+                        let deletedColl = jmarc.collection;
 
-                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
-                        jmarc.delete().then( () => {
-                            this.removeRecordFromEditor(jmarc.div.id);
-                            this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
-                        }).catch( error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger");
-                        });
-                    })
+                        this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
+                            jmarc.delete().then( () => {
+                                this.removeRecordFromEditor(jmarc.div.id);
+                                this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
+                            }).catch( error => {
+                                this.callChangeStyling(error.message,"row alert alert-danger");
+                            });
+                        })
+                    }
                 };
             }
 
