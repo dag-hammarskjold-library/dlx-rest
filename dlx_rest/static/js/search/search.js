@@ -21,7 +21,48 @@ export let searchcomponent = {
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
-        <div class="row pt-2">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
+            <div class="collapse navbar-collapse" id="advancedSearchToggle">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div id="advanced-search" class="row pt-2" style="display:none">
+            <div class="card">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                        <div class="dropdown-menu">
+                            <option class="dropdown-item" value="all">All of the words:</option>
+                            <option class="dropdown-item" value="any">Any of the words:</option>
+                            <option class="dropdown-item" value="exact">Exact phrase:</option>
+                            <option class="dropdown-item" value="partial">Partial phrase:</option>
+                            <option class="dropdown-item" value="regex">Regular expression:</option>
+                        </div>
+                    </div>
+                    <input type="text" class="form-control" aria-label="Text input with dropdown button">
+                    <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                    <div class="input-group-prepend">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#">Author</a>
+                            <a class="dropdown-item" href="#">Title</a>
+                            <a class="dropdown-item" href="#">Symbol</a>
+                            <a class="dropdown-item" href="#">Agenda</a>
+                            <a class="dropdown-item" href="#">Year</a>
+                            <a class="dropdown-item" href="#">Notes</a>
+                            <a class="dropdown-item" href="#">Series</a>
+                            <a class="dropdown-item" href="#">Subject</a>
+                            <a class="dropdown-item" href="#">Related documents</a>
+                            <a class="dropdown-item" href="#">Bib creation</a>
+                        </div>
+                    </div>
+                    <input type="text" class="form-control" aria-label="Text input with dropdown button">
+                </div>
+            </div>
+        </div>
+        <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
@@ -88,6 +129,8 @@ export let searchcomponent = {
             links: {},
             action: `${myUIBase}/records/${this.collection}/search`,
             params: myProps,
+            searchType: "all",
+            advancedParams: null,
             uibase: myUIBase,
             count: null,
             prev: null,
@@ -233,6 +276,17 @@ export let searchcomponent = {
                     el.classList.add("fa-folder-plus");
                     // Send a message to the messagebar...
                 }
+            }
+        },
+        toggleAdvancedSearch() {
+            let el = document.getElementById("advanced-search")
+            let ss = document.getElementById("simple-search")
+            if (el.style.display == "none"){
+                el.style.display = "block"
+                ss.style.display = "none"
+            } else {
+                el.style.display = "none"
+                ss.style.display = "block"
             }
         }
     },
