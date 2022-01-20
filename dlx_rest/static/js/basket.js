@@ -40,7 +40,8 @@ export let basketcomponent = {
     },
     computed: {
         sortedBasket: function () {
-            return this.basketItems.sort((a,b) => { return a.basket_item_id < b.basket_item_id })
+            //return this.basketItems.sort((a,b) => { return a.basket_item_id < b.basket_item_id })
+            return this.basketItems.sort((a,b) => { return a.basket_item_id.localeCompare(b.basket_item_id) })
         }
     },
     created: async function () {
