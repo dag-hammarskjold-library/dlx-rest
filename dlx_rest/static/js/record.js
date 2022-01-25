@@ -355,6 +355,22 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.title = "save";
                 }
             });
+
+            // check the save status on any DIV
+            // table.addEventListener("DOMNodeInserted", function() {
+            //     if (jmarc.saved) {
+            //         jmarc.saveButton.classList.remove("text-danger");
+            //         jmarc.saveButton.classList.add("text-primary");
+            //         jmarc.saveButton.title = "no new changes";
+            //     } else {
+            //         jmarc.saveButton.classList.add("text-danger");
+            //         jmarc.saveButton.classList.remove("text-primary");
+            //         jmarc.saveButton.title = "save";
+            //     }
+            // });
+
+            // check the save status on any SPAN
+
             
             return table       
         },
@@ -829,6 +845,11 @@ export let multiplemarcrecordcomponent = {
             deleteField.addEventListener("click", function() {
                 jmarc.deleteField(field);
                 table.deleteRow(field.row.rowIndex);
+
+                // Change the color of the red button
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "save";
             });
     
             // Tag span
