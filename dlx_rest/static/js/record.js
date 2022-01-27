@@ -372,6 +372,24 @@ export let multiplemarcrecordcomponent = {
             // check the save status on any SPAN
 
             
+            // check the save status on any span
+            // function visualIndicator(){
+            //     alert("inside")
+            //     if (jmarc.saved) {
+            //         jmarc.saveButton.classList.remove("text-danger");
+            //         jmarc.saveButton.classList.add("text-primary");
+            //         jmarc.saveButton.title = "no new changes";
+            //     } else {
+            //         jmarc.saveButton.classList.add("text-danger");
+            //         jmarc.saveButton.classList.remove("text-primary");
+            //         jmarc.saveButton.title = "save";
+            //     }
+            // };
+
+            // var spans = document.getElementsByTagName('span');
+            // for(let i=0;i<spans.length;i++)
+            //     spans[i].onchange=visualIndicator;
+            
             return table       
         },
         buildTableHeader(jmarc) {
@@ -833,6 +851,11 @@ export let multiplemarcrecordcomponent = {
                 document.execCommand("selectall");
                 newField.subfields[0].valueCell.classList.add("unsaved");
 
+                // Manage visual indicators
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "save";
+
                 return
             });
     
@@ -846,10 +869,17 @@ export let multiplemarcrecordcomponent = {
                 jmarc.deleteField(field);
                 table.deleteRow(field.row.rowIndex);
 
-                // Change the color of the red button
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "no new changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "save";
+                }
+
             });
     
             // Tag span
@@ -979,6 +1009,7 @@ export let multiplemarcrecordcomponent = {
                         } else {
                             field.indicators[1] = span.innerText;
                         }
+
                     });
         
                     span.addEventListener("keydown", function (event) {
@@ -1158,6 +1189,18 @@ export let multiplemarcrecordcomponent = {
                 field.deleteSubfield(subfield);
                 // Remove the subfield row from the table
                 table.deleteRow(subfield.row.rowIndex);
+
+                // Manage visual indicators
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "no new changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "save";
+                }
+
             });
     
             // Subfield value
