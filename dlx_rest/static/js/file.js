@@ -252,7 +252,7 @@ function setDocSymbol(filename) {
   let sym_1 = filename.replace(/\.[^.$]+$/g, "");
 
   //remove language extension "-[ACEFRSG]$"
-  let sym_2 = sym_1.replaceAll(/(-[ACEFRSG])+$/g, "");
+  let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); //
 
   //replaces any underscores or dashes  with slashes
   let sym_3 = sym_2.replaceAll(/-|_/g, "/");
@@ -265,42 +265,67 @@ function setLanguage(filename) {
   let a = filename.replace(/\.[^.$]+$/g, "");
 
   //get language suffix
-  let b = a.match(/(-[ACEFRSG])+$/g);
-
+  let b = a.match(/(-[ACEFRSGZD][A-Z]?)+$/g); //
+  
   let lang = [];
-  let c = "";
+  let c = [];//"";
 
   if (b === null)
     //default to english
     lang.push("EN");
   //parse the text
-  else c = b[0].replaceAll(/-/g, ""); //remove dashes
-  for (let s of c)
-    switch (s) {
+  else c = b[0].split("-"); 
+  //b[0].replaceAll(/-/g, ""); //remove dashes
+
+  for (let i = 0; i < c.length; i++) {
+  
+    switch (c[i]) {
       case "A":
+        lang.push("AR");
+        break;
+      case "AR":
         lang.push("AR");
         break;
       case "C":
         lang.push("ZH");
         break;
+      case "ZH":
+        lang.push("ZH");
+        break;
       case "E":
+        lang.push("EN");
+        break;
+      case "EN":
         lang.push("EN");
         break;
       case "F":
         lang.push("FR");
         break;
+      case "FR":
+        lang.push("FR");
+        break;
       case "G":
+        lang.push("DE");
+        break;
+      case "DE":
         lang.push("DE");
         break;
       case "R":
         lang.push("RU");
         break;
+      case "RU":
+        lang.push("RU");
+        break;
       case "S":
+        lang.push("ES");
+        break;
+      case "ES":
         lang.push("ES");
         break;
       default:
         break;
     }
+  }
 
   return lang;
 }

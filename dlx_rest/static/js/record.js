@@ -355,6 +355,40 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.title = "save";
                 }
             });
+
+            // check the save status on any DIV
+            // table.addEventListener("DOMNodeInserted", function() {
+            //     if (jmarc.saved) {
+            //         jmarc.saveButton.classList.remove("text-danger");
+            //         jmarc.saveButton.classList.add("text-primary");
+            //         jmarc.saveButton.title = "no new changes";
+            //     } else {
+            //         jmarc.saveButton.classList.add("text-danger");
+            //         jmarc.saveButton.classList.remove("text-primary");
+            //         jmarc.saveButton.title = "save";
+            //     }
+            // });
+
+            // check the save status on any SPAN
+
+            
+            // check the save status on any span
+            // function visualIndicator(){
+            //     alert("inside")
+            //     if (jmarc.saved) {
+            //         jmarc.saveButton.classList.remove("text-danger");
+            //         jmarc.saveButton.classList.add("text-primary");
+            //         jmarc.saveButton.title = "no new changes";
+            //     } else {
+            //         jmarc.saveButton.classList.add("text-danger");
+            //         jmarc.saveButton.classList.remove("text-primary");
+            //         jmarc.saveButton.title = "save";
+            //     }
+            // };
+
+            // var spans = document.getElementsByTagName('span');
+            // for(let i=0;i<spans.length;i++)
+            //     spans[i].onchange=visualIndicator;
             
             return table       
         },
@@ -844,6 +878,7 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.remove("text-primary");
                     jmarc.saveButton.title = "save";
                 }
+
             });
     
             // Tag span
