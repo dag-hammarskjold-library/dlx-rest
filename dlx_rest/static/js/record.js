@@ -869,7 +869,6 @@ export let multiplemarcrecordcomponent = {
                 jmarc.deleteField(field);
                 table.deleteRow(field.row.rowIndex);
 
-
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
                     jmarc.saveButton.classList.add("text-primary");
