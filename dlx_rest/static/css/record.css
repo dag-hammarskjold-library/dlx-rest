@@ -1,12 +1,17 @@
 /* marc record */
 
-table.marc-record {
+/* table.marc-field {
     width: 100%;
 }
 
+table.marc-record {
+    width: 100%;
+} */
+/* 
+
 table.marc-field {
     width: 100%;
-}
+} */
 
 table.marc-record.read-only {
     pointer-events: none;
@@ -70,11 +75,7 @@ td.field-checkbox {
     vertical-align: top
 }
 
-td.field-tag {
-    width: 99px;
-}
-
-td.field-tag {
+/* td.field-tag {
     width: 99px;
 }
 
@@ -84,14 +85,14 @@ td.subfield-code {
 
 td.subfield-value {
     width: 100%; 
-}
+} */
 
 td.unsaved {
     background-color: rgba(255, 255, 128, .5);
 }
 
 span.authority-controlled {
-    text-decoration: underline;;
+    text-decoration: underline;
 }
 
 span.authority-controlled-unmatched {
@@ -109,8 +110,6 @@ span.unsaved {
 span.lookup-choice-code {
     color: blue;
 }
-
-span.lookup-choice-value {}
 
 li.lookup-choice:hover {
     background-color: gray;
