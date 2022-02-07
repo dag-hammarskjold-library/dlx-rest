@@ -8,6 +8,7 @@ export default {
         let url = `${api_prefix}${basket_id}`;
         let myItemTitle = "";
         let myId = null;
+        // Check here to see if the record is already in another basket? Return that fact, along with the user?
         await Jmarc.get(collection, record_id).then(async jmarc => {
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);

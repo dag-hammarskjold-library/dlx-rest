@@ -601,6 +601,8 @@ export let multiplemarcrecordcomponent = {
             };
 
             if (this.readonly && this.user !== null) {
+                // Use a lock icon here if the record is locked?
+                // Offer users ability to unlock from here.
                 let editLink = document.createElement("a");
                 let uibase = this.prefix.replace("/api/","");
                 editLink.href = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;

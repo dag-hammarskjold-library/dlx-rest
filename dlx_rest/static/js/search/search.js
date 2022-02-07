@@ -156,6 +156,9 @@ export let searchcomponent = {
         } 
 
         if (typeof this.user !== "undefined") {
+            // Also check here if the record is already in someone else's basket
+            // IF so, don't offer the + icon. Instead use a lock icon.
+            // And offer users chance to unlock the record (add to own basket)
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`

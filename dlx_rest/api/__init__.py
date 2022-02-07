@@ -561,6 +561,19 @@ class Record(Resource):
         else:
             abort(500)
 
+# Endpoint here for record lock status?
+# And write the test.
+@ns.route('/marc/<string:collection>/records/<int:record_id>/locked')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordLockStatus(Resource):
+    @ns.doc(description='Return the lock status of a record with the given record ID in the specified collection.')
+    @login_required
+    def get(self, collection, record_id):
+        # do some stuff
+        # Consider returning the user who has locked the record
+        return {"locked": False},200
+
 # Fields
 @ns.route('/marc/<string:collection>/records/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
@@ -1513,6 +1526,34 @@ class MyBasketRecord(Resource):
     @ns.doc("Add an item to the current user's basket. The item data must be in the body of the request.", security="basic")
     @login_required
     def post(self):
+        # Do we check *here* whether the item is already in another basket?
+        # e.g.,
+        item = json.loads(request.data)
+        this_u = User.objects.get(id=current_user.id)
+        lock = None
+        for basket in Basket.objects:
+            try:
+                # If this succeeds, we have a lock
+                locked_item = basket.get_item_by_coll_and_rid(self, item['collection'], item['record_id'])
+                if basket.owner == this_u:
+                    # But if current user owns the lock, we don't need to do anything
+                    pass
+                else:
+                    item['locked_by'] = basket.owner.email
+                    lock = item,200
+            except IndexError:
+                # Otherwise we don't
+                pass
+        
+        if lock is not None:
+            # put the item in the basket
+            this_u.my_basket().add_item(item)
+            return item,200
+        else:
+            # return information about the lock
+            return lock,200
+
+        '''
         try:
             this_u = User.objects.get(id=current_user.id)
             print(request.data)
@@ -1527,8 +1568,9 @@ class MyBasketRecord(Resource):
         my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
         #print(my_item)
         item_id = my_item['id']
+        '''
 
-        return {"id": item_id}, 200
+        #return {"id": item_id}, 200
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):
