@@ -3,6 +3,7 @@ DLX REST API
 '''
 
 # external
+from http.client import HTTPResponse
 from dlx_rest.routes import login
 import os, json, re, boto3, mimetypes, jsonschema
 from datetime import datetime, timezone
@@ -26,7 +27,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked
 
 # Init
 authorizations = {
@@ -561,8 +562,6 @@ class Record(Resource):
         else:
             abort(500)
 
-# Endpoint here for record lock status?
-# And write the test.
 @ns.route('/marc/<string:collection>/records/<int:record_id>/locked')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -570,9 +569,8 @@ class RecordLockStatus(Resource):
     @ns.doc(description='Return the lock status of a record with the given record ID in the specified collection.')
     @login_required
     def get(self, collection, record_id):
-        # do some stuff
-        # Consider returning the user who has locked the record
-        return {"locked": False},200
+        lock_status= item_locked(collection, record_id)
+        return lock_status, 200
 
 # Fields
 @ns.route('/marc/<string:collection>/records/<int:record_id>/fields')
@@ -1526,51 +1524,32 @@ class MyBasketRecord(Resource):
     @ns.doc("Add an item to the current user's basket. The item data must be in the body of the request.", security="basic")
     @login_required
     def post(self):
-        # Do we check *here* whether the item is already in another basket?
-        # e.g.,
         item = json.loads(request.data)
+        override = False
+        if "override" in item.keys():
+            override = item["override"]
+        print(item)
+        lock_status = item_locked(item['collection'], item['record_id'])
         this_u = User.objects.get(id=current_user.id)
-        lock = None
-        for basket in Basket.objects:
-            try:
-                # If this succeeds, we have a lock
-                locked_item = basket.get_item_by_coll_and_rid(self, item['collection'], item['record_id'])
-                if basket.owner == this_u:
-                    # But if current user owns the lock, we don't need to do anything
-                    pass
-                else:
-                    item['locked_by'] = basket.owner.email
-                    lock = item,200
-            except IndexError:
-                # Otherwise we don't
-                pass
-        
-        if lock is not None:
-            # put the item in the basket
-            this_u.my_basket().add_item(item)
-            return item,200
-        else:
-            # return information about the lock
-            return lock,200
-
-        '''
-        try:
-            this_u = User.objects.get(id=current_user.id)
-            print(request.data)
-            item = json.loads(request.data)
-            if 'collection' in item and 'record_id' in item:
-                this_u.my_basket().add_item(item)
+        if lock_status["locked"] == True:
+            if lock_status["by"] == this_u.email:
+                # It's locked, but by the current user
+                return {},200
             else:
-                abort(500)
-        except:
-            raise
-
-        my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
-        #print(my_item)
-        item_id = my_item['id']
-        '''
-
-        #return {"id": item_id}, 200
+                # It's locked by someone else
+                if override:
+                    # Remove it from the other user's basket
+                    # Add it to this user's basket
+                    losing_basket = Basket.objects.get(name=lock_status["in"])
+                    losing_basket.remove_item(lock_status["item_id"])
+                    this_u.my_basket().add_item(item)
+                    return {},201
+                else:
+                    return {},403
+        else:
+            # The item is not locked, so we can add it to our basket
+            this_u.my_basket().add_item(item)
+            return {},201      
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):

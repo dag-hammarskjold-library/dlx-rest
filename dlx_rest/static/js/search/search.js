@@ -173,7 +173,11 @@ export let searchcomponent = {
                     iconEl.classList.remove('fa-folder-plus',);
                     iconEl.classList.add('fa-folder-minus');
                     iconEl.title = "Remove from basket";
-                } 
+                }
+                const itemLocked = await basket.itemLocked(this.collection, result._id);
+                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                    // Display a lock icon, 
+                }
             }
             
         }
