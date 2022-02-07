@@ -59,6 +59,10 @@ export default {
         return true;
     },
 
+    async itemLocked() {
+        // true or false
+    },
+
     // Basket methods
     async getBasket(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}${basket_id}`
