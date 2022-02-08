@@ -59,8 +59,12 @@ export default {
         return true;
     },
 
-    async itemLocked() {
-        // true or false
+    async itemLocked(api_prefix, collection, record_id) {
+        let url = `${api_prefix}marc/${collection}/records/${record_id}/locked`
+        let res = await fetch(url);
+        let jsonData = await res.json();
+        console.log(jsonData);
+        return jsonData;
     },
 
     // Basket methods
