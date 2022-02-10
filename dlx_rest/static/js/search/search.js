@@ -156,9 +156,6 @@ export let searchcomponent = {
         } 
 
         if (typeof this.user !== "undefined") {
-            // Also check here if the record is already in someone else's basket
-            // IF so, don't offer the + icon. Instead use a lock icon.
-            // And offer users chance to unlock the record (add to own basket)
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
@@ -174,8 +171,8 @@ export let searchcomponent = {
                     iconEl.classList.add('fa-folder-minus');
                     iconEl.title = "Remove from basket";
                 }
+                // checking if the record is locked and displaying a lock if it is.
                 const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, result._id);
-                //console.log(itemLocked)
                 if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
                     // Display a lock icon
                     iconEl.classList.remove('fa-folder-plus',);

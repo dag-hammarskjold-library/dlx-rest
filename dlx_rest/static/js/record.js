@@ -77,7 +77,8 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
-            targetedTable:""
+            targetedTable:"",
+            recordLocked: {"locked": false}
         }
     },
     created: async function() {
@@ -99,8 +100,10 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(jmarc => {
+                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
                             if (this.readonly) {
+                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                                console.log(this.recordLocked)
                                 this.displayMarcRecord(jmarc, true);
                             } else {
                                 this.displayMarcRecord(jmarc, false); // record ID and collection
@@ -605,21 +608,40 @@ export let multiplemarcrecordcomponent = {
                 // Offer users ability to unlock from here.
                 let editLink = document.createElement("a");
                 let uibase = this.prefix.replace("/api/","");
-                editLink.href = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
+                let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
+                editLink.href = editHref;
                 idCell.appendChild(editLink);
                 let addRemoveBasketButton = document.createElement("i");
                 editLink.appendChild(addRemoveBasketButton);
-                addRemoveBasketButton.type = "button";
-                addRemoveBasketButton.value = "edit";
-                addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
-                addRemoveBasketButton.className="fas fa-edit edit-record";
-                addRemoveBasketButton.title = "Edit Record";
-                editLink.addEventListener("click", async (e) => {
-                    e.preventDefault();
-                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
-                        window.location.href = editLink.href;
+                if (this.recordLocked["locked"] == true) {
+                    editLink.href = "#"
+                    addRemoveBasketButton.type = "button";
+                    addRemoveBasketButton.value = "locked";
+                    addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
+                    addRemoveBasketButton.className="fas fa-lock edit-record";
+                    addRemoveBasketButton.title = `Record locked by ${this.recordLocked["by"]}`;
+                    // Add an override option here...
+                    /*
+                    editLink.addEventListener("click", async (e) => {
+                        e.preventDefault();
+                        await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+                            window.location.href = editLink.href;
+                        })
                     })
-                })
+                    */
+                } else {
+                    addRemoveBasketButton.type = "button";
+                    addRemoveBasketButton.value = "edit";
+                    addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
+                    addRemoveBasketButton.className="fas fa-edit edit-record";
+                    addRemoveBasketButton.title = "Edit Record";
+                    editLink.addEventListener("click", async (e) => {
+                        e.preventDefault();
+                        await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+                            window.location.href = editLink.href;
+                        })
+                    })
+                }
             }
             
             // Delete button
