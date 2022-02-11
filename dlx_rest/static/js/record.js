@@ -621,14 +621,13 @@ export let multiplemarcrecordcomponent = {
                     addRemoveBasketButton.className="fas fa-lock edit-record";
                     addRemoveBasketButton.title = `Record locked by ${this.recordLocked["by"]}`;
                     // Add an override option here...
-                    /*
-                    editLink.addEventListener("click", async (e) => {
-                        e.preventDefault();
-                        await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
-                            window.location.href = editLink.href;
-                        })
-                    })
-                    */
+                    addRemoveBasketButton.onclick = async () => {
+                        if(confirm(`This will remove the item from the basket belonging to ${this.recordLocked["by"]}. Click OK to proceed.`) == true) {
+                            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                                window.location.href = editLink.href;
+                            })
+                        }
+                    }
                 } else {
                     addRemoveBasketButton.type = "button";
                     addRemoveBasketButton.value = "edit";

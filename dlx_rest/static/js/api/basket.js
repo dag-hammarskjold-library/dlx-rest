@@ -2,7 +2,7 @@ import { Jmarc } from "../jmarc.mjs";
 
 export default {
     // Individual item methods
-    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id) {
+    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id, override=false) {
         
         Jmarc.apiUrl = api_prefix;
         let url = `${api_prefix}${basket_id}`;
@@ -31,7 +31,7 @@ export default {
                 }
                 myItemTitle = myTitle.join(" ");
             }
-            let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}"}`
+            let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
             await fetch(url, {
                 method: 'POST',
                 body: data
