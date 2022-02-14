@@ -620,6 +620,25 @@ export let multiplemarcrecordcomponent = {
                 })
             }
             
+            // Toggle hidden fields button?
+            let toggleButton = document.createElement("i");
+            idCell.appendChild(toggleButton);
+            toggleButton.type = "button";
+            toggleButton.value = "toggle";
+            toggleButton.className = "fas fa-solid fa-eye";
+            toggleButton.title = "toggle hidden fields";
+            
+            toggleButton.addEventListener("click", function() {
+                for (let field of jmarc.fields.filter(x => x.tag[0] === "0")) {
+                    if (field.row.classList.contains("hidden-field")) {
+                        field.row.classList.remove("hidden-field")
+                    }
+                    else {
+                        field.row.classList.add("hidden-field")
+                    }
+                }
+            });
+            
             // Delete button
             let deleteCell = idRow.insertCell();
             let deleteDiv = document.createElement("div");
@@ -1055,7 +1074,12 @@ export let multiplemarcrecordcomponent = {
         
                 return 
             }
-    
+            
+            // "coded" fields
+            if (field.tag.match(/^0/)) {
+                field.row.classList.add("hidden-field");
+            }
+            
             // Datafield
             for (let subfield of field.subfields) {
                 this.buildSubfieldRow(subfield);   
