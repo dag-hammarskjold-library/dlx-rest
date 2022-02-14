@@ -1055,11 +1055,15 @@ export let multiplemarcrecordcomponent = {
         
                 return 
             }
-    
+
             // Datafield
+            // WIP
+            let innerRow = fieldTable.insertRow();
+            
             for (let subfield of field.subfields) {
-                this.buildSubfieldRow(subfield);   
-            }
+                subfield.row = innerRow;
+                this.buildSubfieldRow(subfield);
+             }
     
             return field
         },
@@ -1068,9 +1072,10 @@ export let multiplemarcrecordcomponent = {
             let field = subfield.parentField;
             let table = field.table;
             let jmarc = field.parentRecord;
-    
+            
+            // WIP
             // create the row
-            subfield.row = table.insertRow(place);
+            //subfield.row = table.insertRow(place);
 
             // Subfield code
             let codeCell = subfield.row.insertCell();
