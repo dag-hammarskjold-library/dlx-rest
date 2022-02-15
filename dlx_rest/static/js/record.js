@@ -629,11 +629,12 @@ export let multiplemarcrecordcomponent = {
             toggleButton.title = "toggle hidden fields";
             
             toggleButton.addEventListener("click", function() {
-                for (let field of jmarc.fields.filter(x => x.tag[0] === "0")) {
+                for (let field of jmarc.fields) {
                     if (field.row.classList.contains("hidden-field")) {
                         field.row.classList.remove("hidden-field")
+                        field.wasHidden = true;
                     }
-                    else {
+                    else if (field.wasHidden) {
                         field.row.classList.add("hidden-field")
                     }
                 }
@@ -1076,9 +1077,9 @@ export let multiplemarcrecordcomponent = {
             }
             
             // "coded" fields
-            if (field.tag.match(/^0/)) {
-                field.row.classList.add("hidden-field");
-            }
+            //if (field.tag.match(/^0/)) {
+            //    field.row.classList.add("hidden-field");
+            //}
             
             // Datafield
             for (let subfield of field.subfields) {
