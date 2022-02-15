@@ -943,7 +943,8 @@ export let multiplemarcrecordcomponent = {
         
                 // prevent typing more than 3 characters
                 if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    tagSpan.innerText = ''
+                    //tagSpan.innerText = ''
+                    event.preventDefault()
                 }
             });
     
