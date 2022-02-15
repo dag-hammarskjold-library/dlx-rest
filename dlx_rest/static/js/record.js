@@ -393,6 +393,7 @@ export let multiplemarcrecordcomponent = {
             return table       
         },
         buildTableHeader(jmarc) {
+            let component = this;
             let table = jmarc.table;
             
             // Table header
