@@ -414,112 +414,44 @@ export let multiplemarcrecordcomponent = {
             idField.className = "float-left mx-2";
             
             // Save Button
-            let saveDiv = document.createElement("div");
-            idCell.appendChild(saveDiv);
-            saveDiv.className = "dropdown";
-
             let saveButton = document.createElement("i");
             jmarc.saveButton = saveButton;
-            saveDiv.appendChild(saveButton);
+            idCell.appendChild(saveButton);
             saveButton.id="saveButton"
             saveButton.type = "button";
-            saveButton.value = "save";
-            saveButton.title = "save";
-            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
-            saveButton.setAttribute("data-toggle", "dropdown");
-
-            let saveDropdown = document.createElement("div");
-            saveDiv.appendChild(saveDropdown);
-            saveDropdown.className = "dropdown-menu";
-            saveDropdown.setAttribute("aria-labelledBy", "saveDropdow");
-
-            // This could be DRYer I think
             if (jmarc.workformName) {
-                let saveToRecord  = document.createElement("a");
-                saveDropdown.appendChild(saveToRecord);
-                saveToRecord.className = "dropdown-item";
-                saveToRecord.innerText = "Create Record from This Workform";
-                saveToRecord.href = "#";
-                saveToRecord.onclick = () => {
-                    // This only creates new records, so we only need post
-                    jmarc.post().then(jmarc => {
-                        jmarc.workformName = null;
-                        jmarc.workformDescription = null;
-                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                        this.displayMarcRecord(jmarc, false);
-                        this.callChangeStyling(`Record ${jmarc.collection}/${jmarc.recordId} created from workform.`, "row alert alert-success")
-                    }).catch(error => {
-                        this.callChangeStyling(error.message, "row alert alert-danger");
-                    })
-                }
-
-                let saveWorkform  = document.createElement("a");
-                saveDropdown.appendChild(saveWorkform);
-                saveWorkform.className = "dropdown-item";
-                saveWorkform.innerText = "Save This Workform";
-                saveWorkform.href = "#";
-                saveWorkform.onclick = () => {
-                    if (jmarc.newWorkForm) {
-                        jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                            this.displayMarcRecord(jmarc, false);
-                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
-                        })
-                    } else {
+                saveButton.value = "save workform";
+            } else {
+                saveButton.value = "save record";
+            }
+            
+            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
+            saveButton.onclick = () => {
+                if (!jmarc.saved) {
+                    if (jmarc.workformName) {
                         jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                             this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
                             this.displayMarcRecord(jmarc, false);
                             this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                         });
-                    }
-                }
-            } 
-            else {
-                let saveRecord  = document.createElement("a");
-                saveDropdown.appendChild(saveRecord);
-                saveRecord.className = "dropdown-item";
-                saveRecord.innerText = "Save This Record";
-                saveRecord.href = "#";
+                    } else {
+                        let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
 
-                saveRecord.onclick = () => {
-                    if (jmarc.saved) {
-                        // todo: not detecting changes to indicators
-                        //this.callChangeStyling("No unsaved changes", "row alert alert-danger");
-                        //return
-                    }
-                    
-                    let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
-
-                    promise.then(jmarc => {
-                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                        this.displayMarcRecord(jmarc, false);
-                        this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                        basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
-                        
-                        for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-                            for (let subfield of field.subfields) {
-                                subfield.copied = false;
+                        promise.then(jmarc => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                            
+                            for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                                for (let subfield of field.subfields) {
+                                    subfield.copied = false;
+                                }
                             }
-                        }
-                    }).catch(error => {
-                        this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
-                    });
-                }
-
-                let saveToWorkform  = document.createElement("a");
-                saveDropdown.appendChild(saveToWorkform);
-                saveToWorkform.className = "dropdown-item";
-                saveToWorkform.innerText = "Create Workform from This Record";
-                saveToWorkform.href = "#";
-                saveToWorkform.setAttribute("data-toggle", "modal");
-                saveToWorkform.setAttribute("data-target", "#nameWorkform");
-                saveToWorkform.onclick = () => {
-                    jmarc.workformName = "<new>";
-                    jmarc.workformDescription = " ";
-                    jmarc.newWorkForm = true;
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling("Name your new workform, then choose Save -> Save This Workform", "row alert alert-warning")
+                        }).catch(error => {
+                            this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                        });
+                    }
                 }
             }
                     
@@ -599,6 +531,45 @@ export let multiplemarcrecordcomponent = {
                 // display unsaved changes
                 //checkSavedState(jmarc); // not implemented
             };
+
+            // Save As -> Workform | Record
+            let saveAsButton = document.createElement("i");
+            //jmarc.saveButton = saveButton;
+            idCell.appendChild(saveAsButton);
+            saveAsButton.id="saveAsButton"
+            saveAsButton.type = "button";
+            if (jmarc.workformName) {
+                saveAsButton.title = "save to record";
+            } else {
+                saveAsButton.title = "save to workform";
+            }
+            saveAsButton.className = "fas fa-share-square text-primary float-left mr-2 mt-1 record-control";
+            saveAsButton.onclick = () => {
+                if (jmarc.workformName) {
+                    // Create a new record from this workform.
+                    // It should be identical to the Clone feature
+                    // This only creates new records, so we only need post
+                    /*
+                    jmarc.post().then(jmarc => {
+                        jmarc.workformName = null;
+                        jmarc.workformDescription = null;
+                        this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                        this.displayMarcRecord(jmarc, false);
+                        this.callChangeStyling(`Record ${jmarc.collection}/${jmarc.recordId} created from workform.`, "row alert alert-success")
+                    }).catch(error => {
+                        this.callChangeStyling(error.message, "row alert alert-danger");
+                    })
+                    */
+                } else {
+                    //if (jmarc.newWorkForm) {
+                        jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                            this.displayMarcRecord(jmarc, false);
+                            this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                        })
+                    //}
+                }
+            }
 
             if (this.readonly && this.user !== null) {
                 let editLink = document.createElement("a");
@@ -773,6 +744,9 @@ export let multiplemarcrecordcomponent = {
             }
 
             return tableHeader
+        },
+        buildRecordControls(jmarc) {
+
         },
         buildTableBody(jmarc) {
             let tableBody = jmarc.table.createTBody();
