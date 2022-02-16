@@ -383,19 +383,22 @@ export let multiplemarcrecordcomponent = {
             // Add the icon to remove the record displayed
             ///////////////////////////////////////////////////////////////////
             
-            let removeRecordIcon= document.createElement("i");
-            idCell.appendChild(removeRecordIcon);
-            removeRecordIcon.type = "button";
-            removeRecordIcon.value = "remove";
-            removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
-            removeRecordIcon.title = "remove record";
-            // transfert the pointer
-            let that=this;
-            // remove the record displayed
-            removeRecordIcon.addEventListener("click",function(){
-                that.removeRecordFromEditor(jmarc.div.id)
-                table.parentNode.removeChild(table);
-            });
+            if (!this.readonly) {
+                let removeRecordIcon= document.createElement("i");
+                idCell.appendChild(removeRecordIcon);
+                removeRecordIcon.type = "button";
+                removeRecordIcon.value = "remove";
+                removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
+                removeRecordIcon.title = "remove record";
+                // transfert the pointer
+                let that=this;
+                // remove the record displayed
+                removeRecordIcon.addEventListener("click",function(){
+                    that.removeRecordFromEditor(jmarc.div.id)
+                    table.parentNode.removeChild(table);
+                });
+            }
+            
 
             // Display Collection/RecordId
             let idField = document.createElement("h5");
@@ -597,6 +600,7 @@ export let multiplemarcrecordcomponent = {
             };
 
             if (this.readonly && this.user !== null) {
+                console.log(this.user)
                 // Use a lock icon here if the record is locked?
                 // Offer users ability to unlock from here.
                 let editLink = document.createElement("a");
@@ -606,7 +610,7 @@ export let multiplemarcrecordcomponent = {
                 idCell.appendChild(editLink);
                 let addRemoveBasketButton = document.createElement("i");
                 editLink.appendChild(addRemoveBasketButton);
-                if (this.recordLocked["locked"] == true) {
+                if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
                     editLink.href = "#"
                     addRemoveBasketButton.type = "button";
                     addRemoveBasketButton.value = "locked";
@@ -617,7 +621,7 @@ export let multiplemarcrecordcomponent = {
                     addRemoveBasketButton.onclick = async () => {
                         if(confirm(`This will remove the item from the basket belonging to ${this.recordLocked["by"]}. Click OK to proceed.`) == true) {
                             await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
-                                window.location.href = editLink.href;
+                                window.location.href = editHref;
                             })
                         }
                     }
@@ -637,24 +641,27 @@ export let multiplemarcrecordcomponent = {
             }
             
             // Toggle hidden fields button?
-            let toggleButton = document.createElement("i");
-            idCell.appendChild(toggleButton);
-            toggleButton.type = "button";
-            toggleButton.value = "toggle";
-            toggleButton.className = "fas fa-solid fa-eye";
-            toggleButton.title = "toggle hidden fields";
+            if (!this.readonly) {
+                let toggleButton = document.createElement("i");
+                idCell.appendChild(toggleButton);
+                toggleButton.type = "button";
+                toggleButton.value = "toggle";
+                toggleButton.className = "fas fa-solid fa-eye";
+                toggleButton.title = "toggle hidden fields";
+                
+                toggleButton.addEventListener("click", function() {
+                    for (let field of jmarc.fields) {
+                        if (field.row.classList.contains("hidden-field")) {
+                            field.row.classList.remove("hidden-field")
+                            field.wasHidden = true;
+                        }
+                        else if (field.wasHidden) {
+                            field.row.classList.add("hidden-field")
+                        }
+                    }
+                });
+            }
             
-            toggleButton.addEventListener("click", function() {
-                for (let field of jmarc.fields) {
-                    if (field.row.classList.contains("hidden-field")) {
-                        field.row.classList.remove("hidden-field")
-                        field.wasHidden = true;
-                    }
-                    else if (field.wasHidden) {
-                        field.row.classList.add("hidden-field")
-                    }
-                }
-            });
             
             // Delete button
             let deleteCell = idRow.insertCell();

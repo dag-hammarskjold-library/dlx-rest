@@ -1530,6 +1530,7 @@ class MyBasketRecord(Resource):
             override = item["override"]
         print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
+        print(lock_status)
         this_u = User.objects.get(id=current_user.id)
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
@@ -1541,6 +1542,8 @@ class MyBasketRecord(Resource):
                     # Remove it from the other user's basket
                     # Add it to this user's basket
                     losing_basket = Basket.objects.get(name=lock_status["in"])
+                    #print(losing_basket)
+
                     losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201

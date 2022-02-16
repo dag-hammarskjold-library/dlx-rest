@@ -23,7 +23,7 @@ export default {
                 
                 myItemTitle = myTitle.join(" ");
             } else if (collection == "auths") {
-                console.log("Trying to create an auth basket item...")
+                //console.log("Trying to create an auth basket item...")
                 let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
                 let myTitle = [];
                 for (let s in myTitleField.subfields) {
@@ -36,7 +36,7 @@ export default {
                 method: 'POST',
                 body: data
             }).then( () => {
-                console.log("and we did")
+                //console.log("and we did")
                 return true;
             });
         });
