@@ -1,18 +1,5 @@
 /* marc record */
 
-/* table.marc-field {
-    width: 100%;
-}
-
-table.marc-record {
-    width: 100%;
-} */
-/* 
-
-table.marc-field {
-    width: 100%;
-} */
-
 table.marc-record.read-only {
     pointer-events: none;
 }
@@ -75,17 +62,10 @@ td.field-checkbox {
     vertical-align: top
 }
 
-/* td.field-tag {
-    width: 99px;
-}
-
-td.subfield-code {
-    width: 33px;
-}
-
 td.subfield-value {
-    width: 100%; 
-} */
+    /* set to value larger than div, pushing all other cells outward */
+    width: 10000px; 
+}
 
 td.unsaved {
     background-color: rgba(255, 255, 128, .5);

@@ -109,12 +109,18 @@ export let multiplemarcrecordcomponent = {
                         
                     } else {
                         let jmarc = new Jmarc(split_rec[0]);
+                        
                         if (split_rec[0] == "bibs") {
-                            jmarc.createField('245').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('245');
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         } else if (split_rec[0] == "auths") {
-                            jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('100')
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         }
-                        this.displayMarcRecord(jmarc, false);
+                        
+                        this.displayMarcRecord(jmarc);
                     }
                 }
             );
