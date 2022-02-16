@@ -62,9 +62,19 @@ td.field-checkbox {
     vertical-align: top
 }
 
+td.field-tag {
+    font-size: 11px;
+    text-align: left;
+}
+
+td.subfield-code {
+    font-size: 10px;
+}
+
 td.subfield-value {
     /* set to value larger than div, pushing all other cells outward */
-    width: 10000px; 
+    width: 10000px;
+    font-size: 14px;
 }
 
 td.unsaved {
