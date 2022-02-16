@@ -44,16 +44,16 @@ export let multiplemarcrecordcomponent = {
                 </div>
                 <div id="records" class="row ml-3">
                     <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
-                        <div>
+                        <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
-                        </div>
+                        </div> -->
                     </div>
                     <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
-                        <div>
+                        <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -112,12 +112,18 @@ export let multiplemarcrecordcomponent = {
                         
                     } else {
                         let jmarc = new Jmarc(split_rec[0]);
+                        
                         if (split_rec[0] == "bibs") {
-                            jmarc.createField('245').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('245');
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         } else if (split_rec[0] == "auths") {
-                            jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('100')
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         }
-                        this.displayMarcRecord(jmarc, false);
+                        
+                        this.displayMarcRecord(jmarc);
                     }
                 }
             );
@@ -268,7 +274,7 @@ export let multiplemarcrecordcomponent = {
             if (divID === "record1") {
                 // remove the div
                 let myDiv = document.getElementById("record1")
-                myDiv.children[1].remove()
+                //myDiv.children[1].remove()
                 // reset the parameters
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
@@ -278,7 +284,7 @@ export let multiplemarcrecordcomponent = {
             else if (divID === "record2") {
                 let myDiv = document.getElementById("record2")
                 // remove the div
-                myDiv.children[1].remove()
+                //myDiv.children[1].remove()
                 // reset the parameters
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
@@ -288,6 +294,7 @@ export let multiplemarcrecordcomponent = {
                  // replace record?
             }
             
+
             // optimize the display
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
@@ -358,44 +365,11 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.title = "save";
                 }
             });
-
-            // check the save status on any DIV
-            // table.addEventListener("DOMNodeInserted", function() {
-            //     if (jmarc.saved) {
-            //         jmarc.saveButton.classList.remove("text-danger");
-            //         jmarc.saveButton.classList.add("text-primary");
-            //         jmarc.saveButton.title = "no new changes";
-            //     } else {
-            //         jmarc.saveButton.classList.add("text-danger");
-            //         jmarc.saveButton.classList.remove("text-primary");
-            //         jmarc.saveButton.title = "save";
-            //     }
-            // });
-
-            // check the save status on any SPAN
-
-            
-            // check the save status on any span
-            // function visualIndicator(){
-            //     alert("inside")
-            //     if (jmarc.saved) {
-            //         jmarc.saveButton.classList.remove("text-danger");
-            //         jmarc.saveButton.classList.add("text-primary");
-            //         jmarc.saveButton.title = "no new changes";
-            //     } else {
-            //         jmarc.saveButton.classList.add("text-danger");
-            //         jmarc.saveButton.classList.remove("text-primary");
-            //         jmarc.saveButton.title = "save";
-            //     }
-            // };
-
-            // var spans = document.getElementsByTagName('span');
-            // for(let i=0;i<spans.length;i++)
-            //     spans[i].onchange=visualIndicator;
             
             return table       
         },
         buildTableHeader(jmarc) {
+            let component = this;
             let table = jmarc.table;
             
             // Table header
@@ -405,6 +379,25 @@ export let multiplemarcrecordcomponent = {
             let idCell = idRow.insertCell();
             idCell.colSpan = 3;
             
+            ///////////////////////////////////////////////////////////////////
+            // Add the icon to remove the record displayed
+            ///////////////////////////////////////////////////////////////////
+            
+            let removeRecordIcon= document.createElement("i");
+            idCell.appendChild(removeRecordIcon);
+            removeRecordIcon.type = "button";
+            removeRecordIcon.value = "remove";
+            removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
+            removeRecordIcon.title = "remove record";
+            // transfert the pointer
+            let that=this;
+            // remove the record displayed
+            removeRecordIcon.addEventListener("click",function(){
+                that.removeRecordFromEditor(jmarc.div.id)
+                table.parentNode.removeChild(table);
+            });
+
+            // Display Collection/RecordId
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
             if (jmarc.workformName) {
@@ -642,6 +635,26 @@ export let multiplemarcrecordcomponent = {
                     })
                 }
             }
+            
+            // Toggle hidden fields button?
+            let toggleButton = document.createElement("i");
+            idCell.appendChild(toggleButton);
+            toggleButton.type = "button";
+            toggleButton.value = "toggle";
+            toggleButton.className = "fas fa-solid fa-eye";
+            toggleButton.title = "toggle hidden fields";
+            
+            toggleButton.addEventListener("click", function() {
+                for (let field of jmarc.fields) {
+                    if (field.row.classList.contains("hidden-field")) {
+                        field.row.classList.remove("hidden-field")
+                        field.wasHidden = true;
+                    }
+                    else if (field.wasHidden) {
+                        field.row.classList.add("hidden-field")
+                    }
+                }
+            });
             
             // Delete button
             let deleteCell = idRow.insertCell();
@@ -889,7 +902,15 @@ export let multiplemarcrecordcomponent = {
             deleteField.innerText = "Delete field";
     
             deleteField.addEventListener("click", function() {
+                if (jmarc.fields.length === 1) {
+                    // this is the record's only field
+                    component.callChangeStyling("Can't delete record's only field", "row alert alert-danger")
+                    
+                    return
+                }
+                
                 jmarc.deleteField(field);
+                
                 table.deleteRow(field.row.rowIndex);
 
                 if (jmarc.saved) {
@@ -966,7 +987,8 @@ export let multiplemarcrecordcomponent = {
         
                 // prevent typing more than 3 characters
                 if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    tagSpan.innerText = ''
+                    //tagSpan.innerText = ''
+                    event.preventDefault()
                 }
             });
     
@@ -1078,7 +1100,12 @@ export let multiplemarcrecordcomponent = {
         
                 return 
             }
-    
+            
+            // "coded" fields
+            //if (field.tag.match(/^0/)) {
+            //    field.row.classList.add("hidden-field");
+            //}
+            
             // Datafield
             for (let subfield of field.subfields) {
                 this.buildSubfieldRow(subfield);   
