@@ -873,7 +873,15 @@ export let multiplemarcrecordcomponent = {
             deleteField.innerText = "Delete field";
     
             deleteField.addEventListener("click", function() {
+                if (jmarc.fields.length === 1) {
+                    // this is the record's only field
+                    component.callChangeStyling("Can't delete record's only field", "row alert alert-danger")
+                    
+                    return
+                }
+                
                 jmarc.deleteField(field);
+                
                 table.deleteRow(field.row.rowIndex);
 
                 if (jmarc.saved) {
