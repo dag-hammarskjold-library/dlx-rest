@@ -44,10 +44,16 @@ export let multiplemarcrecordcomponent = {
                 </div>
                 <div id="records" class="row ml-3">
                     <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
-                        
+                        <!-- <div>
+                            <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
+                            <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
+                        </div> -->
                     </div>
                     <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
-                        
+                        <!-- <div>
+                            <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
+                            <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -280,7 +286,7 @@ export let multiplemarcrecordcomponent = {
             if (divID === "record1") {
                 // remove the div
                 let myDiv = document.getElementById("record1")
-                myDiv.children[0].remove()
+                //myDiv.children[1].remove()
                 // reset the parameters
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
@@ -290,7 +296,7 @@ export let multiplemarcrecordcomponent = {
             else if (divID === "record2") {
                 let myDiv = document.getElementById("record2")
                 // remove the div
-                myDiv.children[0].remove()
+                //myDiv.children[1].remove()
                 // reset the parameters
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
@@ -300,6 +306,7 @@ export let multiplemarcrecordcomponent = {
                  // replace record?
             }
             
+
             // optimize the display
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
@@ -386,6 +393,25 @@ export let multiplemarcrecordcomponent = {
             let idCell = idRow.insertCell();
             idCell.colSpan = 3;
             
+            ///////////////////////////////////////////////////////////////////
+            // Add the icon to remove the record displayed
+            ///////////////////////////////////////////////////////////////////
+            
+            let removeRecordIcon= document.createElement("i");
+            idCell.appendChild(removeRecordIcon);
+            removeRecordIcon.type = "button";
+            removeRecordIcon.value = "remove";
+            removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
+            removeRecordIcon.title = "remove record";
+            // transfert the pointer
+            let that=this;
+            // remove the record displayed
+            removeRecordIcon.addEventListener("click",function(){
+                that.removeRecordFromEditor(jmarc.div.id)
+                table.parentNode.removeChild(table);
+            });
+
+            // Display Collection/RecordId
             let idField = document.createElement("h5");
             idCell.appendChild(idField);
             if (jmarc.workformName) {
@@ -423,9 +449,52 @@ export let multiplemarcrecordcomponent = {
                 controlButton.onclick = control["click"];
                 jmarc[control] = controlButton;
             }
-            let closeButton = document.createElement("i");
-            idCell.appendChild(closeButton)
-            closeButton.className = `fas fa-window-close text-primary float-right mx-1 my-2 record-control`;
+            
+            // Toggle hidden fields button?
+            let toggleButton = document.createElement("i");
+            idCell.appendChild(toggleButton);
+            toggleButton.type = "button";
+            toggleButton.value = "toggle";
+            toggleButton.className = "fas fa-solid fa-eye";
+            toggleButton.title = "toggle hidden fields";
+            
+            toggleButton.addEventListener("click", function() {
+                for (let field of jmarc.fields) {
+                    if (field.row.classList.contains("hidden-field")) {
+                        field.row.classList.remove("hidden-field")
+                        field.wasHidden = true;
+                    }
+                    else if (field.wasHidden) {
+                        field.row.classList.add("hidden-field")
+                    }
+                }
+            });
+            
+            // Delete button
+            let deleteCell = idRow.insertCell();
+            let deleteDiv = document.createElement("div");
+            deleteCell.appendChild(deleteDiv);
+            deleteDiv.className = "dropdown";
+            
+            let deleteButton = document.createElement("i");
+            deleteDiv.appendChild(deleteButton);
+            deleteButton.id = "deleteDropdown";
+            deleteButton.type = "button";
+            deleteButton.value = "delete";
+            deleteButton.className = "fas fa-trash-alt text-danger dropdown-toggle mr-2 record-control";
+            deleteButton.setAttribute("data-toggle", "dropdown");
+            
+            let deleteDropdown = document.createElement("div");
+            deleteDiv.appendChild(deleteDropdown);
+            deleteDropdown.className = "dropdown-menu";
+            deleteDropdown.setAttribute("aria-labelledBy", "deleteDropdown");
+            
+            let deleteItem = document.createElement("a");
+            deleteDropdown.appendChild(deleteItem);
+            deleteItem.className = "dropdown-item";
+            deleteItem.innerText = "Delete Record";
+            deleteItem.href="#";
+            
             if (jmarc.workformName) {
                 closeButton.title = "Close Workform";
             } else {
@@ -704,7 +773,8 @@ export let multiplemarcrecordcomponent = {
         
                 // prevent typing more than 3 characters
                 if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    tagSpan.innerText = ''
+                    //tagSpan.innerText = ''
+                    event.preventDefault()
                 }
             });
     
@@ -816,7 +886,12 @@ export let multiplemarcrecordcomponent = {
         
                 return 
             }
-    
+            
+            // "coded" fields
+            //if (field.tag.match(/^0/)) {
+            //    field.row.classList.add("hidden-field");
+            //}
+            
             // Datafield
             for (let subfield of field.subfields) {
                 this.buildSubfieldRow(subfield);   
