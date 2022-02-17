@@ -180,7 +180,7 @@ function createFileObjects(results) {
           method: 'post',
           body: record
       });
-      
+
     };
 
     col_4.append(save_btn)

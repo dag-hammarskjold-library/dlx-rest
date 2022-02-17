@@ -13,7 +13,7 @@
       <p>
           Update the document symbol and/or languages associated with the file. Click the save button next to the row.
       </p>
-      <form method="POST" action="/calc" data-calc-form>
+      <form method="POST" action="" data-calc-form>
           <div class="row gx-3 gy-2 align-items-center">
             <div class="col-sm-3">
               <label class="form-label">Enter Document Symbol:</label>
@@ -30,6 +30,7 @@
             </div>
             <div class="col-sm-3">
               <button class="btn btn-primary btn-sm" type="submit">Search</button>
+              <a class="btn btn-primary btn-sm" href="{{url_for('search_files')}}" role="button">Clear Results</a>
             </div>
           </div>
         </form>
@@ -49,7 +50,7 @@
 </div>
   
 
-<script type="module" src="{{ url_for('static', filename='js/file2.js') }}" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/file_search.js') }}" defer></script>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 
 {% endblock %}
