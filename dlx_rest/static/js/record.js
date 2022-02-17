@@ -109,12 +109,18 @@ export let multiplemarcrecordcomponent = {
                         
                     } else {
                         let jmarc = new Jmarc(split_rec[0]);
+                        
                         if (split_rec[0] == "bibs") {
-                            jmarc.createField('245').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('245');
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         } else if (split_rec[0] == "auths") {
-                            jmarc.createField('100').createSubfield('a').value = "insert new subfield value";
+                            let field = jmarc.createField('100')
+                            field.indicators = ["_", "_"];
+                            field.createSubfield('a').value = "";
                         }
-                        this.displayMarcRecord(jmarc, false);
+                        
+                        this.displayMarcRecord(jmarc);
                     }
                 }
             );
@@ -381,6 +387,7 @@ export let multiplemarcrecordcomponent = {
             return table       
         },
         buildTableHeader(jmarc) {
+            let component = this;
             let table = jmarc.table;
             
             // Table header
@@ -696,7 +703,15 @@ export let multiplemarcrecordcomponent = {
             deleteField.innerText = "Delete field";
     
             deleteField.addEventListener("click", function() {
+                if (jmarc.fields.length === 1) {
+                    // this is the record's only field
+                    component.callChangeStyling("Can't delete record's only field", "row alert alert-danger")
+                    
+                    return
+                }
+                
                 jmarc.deleteField(field);
+                
                 table.deleteRow(field.row.rowIndex);
 
                 if (jmarc.saved) {
