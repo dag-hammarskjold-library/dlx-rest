@@ -10,30 +10,32 @@ window.addEventListener('DOMContentLoaded', init);
 function init() {
     const form = document.querySelector('[data-calc-form]');
     const textInput = document.querySelector('[name=text]');
-    const optionInput = document.getElementById("exact")
-    const spinner = document.getElementById("spinner")
+    const optionInput = document.getElementById("exact");
+    const spinner = document.getElementById("spinner");
+    const updateURL = document.getElementById("url");
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const text = textInput.value;
-        const option = optionInput.checked
+        const option = optionInput.checked;
+        const url = updateURL.value;
 
         spinner.classList.remove("visually-hidden")
 
-        const results = await fetchResults(text, option);
+        const results = await fetchResults(text, option, url);
 
         preview.append(createFileObjects(results))
         spinner.classList.add("visually-hidden")
     });
 }
 
-async function fetchResults(text, option) {
+async function fetchResults(text, option, url) {
     const payload = new FormData();
     payload.append('text', text);
     payload.append('exact', option);
 
-    const res = await fetch('/files/update/results', {
+    const res = await fetch(url, {
         method: 'post',
         body: payload
     });
