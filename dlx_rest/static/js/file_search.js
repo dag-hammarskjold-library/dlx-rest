@@ -76,7 +76,6 @@ function createFileObjects(results) {
 
   for (const file of results) {
     fileObjectArray.push(new FileContent(file._id, file.filename, file.docsymbol, file.languages));
-    console.log(file.languages)
   }
 
   fileObjectArray.forEach((element) => {
@@ -150,7 +149,7 @@ function createFileObjects(results) {
           span_r.classList.replace("outlined-dark", "bg-dark");
           break;
         case "DE":
-          span_g.classList.replace("outline-info", "bg-info");
+          span_g.classList.replace("outlined-info", "bg-info");
           break;
         default:
           break;
