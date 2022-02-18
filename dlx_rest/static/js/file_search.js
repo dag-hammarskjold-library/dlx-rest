@@ -76,6 +76,7 @@ function createFileObjects(results) {
 
   for (const file of results) {
     fileObjectArray.push(new FileContent(file._id, file.filename, file.docsymbol, file.languages));
+    console.log(file.languages)
   }
 
   fileObjectArray.forEach((element) => {
