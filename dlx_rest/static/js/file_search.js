@@ -147,7 +147,7 @@ function createFileObjects(results) {
           span_r.classList.replace("outlined-dark", "bg-dark");
           break;
         case "DE":
-          span_g.classList.replace("outline-info", "bg-info");
+          span_g.classList.replace("outlined-info", "bg-info");
           break;
         default:
           break;
