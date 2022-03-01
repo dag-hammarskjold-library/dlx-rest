@@ -1,13 +1,11 @@
 git+https://github.com/dag-hammarskjold-library/dlx#egg=dlx
-Flask >= 2
+Flask
 flask-cors
 Flask-Login
 flask-mongoengine
 flask-restx
 Flask-WTF
-itsdangerous < 2.0.0
 lxml >= 4.6.5
-markupsafe == 2.0.1
 mongoengine
 mongomock
 pymongo
