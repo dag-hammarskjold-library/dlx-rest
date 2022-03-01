@@ -1,5 +1,5 @@
 git+https://github.com/dag-hammarskjold-library/dlx#egg=dlx
-Flask
+Flask >= 2
 flask-cors
 Flask-Login
 flask-mongoengine
