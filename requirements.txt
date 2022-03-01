@@ -5,6 +5,7 @@ Flask-Login
 flask-mongoengine
 flask-restx
 Flask-WTF
+itsdangerous < 2.0.0
 lxml >= 4.6.5
 mongoengine
 mongomock
