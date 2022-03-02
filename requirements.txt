@@ -11,4 +11,4 @@ mongomock
 pymongo
 pytest
 python-ulid
-troposphere<3
+troposphere

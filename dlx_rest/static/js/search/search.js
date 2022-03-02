@@ -95,7 +95,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-folder-plus" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -187,21 +187,24 @@ export let searchcomponent = {
                 this.lookup_maps['bibs'] = bibMapData.data;
             }
 
-            let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
-            if (myProfile) {
-                this.user = myProfile.data.email;
-            } 
             
             
             this.buildPagination();
         }
     },
     mounted: async function() {
-        if (this.user !== null) {
+        let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+        if (myProfile) {
+            this.user = myProfile.data.email;
+        } 
+
+        if (typeof this.user !== "undefined") {
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
+
+                iconEl.classList.add('fa-folder-plus');
                 iconEl.addEventListener("click", async () => {
                     const myBasket = await basket.getBasket(this.api_prefix);
                     this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
@@ -213,12 +216,6 @@ export let searchcomponent = {
                 } 
             }
             
-        } else {
-            for (let result of this.results) {
-                let myId = `icon-${this.collection}-${result._id}`
-                let iconEl = document.getElementById(myId);
-                iconEl.style.display = "none";
-            }
         }
     },
     methods: {

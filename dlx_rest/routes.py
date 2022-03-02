@@ -522,3 +522,100 @@ def process_files():
     #print(fileResults)    
 
     return render_template('file_results.html', submitted=fileResults)
+
+@app.route('/files/search')
+@login_required
+def search_files():
+    return render_template('file_update.html')
+
+
+@app.route('/files/update/results', methods=['GET', 'POST'])
+@login_required
+def files_results():
+    text = request.form.get('text')
+    option = request.form.get('exact')
+
+    results = process_text(text, option)
+    return jsonify(results)
+
+
+def process_text(text, option):
+    DB.connect(Config.connect_string)
+    
+
+    pipeline = []
+
+    collation={
+        'locale': 'en', 
+        'numericOrdering': True
+    }
+
+    if option == "true":
+        match_stage = {
+            '$match': {
+                'identifiers.value': text
+            }
+        }
+    else: #regex by default
+        match_stage = {
+            '$match': {
+                'identifiers.value': {
+                    '$regex': text, 
+                    '$options': 'i'
+                }
+            }
+        }
+
+    project_stage = {
+        '$project': {
+            '_id': 1, 
+            'docsymbol': {'$arrayElemAt': ['$identifiers.value', 0]}, 
+            'languages': 1, 
+            'filename': 1
+        }
+    }
+
+    sort_stage = {
+        '$sort': {
+            'docsymbol': 1, 
+            'filename': 1
+        }
+    }
+
+    pipeline.append(match_stage)
+    pipeline.append(project_stage)
+    pipeline.append(sort_stage)
+        
+
+    results = list(DB.files.aggregate(pipeline, collation=collation))
+
+    return results
+
+@app.route('/files/update', methods=['POST'])
+@login_required
+def update_file():
+    """
+    Updates the file entry based on record id
+    """
+    DB.connect(Config.connect_string)
+    
+
+    record_id = request.form.get('record_id')
+    docsymbol = request.form.get('docsymbol')
+    lang = request.form.getlist('lang')
+
+    try:
+        response = DB.files.update_one(
+	        {'_id': record_id, 
+	        "identifiers.type": "symbol"}, 
+	        { '$set': { 
+	            "identifiers.$.value": docsymbol,
+	            "languages": lang
+                } 
+            }
+        )
+        
+        return "Record updated."
+
+    except Exception as e:
+        return e
