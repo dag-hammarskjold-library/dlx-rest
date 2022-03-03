@@ -15,17 +15,17 @@
     this.name = name;
     this.docSymbol = docSymbol;
     this.language = language;
-    this.uploadStatus = "";
   }
   // Methods
   updateSymbol(symbol) {
     this.docSymbol = symbol;
   }
-  updateLanguage(l) {
-    this.language = l;
+  addLanguage(l) {
+    this.language.push(l);
   }
-  updateStatus(s) {
-    this.updateStatus = s;
+  removeLanguage(l) {
+    let pos = this.language.indexOf(l);
+    this.language.splice(pos, 1);
   }
 }
 
