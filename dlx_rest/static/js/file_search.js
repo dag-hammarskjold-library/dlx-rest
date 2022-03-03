@@ -177,8 +177,10 @@ function createFileObjects(results) {
       let langs =  element.language;
       langs.forEach(l => record.append('lang', l));
       
+      let updateURL = document.getElementById("url").value
+      let myUpdateUrl = updateURL.replace("/results", "")
 
-      const res = fetch('/files/update', {
+      const res = fetch(myUpdateUrl, {
           method: 'post',
           body: record
       });
