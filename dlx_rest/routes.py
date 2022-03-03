@@ -527,7 +527,8 @@ def process_files():
 @login_required
 def search_files():
     baseURL = url_for('doc', _external=True)
-    this_prefix = baseURL.replace("/api/", url_for('files_results'))
+    #this_prefix = baseURL.replace("/api/", url_for('files_results'))
+    this_prefix = url_for('files_results')
     return render_template('file_update.html', prefix=this_prefix)
 
 
