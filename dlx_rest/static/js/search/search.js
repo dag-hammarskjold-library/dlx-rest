@@ -24,43 +24,76 @@ export let searchcomponent = {
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
                 <ul class="navbar-nav mr-auto">
+                    <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                 </ul>
             </div>
         </nav>
         <div id="advanced-search" class="row pt-2" style="display:none">
-            <div class="card">
-                <div class="input-group mb-3">
-                    <div class="input-group-prepend">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
-                        <div class="dropdown-menu">
-                            <option class="dropdown-item" value="all">All of the words:</option>
-                            <option class="dropdown-item" value="any">Any of the words:</option>
-                            <option class="dropdown-item" value="exact">Exact phrase:</option>
-                            <option class="dropdown-item" value="partial">Partial phrase:</option>
-                            <option class="dropdown-item" value="regex">Regular expression:</option>
-                        </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
                     </div>
-                    <input type="text" class="form-control" aria-label="Text input with dropdown button">
-                    <div class="input-group-prepend"><span class="input-group-text">in</span></div>
-                    <div class="input-group-prepend">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="#">Author</a>
-                            <a class="dropdown-item" href="#">Title</a>
-                            <a class="dropdown-item" href="#">Symbol</a>
-                            <a class="dropdown-item" href="#">Agenda</a>
-                            <a class="dropdown-item" href="#">Year</a>
-                            <a class="dropdown-item" href="#">Notes</a>
-                            <a class="dropdown-item" href="#">Series</a>
-                            <a class="dropdown-item" href="#">Subject</a>
-                            <a class="dropdown-item" href="#">Related documents</a>
-                            <a class="dropdown-item" href="#">Bib creation</a>
-                        </div>
+                </div>
+                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField1',field)">{{field}}</option>
                     </div>
-                    <input type="text" class="form-control" aria-label="Text input with dropdown button">
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
+                    </div>
                 </div>
             </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-append">
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
+            <div>{{advancedParams}}</div>
         </div>
         <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
@@ -130,7 +163,27 @@ export let searchcomponent = {
             action: `${myUIBase}/records/${this.collection}/search`,
             params: myProps,
             searchType: "all",
-            advancedParams: null,
+            advancedParams: {
+                'searchType1': 'all',
+                'searchTerm1': null,
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchTerm2': null,
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchTerm3': null,
+                'searchField3': 'any'
+            },
+            bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
+            searchTypes: [
+                {'name': 'All of the words:', 'value': 'all'},
+                {'name': 'Any of the words:', 'value': 'any'},
+                {'name': 'Exact prhase:', 'value': 'exact'},
+                {'name': 'Partial prhase:', 'value': 'partial'},
+                {'name': 'Regular expression:', 'value': 'regex'},
+            ],
             uibase: myUIBase,
             count: null,
             prev: null,
@@ -278,13 +331,87 @@ export let searchcomponent = {
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
             let ss = document.getElementById("simple-search")
+            let toggleASLink = document.getElementById("toggleASLink")
+            let toggleSSLink = document.getElementById("toggleSSLink")
             if (el.style.display == "none"){
                 el.style.display = "block"
                 ss.style.display = "none"
+                toggleASLink.classList.add("active")
+                toggleSSLink.classList.remove("active")
+                //toggleLink.textContent = "Simple Search"
             } else {
                 el.style.display = "none"
                 ss.style.display = "block"
+                toggleSSLink.classList.add("active")
+                toggleASLink.classList.remove("active")
+                //toggleLink.textContent = "Advanced Search"
             }
+        },
+        setParameter(which, what) {
+            this.advancedParams[which] = what
+            let el = document.getElementById(which)
+            if (typeof what === "object") {
+                el.innerText = what.name
+                this.advancedParams[which] = what.value
+            } else {
+                el.innerText = what
+            }
+        },
+        submitAdvancedSearch() {
+            // Build the URL
+            var expressions = []
+            console.log(expressions)
+            for (let i of ["1","2","3"]) {
+                let myField = this.advancedParams["searchField" + i]
+                let mySearchTerm = this.advancedParams["searchTerm" + i]
+                let mySearchType = this.advancedParams["searchType" + i]
+                let allExpr = []
+                
+                if (mySearchTerm !== null) {
+                    let termList = mySearchTerm.split(" ")    
+                    switch(mySearchType) {
+                        case "all":
+                            for (let term of termList) {
+                                if (myField == "any") {
+                                    allExpr.push(`*${term}*`)
+                                } else {
+                                    allExpr.push(`${myField}:*${term}*`)
+                                }
+                            }
+                            expressions.push(allExpr.join(" AND "))
+                        case "any":
+                            for (let term of termList) {
+                                if (myField == "any") {
+                                    allExpr.push(`*${term}*`)
+                                } else {
+                                    allExpr.push(`${myField}:*${term}*`)
+                                }
+                            }
+                            expressions.push(allExpr.join(" OR "))
+                        case "exact":
+                            if (myField == "any") {
+                                // This doesn't have an equivalent?
+                                expressions.push(`${mySearchTerm}`)
+                            } else {
+                                expressions.push(`${myField}:${mySearchTerm}`)
+                            }
+                        case "partial":
+                            if (myField == "any") {
+                                expressions.push(`${mySearchTerm}`)
+                            } else {
+                                expressions.push(`${myField}:*${mySearchTerm}*`)
+                            }
+                    }
+                }
+            }
+            console.log(expressions)
+            /*
+            let expr1 = `${this.advancedParams.searchField1}:${this.advancedParams.searchTerm1} ${this.advancedParams.searchConnector1}`
+            let expr2 = `${this.advancedParams.searchField2}:${this.advancedParams.searchTerm2} ${this.advancedParams.searchConnector2}` 
+            let expr3 = `${this.advancedParams.searchField3}:${this.advancedParams.searchTerm3}`
+
+            console.log(encodeURIComponent(expr1))
+            */
         }
     },
     components: {
