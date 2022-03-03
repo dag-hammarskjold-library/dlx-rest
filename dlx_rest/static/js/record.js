@@ -92,9 +92,8 @@ export let multiplemarcrecordcomponent = {
     // Management of the keyboard shortcuts
     //////////////////////////////////////////////////////////////////////////
     
-    window.addEventListener("keydown", this.removeRecordListener)   // crtl + n 
-    //window.addEventListener("keydown", this.addSubfieldListener)
-
+    window.addEventListener("keydown", this.removeRecordListener)   // crtl + f4 => close the record 
+   
     //////////////////////////////////////////////////////////////////////////
 
         Jmarc.apiUrl = this.prefix;
@@ -151,13 +150,12 @@ export let multiplemarcrecordcomponent = {
             } 
             else
             {
-                if (event.ctrlKey && event.key === "r") {
+                if (event.ctrlKey && event.code === "F4") {
                     event.preventDefault();
                     this.callChangeStyling("Crtl + r has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
                     
                     if (this.selectedDiv==="record1"){
                         let recup=document.getElementById("record1")
-
                         recup.innerHTML=""
                     } 
                     if (this.selectedDiv==="record2") {
@@ -354,6 +352,8 @@ export let multiplemarcrecordcomponent = {
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
                 this.collectionRecord1=""
+                let recup=document.getElementById("record1")
+                recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             } 
             else if (divID === "record2") {
@@ -365,6 +365,8 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
                 this.collectionRecord2=""
+                let recup=document.getElementById("record2")
+                recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             } else {
                  // replace record?
@@ -372,6 +374,7 @@ export let multiplemarcrecordcomponent = {
             
 
             // optimize the display
+            this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
         },
