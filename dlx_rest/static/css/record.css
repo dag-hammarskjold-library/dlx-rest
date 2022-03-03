@@ -1,4 +1,3 @@
-/* marc record */
 
 table.marc-record.read-only {
     pointer-events: none;
@@ -28,13 +27,13 @@ table.marc-record.read-only.subfield-value {
     cursor: text;
 }
 
-table.marc-record.bib {
+/* table.marc-record.bib {
     border: 3px solid green;
-}
+} */
 
-table.marc-record.auth {
+/* table.marc-record.auth {
     border: 3px solid purple;
-}
+} */
 
 table.marc-record thead {
     background-color: white;

@@ -7,6 +7,7 @@ let recup=""
 import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
+import { basketcomponent } from "./basket.js";
 
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -35,7 +36,7 @@ export let multiplemarcrecordcomponent = {
         <div class="container col-sm-10" id="app1" style="background-color:white;">
             <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
-                    <div class="ml-3 mr-3 jumbotron jumbotron-fluid">
+                    <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
                         <div class="container">
                             <h1 class="display-4 text-center">No record selected</h1>
                             <p class="lead text-center">You can select one from the basket to the left or create one via the menu above.</p>
@@ -43,13 +44,13 @@ export let multiplemarcrecordcomponent = {
                     </div>                                
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                         </div> -->
                     </div>
-                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1" style="border-left: 5px solid green;border-radius: 5px;">
+                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="">
                         <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
@@ -59,6 +60,7 @@ export let multiplemarcrecordcomponent = {
             </div>
         </div>
     `,
+
     data: function () {
         return {
             visible: true,
@@ -77,10 +79,23 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
-            targetedTable:""
+            targetedTable:"",
+            selectedRecord:"",
+            selectedDiv:""
         }
     },
-    created: async function() {
+
+    created: 
+    async function() {
+    
+    //////////////////////////////////////////////////////////////////////////
+    // Management of the keyboard shortcuts
+    //////////////////////////////////////////////////////////////////////////
+    
+    window.addEventListener("keydown", this.removeRecordListener)   // crtl + f4 => close the record 
+   
+    //////////////////////////////////////////////////////////////////////////
+
         Jmarc.apiUrl = this.prefix;
         this.baseUrl = this.prefix.replace("/api", "");
         
@@ -124,8 +139,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             );
-            
-            //recup = this
+
         } else if (this.workform !== 'None') {
             let wfCollection = this.workform.split('/')[0];
             let wfRecordId = this.workform.split('/')[1];
@@ -135,7 +149,42 @@ export let multiplemarcrecordcomponent = {
         recup=this
     },
     methods: {
+        removeRecordListener(event) {
+            // check if one record is selected
+            if (this.selectedRecord==="") {
+                this.callChangeStyling("Please select a record first!!!", "row alert alert-danger")
+            } 
+            else
+            {
+                if (event.ctrlKey && event.code === "F4") {
+                    event.preventDefault();
+                    this.callChangeStyling("Crtl + r has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
+                    
+                    if (this.selectedDiv==="record1"){
+                        let recup=document.getElementById("record1")
+                        recup.innerHTML=""
+                    } 
+                    if (this.selectedDiv==="record2") {
+                        let recup=document.getElementById("record2")
+                        recup.innerHTML=""
+                    }                    
+                    this.removeRecordFromEditor(this.selectedDiv)
 
+                } 
+            }
+            
+        },
+        addSubfieldListener(event,jmarc) {
+            if (this.isRecordOneDisplayed===true || this.isRecordTwoDisplayed===true){
+                if (event.ctrlKey && event.key === "y") {
+                    event.preventDefault();
+                    this.callChangeStyling("Crtl + y has been pressed", "row alert alert-warning");
+                }   
+            }
+            if (this.isRecordOneDisplayed===false && this.isRecordTwoDisplayed===false) {
+                this.callChangeStyling("Please display a record first!!!", "row alert alert-danger")
+            }
+        },
         optimizeEditorDisplay(table){
 
             // // only record1 displayed
@@ -186,6 +235,19 @@ export let multiplemarcrecordcomponent = {
                 myRecord2.className="col-sm-6 mt-1"    
             }
         },
+        // definition of the different shortcuts
+        keybShorcuts(e) {
+            e = e || window.event;
+            if (e.keyCode == '38' && ctrlKey) {
+              // up arrow
+              var idx = start.cellIndex;
+              var nextrow = start.parentElement.previousElementSibling;
+              if (nextrow != null) {
+                var sibling = nextrow.cells[idx];
+                dotheneedful(sibling);
+              }
+            } 
+          },
 
         clearItemsToPast(){
             this.listElemToCopy=[]
@@ -194,9 +256,28 @@ export let multiplemarcrecordcomponent = {
         pasteItems(record1,record2){
 
         },
-        // clear all the checkbox selected
-        clearCheck(recordID){
+        // clear all the checkbox selected in the header
+        clearSelectedRecord(idRow,table){
+            
+            // remove checked option
+            let selectedRecords=document.getElementsByClassName("selectedrecord")
+            let selectedRecordsArray=Array.from(selectedRecords)
+            selectedRecordsArray.forEach(element => {
+                element.checked=false
+            })
 
+            // change color header
+            let selectedHeader=document.getElementsByTagName("thead")
+            let selectedHeadersArray=Array.from(selectedHeader)
+            selectedHeadersArray.forEach(element => {
+                element.firstChild.style.backgroundColor = "#F2F2F2";
+            })
+
+            // clean the variables
+            this.selectedRecord=""
+            this.selectedRecordsArray=[]
+            this.selectedDiv=""
+            
         },
         // add a new Line to the table
         addLineToTable(index,table){
@@ -267,8 +348,9 @@ export let multiplemarcrecordcomponent = {
         removeRecordFromEditor(divID) {
             /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
             // get the parent
-            
+
             if (divID === "record1") {
+                this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record1)
                 // remove the div
                 let myDiv = document.getElementById("record1")
                 //myDiv.children[1].remove()
@@ -276,9 +358,12 @@ export let multiplemarcrecordcomponent = {
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
                 this.collectionRecord1=""
+                let recup=document.getElementById("record1")
+                recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             } 
             else if (divID === "record2") {
+                this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
                 let myDiv = document.getElementById("record2")
                 // remove the div
                 //myDiv.children[1].remove()
@@ -286,6 +371,8 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
                 this.collectionRecord2=""
+                let recup=document.getElementById("record2")
+                recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             } else {
                  // replace record?
@@ -293,6 +380,7 @@ export let multiplemarcrecordcomponent = {
             
 
             // optimize the display
+            this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
         },
@@ -338,7 +426,7 @@ export let multiplemarcrecordcomponent = {
             
             // record.css
             table.className = jmarc.collection === "bibs" ? "bib" : "auth"; 
-            table.className += " marc-record table-hover";
+            table.className += " marc-record table-hover table_editor";
           
             if (readOnly || jmarc.readOnly) {
                 table.className += " read-only"
@@ -375,24 +463,6 @@ export let multiplemarcrecordcomponent = {
             let idRow = tableHeader.insertRow();
             let idCell = idRow.insertCell();
             idCell.colSpan = 3;
-            
-            ///////////////////////////////////////////////////////////////////
-            // Add the icon to remove the record displayed
-            ///////////////////////////////////////////////////////////////////
-            
-            let removeRecordIcon= document.createElement("i");
-            idCell.appendChild(removeRecordIcon);
-            removeRecordIcon.type = "button";
-            removeRecordIcon.value = "remove";
-            removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
-            removeRecordIcon.title = "remove record";
-            // transfert the pointer
-            let that=this;
-            // remove the record displayed
-            removeRecordIcon.addEventListener("click",function(){
-                that.removeRecordFromEditor(jmarc.div.id)
-                table.parentNode.removeChild(table);
-            });
 
             // Display Collection/RecordId
             let idField = document.createElement("h5");
@@ -588,9 +658,7 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.classList.remove("text-primary");
                 jmarc.saveButton.title = "unsaved changes";
-                
-                // display unsaved changes
-                //checkSavedState(jmarc); // not implemented
+
             };
 
             if (this.readonly && this.user !== null) {
@@ -612,6 +680,45 @@ export let multiplemarcrecordcomponent = {
                     })
                 })
             }
+
+            ///////////////////////////////////////////////////////////////
+            // Select record button
+            ///////////////////////////////////////////////////////////////
+
+            let selectRecord = document.createElement("input");
+            idCell.appendChild(selectRecord);
+            selectRecord.type = "checkbox";
+            selectRecord.title = "Select active record"
+            selectRecord.className = "selectedrecord";
+            selectRecord.checked=false;
+           
+            // transfer the pointer
+            let me=this
+
+            // Event to define the record selected and the ID
+            selectRecord.addEventListener("click",()=>{
+                if (selectRecord.checked==true)
+                {   
+                    // clear all the selected record
+                    me.clearSelectedRecord(idRow,table)
+                    selectRecord.checked=true
+                    me.selectedRecord=jmarc.recordId
+                    me.selectedDiv=jmarc.div.id
+                    me.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
+                    // change header background
+                    idRow.style.backgroundColor = "#009edb";
+                    
+                }
+                else{
+                    // just in case
+                     // change header background
+                     idRow.style.backgroundColor = "";
+                     me.callChangeStyling("Record " + jmarc.recordId + " has been unselected", "row alert alert-success")
+                }
+                
+            },false)
+                
+
             
             // Toggle hidden fields button?
             let toggleButton = document.createElement("i");
@@ -689,6 +796,25 @@ export let multiplemarcrecordcomponent = {
                     }
                 };
             }
+
+            ///////////////////////////////////////////////////////////////////
+            // Add the icon to remove the record displayed
+            ///////////////////////////////////////////////////////////////////
+
+            let removeRecordCell = idRow.insertCell();
+            let removeRecordIcon= document.createElement("i");
+            removeRecordCell.appendChild(removeRecordIcon);
+            removeRecordIcon.type = "button";
+            removeRecordIcon.value = "remove";
+            removeRecordIcon.className = "fas fa-window-close float-left mr-2 mt-1"
+            removeRecordIcon.title = "remove record";
+            // transfert the pointer
+            let that=this;
+            // remove the record displayed
+            removeRecordIcon.addEventListener("click",function(){
+                that.removeRecordFromEditor(jmarc.div.id)
+                table.parentNode.removeChild(table);
+            });
 
             // Files
             let filesRow = tableHeader.insertRow();
