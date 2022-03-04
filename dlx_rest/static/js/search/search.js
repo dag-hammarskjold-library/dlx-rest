@@ -360,51 +360,37 @@ export let searchcomponent = {
         submitAdvancedSearch() {
             // Build the URL
             var expressions = []
-            console.log(expressions)
             for (let i of ["1","2","3"]) {
-                let myField = this.advancedParams["searchField" + i]
-                let mySearchTerm = this.advancedParams["searchTerm" + i]
-                let mySearchType = this.advancedParams["searchType" + i]
-                let allExpr = []
-                
-                if (mySearchTerm !== null) {
-                    let termList = mySearchTerm.split(" ")    
-                    switch(mySearchType) {
-                        case "all":
-                            for (let term of termList) {
-                                if (myField == "any") {
-                                    allExpr.push(`*${term}*`)
-                                } else {
-                                    allExpr.push(`${myField}:*${term}*`)
-                                }
-                            }
-                            expressions.push(allExpr.join(" AND "))
-                        case "any":
-                            for (let term of termList) {
-                                if (myField == "any") {
-                                    allExpr.push(`*${term}*`)
-                                } else {
-                                    allExpr.push(`${myField}:*${term}*`)
-                                }
-                            }
-                            expressions.push(allExpr.join(" OR "))
-                        case "exact":
-                            if (myField == "any") {
-                                // This doesn't have an equivalent?
-                                expressions.push(`${mySearchTerm}`)
-                            } else {
-                                expressions.push(`${myField}:${mySearchTerm}`)
-                            }
-                        case "partial":
-                            if (myField == "any") {
-                                expressions.push(`${mySearchTerm}`)
-                            } else {
-                                expressions.push(`${myField}:*${mySearchTerm}*`)
-                            }
+                let termList = []
+                if (this.advancedParams[`searchTerm${i}`] !== null) {
+                    termList = this.advancedParams[`searchTerm${i}`].split(" ")
+                }
+                let myField = ""
+                if (this.advancedParams[`searchField${i}`] !== "any") {
+                    myField = this.advancedParams[`searchField${i}`] + ":"
+                }
+                let myExpr = []
+                if (this.advancedParams[`searchType${i}`] == "any") {
+                    for (let term of termList) {
+                        myExpr.push(`${myField}*${term}*`)
                     }
+                    expressions.push(myExpr.join(" OR "))
+                } else if (this.advancedParams[`searchType${i}`] == "all") {
+                    for (let term of termList) {
+                        myExpr.push(`${myField}*${term}*`)
+                    }
+                    expressions.push(myExpr.join(" AND "))
+                } else if (this.advancedParams[`searchType${i}`] == "exact") {
+                    expressions.push(`${myField}${termList.join(" ")}`)
+                } else if (this.advancedParams[`searchType${i}`] == "partial") {
+                    expressions.push(`${myField}*${termList.join(" ")}*`)
+                } else if (this.advancedParams[`searchType${i}`] == "regex") {
+                    expressions.push(`${myField}${termList.join(" ")}`)
                 }
             }
+
             console.log(expressions)
+            
             /*
             let expr1 = `${this.advancedParams.searchField1}:${this.advancedParams.searchTerm1} ${this.advancedParams.searchConnector1}`
             let expr2 = `${this.advancedParams.searchField2}:${this.advancedParams.searchTerm2} ${this.advancedParams.searchConnector2}` 
