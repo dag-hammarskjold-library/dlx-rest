@@ -81,7 +81,8 @@ export let multiplemarcrecordcomponent = {
             myBasket: null,
             targetedTable:"",
             selectedRecord:"",
-            selectedDiv:""
+            selectedDiv:"",
+            selectedJmarc:""
         }
     },
 
@@ -92,7 +93,9 @@ export let multiplemarcrecordcomponent = {
     // Management of the keyboard shortcuts
     //////////////////////////////////////////////////////////////////////////
     
-    window.addEventListener("keydown", this.removeRecordListener)   // crtl + f4 => close the record 
+    window.addEventListener("keydown", this.removeRecordListener)   // crtl + f4 => close the record selected
+    window.addEventListener("keydown", this.saveRecordListener)   // crtl + s => save the record selected
+    window.addEventListener("keydown", this.addFieldListener)   // crtl + ENTER => save the record selected
    
     //////////////////////////////////////////////////////////////////////////
 
@@ -149,6 +152,59 @@ export let multiplemarcrecordcomponent = {
         recup=this
     },
     methods: {
+        addField(jmarc){
+
+        },
+        saveRecord(jmarc){
+            console.log("Nous sommes dedans!!!")
+            let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+
+            promise.then(jmarc => {
+                this.removeRecordFromEditor(jmarc.div.id);
+                this.displayMarcRecord(jmarc, false);
+                this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                
+                for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                    for (let subfield of field.subfields) {
+                        subfield.copied = false;
+                    }
+                }
+            }).catch(error => {
+                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+            });
+        },        
+        addFieldListener(event) {
+            // check if one record is selected
+            if (this.selectedRecord==="") {
+                this.callChangeStyling("Please select a record first!!!", "row alert alert-danger")
+            } 
+            else
+            {
+                if (event.ctrlKey && event.key === "Enter") {
+                    event.preventDefault();
+                    this.callChangeStyling("Crtl + Enter has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
+                    this.addField(this.selectedJmarc)
+                } 
+            }
+            
+        },
+        saveRecordListener(event) {
+            // check if one record is selected
+            if (this.selectedRecord==="") {
+                this.callChangeStyling("Please select a record first!!!", "row alert alert-danger")
+            } 
+            else
+            {
+                if (event.ctrlKey && event.key === "s") {
+                    event.preventDefault();
+                    this.callChangeStyling("Crtl + s has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
+                    this.saveRecord(this.selectedJmarc)
+
+                } 
+            }
+            
+        },
         removeRecordListener(event) {
             // check if one record is selected
             if (this.selectedRecord==="") {
@@ -158,7 +214,7 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.code === "F4") {
                     event.preventDefault();
-                    this.callChangeStyling("Crtl + r has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
+                    this.callChangeStyling("Crtl + F4 has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
                     
                     if (this.selectedDiv==="record1"){
                         let recup=document.getElementById("record1")
@@ -277,6 +333,7 @@ export let multiplemarcrecordcomponent = {
             this.selectedRecord=""
             this.selectedRecordsArray=[]
             this.selectedDiv=""
+            this.selectedJmarc=""
             
         },
         // add a new Line to the table
@@ -337,8 +394,7 @@ export let multiplemarcrecordcomponent = {
             }
         },
         async removeFromBasket(recId, coll) {
-            //this.getIdFromRecordId(recId, coll)
-            //this.$root.$refs.basketcomponent.removeRecordFromList(this.id, false)
+
             basketcomponent.removeRecordFromList(recId, coll)
             basket.deleteItem(this.prefix, 'userprofile/my_profile/basket', this.myBasket, coll, recId).then( () => {
                 return true;
@@ -488,7 +544,7 @@ export let multiplemarcrecordcomponent = {
             saveButton.type = "button";
             saveButton.value = "save";
             saveButton.title = "save";
-            saveButton.className = "fas fa-save text-primary float-left mr-2 mt-1 record-control";
+            saveButton.className = "fas fa-save text-primary float-left mr-2 record-control";
             saveButton.setAttribute("data-toggle", "dropdown");
 
             let saveDropdown = document.createElement("div");
@@ -704,6 +760,7 @@ export let multiplemarcrecordcomponent = {
                     selectRecord.checked=true
                     me.selectedRecord=jmarc.recordId
                     me.selectedDiv=jmarc.div.id
+                    me.selectedJmarc=jmarc
                     me.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
                     // change header background
                     idRow.style.backgroundColor = "#009edb";
