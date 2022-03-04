@@ -10,30 +10,32 @@ window.addEventListener('DOMContentLoaded', init);
 function init() {
     const form = document.querySelector('[data-calc-form]');
     const textInput = document.querySelector('[name=text]');
-    const optionInput = document.getElementById("exact")
-    const spinner = document.getElementById("spinner")
+    const optionInput = document.getElementById("exact");
+    const spinner = document.getElementById("spinner");
+    const updateURL = document.getElementById("url");
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const text = textInput.value;
-        const option = optionInput.checked
+        const option = optionInput.checked;
+        const url = updateURL.value;
 
         spinner.classList.remove("visually-hidden")
 
-        const results = await fetchResults(text, option);
+        const results = await fetchResults(text, option, url);
 
         preview.append(createFileObjects(results))
         spinner.classList.add("visually-hidden")
     });
 }
 
-async function fetchResults(text, option) {
+async function fetchResults(text, option, url) {
     const payload = new FormData();
     payload.append('text', text);
     payload.append('exact', option);
 
-    const res = await fetch('/files/update/results', {
+    const res = await fetch(url, {
         method: 'post',
         body: payload
     });
@@ -147,7 +149,7 @@ function createFileObjects(results) {
           span_r.classList.replace("outlined-dark", "bg-dark");
           break;
         case "DE":
-          span_g.classList.replace("outline-info", "bg-info");
+          span_g.classList.replace("outlined-info", "bg-info");
           break;
         default:
           break;
@@ -175,8 +177,10 @@ function createFileObjects(results) {
       let langs =  element.language;
       langs.forEach(l => record.append('lang', l));
       
+      let updateURL = document.getElementById("url").value
+      let myUpdateUrl = updateURL.replace("/results", "")
 
-      const res = fetch('/files/update', {
+      const res = fetch(myUpdateUrl, {
           method: 'post',
           body: record
       });
