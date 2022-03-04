@@ -4,7 +4,7 @@ from flask_login import UserMixin, current_user
 from mongoengine.document import Document
 from mongoengine.fields import DictField, GenericReferenceField, ListField, ReferenceField, StringField
 from werkzeug.security import check_password_hash, generate_password_hash
-from itsdangerous import (TimedJSONWebSignatureSerializer
+from dlx_rest.utils import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 from functools import wraps
 from ulid import ULID
