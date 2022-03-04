@@ -141,7 +141,14 @@ class Schemas():
         elif schema_name == 'api.brieflist':
             data = {'type': 'array'}
         elif schema_name == 'api.browselist':
-            data = {'type': 'array'}
+            data = {
+                'type': 'array', 
+                'properties': {
+                    'value': {'type': 'string'}, 
+                    'search': {'type': 'string', 'format': 'uri'}, 
+                    'count': {'type': 'string', 'format': 'uri'}
+                }
+            }
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':

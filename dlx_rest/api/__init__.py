@@ -14,6 +14,7 @@ from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from pymongo.collation import Collation
 from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
@@ -397,27 +398,29 @@ class RecordsListBrowse(Resource):
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
         match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
+        value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
-        query = Query.from_string(querystring)
-        condition = query.conditions[0].condition
-        type(condition[field]) == Regex and abort(400, 'Can\'t browse by regex search')
-        matcher = condition[field]
-        operators = ['$lte', '$gt'] if args.compare == 'less' else ['$gte', '$lt']
+        operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = Query(Raw({'$and': [
-            {field: {operators[0]: matcher}}, 
-            {field: {'$not': {operators[1]: matcher}}}
-        ]}))
-        collation = {'locale': 'en', 'numericOrdering': True} if field == 'symbol' else None
+        query = {'_id': {operator: value}}
+        collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
-        records = cls.from_query(query, skip=start-1, limit=limit, sort=[(field, direction)], collation=collation)
+
+        values = [d for d in DB.handle[f'{field}_index'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
-            records = list(reversed(list(records)))
-    
-        data = [{'field': field, 'value': record.logical_fields(field)[field], 'url': URL('api_record', collection=collection, record_id=record.id).to_str()} for record in records]
-
+            values = list(reversed(list(values)))    
+        
+        data = [
+            {
+                'value': x['_id'],
+                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
+                
+            } for x in values
+        ]
+        
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
             '_next': URL('api_records_list_browse', collection=collection, start=start+limit, limit=limit, search=args.search, compare=args.compare).to_str(),
