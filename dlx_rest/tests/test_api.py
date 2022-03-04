@@ -366,7 +366,7 @@ def test_api_userbasket(client, default_users, users, marc):
         'record_id': '1'
     }
     res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
-    assert res.status_code == 200
+    assert res.status_code == 201
 
     # GET the basket again. Now it should have one item.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
@@ -415,12 +415,40 @@ def test_api_userbasket(client, default_users, users, marc):
     data = json.loads(res.data)
     assert len(data['data']['items']) == 1
 
+    # Before we delete it though let's test if it's locked
+    np_username = default_users['non-admin']['email']
+    np_password = default_users['non-admin']['password']
+    np_credentials = b64encode(bytes(f"{np_username}:{np_password}", "utf-8")).decode("utf-8")
+
+    res = client.get(f'{API}/marc/bibs/records/1/locked', headers={"Authorization": f"Basic {np_credentials}"})
+    data = json.loads(res.data)
+    assert data['locked'] == True
+
+    # We know it's locked. Let's try adding it to our non-admin basket anyway, but don't override
+    payload["override"] = False
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {np_credentials}"}, data=json.dumps(payload))
+    assert res.status_code == 403
+
+    # We know it's locked. Let's try adding it to our non-admin basket anyway, but DO override
+    payload["override"] = True
+    res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {np_credentials}"}, data=json.dumps(payload))
+    assert res.status_code == 201
+
+
     # delete; this should be the same record as in the payload
     res = client.delete(f'{API}/marc/bibs/records/1')
     assert res.status_code == 204
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
     assert len(data['data']['items']) == 0
+
+    # Now it should not be locked
+    res = client.get(f'{API}/marc/bibs/records/1/locked', headers={"Authorization": f"Basic {np_credentials}"})
+    data = json.loads(res.data)
+    assert data['locked'] == False
+
+#def test_record_lock(client, default_users):
+    
     
 ### util
 

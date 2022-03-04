@@ -77,7 +77,8 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
-            targetedTable:""
+            targetedTable:"",
+            recordLocked: {"locked": false}
         }
     },
     created: async function() {
@@ -99,8 +100,10 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(jmarc => {
+                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
                             if (this.readonly) {
+                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                                console.log(this.recordLocked)
                                 this.displayMarcRecord(jmarc, true);
                             } else {
                                 this.displayMarcRecord(jmarc, false); // record ID and collection
@@ -380,19 +383,22 @@ export let multiplemarcrecordcomponent = {
             // Add the icon to remove the record displayed
             ///////////////////////////////////////////////////////////////////
             
-            let removeRecordIcon= document.createElement("i");
-            idCell.appendChild(removeRecordIcon);
-            removeRecordIcon.type = "button";
-            removeRecordIcon.value = "remove";
-            removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
-            removeRecordIcon.title = "remove record";
-            // transfert the pointer
-            let that=this;
-            // remove the record displayed
-            removeRecordIcon.addEventListener("click",function(){
-                that.removeRecordFromEditor(jmarc.div.id)
-                table.parentNode.removeChild(table);
-            });
+            if (!this.readonly) {
+                let removeRecordIcon= document.createElement("i");
+                idCell.appendChild(removeRecordIcon);
+                removeRecordIcon.type = "button";
+                removeRecordIcon.value = "remove";
+                removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
+                removeRecordIcon.title = "remove record";
+                // transfert the pointer
+                let that=this;
+                // remove the record displayed
+                removeRecordIcon.addEventListener("click",function(){
+                    that.removeRecordFromEditor(jmarc.div.id)
+                    table.parentNode.removeChild(table);
+                });
+            }
+            
 
             // Display Collection/RecordId
             let idField = document.createElement("h5");
@@ -594,44 +600,68 @@ export let multiplemarcrecordcomponent = {
             };
 
             if (this.readonly && this.user !== null) {
+                console.log(this.user)
+                // Use a lock icon here if the record is locked?
+                // Offer users ability to unlock from here.
                 let editLink = document.createElement("a");
                 let uibase = this.prefix.replace("/api/","");
-                editLink.href = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
+                let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
+                editLink.href = editHref;
                 idCell.appendChild(editLink);
                 let addRemoveBasketButton = document.createElement("i");
                 editLink.appendChild(addRemoveBasketButton);
-                addRemoveBasketButton.type = "button";
-                addRemoveBasketButton.value = "edit";
-                addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
-                addRemoveBasketButton.className="fas fa-edit edit-record";
-                addRemoveBasketButton.title = "Edit Record";
-                editLink.addEventListener("click", async (e) => {
-                    e.preventDefault();
-                    await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
-                        window.location.href = editLink.href;
+                if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
+                    editLink.href = "#"
+                    addRemoveBasketButton.type = "button";
+                    addRemoveBasketButton.value = "locked";
+                    addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
+                    addRemoveBasketButton.className="fas fa-lock edit-record";
+                    addRemoveBasketButton.title = `Record locked by ${this.recordLocked["by"]}`;
+                    // Add an override option here...
+                    addRemoveBasketButton.onclick = async () => {
+                        if(confirm(`This will remove the item from the basket belonging to ${this.recordLocked["by"]}. Click OK to proceed.`) == true) {
+                            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                                window.location.href = editHref;
+                            })
+                        }
+                    }
+                } else {
+                    addRemoveBasketButton.type = "button";
+                    addRemoveBasketButton.value = "edit";
+                    addRemoveBasketButton.setAttribute("data-toggle","tooltip") 
+                    addRemoveBasketButton.className="fas fa-edit edit-record";
+                    addRemoveBasketButton.title = "Edit Record";
+                    editLink.addEventListener("click", async (e) => {
+                        e.preventDefault();
+                        await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+                            window.location.href = editLink.href;
+                        })
                     })
-                })
+                }
             }
             
             // Toggle hidden fields button?
-            let toggleButton = document.createElement("i");
-            idCell.appendChild(toggleButton);
-            toggleButton.type = "button";
-            toggleButton.value = "toggle";
-            toggleButton.className = "fas fa-solid fa-eye";
-            toggleButton.title = "toggle hidden fields";
+            if (!this.readonly) {
+                let toggleButton = document.createElement("i");
+                idCell.appendChild(toggleButton);
+                toggleButton.type = "button";
+                toggleButton.value = "toggle";
+                toggleButton.className = "fas fa-solid fa-eye";
+                toggleButton.title = "toggle hidden fields";
+                
+                toggleButton.addEventListener("click", function() {
+                    for (let field of jmarc.fields) {
+                        if (field.row.classList.contains("hidden-field")) {
+                            field.row.classList.remove("hidden-field")
+                            field.wasHidden = true;
+                        }
+                        else if (field.wasHidden) {
+                            field.row.classList.add("hidden-field")
+                        }
+                    }
+                });
+            }
             
-            toggleButton.addEventListener("click", function() {
-                for (let field of jmarc.fields) {
-                    if (field.row.classList.contains("hidden-field")) {
-                        field.row.classList.remove("hidden-field")
-                        field.wasHidden = true;
-                    }
-                    else if (field.wasHidden) {
-                        field.row.classList.add("hidden-field")
-                    }
-                }
-            });
             
             // Delete button
             let deleteCell = idRow.insertCell();
