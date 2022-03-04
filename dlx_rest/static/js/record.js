@@ -77,7 +77,8 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
-            targetedTable:""
+            targetedTable:"",
+            recordLocked: {"locked": false}
         }
     },
     created: async function() {
@@ -99,8 +100,10 @@ export let multiplemarcrecordcomponent = {
                     var split_rec = record.split("/")
                     
                     if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(jmarc => {
+                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
                             if (this.readonly) {
+                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                                console.log(this.recordLocked)
                                 this.displayMarcRecord(jmarc, true);
                             } else {
                                 this.displayMarcRecord(jmarc, false); // record ID and collection
@@ -540,6 +543,26 @@ export let multiplemarcrecordcomponent = {
             removeRecordIcon.type = "button";
             removeRecordIcon.value = "remove";
             removeRecordIcon.className = "fas fa-window-close float-left ml-1 mt-1"
+            if (!this.readonly) {
+                let removeRecordIcon= document.createElement("i");
+                idCell.appendChild(removeRecordIcon);
+                removeRecordIcon.type = "button";
+                removeRecordIcon.value = "remove";
+                removeRecordIcon.className = "fas fa-window-close text-warning float-left ml-1 mt-1"
+                removeRecordIcon.title = "remove record";
+                // transfert the pointer
+                let that=this;
+                // remove the record displayed
+                removeRecordIcon.addEventListener("click",function(){
+                    that.removeRecordFromEditor(jmarc.div.id)
+                    table.parentNode.removeChild(table);
+                });
+            }
+            
+
+            // Display Collection/RecordId
+            let idField = document.createElement("h5");
+            idCell.appendChild(idField);
             if (jmarc.workformName) {
                 removeRecordIcon.title = "Close Workform";
             } else {
@@ -578,8 +601,15 @@ export let multiplemarcrecordcomponent = {
             if (this.readonly && this.user !== null) {
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                    {"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc}
+                    
                 ]
+                if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
+                    // It's locked by someone else
+                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-lock", "title": `Record locked by ${this.recordLocked["by"]}`, "click": "unlockRecord", "param": jmarc})
+                } else {
+                    // It's either not locked, or locked by current user
+                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc})
+                }
             }
             for (let control of controls) {
                 let controlButton = document.createElement(control["element"]);
@@ -604,7 +634,6 @@ export let multiplemarcrecordcomponent = {
                     }
                     controlButton.className = `${control["class"]} float-left`;
                 }
-                
             }
 
             // Files
