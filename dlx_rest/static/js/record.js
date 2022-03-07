@@ -601,8 +601,15 @@ export let multiplemarcrecordcomponent = {
             if (this.readonly && this.user !== null) {
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                    {"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc}
+                    
                 ]
+                if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
+                    // It's locked by someone else
+                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-lock", "title": `Record locked by ${this.recordLocked["by"]}`, "click": "unlockRecord", "param": jmarc})
+                } else {
+                    // It's either not locked, or locked by current user
+                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc})
+                }
             }
             for (let control of controls) {
                 let controlButton = document.createElement(control["element"]);

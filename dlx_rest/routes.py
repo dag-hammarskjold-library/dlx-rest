@@ -526,7 +526,10 @@ def process_files():
 @app.route('/files/search')
 @login_required
 def search_files():
-    return render_template('file_update.html')
+    baseURL = url_for('doc', _external=True)
+    #this_prefix = baseURL.replace("/api/", url_for('files_results'))
+    this_prefix = url_for('files_results')
+    return render_template('file_update.html', prefix=this_prefix)
 
 
 @app.route('/files/update/results', methods=['GET', 'POST'])
