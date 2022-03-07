@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
+from dlx_rest.models import Basket
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
 
@@ -141,7 +142,14 @@ class Schemas():
         elif schema_name == 'api.brieflist':
             data = {'type': 'array'}
         elif schema_name == 'api.browselist':
-            data = {'type': 'array'}
+            data = {
+                'type': 'array', 
+                'properties': {
+                    'value': {'type': 'string'}, 
+                    'search': {'type': 'string', 'format': 'uri'}, 
+                    'count': {'type': 'string', 'format': 'uri'}
+                }
+            }
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
         elif schema_name == 'api.null':
@@ -204,3 +212,13 @@ def brief_auth(record):
         'alt': '; '.join(record.get_values(alt_tag, 'a')),
         'heading_tag': record.heading_field.tag
     }
+
+def item_locked(collection, record_id):
+    for basket in Basket.objects:
+        try:
+            lock = list(filter(lambda x: x['record_id'] == str(record_id) and x['collection'] == collection, basket.items))
+            return {"locked": True, "in": basket.name, "by": basket.owner.email, "item_id": lock[0]['id']}
+        except IndexError:
+            pass
+
+    return {"locked": False}
