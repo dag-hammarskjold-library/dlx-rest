@@ -388,11 +388,26 @@ def get_records_list(coll):
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 10)
-    sort =  request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
+    
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
-
+    # for now, only default to updated desc if no search term
+    sort =  request.args.get('sort')
+    direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    
+    # TODO dlx "query analyzer" to characterize the search string and sort accordingly
+    if q:
+        for term in re.split(' +', q):
+            if ':' not in term and term not in ('AND', 'OR') and not sort:
+                # there appears to be free text term
+                sort = 'relevance'
+                
+    if not sort:
+        sort = 'updated'
+        direction = 'desc'
+    elif sort != 'relevance' and not direction:
+        direction = 'asc'
+            
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)

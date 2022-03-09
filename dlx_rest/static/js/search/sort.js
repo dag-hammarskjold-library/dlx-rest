@@ -29,11 +29,23 @@ export let sortcomponent = {
         let mySortFields = [{'displayName':'updated', 'searchString': 'updated'}];
         /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
-            mySortFields.push({'displayName':'title', 'searchString': 'title'});
-            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol'});
             mySortFields.push({'displayName':'publication date', 'searchString': 'date'});
+            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol'});
+            mySortFields.push({'displayName':'title', 'searchString': 'title'});
+            // sort by relevance only works for free text search
+            // TODO disable relevance sort link for non free text searches
+            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance'});
         } else if (this.collection == "auths") {
             mySortFields.push({'displayName':'heading', 'searchString': 'heading'})
+        }
+        if (this.params.search) {
+            /* TODO get query "type" from backend [not implemented yet] */
+            for (let term of this.params.search.split(/ +/)) {
+                if (! term.includes(":") && term !== "AND" && term !== "OR" && term !== "NOT") {
+                    // looks like the search contains a free text term
+                    this.isFreeText = true
+                }
+            }
         }
         return {
             rpp: [
@@ -45,7 +57,8 @@ export let sortcomponent = {
             sortDirections: [
                 {"displayName": "asc", "searchString": "asc"},
                 {"displayName": "desc", "searchString": "desc"}
-            ]
+            ],
+            freeText: this.isFreeText
         }
     },
     mounted: function() {
