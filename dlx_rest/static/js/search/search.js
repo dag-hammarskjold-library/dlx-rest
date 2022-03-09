@@ -398,15 +398,30 @@ export let searchcomponent = {
                 }
             }
 
-            console.log(expressions)
+            let compiledExpr = []
+            for (let i in expressions) {
+                let j = parseInt(i)+1
+                let accessor = `searchConnector${j.toString()}`
+                console.log(i, expressions[i], accessor, this.advancedParams[accessor])
+                if (expressions[i] !== "") {
+                    compiledExpr.push(expressions[i])
+                }
+                if (this.advancedParams[accessor]) {
+                    compiledExpr.push(this.advancedParams[accessor])
+                }
+            }
+            // Get rid of any trailing boolean connectors if they don't connect to another expression
+            while (compiledExpr[compiledExpr.length - 1] === 'AND') {
+                compiledExpr.pop()
+            }
+            while (compiledExpr[compiledExpr.length - 1] === 'OR') {
+                compiledExpr.pop()
+            }
+            let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
             
-            /*
-            let expr1 = `${this.advancedParams.searchField1}:${this.advancedParams.searchTerm1} ${this.advancedParams.searchConnector1}`
-            let expr2 = `${this.advancedParams.searchField2}:${this.advancedParams.searchTerm2} ${this.advancedParams.searchConnector2}` 
-            let expr3 = `${this.advancedParams.searchField3}:${this.advancedParams.searchTerm3}`
+            // Next: submit this and get the results
 
-            console.log(encodeURIComponent(expr1))
-            */
+            console.log(url)
         }
     },
     components: {
