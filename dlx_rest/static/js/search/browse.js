@@ -43,7 +43,7 @@ export let browsecomponent = {
                 </div>
             </div>
             <div v-for="result in results_before" class="row my-2">
-                <div class="col"><a :href="result.url" target="_blank">{{result.value}}</a></div>
+                <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div>
             </div>
             <div class="row">
                 <div class="col"><i class="fas fa-angle-double-right mr-2 text-success"></i><span class="text-success">{{q}}</span></div>
@@ -56,7 +56,7 @@ export let browsecomponent = {
                 </div>
             </div>
             <div v-for="result in results_after" class="row my-2">
-                <div class="col"><a :href="result.url" target="_blank">{{result.value}}</a></div>
+                <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div>
             </div>
         </div>
         <div v-else>
@@ -97,36 +97,118 @@ export let browsecomponent = {
         if (this.q && this.index) {
             let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?search=${this.index}:${this.q}&compare=less`
             let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?search=${this.index}:${this.q}&compare=greater`
-            fetch(beforeBrowse).then(response => {
-                response.json().then(jsondata => {
-                    //this.results_before = jsondata.data
-                    for (let result of jsondata.data) {
-                        let myRecordId = result.url.split('/').pop()
-                        let myUrl = `${this.api_prefix.replace("/api", "")}records/${this.collection}/${myRecordId}`
-                        let myValues = result.value.join(" | ")
-                        this.results_before.push({'url': myUrl, 'value': myValues})
+            
+            // TODO do both less and greater fetches in one block
+            
+            // Less than
+            fetch(beforeBrowse).then(
+                response => {
+                    return response.json()
+                }
+            ).then(
+                jsondata => {
+                    let json = jsondata;
+                    //this.prev = json._links._prev;
+                    
+                    for (let result of json.data) {
+                        // tanslate api search to app search
+                        let searchStr = result.search.split('search=')[1];
+                        let searchUrl = `${this.api_prefix.replace("/api", "")}records/${this.collection}/search?q=${searchStr}`
+                        
+                        // get the count
+                        fetch(result.count).then(
+                            response => response.json()
+                        ).then(
+                            json => {
+                                let count = json.data;
+                                
+                                if (count === 1) {
+                                    // return direct link to record
+                                    fetch(result.search).then(
+                                        response => {
+                                            return response.json()
+                                        }
+                                    ).then(
+                                        json => {
+                                            let apiUrl = json.data[0];
+                                            let parts = apiUrl.split("/");
+                                            let recordId = parts[parts.length-1];
+                                            let recordUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/${recordId}`;
+                                            this.results_before.push({'value': result.value, 'count': count, 'url': recordUrl})
+                                        }
+                                    )
+                                }
+                                else {
+                                    // return link to search results list
+                                    this.results_after.push({'value': result.value, 'count': count, 'url': searchUrl})
+                                }
+                            }
+                        )
                     }
-                    this.prev = jsondata._links._next
-                }).then( () => {
+                }
+            ).then( 
+                () => {
                     let spinner = document.getElementById('before-spinner')
                     spinner.remove()
-                })
-            })
-            fetch(afterBrowse).then(response => {
-                response.json().then(jsondata => {
-                    this.next = jsondata._links._next
-                    for (let result of jsondata.data) {
-                        let myRecordId = result.url.split('/').pop()
-                        let myUrl = `${this.api_prefix.replace("/api", "")}records/${this.collection}/${myRecordId}`
-                        let myValues = result.value.join(" | ")
-                        this.results_after.push({'url': myUrl, 'value': myValues})
+                }
+            );
+            
+            // Greater than
+            fetch(afterBrowse).then(
+                response => {
+                    return response.json()
+                }
+            ).then(
+                jsondata => {
+                    let json = jsondata;
+                    //this.next = json._links._next;
+                       
+                    for (let result of json.data) {
+                        // tanslate api search to app search
+                        let searchStr = result.search.split('search=')[1];
+                        let searchUrl = `${this.api_prefix.replace("/api", "")}records/${this.collection}/search?q=${searchStr}`
+                        
+                        // get the count
+                        fetch(result.count).then(
+                            response => response.json()
+                        ).then(
+                            json => {
+                                let count = json.data;
+                                
+                                if (count === 1) {
+                                    // return direct link to record
+                                    fetch(result.search).then(
+                                        response => {
+                                            return response.json()
+                                        }
+                                    ).then(
+                                        json => {
+                                            let apiUrl = json.data[0];
+                                            let parts = apiUrl.split("/");
+                                            let recordId = parts[parts.length-1];
+                                            let recordUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/${recordId}`;
+                                            this.results_after.push({'value': result.value, 'count': count, 'url': recordUrl})
+                                        }
+                                    )
+                                }
+                                else {
+                                    // return link to search results list
+                                    this.results_after.push({'value': result.value, 'count': count, 'url': searchUrl})
+                                }
+                            }
+                        )
+                        
+                        
                     }
-                })
-            }).then( () => {
-                let spinner = document.getElementById('after-spinner')
-                spinner.remove()
-            })
-        } else {
+                }
+            ).then( 
+                () => {
+                    let spinner = document.getElementById('after-spinner')
+                    spinner.remove()
+                }
+            )
+        } 
+        else {
             this.indexListJson = JSON.parse(this.index_list)
         }
     },
