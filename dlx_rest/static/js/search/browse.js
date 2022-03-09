@@ -24,7 +24,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
-            <a href="#" onclick="window.history.back()"><i class="fas fa-angle-double-left mr-2"></i>Back</a>
+            <a><<< Previous</a>
             <!--
             <nav>
                 <ul class="pagination pagination-md justify-content-center">
@@ -57,6 +57,9 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_after" class="row my-2">
                 <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div>
+            </div>
+            <div>
+                <a>Next >>></a>
             </div>
         </div>
         <div v-else>
@@ -197,8 +200,6 @@ export let browsecomponent = {
                                 }
                             }
                         )
-                        
-                        
                     }
                 }
             ).then( 
