@@ -292,6 +292,7 @@ class RecordsList(Resource):
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             },
             'related': {
+                'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
