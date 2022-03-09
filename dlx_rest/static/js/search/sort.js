@@ -50,6 +50,7 @@ export let sortcomponent = {
         return {
             rpp: [
                 {"displayName": "10", "searchString": 10},
+                {"displayName": "25", "searchString": 25},
                 {"displayName": "50", "searchString": 50},
                 {"displayName": "100", "searchString": 100}
             ],

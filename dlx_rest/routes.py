@@ -387,7 +387,7 @@ def get_records_list(coll):
 @app.route('/records/<coll>/search')
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
-    limit = request.args.get('limit', 10)
+    limit = request.args.get('limit', 25)
     
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
