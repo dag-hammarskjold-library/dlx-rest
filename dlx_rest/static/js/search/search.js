@@ -170,7 +170,16 @@ export let searchcomponent = {
                     iconEl.classList.remove('fa-folder-plus',);
                     iconEl.classList.add('fa-folder-minus');
                     iconEl.title = "Remove from basket";
-                } 
+                }
+                // checking if the record is locked and displaying a lock if it is.
+                const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, result._id);
+                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                    // Display a lock icon
+                    iconEl.classList.remove('fa-folder-plus',);
+                    iconEl.classList.remove('fa-folder-minus',);
+                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
+                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                }
             }
             
         }
