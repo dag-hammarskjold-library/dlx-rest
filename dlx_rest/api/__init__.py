@@ -497,7 +497,6 @@ class Record(Resource):
             },
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                'history': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
@@ -1182,18 +1181,13 @@ class RecordHistory(Resource):
         # temporary implemention
         hcol = collection[:-1] + '_history'
         hrec = DB.handle[hcol].find_one({'_id': record_id}) or {}
-        history = hrec.get('history') or []
+        history = hrec.get('history')
         
-        data = [
-            {
-                'user': history[i].get('user'),
-                'time': history[i].get('updated'),
-                'event': URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str()
-            } 
-                
-            for i in range(0, len(history))
-        ]
-
+        if history:
+            data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
+        else:
+            data = None
+        
         links = {
             '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
             'related': {
@@ -1203,7 +1197,7 @@ class RecordHistory(Resource):
         
         meta = {
             'name': 'api_record_history',
-            'returns': URL('api_schema', schema_name='api.history.list').to_str()
+            'returns': URL('api_schema', schema_name='api.urllist').to_str()
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
@@ -1225,7 +1219,6 @@ class RecordHistoryEvent(Resource):
         
         data = marc.to_dict()
         data['updated'] = marc.updated
-        data['user'] = marc.user
         
         links = {
             '_self': URL('api_record_history_event', collection=collection, record_id=record_id, instance=instance).to_str(),
