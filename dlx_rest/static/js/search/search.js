@@ -93,7 +93,6 @@ export let searchcomponent = {
                 </div>
             </div>
             <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
-            <div>{{advancedParams}}</div>
         </div>
         <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
@@ -419,9 +418,7 @@ export let searchcomponent = {
             }
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
             
-            // Next: submit this and get the results
-
-            console.log(url)
+            window.location = url
         }
     },
     components: {
