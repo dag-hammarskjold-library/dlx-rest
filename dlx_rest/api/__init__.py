@@ -184,7 +184,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated', 'date', 'symbol', 'title', 'heading'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -228,16 +228,6 @@ class RecordsList(Resource):
         
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
-            
-        # sort
-        sort_by = args.get('sort')
-        
-        if sort_by:
-            sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
-            # only include results wiht the sorted field. desired?
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
-        else:
-            sort = None
         
         # format
         fmt = args['format'] or None
@@ -250,12 +240,26 @@ class RecordsList(Resource):
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
-            project = None
+            project = {}
         else:
             project = {'_id': 1}
+          
+        # sort
+        sort_by = args.get('sort')
+        
+        if sort_by == 'relevance':
+            project['score'] = {'$meta': 'textScore'}
+            sort = [('score', {'$meta': 'textScore'})]
+        elif sort_by:
+            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
+            # only include results with the sorted field. otherwise, records with the field missing will be the first results
+            # TODO review
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
+        else:
+            sort = None
 
         # exec query
-        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
