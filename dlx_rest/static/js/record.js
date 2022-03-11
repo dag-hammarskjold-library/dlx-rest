@@ -200,8 +200,6 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.add("text-danger");
                     jmarc.saveButton.classList.remove("text-primary");
                     jmarc.saveButton.title = "unsaved changes";
-    
-    
                 })
                                
         },
@@ -410,7 +408,7 @@ export let multiplemarcrecordcomponent = {
         removeRecordListener(event) {
             if (this.selectedRecord!=="")
             {
-                if (event.ctrlKey && event.code === "F4") {
+                if (event.ctrlKey && event.code === "F4") &&  {
                     event.preventDefault();
                     this.callChangeStyling("Crtl + F4 has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
                     
@@ -510,8 +508,7 @@ export let multiplemarcrecordcomponent = {
         pasteItems(record1,record2){
 
         },
-        // clear all the checkbox selected in the header
-        //clearSelectedRecord(idRow,table){
+
         clearSelectedRecord(){
             
             // remove checked option
