@@ -539,7 +539,7 @@ export let multiplemarcrecordcomponent = {
             
         },
         // Record Control functions
-        saveRecord(component=null, jmarc) {
+        saveRecord(jmarc) {
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
@@ -566,7 +566,7 @@ export let multiplemarcrecordcomponent = {
             }
         },
 
-        cloneRecord(component=null, jmarc) {
+        cloneRecord(jmarc) {
             let recup = jmarc.clone();
             this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
             if (jmarc.workformName) {
@@ -630,7 +630,7 @@ export let multiplemarcrecordcomponent = {
             jmarc.saveButton.title = "unsaved changes";
         },
 
-        deleteRecord(component=null, jmarc) {
+        deleteRecord(jmarc) {
             if (jmarc.workformName) {
                 if (confirm("Are you sure you want to delete Workform ?") == true) {
                     Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
@@ -657,7 +657,7 @@ export let multiplemarcrecordcomponent = {
 
         },
 
-        saveToWorkform(component=null, jmarc) {
+        saveToWorkform(jmarc) {
             jmarc.workformName = "<new>";
             jmarc.workformDescription = " ";
             jmarc.newWorkForm = true;
@@ -673,7 +673,7 @@ export let multiplemarcrecordcomponent = {
             }
         },
 
-        toggleHidden(component=null, jmarc) {
+        toggleHidden(jmarc) {
             for (let field of jmarc.fields) {
                 if (field.row.classList.contains("hidden-field")) {
                     field.row.classList.remove("hidden-field")
