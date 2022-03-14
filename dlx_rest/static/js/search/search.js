@@ -42,7 +42,7 @@ export let searchcomponent = {
                 <div class="input-group-prepend">
                     <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField1',field)">{{field}}</option>
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
                     </div>
                 </div>
                 <div class="input-group-append">
@@ -191,6 +191,10 @@ export let searchcomponent = {
                 'searchField3': 'any'
             },
             bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
+            authSearchFields: [],
+            voteSearchFields: ['symbol','title','agenda','yearh'],
+            speechSearchFields: ['symbol', 'speaker', 'country/organization', 'agenda', 'year'],
+            searchFields: [],
             searchTypes: [
                 {'name': 'All of the words:', 'value': 'all'},
                 {'name': 'Any of the words:', 'value': 'any'},
@@ -214,6 +218,7 @@ export let searchcomponent = {
         
         // [what is this used for?]
         if (component.collection == "auths") {
+            this.searchFields = this.authSearchFields
             let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
@@ -223,6 +228,12 @@ export let searchcomponent = {
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
             component.lookup_maps['bibs'] = bibMapData.data;
+        } else if (component.collection == "bibs") {
+            this.searchFields = this.bibSearchFields
+        } else if (component.collection == "votes") {
+            this.searchFields = this.voteSearchFields
+        } else if (component.collection == "speeches") {
+            this.searchFields = this.speechSearchFields
         }
         
         fetch(this.search_url).then(
