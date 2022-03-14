@@ -387,11 +387,31 @@ def get_records_list(coll):
 @app.route('/records/<coll>/search')
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
-    limit = request.args.get('limit', 10)
-    sort =  request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
+    limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+    # for now, only default to updated desc if no search term
+    sort =  request.args.get('sort')
+    direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    
+    # TODO dlx "query analyzer" to characterize the search string and sort accordingly
+    if q:
+        terms = re.split(' +', q)
+        
+        for term in terms:
+            if ':' not in term and term not in ('AND', 'OR') and not sort:
+                if re.match('[A-z]+/[A-z0-9]+', term) and len(terms) == 1:
+                    # TODO "looks like symbol" util function
+                    q = f'symbol:{term.upper()}*'
+                else:    
+                    # appears to be free text term
+                    sort = 'relevance'
+                
+    if not sort:
+        sort = 'updated'
+        direction = 'desc'
+    elif sort != 'relevance' and not direction:
+        direction = 'asc'
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
@@ -526,7 +546,10 @@ def process_files():
 @app.route('/files/search')
 @login_required
 def search_files():
-    return render_template('file_update.html')
+    baseURL = url_for('doc', _external=True)
+    #this_prefix = baseURL.replace("/api/", url_for('files_results'))
+    this_prefix = url_for('files_results')
+    return render_template('file_update.html', prefix=this_prefix)
 
 
 @app.route('/files/update/results', methods=['GET', 'POST'])

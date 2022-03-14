@@ -1,11 +1,23 @@
 
-table.marc-record.read-only {
+table.marc-record.read-only.tbody {
     pointer-events: none;
 }
 
+/*
 table.marc-record.read-only thead i.record-control {
     display: none;
 }
+*/
+
+i.record-control:hover {
+    background-color:#333333;
+    color:#F2F2F2;
+}
+
+i.record-control {
+    color: #333333;
+}
+
 
 table.marc-record.read-only thead i.edit-record {
     pointer-events: all;
