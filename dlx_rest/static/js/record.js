@@ -168,7 +168,7 @@ export let multiplemarcrecordcomponent = {
             console.log(jmarc)
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                    this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
@@ -176,7 +176,7 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
 
                 promise.then(jmarc => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                    this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
@@ -194,7 +194,7 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
             } else {
@@ -244,7 +244,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     // refresh    
-                    this.removeRecordFromEditor(jmarc.div.id);
+                    this.removeRecordFromEditor(jmarc);
                     this.displayMarcRecord(jmarc);
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
@@ -361,7 +361,7 @@ export let multiplemarcrecordcomponent = {
             if (jmarc.workformName) {
                 if (confirm("Are you sure you want to delete Workform ?") == true) {
                     Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
-                        this.removeRecordFromEditor(jmarc.div.id);
+                        this.removeRecordFromEditor(jmarc);
                         this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
                         //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
                     })
@@ -373,7 +373,7 @@ export let multiplemarcrecordcomponent = {
 
                     this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
                         jmarc.delete().then( () => {
-                            this.removeRecordFromEditor(jmarc.div.id);
+                            this.removeRecordFromEditor(jmarc);
                             this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
                         }).catch( error => {
                             this.callChangeStyling(error.message,"row alert alert-danger");
@@ -387,12 +387,12 @@ export let multiplemarcrecordcomponent = {
             jmarc.workformName = "<new>";
             jmarc.workformDescription = " ";
             jmarc.newWorkForm = true;
-            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
             this.displayMarcRecord(jmarc, false);
             this.callChangeStyling("Name your new workform, then click the Save button", "row alert alert-warning")
             jmarc.saveButton.onclick = () => {
                 jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
+                    this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 })
@@ -538,166 +538,12 @@ export let multiplemarcrecordcomponent = {
             }
             
         },
-        // Record Control functions
-        saveRecord(jmarc) {
-            if (jmarc.workformName) {
-                jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
-                });
-            } else {
-                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
-
-                promise.then(jmarc => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
-                    basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
-                    
-                    for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-                        for (let subfield of field.subfields) {
-                            subfield.copied = false;
-                        }
-                    }
-                }).catch(error => {
-                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
-                });
-            }
-        },
-
-        cloneRecord(jmarc) {
-            let recup = jmarc.clone();
-            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-            if (jmarc.workformName) {
-                this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
-            } else {
-                this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
-            }
-            
-            this.displayMarcRecord(recup, false);
-            // Adding to basket happens now whenever the record is saved.
-            //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, recup.recordId)
-            recup.saveButton.classList.add("text-danger");
-            //recup.saveButton.classList.remove("text-primary");
-            recup.saveButton.title = "unsaved changes";
-            
-            for (let field of recup.fields) {
-                if (! field.tag.match(/^00/)) {
-                    for (let subfield of field.subfields) {
-                        subfield.valueCell.classList.add("unsaved");
-                    }
-                }
-            }
-
-        },
-
-        pasteFields(component, jmarc) {
-            for (let field of component.copiedFields || []) {
-                // recreate the field
-                let newField = jmarc.createField(field.tag);
-                newField.indicators = field.indicators || ["_", "_"];
-                
-                for (let subfield of field.subfields) {
-                    let newSubfield = newField.createSubfield(subfield.code);
-                    newSubfield.value = subfield.value;
-                    newSubfield.xref = subfield.xref;
-                    newSubfield.copied = true;
-                }
-            }
-            
-            // clear the list of copied items
-            component.copiedFields = [];
-            
-            // clear all checkboxes
-            for (let checkbox of document.getElementsByClassName("field-checkbox")) {
-                checkbox.checked = false;
-            }
-            
-            // refresh    
-            component.removeRecordFromEditor(jmarc.div.id);
-            component.displayMarcRecord(jmarc);
-            
-            for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-                for (let subfield of field.subfields.filter(x => x.copied)) {
-                    // subfield acquires valueCell after refresh
-                    subfield.valueCell.classList.add("unsaved")
-                }
-            }
-            
-            jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "unsaved changes";
-        },
-
-        deleteRecord(jmarc) {
-            if (jmarc.workformName) {
-                if (confirm("Are you sure you want to delete Workform ?") == true) {
-                    Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
-                        this.removeRecordFromEditor(jmarc.div.id);
-                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
-                        //this.removeFromBasket(jmarc.recordId, jmarc.collection)                  
-                    })
-                }
-            } else {
-                if (confirm("Are you sure you want to delete this record ?") == true) {
-                    let deletedRid = jmarc.recordId;
-                    let deletedColl = jmarc.collection;
-
-                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
-                        jmarc.delete().then( () => {
-                            this.removeRecordFromEditor(jmarc.div.id);
-                            this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
-                        }).catch( error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger");
-                        });
-                    })
-                }
-            }
-
-        },
-
-        saveToWorkform(jmarc) {
-            jmarc.workformName = "<new>";
-            jmarc.workformDescription = " ";
-            jmarc.newWorkForm = true;
-            this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-            this.displayMarcRecord(jmarc, false);
-            this.callChangeStyling("Name your new workform, then click the Save button", "row alert alert-warning")
-            jmarc.saveButton.onclick = () => {
-                jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                    this.removeRecordFromEditor(jmarc.div.id); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
-                })
-            }
-        },
-
-        toggleHidden(jmarc) {
-            for (let field of jmarc.fields) {
-                if (field.row.classList.contains("hidden-field")) {
-                    field.row.classList.remove("hidden-field")
-                    field.wasHidden = true;
-                }
-                else if (field.wasHidden) {
-                    field.row.classList.add("hidden-field")
-                }
-            }
-        },
-
-        async editRecord(jmarc) {
-            console.log(jmarc.collection, jmarc.recordId)
-            let uibase = this.prefix.replace("/api/","");
-            let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
-            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
-                window.location.href = editLink;
-            })
-        },
 
         optimizeEditorDisplay(table){
 
             // // only record1 displayed
             if (this.isRecordOneDisplayed == true && this.isRecordTwoDisplayed == false){
+                
                 let myDiv=document.getElementById("records")
 
                 // change the class
@@ -855,12 +701,15 @@ export let multiplemarcrecordcomponent = {
             })
 
         },
-        removeRecordFromEditor(divID) {
+        removeRecordFromEditor(jmarc) {
             /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
             // get the parent
 
+            let divID = jmarc.div.id
+
             if (divID === "record1") {
                 // reset the parameters
+                this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record1)
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
                 this.collectionRecord1=""
@@ -869,6 +718,7 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             } 
             else if (divID === "record2") {
+                this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
                 this.collectionRecord2=""
@@ -876,7 +726,6 @@ export let multiplemarcrecordcomponent = {
                 recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
             }
-
             // optimize the display
             this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
@@ -979,7 +828,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                 {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                 {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Record",  "click": "deleteRecord" },
-                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor", "param": jmarc.div.id },
+                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
                 controls = [
@@ -990,7 +839,7 @@ export let multiplemarcrecordcomponent = {
                     {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                     {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
-                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor", "param": jmarc.div.id },
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
                 ]
             }
             if (this.readonly && this.user !== null) {
