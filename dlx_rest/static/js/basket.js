@@ -11,7 +11,7 @@ export let basketcomponent = {
     <div class="container col-sm-2" id="app0" style="background-color:white;">
         <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
             <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div>
-            <div v-for="record in sortedBasket" :key="record._id" class="list-group" >
+            <div v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 " >
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id">
                     <div class="d-flex w-100 justify-content-between">
                         <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
@@ -19,6 +19,7 @@ export let basketcomponent = {
                     </div>
                     <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
                         <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
+                        <span v-else :title=record.title>{{record.title}}</span>
                         <span v-else :title=record.title>{{record.title}}</span>
                     </p>
                     <p v-if="record.symbol" class="mb-1">
@@ -35,12 +36,12 @@ export let basketcomponent = {
     data: function () {
         return {
           visible: true,
-          basketItems: [],    
+          basketItems: [],
+          recordDisplayed:[]    
         }
     },
     computed: {
         sortedBasket: function () {
-            //return this.basketItems.sort((a,b) => { return a.basket_item_id < b.basket_item_id })
             return this.basketItems.sort((a,b) => { return a.basket_item_id.localeCompare(b.basket_item_id) })
         }
     },
@@ -51,16 +52,30 @@ export let basketcomponent = {
     mounted: async function() {
         this.timer = setInterval(this.rebuildBasket, 20000)
     },
-    /*
-    updated: function () {
-        console.log(this);
-    },*/
     methods: {
+        removeRecordFromRecordDisplayed(recordToDelete){
+            const index = this.recordDisplayed.indexOf(recordToDelete);
+            if (index > -1) {
+                this.recordDisplayed.splice(index, 1);
+            }
+        },
         async displayRecord(myRecord, myCollection) {
-            let jmarc = await Jmarc.get(myCollection, myRecord);
-            this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
-            //this.$root.multiplemarcrecordcomponent.displayMarcRecord(jmarc);
-            this.callChangeStyling("Record added to the editor", "row alert alert-success")
+            // Check if the record is already displayed
+            const len = this.recordDisplayed.length;
+
+            if (len===2) {
+                this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
+            }   
+            else
+            {
+                let jmarc = await Jmarc.get(myCollection, myRecord);
+                this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
+                // add record displayed
+                this.recordDisplayed.push(jmarc.recordId)
+                // this.forceUpdate()
+                this.callChangeStyling("Record added to the editor", "row alert alert-success")
+            }
+
         },
         callChangeStyling(myText, myStyle) {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
@@ -78,7 +93,6 @@ export let basketcomponent = {
         async buildBasket() {
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let item of myBasket) {
-                //let myItem = await basket.getItem(this.api_prefix, item.collection, item.record_id);
                 basket.getItem(this.api, item.collection, item.record_id).then(myItem => {
                     myItem['collection'] = item.collection;
                     let myItemTitle = "";
