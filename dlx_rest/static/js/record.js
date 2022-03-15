@@ -446,6 +446,7 @@ export let multiplemarcrecordcomponent = {
                  "\n"+"ctrl + k => remove the field from the record selected" +
                  "\n"+"ctrl + / => Add a new subField to the record selected"+
                  "\n"+"ctrl + m => remove the last subField selected from the record selected"+
+                 "\n"+"ctrl + p => paste/duplicate previously selected/copied fields"+
                  "\n"+"ctrl + h => Display help menu"
                  );
             }     
