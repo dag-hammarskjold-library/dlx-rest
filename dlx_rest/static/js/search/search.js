@@ -385,9 +385,9 @@ export let searchcomponent = {
                     expressions.push(myExpr.join(" OR "))
                 } else if (this.advancedParams[`searchType${i}`] == "all") {
                     for (let term of termList) {
-                        myExpr.push(`${myField}*${term}*`)
+                        myExpr.push(`${myField}${term}`)
                     }
-                    expressions.push(myExpr.join(" AND "))
+                    expressions.push(myExpr.join(" "))
                 } else if (this.advancedParams[`searchType${i}`] == "exact") {
                     expressions.push(`${myField}${termList.join(" ")}`)
                 } else if (this.advancedParams[`searchType${i}`] == "partial") {
