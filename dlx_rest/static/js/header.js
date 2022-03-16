@@ -22,11 +22,10 @@ export let headercomponent = {
                     Create Record
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" :href="uibase + 'editor?records=auths'">Auth Workform</a>
-                    <a class="dropdown-item" :href="uibase + 'editor?records=bibs'">Bib Workform</a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-auths-WorkformModal">Load an auths Workform</a>
-                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-bibs-WorkformModal">Load a bibs Workform</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-auths-WorkformModal">Auth Record</a>
+                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#select-bibs-WorkformModal">Bib Record</a>
+                    <a href="#" class="dropdown-item disabled" data-toggle="modal" data-target="#select-bibs-WorkformModal">Speech Record</a>
+                    <a href="#" class="dropdown-item disabled" data-toggle="modal" data-target="#select-bibs-WorkformModal">Voting Record</a>
                 </div>
             </li>
             <li class="nav-item active">
