@@ -125,9 +125,11 @@ export let multiplemarcrecordcomponent = {
                     
                     if (split_rec.length === 2) {
                         Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
-                            if (this.readonly) {
+                            if (this.readonly && this.user !== null) {
                                 this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
                                 console.log(this.recordLocked)
+                                this.displayMarcRecord(jmarc, true);
+                            } else if (this.user === null) {
                                 this.displayMarcRecord(jmarc, true);
                             } else {
                                 this.displayMarcRecord(jmarc, false); // record ID and collection
@@ -845,8 +847,8 @@ export let multiplemarcrecordcomponent = {
             }
             if (this.readonly && this.user !== null) {
                 controls = [
+                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                    
                 ]
                 if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
                     // It's locked by someone else
@@ -855,6 +857,11 @@ export let multiplemarcrecordcomponent = {
                     // It's either not locked, or locked by current user
                     controls.push({"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc})
                 }
+            } else if (this.user == null) {
+                controls = [
+                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
+                    {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
+                ]
             }
             for (let control of controls) {
                 let controlButton = document.createElement(control["element"]);
