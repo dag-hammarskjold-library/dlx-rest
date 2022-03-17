@@ -416,30 +416,8 @@ export let searchcomponent = {
             var expressions = []
             for (let i of ["1","2","3"]) {
                 let termList = []
-                if (this.advancedParams[`searchTerm${i}`] !== null) {
-                    termList = this.advancedParams[`searchTerm${i}`].split(" ")
-                }
-                let myField = ""
-                if (this.advancedParams[`searchField${i}`] !== "any") {
-                    myField = this.advancedParams[`searchField${i}`] + ":"
-                }
-                let myExpr = []
-                if (this.advancedParams[`searchType${i}`] == "any") {
-                    for (let term of termList) {
-                        myExpr.push(`${myField}*${term}*`)
-                    }
-                    expressions.push(myExpr.join(" OR "))
-                } else if (this.advancedParams[`searchType${i}`] == "all") {
-                    for (let term of termList) {
-                        myExpr.push(`${myField}${term}`)
-                    }
-                    expressions.push(myExpr.join(" "))
-                } else if (this.advancedParams[`searchType${i}`] == "exact") {
-                    expressions.push(`${myField}${termList.join(" ")}`)
-                } else if (this.advancedParams[`searchType${i}`] == "partial") {
-                    expressions.push(`${myField}/${termList.join(" ")}/`)
-                } else if (this.advancedParams[`searchType${i}`] == "regex") {
-                    expressions.push(`${myField}${termList.join(" ")}`)
+                if (this.advancedParams[`searchField${i}`] ) {
+                    return
                 }
             }
 
