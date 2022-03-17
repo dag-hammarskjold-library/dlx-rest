@@ -40,7 +40,7 @@ export let searchcomponent = {
                 <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
                     </div>
@@ -63,7 +63,7 @@ export let searchcomponent = {
                 <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
                     </div>
@@ -86,12 +86,13 @@ export let searchcomponent = {
                 <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-append">
-                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
                     </div>
                 </div>
             </div>
+            <div>{{expressions}}</div>
             <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
         </div>
         <div id="simple-search" class="row pt-2">
@@ -180,15 +181,15 @@ export let searchcomponent = {
             advancedParams: {
                 'searchType1': 'all',
                 'searchTerm1': null,
-                'searchField1': '-',
+                'searchField1': 'any',
                 'searchConnector1': 'AND',
                 'searchType2': 'all',
                 'searchTerm2': null,
-                'searchField2': '-',
+                'searchField2': 'any',
                 'searchConnector2': 'AND',
                 'searchType3': 'all',
                 'searchTerm3': null,
-                'searchField3': '-'
+                'searchField3': 'any'
             },
             bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
             authSearchFields: [],
@@ -210,7 +211,8 @@ export let searchcomponent = {
             start: 0,
             end: 0,
             basketcontents: ['foo'],
-            lookup_maps: {}
+            lookup_maps: {},
+            expressions: []
         }
     },
     created: async function() {
@@ -416,10 +418,76 @@ export let searchcomponent = {
             var expressions = []
             for (let i of ["1","2","3"]) {
                 let termList = []
-                if (this.advancedParams[`searchField${i}`] ) {
-                    return
+                // First figure out if there IS a search term here, then split it by space
+                if (this.advancedParams[`searchTerm${i}`] !== null) {
+                    termList = this.advancedParams[`searchTerm${i}`].split(" ")
+                }
+                // Next figure out if we're searching in a field or not
+                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                    // What kind of search are we doing?
+                    switch (this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`"${termList.join(" ")}"`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "regex":
+                            // Regular expression; this probably needs additional validation to make sure it IS a regex
+                            // Also it doesn't work quite right...
+                            expressions.push(termList.join(" "))
+                            break
+                        default:
+                            expressions.push(termList.join(" "))
+                    }                    
+                } else {
+                    let myField = this.advancedParams[`searchField${i}`]
+                    let myExpr = []
+                    // To do: add a flag for case insensitive search
+                    switch(this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            for (let term of termList) {
+                                myExpr.push(`${myField}:/${term}/`)
+                            }
+                            expressions.push(myExpr.join(" OR "))
+                            break
+                        case "all":
+                            // All of the words in any field
+                            for (let term of termList) {
+                                myExpr.push(`${myField}:/${term}/`)
+                            }
+                            expressions.push(myExpr.join(" AND "))
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`${myField}:/${termList.join(" ")}/`)
+                            break
+                        case "regex":
+                            // Regular expression; this probably needs additional validation to make sure it IS a regex
+                            // Also it doesn't work quite right...
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        default:
+                            expressions.push(termList.join(" "))
+                    }
                 }
             }
+            this.expressions = expressions
 
             let compiledExpr = []
             for (let i in expressions) {
