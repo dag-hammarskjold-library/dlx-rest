@@ -190,8 +190,10 @@ export let searchcomponent = {
                 'searchTerm3': null,
                 'searchField3': 'any'
             },
+            // To do: differentiate between labels and values
             bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
-            authSearchFields: [],
+            //authSearchFields: ['authority author', 'authority meeting name', 'authority subject', 'authority uniform title'],
+            authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
             voteSearchFields: ['symbol','title','agenda','year'],
             speechSearchFields: ['symbol', 'speaker', 'country/organization', 'agenda', 'year'],
             searchFields: [],
@@ -211,7 +213,8 @@ export let searchcomponent = {
             end: 0,
             basketcontents: ['foo'],
             lookup_maps: {},
-            expressions: []
+            expressions: [],
+            vcoll: null
         }
     },
     created: async function() {
@@ -231,10 +234,14 @@ export let searchcomponent = {
             component.lookup_maps['bibs'] = bibMapData.data;
         } else if (component.collection == "bibs") {
             this.searchFields = this.bibSearchFields
-        } else if (component.collection == "votes") {
+        } 
+        if (this.params.search.includes("989:Voting Data")) {
             this.searchFields = this.voteSearchFields
-        } else if (component.collection == "speeches") {
+            this.vcoll = "989:Voting Data"
+        } 
+        if (this.params.search.includes("989:Speeches")) {
             this.searchFields = this.speechSearchFields
+            this.vcoll = "989:Speeches"
         }
         
         fetch(this.search_url).then(
@@ -489,6 +496,9 @@ export let searchcomponent = {
             this.expressions = expressions
 
             let compiledExpr = []
+            if (this.vcoll) {
+                compiledExpr.push(`${this.vcoll} AND`)
+            }
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
