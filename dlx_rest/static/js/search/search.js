@@ -40,7 +40,7 @@ export let searchcomponent = {
                 <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField1',field)">{{field}}</option>
                     </div>
@@ -63,7 +63,7 @@ export let searchcomponent = {
                 <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
                     </div>
@@ -86,7 +86,7 @@ export let searchcomponent = {
                 <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-append">
-                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">-</button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
                     </div>
@@ -180,15 +180,15 @@ export let searchcomponent = {
             advancedParams: {
                 'searchType1': 'all',
                 'searchTerm1': null,
-                'searchField1': 'any',
+                'searchField1': '-',
                 'searchConnector1': 'AND',
                 'searchType2': 'all',
                 'searchTerm2': null,
-                'searchField2': 'any',
+                'searchField2': '-',
                 'searchConnector2': 'AND',
                 'searchType3': 'all',
                 'searchTerm3': null,
-                'searchField3': 'any'
+                'searchField3': '-'
             },
             bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
             searchTypes: [
@@ -426,7 +426,7 @@ export let searchcomponent = {
                 } else if (this.advancedParams[`searchType${i}`] == "exact") {
                     expressions.push(`${myField}${termList.join(" ")}`)
                 } else if (this.advancedParams[`searchType${i}`] == "partial") {
-                    expressions.push(`${myField}*${termList.join(" ")}*`)
+                    expressions.push(`${myField}/${termList.join(" ")}/`)
                 } else if (this.advancedParams[`searchType${i}`] == "regex") {
                     expressions.push(`${myField}${termList.join(" ")}`)
                 }
