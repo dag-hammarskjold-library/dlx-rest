@@ -192,7 +192,7 @@ export let searchcomponent = {
             },
             bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
             authSearchFields: [],
-            voteSearchFields: ['symbol','title','agenda','yearh'],
+            voteSearchFields: ['symbol','title','agenda','year'],
             speechSearchFields: ['symbol', 'speaker', 'country/organization', 'agenda', 'year'],
             searchFields: [],
             searchTypes: [
