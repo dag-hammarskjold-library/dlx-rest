@@ -92,7 +92,6 @@ export let searchcomponent = {
                     </div>
                 </div>
             </div>
-            <div>{{expressions}}</div>
             <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
         </div>
         <div id="simple-search" class="row pt-2">
