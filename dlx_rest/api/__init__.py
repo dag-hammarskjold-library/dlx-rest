@@ -27,10 +27,10 @@ from werkzeug import security
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked
+from dlx_rest.models import User, Basket, DoesNotExist, register_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
 
-# Init
+### Init
 authorizations = {
     'basic': {
         'type': 'basic'
@@ -1261,6 +1261,9 @@ class WorkformsList(Resource):
     @login_required
     def post(self, collection):
         # interim implementation
+        this_user = request_loader(request)
+        if not has_permission(this_user, register_permission("createWorkform")):
+            abort(403, f'The current user is not authorized to perform this action.')
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         data = json.loads(request.data) or abort(400, 'Invalid JSON')
         data.get('_id') and data.pop('_id') # ignore any exisiting _id

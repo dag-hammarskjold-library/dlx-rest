@@ -274,20 +274,24 @@ def test_api_record_history(client, marc):
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
 
-def test_api_workform_list(client, marc):
+def test_api_workform_list(client, marc, default_users, users):
     for col in ('bibs', 'auths'):
         # get
         res = client.get(f'{API}/marc/bibs/workforms')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
+
+        username = default_users['admin']['email']
+        password = default_users['admin']['password']
+        credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
         
         # post
         data = {'245': [{'subfields': [{'code': 'a', 'value': 'Val'}]}]}
-        res = client.post(f'{API}/marc/bibs/workforms', data=json.dumps(data))
+        res = client.post(f'{API}/marc/bibs/workforms', data=json.dumps(data), headers={"Authorization": f"Basic {credentials}"})
         assert res.status_code == 400 # name not set
         
         data['name'] = 'test workform'
-        res = client.post(f'{API}/marc/{col}/workforms', data=json.dumps(data))
+        res = client.post(f'{API}/marc/{col}/workforms', data=json.dumps(data), headers={"Authorization": f"Basic {credentials}"})
         assert res.status_code == 201
         
 def test_api_workform(client, marc):

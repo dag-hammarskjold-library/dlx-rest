@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
-from dlx_rest.models import Basket
+from dlx_rest.models import Basket, Role, Permission, DoesNotExist, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
 
@@ -222,3 +222,13 @@ def item_locked(collection, record_id):
             pass
 
     return {"locked": False}
+
+def has_permission(user, action):
+    if hasattr(user, 'roles'):
+        for user_role in set(user.roles):
+            if user_role.has_permission(action):
+                return True
+            else:
+                return False
+    else:
+        return False
