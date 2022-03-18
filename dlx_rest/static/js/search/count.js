@@ -1,3 +1,5 @@
+/* Used to display the use count in auth search results */
+
 export let countcomponent = {
     props: ["api_prefix", "recordId"],
     template: `<span class="lead mx-2">(<a :href="uiBase + 'records/bibs/search?q=xref:' + recordId">{{search_count}}</a>)</span>`,
