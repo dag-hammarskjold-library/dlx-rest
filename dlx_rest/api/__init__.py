@@ -27,7 +27,7 @@ from werkzeug import security
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User, Basket, DoesNotExist, register_permission
+from dlx_rest.models import User, Basket, DoesNotExist, register_permission, Permission
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
 
 ### Init
@@ -36,6 +36,16 @@ authorizations = {
         'type': 'basic'
     }
 }
+
+### Permissions
+# These are created automatically when the app loads. We can register new permissions here
+# with the understanding that permission controlled actions can be checked within the 
+# individual API requests. This differs somewhat from the permission handling on the main
+# Flask app in that each API request is authenticated separately, so there is no global 
+# user object in the API session.
+for verb in ['create','read','update','delete']:
+    for component in ['Admin','User','Record','Authority','Workform','Field']:
+        register_permission(f'{verb}{component}')
 
 api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
@@ -1264,9 +1274,13 @@ class WorkformsList(Resource):
     @ns.doc(description='Create a new temaplate with the given data', security='basic')
     @login_required
     def post(self, collection):
-        # interim implementation
+        # We only have access to the user object after the request has been authenticated,
+        # so we have to intercept the request at this point to validate permissions.
+        # Any criteria we need can be added to these permission checks, including 
+        # differentiation by types of records (e.g. bibs vs auths vs speeches, etc.), as 
+        # long as we remember to register the permission at the top of this file.
         this_user = request_loader(request)
-        if not has_permission(this_user, register_permission("createWorkform")):
+        if not has_permission(this_user, "createWorkform"):
             abort(403, f'The current user is not authorized to perform this action.')
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         data = json.loads(request.data) or abort(400, 'Invalid JSON')

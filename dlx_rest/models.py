@@ -23,7 +23,6 @@ class Role(Document):
     permissions = ListField(ReferenceField(Permission))
 
     def has_permission(self, action):
-        print(self.name, action)
         return any (
             [
                 action == perm.action

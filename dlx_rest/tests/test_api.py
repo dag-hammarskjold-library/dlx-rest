@@ -281,6 +281,9 @@ def test_api_workform_list(client, marc, default_users, users):
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
+        # With credentials supplied in each of the API requests, and with permissions 
+        # checks on each of the API endpoints, we can now create tests to ensure 
+        # permission compliance. This can be as granular as we need. 
         username = default_users['admin']['email']
         password = default_users['admin']['password']
         credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
