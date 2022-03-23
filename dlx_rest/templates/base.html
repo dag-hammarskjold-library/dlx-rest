@@ -9,7 +9,8 @@
 
     <!-- Customize CSS -->
     <link href="{{url_for('static', filename='css/style.css')}}" rel="stylesheet">
-
+    <link href="{{url_for('static', filename='css/record.css')}}" rel="stylesheet">
+    <link href="{{url_for('static', filename='css/un_template.css')}}" rel="stylesheet">
 
     <!-- Bootstrap core CSS -->
     <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
@@ -18,7 +19,7 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
 
     <!-- Vue JS CDN -->
-    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/vue@^2"></script>
     <script src="https://unpkg.com/vuex"></script>
 
     <style>
@@ -35,77 +36,6 @@
             .bd-placeholder-img-lg {
                 font-size: 3.5rem;
             }
-        }
-        
-        table.marc-record.read-only {
-            pointer-events: none;
-        }
-
-        table.marc-record.read-only thead i.record-control {
-            display: none;
-        }
-
-        table.marc-record.read-only thead i.edit-record {
-            pointer-events: all;
-        }
-
-        table.marc-record.read-only thead ul.list-group {
-            pointer-events: all;
-        }
-
-        table.marc-record.read-only td.dropdown-toggle::after {
-            display: none;
-        }
-
-        table.marc-record.read-only i.fa-link {
-            pointer-events: all;
-        }
-        
-        table.marc-record.read-only.subfield-value {
-            cursor: text;
-        }
-        
-        table.marc-record.bib {
-            border: 3px solid green;
-        }
-        
-        table.marc-record.auth {
-            border: 3px solid purple;
-        }
-        
-        table.marc-record thead {
-            background-color: white;
-            position: sticky;
-            top: 0;
-        }
-        
-        table.marc-record td {
-            border-top: 1px solid LightGray;
-        }
-        
-        table.marc-field tr:first-child {
-            border-top: hidden;
-        }
-           
-        table.marc-field td {
-            border-top: 1px solid LightGray;
-        }
-        
-        tr.hidden-field {
-            display: none;
-        }
-        
-        td.subfield-code {
-            width: 33px;
-        }
-        
-        td.subfield-value {
-            /* to make the whole width of the cell focusable */
-            width: 350px; 
-        }
-        
-        span.authority-controlled {
-            text-decoration: underline;;
         }
     </style>
 
@@ -125,8 +55,27 @@
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item"><a class="nav-link" href="{{url_for('index')}}">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Speeches")}}">Speeches</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Voting Data")}}">Votes</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Files</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Browse
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs')}}">Bibs</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='auths')}}">Auths</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Files
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                          <a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a>
+                          <a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a>
+                        </div>
+                    </li>
                     {% if current_user.is_authenticated %}
                         {% if current_user.has_permission('updateRecord') %}
                         <li class="nav-item"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>

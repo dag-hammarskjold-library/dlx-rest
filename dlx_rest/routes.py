@@ -1,4 +1,6 @@
 # Imports from requirements.txt
+import re
+import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from mongoengine import connect, disconnect
@@ -6,6 +8,9 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from mongoengine.errors import DoesNotExist
+from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
+from dlx.file.s3 import S3
+from dlx import DB
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -13,6 +18,7 @@ from dlx_rest.config import Config
 from dlx_rest.models import User, SyncLog, Permission, Role, requires_permission, register_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
+
 
 # Main app routes
 @app.route('/')
@@ -381,16 +387,48 @@ def get_records_list(coll):
 @app.route('/records/<coll>/search')
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
-    limit = request.args.get('limit', 10)
-    sort =  request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
+    limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+    # for now, only default to updated desc if no search term
+    sort =  request.args.get('sort')
+    direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    
+    # TODO dlx "query analyzer" to characterize the search string and sort accordingly
+    if q:
+        terms = re.split(' +', q)
+        
+        for term in terms:
+            if ':' not in term and term not in ('AND', 'OR') and not sort:
+                if re.match('[A-z]+/[A-z0-9]+', term) and len(terms) == 1:
+                    # TODO "looks like symbol" util function
+                    q = f'symbol:{term.upper()}*'
+                else:    
+                    # appears to be free text term
+                    sort = 'relevance'
+                
+    if not sort:
+        sort = 'updated'
+        direction = 'desc'
+    elif sort != 'relevance' and not direction:
+        direction = 'asc'
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
 
+@app.route('/records/<coll>/browse')
+def browse(coll):
+    api_prefix = url_for('doc', _external=True)
+    logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
+    index_list = json.dumps(list(logical_fields.keys()))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list)
+
+@app.route('/records/<coll>/browse/<index>')
+def browse_list(coll, index):
+    q = request.args.get('q', 'a')
+    api_prefix = url_for('doc', _external=True)
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q)
 
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
@@ -434,6 +472,8 @@ def search_records_old(coll):
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
+    # register the permission, but don't require it yet, TBI
+    register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
@@ -442,3 +482,163 @@ def get_record_by_id(coll,id):
 def create_record(coll):
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, prefix=this_prefix)
+
+@app.route('/files')
+@login_required
+def upload_files():
+    return render_template('process_files.html')
+
+
+@app.route('/files/process', methods=["POST"])
+@login_required
+def process_files():
+
+    DB.connect(Config.connect_string)
+    creds = json.loads(Config.client.get_parameter(Name='default-aws-credentials')['Parameter']['Value'])
+
+
+    # Connects to the undl files bucket
+    S3.connect(
+        access_key_id=creds['aws_access_key_id'], access_key=creds['aws_secret_access_key'], bucket=Config.bucket
+    )
+
+    fileInfo = request.form.get("fileText")
+    fileTxt = json.loads(fileInfo)
+    i = 0
+    fileResults = []
+    record = {}
+    
+    for f in request.files.getlist('file[]'):
+        try:
+            record['filename'] = f.filename
+            record['docSymbol'] = fileTxt[i]["docSymbol"]
+            record['languages'] = fileTxt[i]["language"]
+
+            result = File.import_from_handle(
+                f,
+                filename=File.encode_fn(fileTxt[i]["docSymbol"], fileTxt[i]["language"], 'pdf'),
+                #identifiers=[Identifier('symbol', s) for s in fileTxt[i]["docSymbol"]],
+                identifiers=[Identifier('symbol', fileTxt[i]["docSymbol"])],
+                languages=fileTxt[i]["language"],
+                mimetype='application/pdf',
+                source='ME::File::Uploader',
+                overwrite=False
+            )
+            record['result'] = "File uploaded successfully"
+        except FileExistsLanguageConflict as e:
+            record['result'] = e.message
+        except FileExistsIdentifierConflict as e:
+            record['result'] = e.message
+        except FileExists:
+            record['result'] = "File already exists in the system"
+        except:
+            raise
+
+        i = i + 1
+        
+        fileResults.append(record)
+        record = {}
+
+    #print(fileResults)    
+
+    return render_template('file_results.html', submitted=fileResults)
+
+@app.route('/files/search')
+@login_required
+def search_files():
+    baseURL = url_for('doc', _external=True)
+    #this_prefix = baseURL.replace("/api/", url_for('files_results'))
+    this_prefix = url_for('files_results')
+    return render_template('file_update.html', prefix=this_prefix)
+
+
+@app.route('/files/update/results', methods=['GET', 'POST'])
+@login_required
+def files_results():
+    text = request.form.get('text')
+    option = request.form.get('exact')
+
+    results = process_text(text, option)
+    return jsonify(results)
+
+
+def process_text(text, option):
+    DB.connect(Config.connect_string)
+    
+
+    pipeline = []
+
+    collation={
+        'locale': 'en', 
+        'numericOrdering': True
+    }
+
+    if option == "true":
+        match_stage = {
+            '$match': {
+                'identifiers.value': text
+            }
+        }
+    else: #regex by default
+        match_stage = {
+            '$match': {
+                'identifiers.value': {
+                    '$regex': text, 
+                    '$options': 'i'
+                }
+            }
+        }
+
+    project_stage = {
+        '$project': {
+            '_id': 1, 
+            'docsymbol': {'$arrayElemAt': ['$identifiers.value', 0]}, 
+            'languages': 1, 
+            'filename': 1
+        }
+    }
+
+    sort_stage = {
+        '$sort': {
+            'docsymbol': 1, 
+            'filename': 1
+        }
+    }
+
+    pipeline.append(match_stage)
+    pipeline.append(project_stage)
+    pipeline.append(sort_stage)
+        
+
+    results = list(DB.files.aggregate(pipeline, collation=collation))
+
+    return results
+
+@app.route('/files/update', methods=['POST'])
+@login_required
+def update_file():
+    """
+    Updates the file entry based on record id
+    """
+    DB.connect(Config.connect_string)
+    
+
+    record_id = request.form.get('record_id')
+    docsymbol = request.form.get('docsymbol')
+    lang = request.form.getlist('lang')
+
+    try:
+        response = DB.files.update_one(
+	        {'_id': record_id, 
+	        "identifiers.type": "symbol"}, 
+	        { '$set': { 
+	            "identifiers.$.value": docsymbol,
+	            "languages": lang
+                } 
+            }
+        )
+        
+        return "Record updated."
+
+    except Exception as e:
+        return e

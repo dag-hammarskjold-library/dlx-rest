@@ -31,13 +31,28 @@ export let searchcomponent = {
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled"><span class="page-link">{{start}} to {{end}} of {{resultcount}} Records</span></li>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        {{start}} to {{end}} of
+                        <span id="result-count">
+                            <div class="spinner-border" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </span>
+                        Records
+                    </span>
+                </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
                 <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
                 <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
                 <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
             </ul>
         </nav>
+        <div id="results-spinner" class="col d-flex justify-content-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11">
@@ -45,21 +60,16 @@ export let searchcomponent = {
                         <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
                             {{result.first_line}}
                         </a>
+                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
                         <p>{{result.second_line}}</p>
-                    </div>
-                    <div v-if="collection == 'auths'" class="row">
-                        <p>
-                            <countcomponent search_name="bibs" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
-                            <countcomponent search_name="auths" v-bind:heading_tag="result.heading_tag" v-bind:lookup_maps="lookup_maps"></countcomponent>
-                        </p>
                     </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-folder-plus" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -105,65 +115,76 @@ export let searchcomponent = {
         }
     },
     created: async function() {
-        let response = await fetch(this.search_url);
-        if (response.ok) {
-
-            let jsonData = await response.json();
-            let linkKeys = Object.keys(jsonData["_links"])
-            linkKeys.forEach((key, index) => {
-                this.links[key] = jsonData["_links"][key];
-            });
-            if (this.links.related.count) {
-                this.count = this.links.related.count;
-            }
-            if (this.links._prev) {
-                this.prev = this.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
-            }
-            if (this.links._next) {
-                this.next = this.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
-            }
-            for (let result of jsonData["data"]) {
-                let myResult = { "_id": result["_id"]}
-                if (this.collection == "bibs") {
-                    myResult["first_line"] = result["title"]
-                    myResult["second_line"] = [result["types"], result["date"], result["symbol"]].join(" | ")
-                } else if (this.collection == "auths") {
-                    myResult["first_line"] = result["heading"]
-                    myResult["second_line"] = result["alt"]
-                    myResult["heading_tag"] = result["heading_tag"];
-                } else if (this.collection == "files") {
-                    // not implemented yet
-                }
-                this.results.push(myResult);
-            }
-
-            if (this.collection == "auths") {
-                let authLookupMapUrl = `${this.api_prefix}marc/${this.collection}/lookup/map`
-                let authMapResponse = await fetch(authLookupMapUrl);
-                let authMapData = await authMapResponse.json();
-                this.lookup_maps['auths'] = authMapData.data;
-
-                let bibLookupMapUrl = `${this.api_prefix}marc/bibs/lookup/map`
-                let bibMapResponse = await fetch(bibLookupMapUrl);
-                let bibMapData = await bibMapResponse.json();
-                this.lookup_maps['bibs'] = bibMapData.data;
-            }
-
-            let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
-            if (myProfile) {
-                this.user = myProfile.data.email;
-            } 
-            
-            
-            this.buildPagination();
+        let component = this;
+        
+        // [what is this used for?]
+        if (component.collection == "auths") {
+            let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
+            let authMapResponse = await fetch(authLookupMapUrl);
+            let authMapData = await authMapResponse.json();
+            component.lookup_maps['auths'] = authMapData.data;
+        
+            let bibLookupMapUrl = `${component.api_prefix}marc/bibs/lookup/map`
+            let bibMapResponse = await fetch(bibLookupMapUrl);
+            let bibMapData = await bibMapResponse.json();
+            component.lookup_maps['bibs'] = bibMapData.data;
         }
+        
+        fetch(this.search_url).then(
+            response => {
+                if (response.ok) {
+                    document.getElementById("results-spinner").remove();
+                    return response.json();
+                }
+            }
+        ).then(
+            jsonData => {
+                let linkKeys = Object.keys(jsonData["_links"]);
+                linkKeys.forEach((key, index) => {
+                    component.links[key] = jsonData["_links"][key];
+                });
+                if (component.links.related.count) {
+                    component.count = component.links.related.count;
+                }
+                if (component.links._prev) {
+                    component.prev = component.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                }
+                if (component.links._next) {
+                    component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                }
+                for (let result of jsonData["data"]) {
+                    let myResult = { "_id": result["_id"]}
+                    if (component.collection == "bibs") {
+                        myResult["first_line"] = result["title"]
+                        myResult["second_line"] = [result["symbol"], result["date"], result["types"]].filter(Boolean).join(" | ")
+                    } else if (component.collection == "auths") {
+                        myResult["first_line"] = result["heading"]
+                        myResult["second_line"] = result["alt"]
+                        myResult["heading_tag"] = result["heading_tag"];
+                    } else if (component.collection == "files") {
+                        // not implemented yet
+                    }
+                    component.results.push(myResult);
+                }
+
+                component.buildPagination();
+                
+            }
+        );
     },
     mounted: async function() {
-        if (this.user !== null) {
+        let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+        if (myProfile) {
+            this.user = myProfile.data.email;
+        } 
+
+        if (typeof this.user !== "undefined") {
             const myBasket = await basket.getBasket(this.api_prefix);
             for (let result of this.results) {
                 let myId = `icon-${this.collection}-${result._id}`
                 let iconEl = document.getElementById(myId);
+
+                iconEl.classList.add('fa-folder-plus');
                 iconEl.addEventListener("click", async () => {
                     const myBasket = await basket.getBasket(this.api_prefix);
                     this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
@@ -172,33 +193,48 @@ export let searchcomponent = {
                     iconEl.classList.remove('fa-folder-plus',);
                     iconEl.classList.add('fa-folder-minus');
                     iconEl.title = "Remove from basket";
-                } 
-            }
-            
-        } else {
-            for (let result of this.results) {
-                let myId = `icon-${this.collection}-${result._id}`
-                let iconEl = document.getElementById(myId);
-                iconEl.style.display = "none";
+                }
+                // checking if the record is locked and displaying a lock if it is.
+                const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, result._id);
+                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                    // Display a lock icon
+                    iconEl.classList.remove('fa-folder-plus',);
+                    iconEl.classList.remove('fa-folder-minus',);
+                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
+                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                }
             }
         }
     },
     methods: {
         async buildPagination() {
-            let countResponse = await fetch(this.count);
-            let jsonData = await countResponse.json();
-            this.resultcount = jsonData["data"];
-
-            let myEnd = this.params.start + this.params.limit -1;
-            this.end = myEnd
-            this.start = this.params.start
-            if (this.resultcount == 0) {
-                this.start = 0;
-            }
-            if (myEnd >= this.resultcount) {
-                this.end = this.resultcount
-                this.next = null
-            }
+            let component = this;
+            
+            let myEnd = component.params.start + component.params.limit -1;
+            component.end = myEnd
+            component.start = component.params.start
+            
+            fetch(this.count).then(
+                response => {
+                    return response.json()
+                }
+            ).then(
+                jsonData => {
+                    component.resultcount = jsonData["data"];
+                    
+                    // override the spinner
+                    document.getElementById("result-count").innerHTML = component.resultcount;
+   
+                    if (component.resultcount == 0) {
+                        component.start = 0;
+                    }
+                    
+                    if (myEnd >= component.resultcount) {
+                        component.end = component.resultcount
+                        component.next = null
+                    }
+                }
+            );
         },
         async getMyBasket(url) {
             let response = await fetch(url);

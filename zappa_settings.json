@@ -2,7 +2,7 @@
     "dev": {
         "app_function": "dlx_rest.app.app",
         "project_name": "datamanager",
-        "runtime": "python3.6",
+        "runtime": "python3.9",
         "s3_bucket": "zappa-9vpwkivvo",
         "aws_region": "us-east-1",
         "environment_variables": {
@@ -12,7 +12,7 @@
     "qat": {
         "app_function": "dlx_rest.app.app",
         "project_name": "datamanager",
-        "runtime": "python3.6",
+        "runtime": "python3.9",
         "s3_bucket": "zappa-9vpwkivvo",
         "aws_region": "us-east-1",
         "environment_variables": {
@@ -22,7 +22,7 @@
     "uat": {
         "app_function": "dlx_rest.app.app",
         "project_name": "datamanager",
-        "runtime": "python3.6",
+        "runtime": "python3.9",
         "s3_bucket": "zappa-9vpwkivvo",
         "aws_region": "us-east-1",
         "environment_variables": {
@@ -32,7 +32,7 @@
     "prod": {
         "app_function": "dlx_rest.app.app",
         "project_name": "datamanager",
-        "runtime": "python3.6",
+        "runtime": "python3.9",
         "s3_bucket": "zappa-9vpwkivvo",
         "aws_region": "us-east-1",
         "environment_variables": {

@@ -5,8 +5,10 @@ Flask-Login
 flask-mongoengine
 flask-restx
 Flask-WTF
+lxml >= 4.6.5
 mongoengine
 mongomock
 pymongo
 pytest
-troposphere<3
+python-ulid
+troposphere

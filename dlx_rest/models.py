@@ -4,10 +4,12 @@ from flask_login import UserMixin, current_user
 from mongoengine.document import Document
 from mongoengine.fields import DictField, GenericReferenceField, ListField, ReferenceField, StringField
 from werkzeug.security import check_password_hash, generate_password_hash
-from itsdangerous import (TimedJSONWebSignatureSerializer
+from dlx_rest.utils import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 from functools import wraps
+from ulid import ULID
 import time, datetime, uuid
+
 
 from dlx_rest.config import Config
 
@@ -50,7 +52,8 @@ class Basket(Document):
     def add_item(self, item):
         existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
         if len(existing_item) == 0:
-            item['id'] = str(uuid.uuid4())
+            ulid = ULID()
+            item['id'] = str(ulid.to_uuid())
             self.items.append(item)
             self.save()
 
@@ -97,7 +100,7 @@ class User(UserMixin, Document):
         this_baskets = Basket.objects(owner=self)
         if len(this_baskets) == 0:
             # Set a UUID5 for the name; when users can have multiple baskets, this can be anything.
-            new_basket = Basket(name=str(uuid.uuid5(uuid.NAMESPACE_DNS, 'un.org')), owner=self, items=[])
+            new_basket = Basket(name=str(uuid.uuid5(uuid.NAMESPACE_DNS, self.email)), owner=self, items=[])
             new_basket.save()
             return new_basket
         else:

@@ -2,22 +2,28 @@ import { Jmarc } from "../jmarc.mjs";
 
 export default {
     // Individual item methods
-    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id) {
+    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id, override=false) {
         
         Jmarc.apiUrl = api_prefix;
         let url = `${api_prefix}${basket_id}`;
         let myItemTitle = "";
         let myId = null;
+        // Check here to see if the record is already in another basket? Return that fact, along with the user?
         await Jmarc.get(collection, record_id).then(async jmarc => {
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);
                 let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
+                if (myTitleField) {
+                    for (let s in myTitleField.subfields) {
+                        myTitle.push(myTitleField.subfields[s].value);
+                    }
+                } else {
+                    myTitle.push("[No Title]")
                 }
+                
                 myItemTitle = myTitle.join(" ");
             } else if (collection == "auths") {
-                console.log("Trying to create an auth basket item...")
+                //console.log("Trying to create an auth basket item...")
                 let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
                 let myTitle = [];
                 for (let s in myTitleField.subfields) {
@@ -25,12 +31,12 @@ export default {
                 }
                 myItemTitle = myTitle.join(" ");
             }
-            let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}"}`
+            let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
             await fetch(url, {
                 method: 'POST',
                 body: data
             }).then( () => {
-                console.log("and we did")
+                //console.log("and we did")
                 return true;
             });
         });
@@ -53,12 +59,20 @@ export default {
         return true;
     },
 
+    async itemLocked(api_prefix, collection, record_id) {
+        let url = `${api_prefix}marc/${collection}/records/${record_id}/locked`
+        let res = await fetch(url);
+        let jsonData = await res.json();
+        console.log(jsonData);
+        return jsonData;
+    },
+
     // Basket methods
     async getBasket(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}${basket_id}`
         const response = await fetch(url);
         const jsonData = await response.json();
-        return jsonData.data.item_data;
+        return jsonData.data.item_data.sort((a,b) => a - b);
     },
     clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}/${basket_id}`
