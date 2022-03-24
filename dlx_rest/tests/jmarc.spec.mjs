@@ -13,7 +13,7 @@ TESTING mode, the spec will fail at the app login prompt */
 import {Jmarc, Bib, Auth, DataField, Subfield} from "../static/js/jmarc.mjs";
 import fetch from "node-fetch";
 
-if (!globalThis.fetch) {
+if (! globalThis.fetch) {
 	globalThis.fetch = fetch;
 }
 
@@ -246,17 +246,31 @@ describe(
         it(
             "workforms",
             async function() {
+                var workforms = await Jmarc.listWorkforms("bibs");
+                expect(workforms).toBeInstanceOf(Array);
+                
+                if (workforms) {
+                    for (let name of workforms) {
+                        // delete any workforms that may be there from other tests
+                        expect(await Jmarc.deleteWorkform("bibs", name)).toBeTrue;
+                    }
+                }
+                
                 var jmarc = new Bib();
                 jmarc.createField("245").createSubfield("a").value = "Test value";
-                expect(await jmarc.saveAsWorkform("Test workform", "The description")).toBeTrue;
+                expect(await jmarc.saveAsWorkform("Test_workform", "The description")).toBeTrue;
+
+                var names = await Jmarc.listWorkforms("bibs");
+                expect(names).toEqual(["Test_workform"]);
                 
-                var workforms = await Jmarc.listWorkforms("bibs");
-                expect(workforms).toEqual(["Test workform"]);
+                var workforms = await Jmarc.workforms("bibs");
+                expect(workforms[0]).toBeInstanceOf(Jmarc);
                 
-                jmarc = await Jmarc.fromWorkform("bibs", "Test workform");
+                jmarc = await Jmarc.fromWorkform("bibs", "Test_workform");
+                expect(jmarc.workformDescription).toEqual("The description")
                 expect(jmarc.getField("245").getSubfield("a").value).toEqual("Test value")
                 
-                expect(await Jmarc.deleteWorkform("bibs", "Test workform")).toBeTrue;
+                expect(await Jmarc.deleteWorkform("bibs", "Test_workform")).toBeTrue;
             }
         )
     }

@@ -108,7 +108,6 @@ export let multiplemarcrecordcomponent = {
 
         Jmarc.apiUrl = this.prefix;
         this.baseUrl = this.prefix.replace("/api", "");
-        
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
 
@@ -127,7 +126,6 @@ export let multiplemarcrecordcomponent = {
                         Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
                             if (this.readonly) {
                                 this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                                console.log(this.recordLocked)
                                 this.displayMarcRecord(jmarc, true);
                             } else {
                                 this.displayMarcRecord(jmarc, false); // record ID and collection
@@ -154,7 +152,8 @@ export let multiplemarcrecordcomponent = {
 
         } else if (this.workform !== 'None') {
             let wfCollection = this.workform.split('/')[0];
-            let wfRecordId = this.workform.split('/')[1];
+            let wfRecordId = this.workform.split('/')[1]
+            
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
             this.displayMarcRecord(jmarc, false);
         } 
@@ -165,7 +164,6 @@ export let multiplemarcrecordcomponent = {
         ///// definition of the methods used in the listeners
         ////////////////////////////////////////////////////////
         saveRecord(jmarc){
-            console.log(jmarc)
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -218,7 +216,6 @@ export let multiplemarcrecordcomponent = {
 
         },
         pasteField(jmarc){
-            console.log(jmarc)
             // paste field    
             this.selectedFields.forEach(field =>
                 {
@@ -400,7 +397,6 @@ export let multiplemarcrecordcomponent = {
         },
 
         async editRecord(jmarc) {
-            console.log(jmarc.collection, jmarc.recordId)
             let uibase = this.prefix.replace("/api/","");
             let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
             await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
