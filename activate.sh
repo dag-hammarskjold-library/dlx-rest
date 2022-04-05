@@ -17,6 +17,6 @@ unset DLX_REST_
 unset DLX_REST_DEV
 unset DLX_REST_QAT
 unset DLX_REST_UAT
-unset DLX_REST_PROD
+unset DLX_REST_PRODUCTION
 export FLASK_APP="dlx_rest.app"
 export DLX_REST_$ENV="True"
