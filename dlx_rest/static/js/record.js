@@ -759,8 +759,8 @@ export let multiplemarcrecordcomponent = {
             // check if we still have a record displayed
             if (this.displayedJmarcObject.length>0) {
 
-                alert("the record always displayed is " + this.displayedJmarcObject[0].recordId)
-                alert("the record size is " + this.displayedJmarcObject.length)
+                //alert("the record always displayed is " + this.displayedJmarcObject[0].recordId)
+                //alert("the record size is " + this.displayedJmarcObject.length)
                 this.selectRecord(this.displayedJmarcObject[0])
                 this.selectedRecord = this.displayedJmarcObject[0].recordId
                 this.selectedDiv=this.displayedJmarcObject[0].recordId
