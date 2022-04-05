@@ -12,3 +12,5 @@ pymongo
 pytest
 python-ulid
 troposphere
+# flask-restx isn't yet compatible with werkzeug 2.1+
+werkzeug < 2.1

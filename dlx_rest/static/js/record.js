@@ -70,6 +70,7 @@ export let multiplemarcrecordcomponent = {
             collectionRecord2:"",
             isRecordOneDisplayed: false,
             isRecordTwoDisplayed: false,
+            displayedJmarcObject:[],
             listElemToCopy:[],
             elementToCopy:{
                 collection:"",
@@ -163,6 +164,28 @@ export let multiplemarcrecordcomponent = {
         recup=this
     },
     methods: {
+
+        // add a new jmarc object in the array of Marc objects
+        addJmarcTodisplayedJmarcObject(jmarcToAdd){
+            if ((this.displayedJmarcObject.length===0) || (this.displayedJmarcObject.length===1)){
+                this.displayedJmarcObject.push(jmarcToAdd)    
+                } 
+           }
+            
+        ,
+
+        // remove a jmarc object from the array of Marc objects
+        removeJmarcTodisplayedJmarcObject(recordId){
+            let indexToDelete
+            for (let index = 0; index < this.displayedJmarcObject.length; index++) {
+               if (recordId===this.displayedJmarcObject[index].recordId){
+                    indexToDelete=index
+               }
+            }
+            this.displayedJmarcObject.splice(indexToDelete,1)
+        }
+        ,
+
         //////////////////////////////////////////////////////// 
         ///// definition of the methods used in the listeners
         ////////////////////////////////////////////////////////
@@ -611,10 +634,6 @@ export let multiplemarcrecordcomponent = {
             this.listElemToCopy=[]
         },
 
-        pasteItems(record1,record2){
-
-        },
-
         clearSelectedRecord(){
             
             // remove checked option
@@ -712,6 +731,7 @@ export let multiplemarcrecordcomponent = {
 
             if (divID === "record1") {
                 // reset the parameters
+                this.removeJmarcTodisplayedJmarcObject(this.record1)
                 this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record1)
                 this.record1 = ""
                 this.isRecordOneDisplayed = false
@@ -719,8 +739,10 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                
             } 
             else if (divID === "record2") {
+                this.removeJmarcTodisplayedJmarcObject(this.record2)
                 this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
                 this.record2 = ""
                 this.isRecordTwoDisplayed = false
@@ -733,6 +755,18 @@ export let multiplemarcrecordcomponent = {
             this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
             this.targetedTable=""
+
+            // check if we still have a record displayed
+            if (this.displayedJmarcObject.length>0) {
+
+                //alert("the record always displayed is " + this.displayedJmarcObject[0].recordId)
+                //alert("the record size is " + this.displayedJmarcObject.length)
+                this.selectRecord(this.displayedJmarcObject[0])
+                this.selectedRecord = this.displayedJmarcObject[0].recordId
+                this.selectedDiv=this.displayedJmarcObject[0].recordId
+
+            }
+
         },
         displayMarcRecord(jmarc, readOnly) {
             // Add to div
@@ -758,6 +792,11 @@ export let multiplemarcrecordcomponent = {
             let table = this.buildRecordTable(jmarc, readOnly);
             jmarc.div.appendChild(table);  
             this.selectRecord(jmarc)  
+
+            // add the jmarc inside the list of jmarc objects displayed
+            // only if the array size is under 2
+
+            this.addJmarcTodisplayedJmarcObject(jmarc)     
 
             //////////////////////////////////////////////////////////////////////////////
             // optimize the display just when you have one record displayed
