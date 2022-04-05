@@ -100,7 +100,7 @@ class User(UserMixin, Document):
         this_baskets = Basket.objects(owner=self)
         if len(this_baskets) == 0:
             # Set a UUID5 for the name; when users can have multiple baskets, this can be anything.
-            new_basket = Basket(name=str(uuid.uuid5(uuid.NAMESPACE_DNS, 'un.org')), owner=self, items=[])
+            new_basket = Basket(name=str(uuid.uuid5(uuid.NAMESPACE_DNS, self.email)), owner=self, items=[])
             new_basket.save()
             return new_basket
         else:

@@ -3,6 +3,7 @@ DLX REST API
 '''
 
 # external
+from http.client import HTTPResponse
 from dlx_rest.routes import login
 import os, json, re, boto3, mimetypes, jsonschema
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
 from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from pymongo.collation import Collation
 from bson import Regex
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
@@ -26,7 +28,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked
 
 # Init
 authorizations = {
@@ -182,7 +184,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated', 'date', 'symbol', 'title', 'heading'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -226,16 +228,6 @@ class RecordsList(Resource):
         
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
-            
-        # sort
-        sort_by = args.get('sort')
-        
-        if sort_by:
-            sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
-            # only include results wiht the sorted field. desired?
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
-        else:
-            sort = None
         
         # format
         fmt = args['format'] or None
@@ -248,12 +240,26 @@ class RecordsList(Resource):
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
-            project = None
+            project = {}
         else:
             project = {'_id': 1}
+          
+        # sort
+        sort_by = args.get('sort')
+        
+        if sort_by == 'relevance':
+            project['score'] = {'$meta': 'textScore'}
+            sort = [('score', {'$meta': 'textScore'})]
+        elif sort_by:
+            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
+            # only include results with the sorted field. otherwise, records with the field missing will be the first results
+            # TODO review
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
+        else:
+            sort = None
 
         # exec query
-        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
@@ -397,27 +403,29 @@ class RecordsListBrowse(Resource):
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
         match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
+        value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
-        query = Query.from_string(querystring)
-        condition = query.conditions[0].condition
-        type(condition[field]) == Regex and abort(400, 'Can\'t browse by regex search')
-        matcher = condition[field]
-        operators = ['$lte', '$gt'] if args.compare == 'less' else ['$gte', '$lt']
+        operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = Query(Raw({'$and': [
-            {field: {operators[0]: matcher}}, 
-            {field: {'$not': {operators[1]: matcher}}}
-        ]}))
-        collation = {'locale': 'en', 'numericOrdering': True} if field == 'symbol' else None
+        query = {'_id': {operator: value}}
+        collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
-        records = cls.from_query(query, skip=start-1, limit=limit, sort=[(field, direction)], collation=collation)
+
+        values = [d for d in DB.handle[f'{field}_index'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
-            records = list(reversed(list(records)))
-    
-        data = [{'field': field, 'value': record.logical_fields(field)[field], 'url': URL('api_record', collection=collection, record_id=record.id).to_str()} for record in records]
-
+            values = list(reversed(list(values)))    
+        
+        data = [
+            {
+                'value': x['_id'],
+                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
+                
+            } for x in values
+        ]
+        
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
             '_next': URL('api_records_list_browse', collection=collection, start=start+limit, limit=limit, search=args.search, compare=args.compare).to_str(),
@@ -560,6 +568,16 @@ class Record(Resource):
             return Response(status=204)
         else:
             abort(500)
+
+@ns.route('/marc/<string:collection>/records/<int:record_id>/locked')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordLockStatus(Resource):
+    @ns.doc(description='Return the lock status of a record with the given record ID in the specified collection.')
+    @login_required
+    def get(self, collection, record_id):
+        lock_status= item_locked(collection, record_id)
+        return lock_status, 200
 
 # Fields
 @ns.route('/marc/<string:collection>/records/<int:record_id>/fields')
@@ -1513,22 +1531,35 @@ class MyBasketRecord(Resource):
     @ns.doc("Add an item to the current user's basket. The item data must be in the body of the request.", security="basic")
     @login_required
     def post(self):
-        try:
-            this_u = User.objects.get(id=current_user.id)
-            print(request.data)
-            item = json.loads(request.data)
-            if 'collection' in item and 'record_id' in item:
-                this_u.my_basket().add_item(item)
+        item = json.loads(request.data)
+        override = False
+        if "override" in item.keys():
+            override = item["override"]
+        print(item)
+        lock_status = item_locked(item['collection'], item['record_id'])
+        print(lock_status)
+        this_u = User.objects.get(id=current_user.id)
+        if lock_status["locked"] == True:
+            if lock_status["by"] == this_u.email:
+                # It's locked, but by the current user
+                return {},200
             else:
-                abort(500)
-        except:
-            raise
+                # It's locked by someone else
+                if override:
+                    # Remove it from the other user's basket
+                    # Add it to this user's basket
+                    losing_basket = Basket.objects.get(name=lock_status["in"])
+                    #print(losing_basket)
 
-        my_item = this_u.my_basket().get_item_by_coll_and_rid(item['collection'], item['record_id'])
-        #print(my_item)
-        item_id = my_item['id']
-
-        return {"id": item_id}, 200
+                    losing_basket.remove_item(lock_status["item_id"])
+                    this_u.my_basket().add_item(item)
+                    return {},201
+                else:
+                    return {},403
+        else:
+            # The item is not locked, so we can add it to our basket
+            this_u.my_basket().add_item(item)
+            return {},201      
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):

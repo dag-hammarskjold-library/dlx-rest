@@ -309,7 +309,7 @@ export class Jmarc {
 					throw new Error(json['message'])
 				}
 				
-				jmarc.parse(json['data']);
+				jmarc.parse(json['data']);  
 				jmarc.savedState = jmarc.compile();
 
 				jmarc.files = json['data']['files']
@@ -320,24 +320,25 @@ export class Jmarc {
 	}
 	
 	static async listWorkforms(collection) {
-	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(response => {
-            return response.json();
-        }).then(json => {
-            let workforms = [];
-            for (let url of json.data) {
-                let wname = url.split("/").slice(-1)[0];
-                wname = decodeURIComponent(wname);
-                fetch(url).then(wfRes => {
-                    return wfRes.json();
-                }).then(wfJson => {
-                    workforms.push({"name": wname, "description": wfJson.data.description});
-                });
-            }
-            return workforms;
-        });
+	    let response = await fetch(Jmarc.apiUrl + `marc/${collection}/workforms`);
+        let json = await response.json();
+        
+        return json.data.map(
+            url => url.split("/").slice(-1)[0]
+        );
 	}
     
-    static async fromWorkform(collection, workformName) {
+    static async workforms(collection) {
+	    let workforms = []
+        
+        for (let name of await Jmarc.listWorkforms(collection)) {
+            workforms.push(await Jmarc.fromWorkform(collection, name))
+        }
+        
+        return workforms
+    }
+    
+    static fromWorkform(collection, workformName) {
         let jmarc = new Jmarc(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
@@ -359,21 +360,17 @@ export class Jmarc {
         )
 	}
     
-    static async deleteWorkform(collection, workformName) {
-        let error = false;
-        
-        const response = await fetch(
+    static deleteWorkform(collection, workformName) {
+        return fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
             { method: 'DELETE' }
-        );
-        if (!response.ok) {
-            error = true;
-        }
-        const json = await response.json();
-        if (error === true) {
-            throw new Error(json['message']);
-        }
-        return true;
+        ).then(
+            response => response.json()
+        ).then(
+            json => {
+                return true
+            }
+        )
     }
 
     async saveWorkform(workformName, description) {
@@ -462,6 +459,10 @@ export class Jmarc {
 				
 				return this;
 			}
+		).catch(
+		    error => {
+		        throw error
+		    }
 		)
 	}
 
@@ -790,4 +791,13 @@ export class Auth extends Jmarc {
 	validate() {
         super.validate();
     }
+}
+
+export class Workform extends Jmarc {
+	// work in progress
+    
+    constructor(collection, name=null) {
+		super(collection);
+        
+	}
 }

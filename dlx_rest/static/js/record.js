@@ -84,16 +84,17 @@ export let multiplemarcrecordcomponent = {
             selectedDiv:"",
             selectedJmarc:"",
             selectedFields:[],
+            recordLocked: {"locked": false}
         }
     },
- 
-    created:
+
+    created: 
     async function() {
-   
+    
     //////////////////////////////////////////////////////////////////////////
     // Management of the keyboard shortcuts
     //////////////////////////////////////////////////////////////////////////
-   
+    
     window.addEventListener("keydown", this.removeRecordListener)    // ctrl + f4 => close the record selected
     window.addEventListener("keydown", this.saveRecordListener)      // ctrl + s => save the record selected
     window.addEventListener("keydown", this.addFieldListener)        // ctrl + ENTER => add a new field to the record selected
@@ -155,7 +156,8 @@ export let multiplemarcrecordcomponent = {
  
         } else if (this.workform !== 'None') {
             let wfCollection = this.workform.split('/')[0];
-            let wfRecordId = this.workform.split('/')[1];
+            let wfRecordId = this.workform.split('/')[1]
+            
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
             this.displayMarcRecord(jmarc, false);
         }
@@ -455,13 +457,13 @@ export let multiplemarcrecordcomponent = {
             let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
             checkBox.classList.replace("fa-square","fa-check-square")
         },
- 
-        ////////////////////////////////////////////////////////
+
+        //////////////////////////////////////////////////////// 
         ///// definition of the listeners for the shortcuts
         ////////////////////////////////////////////////////////
- 
-        addHelpListener(event) {
 
+        addHelpListener(event) {
+            // check if one record is selected
             if (event.ctrlKey && event.key === "h"){
                 event.preventDefault();
                 alert("Shortcuts implemented: "+ "\n" +"-----------------------------------------------------------------"+
