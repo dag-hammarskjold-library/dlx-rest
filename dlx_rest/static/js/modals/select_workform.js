@@ -15,9 +15,9 @@ export let selectworkform = {
             <div class="modal-body">
                 <table class="table table-hover">
                     <tr class="border-0" v-for="w in workforms">
-                        <td>{{w.name}}</td>
-                        <td>{{w.description}}</td>
-                        <td><a :href="uibase + '/editor?workform=' + collection + '/' + w.name"  target="_blank"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
+                        <td>{{w.workformName}}</td>
+                        <td>{{w.workformDescription}}</td>
+                        <td><a :href="uibase + '/editor?workform=' + collection + '/' + w.workformName"  target="_blank"><i class="fas fa-edit" role="button" title="Send to editor"></i></a></td>
                     </tr>
                 </table>
             </div>
@@ -35,8 +35,6 @@ export let selectworkform = {
         }
     },
     created: async function() {
-        await Jmarc.listWorkforms(this.collection).then(workforms => {
-            this.workforms = workforms;
-        })
+        this.workforms = await Jmarc.workforms(this.collection);
     }
 }
