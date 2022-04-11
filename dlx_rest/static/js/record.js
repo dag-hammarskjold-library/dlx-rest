@@ -457,6 +457,15 @@ export let multiplemarcrecordcomponent = {
             let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
             checkBox.classList.replace("fa-square","fa-check-square")
         },
+        async unlockRecord(jmarc) {
+            let uibase = this.prefix.replace("/api/","")
+            let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
+            if(confirm(`This will remove the item from the basket belonging to ${this.recordLocked["by"]}. Click OK to proceed.`) == true) {
+                await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                    window.location.href = editHref;
+                })
+            }
+        },
 
         //////////////////////////////////////////////////////// 
         ///// definition of the listeners for the shortcuts
