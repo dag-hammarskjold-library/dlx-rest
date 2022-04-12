@@ -29,6 +29,10 @@ export let multiplemarcrecordcomponent = {
         readonly: {
             type: Boolean,
             default: false
+        },
+        fromworkform: {
+            type: String,
+            required: false
         }
     },
     template: `
@@ -160,6 +164,16 @@ export let multiplemarcrecordcomponent = {
             
             let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
             this.displayMarcRecord(jmarc, false);
+        } else if (this.fromworkform !== 'None') {
+            // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
+            let wfCollection = this.fromworkform.split('/')[0];
+            let wfRecordId = this.fromworkform.split('/')[1]
+            //console.log(wfCollection, wfRecordId)
+            
+            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+            jmarc.workformName = this.fromworkform
+            //this.displayMarcRecord(jmarc, false);
+            this.cloneRecord(jmarc)
         }
         recup=this
     },
@@ -223,7 +237,9 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            if (jmarc.divID) {
+                this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            }
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
             } else {
