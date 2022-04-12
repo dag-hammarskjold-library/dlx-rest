@@ -457,6 +457,16 @@ export let multiplemarcrecordcomponent = {
             let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
             checkBox.classList.replace("fa-square","fa-check-square")
         },
+        async unlockRecord(jmarc, lockedBy) {
+            console.log(jmarc)
+            let uibase = this.prefix.replace("/api/","")
+            let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
+            if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
+                await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                    window.location.href = editHref;
+                })
+            }
+        },
 
         //////////////////////////////////////////////////////// 
         ///// definition of the listeners for the shortcuts
@@ -910,7 +920,7 @@ export let multiplemarcrecordcomponent = {
                 ]
                 if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
                     // It's locked by someone else
-                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-lock", "title": `Record locked by ${this.recordLocked["by"]}`, "click": "unlockRecord", "param": jmarc})
+                    controls.push({"name": "editButton", "element": "i", "class": "fas fa-lock", "title": `Record locked by ${this.recordLocked["by"]}`, "click": "unlockRecord", "params": {"jmarc": jmarc, "lockedBy": this.recordLocked["by"]}})
                 } else {
                     // It's either not locked, or locked by current user
                     controls.push({"name": "editButton", "element": "i", "class": "fas fa-edit", "title": "Edit Record", "click": "editRecord", "param": jmarc})
@@ -932,6 +942,9 @@ export let multiplemarcrecordcomponent = {
                     if (control["param"]) {
                         controlButton.onclick = () => {
                             this[control["click"]](control["param"]) }
+                    } else if (control["params"]) {
+                        controlButton.onclick = () => {
+                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
                     } else {
                         controlButton.onclick = () => {
                             this[control["click"]](jmarc) }
