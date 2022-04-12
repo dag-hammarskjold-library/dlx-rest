@@ -1586,7 +1586,11 @@ class MyBasketItem(Resource):
             this_u = User.objects.get(id=current_user['id'])
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
-            item_data = this_basket.get_item_by_id(item_id)
+            item_data_raw = this_basket.get_item_by_id(item_id)
+            item_data = item_data_raw
+            if isinstance(item_data_raw, list):
+                item_data = item_data_raw[0]
+            print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
