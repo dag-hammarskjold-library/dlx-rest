@@ -8,7 +8,7 @@ cfn-flip==1.3.0
 charset-normalizer==2.0.12
 click==8.1.2
 cryptography==36.0.2
-dlx @ git+https://github.com/dag-hammarskjold-library/dlx@cc609381fb6b4945d9ddcf52fd1b7bdc1f2af3a6
+dlx @ git+https://github.com/dag-hammarskjold-library/dlx@6977c00381135421fc858a1b5a27ae999de45997
 dnspython==2.2.1
 email-validator==1.1.3
 Flask==2.1.1
@@ -29,6 +29,7 @@ MarkupSafe==2.1.1
 mongoengine==0.24.1
 mongomock==3.23.0
 moto==2.3.1
+nltk==3.6.7
 packaging==21.3
 pluggy==1.0.0
 py==1.11.0
