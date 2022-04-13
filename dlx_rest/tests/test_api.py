@@ -376,6 +376,7 @@ def test_api_userbasket(client, default_users, users, marc):
 
     # GET the basket item. Its collection and record_id should match what we POSTed.
     item_url = data['data']['items'][0]
+    print(item_url)
     res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)

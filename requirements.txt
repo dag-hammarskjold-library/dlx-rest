@@ -8,7 +8,7 @@ cfn-flip==1.3.0
 charset-normalizer==2.0.12
 click==8.1.2
 cryptography==36.0.2
-dlx==1.2.7.4
+dlx @ git+https://github.com/dag-hammarskjold-library/dlx@cc609381fb6b4945d9ddcf52fd1b7bdc1f2af3a6
 dnspython==2.2.1
 email-validator==1.1.3
 Flask==2.1.1
@@ -54,4 +54,8 @@ WTForms==3.0.1
 xlrd==1.2.0
 xmldiff==2.4
 xmltodict==0.12.0
+<<<<<<< HEAD
 zipp==3.8.0
+=======
+zipp==3.8.0
+>>>>>>> master

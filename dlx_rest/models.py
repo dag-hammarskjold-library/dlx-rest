@@ -44,7 +44,8 @@ class Basket(Document):
     items = ListField(DictField())
 
     def get_item_by_id(self, item_id):
-        return list(filter(lambda x: x['id'] == item_id, self.items))[0]
+        this_item = list(filter(lambda x: x['id'] == item_id, self.items))
+        return this_item
 
     def get_item_by_coll_and_rid(self, collection, record_id):
         return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
