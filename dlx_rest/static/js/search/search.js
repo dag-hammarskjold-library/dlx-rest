@@ -34,10 +34,10 @@ export let searchcomponent = {
                 <li class="page-item disabled">
                     <span class="page-link">
                         {{start}} to {{end}} of
-                        <span id="result-count">
-                            <div class="spinner-border" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
-                                <span class="sr-only">Loading...</span>
-                            </div>
+                        <span id="result-count-top">
+                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
+                            <span class="sr-only">Loading...</span>
+                        </div>
                         </span>
                         Records
                     </span>
@@ -53,6 +53,7 @@ export let searchcomponent = {
                 <span class="sr-only">Loading...</span>
             </div>
         </div>
+        <br>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11">
@@ -76,7 +77,15 @@ export let searchcomponent = {
         </div>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled"><span class="page-link">{{start}} to {{end}} of {{resultcount}} Records</span></li>
+                <li class="page-item disabled"><span class="page-link">
+                    {{start}} to {{end}} of 
+                    <span id="result-count-bottom">
+                        <div class="spinner-grow" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </span>
+                    Records
+                </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
                 <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
                 <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
@@ -223,7 +232,8 @@ export let searchcomponent = {
                     component.resultcount = jsonData["data"];
                     
                     // override the spinner
-                    document.getElementById("result-count").innerHTML = component.resultcount;
+                    document.getElementById("result-count-top").innerHTML = component.resultcount;
+                    document.getElementById("result-count-bottom").innerHTML = component.resultcount;
    
                     if (component.resultcount == 0) {
                         component.start = 0;

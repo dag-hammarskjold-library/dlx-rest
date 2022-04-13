@@ -12,8 +12,13 @@ export let countcomponent = {
     },
     created: async function() {
         let url = `${this.api_prefix}marc/auths/records/${this.recordId}/use_count?use_type=bibs`;
-        const response = await fetch(url);
-        const json = await response.json();
-        this.search_count = json.data;
+
+        fetch(url).then(
+            response => response.json()
+        ).then(
+            json => {
+                this.search_count = json.data;
+            }
+        )
     }
 }
