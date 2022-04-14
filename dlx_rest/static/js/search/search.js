@@ -552,6 +552,7 @@ export let searchcomponent = {
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
             
             window.location = url
+        },
         reportError(message) {
             document.getElementById("results-spinner").innerHTML = message;
             document.getElementById("result-count-top").innerHTML = "0";
