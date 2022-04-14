@@ -362,7 +362,7 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        data = cls.from_query(query).count
+        data = cls().handle.count_documents(query.compile()) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -1535,9 +1535,9 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        print(item)
+        #print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
-        print(lock_status)
+        #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
@@ -1548,10 +1548,11 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    losing_basket = Basket.objects.get(name=lock_status["in"])
-                    #print(losing_basket)
+                    print(lock_status["in"])
+                    for losing_basket in Basket.objects(name=lock_status["in"]):
+                        #print(losing_basket)
 
-                    losing_basket.remove_item(lock_status["item_id"])
+                        losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201
                 else:
@@ -1585,7 +1586,11 @@ class MyBasketItem(Resource):
             this_u = User.objects.get(id=current_user['id'])
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
-            item_data = this_basket.get_item_by_id(item_id)
+            item_data_raw = this_basket.get_item_by_id(item_id)
+            item_data = item_data_raw
+            if isinstance(item_data_raw, list):
+                item_data = item_data_raw[0]
+            print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
