@@ -147,6 +147,10 @@ export let searchcomponent = {
             component.lookup_maps['bibs'] = bibMapData.data;
         }
 
+        let myEnd = component.params.start + component.params.limit -1;
+        component.end = myEnd;
+        component.start = component.params.start;
+
         // start the count
         fetch(this.search_url.replace('/records', '/records/count')).then(
             response => response.json()
@@ -213,10 +217,6 @@ export let searchcomponent = {
                     }
                     component.results.push(myResult);
                 }
-
-                let myEnd = component.params.start + component.params.limit -1;
-                component.end = myEnd;
-                component.start = component.params.start;
             }
         ).catch(
             error => {
