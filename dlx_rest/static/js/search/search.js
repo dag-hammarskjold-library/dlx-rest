@@ -26,6 +26,9 @@ export let searchcomponent = {
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
+                <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
+                    <span>X</span>
+                </button>
             </form>
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
@@ -35,11 +38,11 @@ export let searchcomponent = {
                     <span class="page-link">
                         {{start}} to {{end}} of
                         <span id="result-count-top">
-                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
-                            <span class="sr-only">Loading...</span>
-                        </div>
+                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
+                                <span class="sr-only">Loading...</span>
+                            </div>
                         </span>
-                        Records
+                        Records ({{searchTime}} seconds)
                     </span>
                 </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -77,14 +80,16 @@ export let searchcomponent = {
         </div>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled"><span class="page-link">
-                    {{start}} to {{end}} of 
-                    <span id="result-count-bottom">
-                        <div class="spinner-grow" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
-                            <span class="sr-only">Loading...</span>
-                        </div>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        {{start}} to {{end}} of 
+                        <span id="result-count-bottom">
+                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </span>
+                        Records ({{searchTime}} seconds)
                     </span>
-                    Records
                 </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
                 <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
@@ -120,7 +125,10 @@ export let searchcomponent = {
             start: 0,
             end: 0,
             basketcontents: ['foo'],
-            lookup_maps: {}
+            lookup_maps: {},
+            searchTime: 0,
+            maxTime: 15000, //milliseconds
+            abortController: new AbortController()
         }
     },
     created: async function() {
@@ -138,8 +146,32 @@ export let searchcomponent = {
             let bibMapData = await bibMapResponse.json();
             component.lookup_maps['bibs'] = bibMapData.data;
         }
+
+        // start the count
+        fetch(this.search_url.replace('/records', '/records/count')).then(
+            response => response.json()
+        ).then(
+            jsonData => {
+                component.resultcount = jsonData["data"];
+                
+                // override the spinner
+                document.getElementById("result-count-top").innerHTML = component.resultcount;
+                document.getElementById("result-count-bottom").innerHTML = component.resultcount;
+
+                if (component.resultcount == 0) {
+                    component.start = 0;
+                }
+                
+                if (myEnd >= component.resultcount) {
+                    component.end = component.resultcount
+                    component.next = null
+                }
+            }
+        );
+
+        let startTime = Date.now();
         
-        fetch(this.search_url).then(
+        fetch(this.search_url, this.abortController).then(
             response => {
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
@@ -148,6 +180,12 @@ export let searchcomponent = {
             }
         ).then(
             jsonData => {
+                if (! jsonData) {
+                    throw new Error("Invalid search")
+                }
+
+                component.searchTime = (Date.now() - startTime) / 1000;
+
                 let linkKeys = Object.keys(jsonData["_links"]);
                 linkKeys.forEach((key, index) => {
                     component.links[key] = jsonData["_links"][key];
@@ -176,10 +214,24 @@ export let searchcomponent = {
                     component.results.push(myResult);
                 }
 
-                component.buildPagination();
-                
+                let myEnd = component.params.start + component.params.limit -1;
+                component.end = myEnd;
+                component.start = component.params.start;
+            }
+        ).catch(
+            error => {
+                if ((Date.now() - startTime) >= this.maxTime) {
+                    this.reportError(`The search is taking longer than the maximum time allowed (${this.maxTime / 1000} seconds). Try narrowing the search.`)
+                } else if (error.name === "AbortError") {
+                    this.reportError("Search cancelled")
+                } else {
+                    this.reportError(error.toString())
+                }
             }
         );
+        
+        // cancel the search if it takes more than 15 seconds
+        setTimeout(() => this.abortController.abort(), this.maxTime);
     },
     mounted: async function() {
         let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
@@ -216,36 +268,6 @@ export let searchcomponent = {
         }
     },
     methods: {
-        async buildPagination() {
-            let component = this;
-            
-            let myEnd = component.params.start + component.params.limit -1;
-            component.end = myEnd
-            component.start = component.params.start
-            
-            fetch(this.count).then(
-                response => {
-                    return response.json()
-                }
-            ).then(
-                jsonData => {
-                    component.resultcount = jsonData["data"];
-                    
-                    // override the spinner
-                    document.getElementById("result-count-top").innerHTML = component.resultcount;
-                    document.getElementById("result-count-bottom").innerHTML = component.resultcount;
-   
-                    if (component.resultcount == 0) {
-                        component.start = 0;
-                    }
-                    
-                    if (myEnd >= component.resultcount) {
-                        component.end = component.resultcount
-                        component.next = null
-                    }
-                }
-            );
-        },
         async getMyBasket(url) {
             let response = await fetch(url);
             if (response.ok) {
@@ -285,6 +307,14 @@ export let searchcomponent = {
                     // Send a message to the messagebar...
                 }
             }
+        },
+        reportError(message) {
+            document.getElementById("results-spinner").innerHTML = message;
+            document.getElementById("result-count-top").innerHTML = "0";
+            document.getElementById("result-count-bottom").innerHTML = "0";
+        },
+        cancelSearch() {
+            this.abortController.abort()
         }
     },
     components: {
