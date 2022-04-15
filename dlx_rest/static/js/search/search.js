@@ -474,15 +474,14 @@ export let searchcomponent = {
                             break
                         case "exact":
                             // Exact phrase in any field
-                            expressions.push(`"${termList.join(" ")}"`)
+                            expressions.push(`'${termList.join(" ")}'`)
                             break
                         case "partial":
                             // Partial phrase in any field
                             expressions.push(termList.join(" "))
                             break
                         case "regex":
-                            // Regular expression; this probably needs additional validation to make sure it IS a regex
-                            // Also it doesn't work quite right...
+                            // This can't be done like this on MDB, so we should disable the option
                             expressions.push(termList.join(" "))
                             break
                         default:
@@ -496,24 +495,21 @@ export let searchcomponent = {
                         case "any":
                             // Any of the words in any field
                             for (let term of termList) {
-                                myExpr.push(`${myField}:/${term}/`)
+                                myExpr.push(`${myField}:${term}`)
                             }
                             expressions.push(myExpr.join(" OR "))
                             break
                         case "all":
                             // All of the words in any field
-                            for (let term of termList) {
-                                myExpr.push(`${myField}:/${term}/`)
-                            }
-                            expressions.push(myExpr.join(" AND "))
+                            expressions.push(`${myField}:${termList.join(" ")}`)
                             break
                         case "exact":
                             // Exact phrase in any field
-                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            expressions.push(`${myField}:'${termList.join(" ")}'`)
                             break
                         case "partial":
                             // Partial phrase in any field
-                            expressions.push(`${myField}:/${termList.join(" ")}/`)
+                            expressions.push(`${myField}:"${termList.join(" ")}"`)
                             break
                         case "regex":
                             // Regular expression; this probably needs additional validation to make sure it IS a regex
