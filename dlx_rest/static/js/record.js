@@ -188,12 +188,7 @@ export let multiplemarcrecordcomponent = {
         ////////////////////////////////////////////////////////
         ///// definition of the methods used in the listeners
         ////////////////////////////////////////////////////////
-        moveUndoIndex(jmarc){
-            jmarc.moveUndoredoIndex("undo")    
-        },
-        moveRedoIndex(jmarc){
-            jmarc.moveUndoredoIndex("redo")
-        },
+
         saveRecord(jmarc){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
@@ -246,6 +241,20 @@ export let multiplemarcrecordcomponent = {
             }
  
         },
+        // undo feature
+        moveUndoredoIndexUndo(jmarc){
+            jmarc.moveUndoredoIndexUndo()
+            this.removeRecordFromEditor(jmarc,false)
+            this.displayMarcRecord(jmarc,false)           
+        },
+
+        // redo feature
+        moveUndoredoIndexRedo(jmarc){
+            jmarc.moveUndoredoIndexRedo()
+            this.removeRecordFromEditor(jmarc,false)
+            this.displayMarcRecord(jmarc,false)      
+        },
+
         pasteField(jmarc){
             // paste field   
             this.selectedFields.forEach(field =>
@@ -751,13 +760,13 @@ export let multiplemarcrecordcomponent = {
             })
  
         },
-        removeRecordFromEditor(jmarc) {
-            /* To do: update the location bar/route to indicate the presence/order of record collection/id pairs */
-            // get the parent
+        removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
             // clear the entries for the undoredo vector
-            jmarc.clearUndoredoVector()
- 
+            if (keepDataInVector==true) { 
+                jmarc.clearUndoredoVector()
+            }    
+
             let divID = jmarc.div.id
  
             if (divID === "record1") {
@@ -769,7 +778,9 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord1=""
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
-                this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                if (keepDataInVector==false) { 
+                    this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                }
                
             }
             else if (divID === "record2") {
@@ -780,7 +791,9 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord2=""
                 let recup=document.getElementById("record2")
                 recup.innerHTML=""
+                if (keepDataInVector==false) {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                }
             }
             // optimize the display
             this.selectedRecord=""
@@ -796,7 +809,7 @@ export let multiplemarcrecordcomponent = {
  
         },
         displayMarcRecord(jmarc, readOnly) {
-            // Add to div
+            console.log("The vector has : " + jmarc.undoredoVector.length + " items")
             let myDivId;
            
             if (this.isRecordOneDisplayed == false) {
@@ -816,7 +829,7 @@ export let multiplemarcrecordcomponent = {
             }
            
             jmarc.div = document.getElementById(myDivId);
-            let table = this.buildRecordTable(jmarc, readOnly);
+            let table = this.buildRecordTable(jmarc,readOnly);
  
             jmarc.div.appendChild(table); 
             this.selectRecord(jmarc) 
@@ -832,6 +845,16 @@ export let multiplemarcrecordcomponent = {
  
             this.targetedTable=table
             this.optimizeEditorDisplay(table)
+
+            // init snapshot feature
+            // adding the listener to enable the snapshot feature in all the spans
+
+            let selectedSpans=document.getElementsByTagName("span")
+            let selectedSpansArray=Array.from(selectedSpans)            
+            selectedSpansArray.forEach(element => {
+                element.addEventListener('click',() =>{ jmarc.addUndoredoEntry("global") });
+            })
+
         },
         buildRecordTable(jmarc, readOnly) {
             let table = document.createElement("table");
@@ -851,7 +874,7 @@ export let multiplemarcrecordcomponent = {
             }
            
             // Header: record ID, save, clone, paste
-            let tableHeader = this.buildTableHeader(jmarc);
+            let tableHeader = this.buildTableHeader(jmarc); 
            
             // Table body: record data
             let tableBody = this.buildTableBody(jmarc);
@@ -895,8 +918,8 @@ export let multiplemarcrecordcomponent = {
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                 {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                 {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Record",  "click": "deleteRecord" },
-                {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndex" , "param":jmarc},
-                {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndex" ,"param":jmarc},
+                {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
+                {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
@@ -908,8 +931,8 @@ export let multiplemarcrecordcomponent = {
                     {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                     {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
-                    {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndex" , "param":jmarc},
-                    {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndex" ,"param":jmarc},
+                    {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndexUndo","param":jmarc},
+                    {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndexRedo","param":jmarc},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
                 ]
             }
@@ -1075,11 +1098,15 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
+
             let component = this;
             let jmarc = field.parentRecord;
+
+
             let table = jmarc.table;
-            let tableBody = jmarc.tableBody; // Do we need this information ????
-   
+
+            let tableBody = jmarc.tableBody; 
+            
             field.row = tableBody.insertRow(place);
    
             // add the checkboxes
@@ -1270,13 +1297,11 @@ export let multiplemarcrecordcomponent = {
                     field.tagSpan.classList.remove("unsaved");
                     field.tagSpan.classList.add("invalid");
                 } 
-                    
 
             });
 
             tagSpan.addEventListener("dblclick", ()=> {
-                    jmarc.addUndoredoEntry(jmarc,"TAG")
-                    console.log(jmarc.undoredoVector)
+                    jmarc.addUndoredoEntry("TAG")
                 }
             );
  
