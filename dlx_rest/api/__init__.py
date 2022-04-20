@@ -1466,17 +1466,15 @@ class MyUserProfileRecord(Resource):
     def get(self):        
         return_data = {}
 
-        try:
-            this_u = User.objects.get(id=current_user.id)
-            user_id = this_u['id']
-            return_data['email'] = this_u.email
-            return_data['roles'] = []
-            for r in this_u.roles:
-                return_data['roles'].append(r.name)
+        this_u = User.objects.get(id=current_user.id)
+        user_id = this_u['id']
+        return_data['email'] = this_u.email
+        return_data['roles'] = []
             
-            my_basket = URL('api_my_basket_record').to_str()
-        except:
-            raise
+        for r in this_u.roles:
+            return_data['roles'].append(r.name or '')
+            
+        my_basket = URL('api_my_basket_record').to_str()
 
         links = {
             '_self': URL('api_my_user_profile_record').to_str(),
