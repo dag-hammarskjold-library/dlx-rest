@@ -234,21 +234,18 @@ export let searchcomponent = {
         ).then( () => {
             user.getProfile(this.api_prefix, 'my_profile').then(
                 myProfile => {
-                    console.log("got my profile")
+                    //console.log("got my profile")
                     if (myProfile) {
                         this.user = myProfile.data.email;
                     }
     
                     if (typeof this.user !== "undefined") {
-                        console.log("this user is not undefined")
+                        //console.log("this user is not undefined")
                         basket.getBasket(this.api_prefix).then(
                             myBasket => {
-                                console.log("got my basket contents")
-                                if (this.results.length == 0) {
-                                    console.log("Zero length results? How?")
-                                }
+                                //console.log("got my basket contents")
                                 for (let result of this.results) {
-                                    console.log("processing result")
+                                    //console.log("processing result")
                                     let myId = `icon-${this.collection}-${result._id}`
                                     let iconEl = document.getElementById(myId);
                     
@@ -288,9 +285,6 @@ export let searchcomponent = {
             )
         })
         
-        
-
-
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
     },
