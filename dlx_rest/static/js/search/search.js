@@ -313,20 +313,16 @@ export let searchcomponent = {
         toggleAddRemove(el, myBasket, collection, record_id) {
             if (el.classList.value === "fas fa-folder-plus") {
                 // we can run an add
-                const added = basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
-                if (added) {
+                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
                     el.classList.remove("fa-folder-plus");
                     el.classList.add("fa-folder-minus");
-                    // Send a message to the messagebar...
-                }
+                })
             } else {
                 // we can run a deletion
-                const deleted = basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
-                if (deleted) {
+                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
                     el.classList.remove("fa-folder-minus");
                     el.classList.add("fa-folder-plus");
-                    // Send a message to the messagebar...
-                }
+                })
             }
         },
         reportError(message) {
