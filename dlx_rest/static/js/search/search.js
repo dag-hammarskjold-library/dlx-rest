@@ -146,7 +146,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -367,15 +367,17 @@ export let searchcomponent = {
                                         basket.getBasket(this.api_prefix).then(
                                             myBasket => {
                                                 this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
+                                                console.log(myBasket)
                     
-                                                if (this.basketContains(myBasket, this.collection, result._id)) {
-                                                    iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.add('fa-folder-minus');
-                                                    iconEl.title = "Remove from basket";
-                                                }
+                                                
                                             }
                                         );
                                     });
+                                    if (this.basketContains(myBasket, this.collection, result._id)) {
+                                        iconEl.classList.remove('fa-folder-plus',);
+                                        iconEl.classList.add('fa-folder-minus');
+                                        iconEl.title = "Remove from basket";
+                                    }
                     
                                     // checking if the record is locked and displaying a lock if it is.
                                     basket.itemLocked(this.api_prefix, this.collection, result._id).then(
@@ -424,7 +426,7 @@ export let searchcomponent = {
             return false;
         },
         toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-folder-plus") {
+            if (el.classList.value === "fas fa-2x fa-folder-plus") {
                 // we can run an add
                 basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
                     el.classList.remove("fa-folder-plus");
