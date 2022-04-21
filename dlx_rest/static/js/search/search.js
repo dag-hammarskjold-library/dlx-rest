@@ -204,12 +204,11 @@ export let searchcomponent = {
                 'searchTerm3': null,
                 'searchField3': 'any'
             },
-            // To do: differentiate between labels and values
-            bibSearchFields: ['author','title','symbol','agenda','year','notes','series','subject','related documents', 'bib creation'],
-            //authSearchFields: ['authority author', 'authority meeting name', 'authority subject', 'authority uniform title'],
+            // To do: Get these logical fields from the configuration
+            bibSearchFields: ['author','title','symbol','notes','subject'],
             authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
             voteSearchFields: ['symbol','title','agenda','year'],
-            speechSearchFields: ['symbol', 'speaker', 'country/organization', 'agenda', 'year'],
+            speechSearchFields: ['symbol'],
             searchFields: [],
             searchTypes: [
                 {'name': 'All of the words:', 'value': 'all'},
@@ -495,11 +494,10 @@ export let searchcomponent = {
                             break
                         case "partial":
                             // Partial phrase in any field
-                            expressions.push(termList.join(" "))
+                            expressions.push(`"${termList.join(" ")}"`)
                             break
                         case "regex":
                             // This can't be done like this on MDB, so we should disable the option
-                            expressions.push(termList.join(" "))
                             break
                         default:
                             expressions.push(termList.join(" "))
