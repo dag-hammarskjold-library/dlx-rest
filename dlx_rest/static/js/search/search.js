@@ -235,6 +235,9 @@ export let searchcomponent = {
         }
     },
     created: async function() {
+        
+    },
+    mounted: async function() {
         let component = this;
         
         // [what is this used for?]
@@ -260,6 +263,10 @@ export let searchcomponent = {
             this.searchFields = this.speechSearchFields
             this.vcoll = "989:Speeches"
         }
+
+        let myEnd = component.params.start + component.params.limit -1;
+        component.end = myEnd;
+        component.start = component.params.start;
 
         // start the count
         fetch(this.search_url.replace('/records', '/records/count')).then(
@@ -327,10 +334,6 @@ export let searchcomponent = {
                     }
                     component.results.push(myResult);
                 }
-
-                let myEnd = component.params.start + component.params.limit -1;
-                component.end = myEnd;
-                component.start = component.params.start;
             }
         ).catch(
             error => {
@@ -342,44 +345,62 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        );
+        ).then( () => {
+            user.getProfile(this.api_prefix, 'my_profile').then(
+                myProfile => {
+                    //console.log("got my profile")
+                    if (myProfile) {
+                        this.user = myProfile.data.email;
+                    }
+    
+                    if (typeof this.user !== "undefined") {
+                        //console.log("this user is not undefined")
+                        basket.getBasket(this.api_prefix).then(
+                            myBasket => {
+                                //console.log("got my basket contents")
+                                for (let result of this.results) {
+                                    //console.log("processing result")
+                                    let myId = `icon-${this.collection}-${result._id}`
+                                    let iconEl = document.getElementById(myId);
+                    
+                                    iconEl.classList.add('fa-folder-plus');
+                                    iconEl.addEventListener("click", async () => {
+                                        basket.getBasket(this.api_prefix).then(
+                                            myBasket => {
+                                                this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
+                    
+                                                if (this.basketContains(myBasket, this.collection, result._id)) {
+                                                    iconEl.classList.remove('fa-folder-plus',);
+                                                    iconEl.classList.add('fa-folder-minus');
+                                                    iconEl.title = "Remove from basket";
+                                                }
+                                            }
+                                        );
+                                    });
+                    
+                                    // checking if the record is locked and displaying a lock if it is.
+                                    basket.itemLocked(this.api_prefix, this.collection, result._id).then(
+                                        itemLocked => {
+                                            if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                                                // Display a lock icon
+                                                iconEl.classList.remove('fa-folder-plus',);
+                                                iconEl.classList.remove('fa-folder-minus',);
+                                                iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
+                                                iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                    }
+    
+                }
+            )
+        })
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
-    },
-    mounted: async function() {
-        let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
-        if (myProfile) {
-            this.user = myProfile.data.email;
-        } 
-
-        if (typeof this.user !== "undefined") {
-            const myBasket = await basket.getBasket(this.api_prefix);
-            for (let result of this.results) {
-                let myId = `icon-${this.collection}-${result._id}`
-                let iconEl = document.getElementById(myId);
-
-                iconEl.classList.add('fa-folder-plus');
-                iconEl.addEventListener("click", async () => {
-                    const myBasket = await basket.getBasket(this.api_prefix);
-                    this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
-                });
-                if (this.basketContains(myBasket, this.collection, result._id)) {
-                    iconEl.classList.remove('fa-folder-plus',);
-                    iconEl.classList.add('fa-folder-minus');
-                    iconEl.title = "Remove from basket";
-                }
-                // checking if the record is locked and displaying a lock if it is.
-                const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, result._id);
-                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                    // Display a lock icon
-                    iconEl.classList.remove('fa-folder-plus',);
-                    iconEl.classList.remove('fa-folder-minus',);
-                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
-                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                }
-            }
-        }
     },
     methods: {
         async getMyBasket(url) {
@@ -406,20 +427,16 @@ export let searchcomponent = {
         toggleAddRemove(el, myBasket, collection, record_id) {
             if (el.classList.value === "fas fa-folder-plus") {
                 // we can run an add
-                const added = basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
-                if (added) {
+                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
                     el.classList.remove("fa-folder-plus");
                     el.classList.add("fa-folder-minus");
-                    // Send a message to the messagebar...
-                }
+                })
             } else {
                 // we can run a deletion
-                const deleted = basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
-                if (deleted) {
+                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
                     el.classList.remove("fa-folder-minus");
                     el.classList.add("fa-folder-plus");
-                    // Send a message to the messagebar...
-                }
+                })
             }
         },
         toggleAdvancedSearch() {

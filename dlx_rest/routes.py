@@ -34,7 +34,8 @@ def editor():
     this_prefix = url_for('doc', _external=True)
     records = request.args.get('records', None)
     workform = request.args.get('workform', None)
-    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform)
+    fromWorkform = request.args.get('fromWorkform', None)
+    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform)
 
 
 @app.route('/workform')

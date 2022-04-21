@@ -63,7 +63,7 @@ export default {
         let url = `${api_prefix}marc/${collection}/records/${record_id}/locked`
         let res = await fetch(url);
         let jsonData = await res.json();
-        console.log(jsonData);
+        //console.log(jsonData);
         return jsonData;
     },
 
