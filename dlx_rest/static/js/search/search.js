@@ -155,7 +155,7 @@ export let searchcomponent = {
         component.start = component.params.start;
 
         // start the count
-        fetch(this.search_url.replace('/records', '/records/count')).then(
+        fetch(this.search_url.replace('/records', '/records/count'), this.abortController).then(
             response => response.json()
         ).then(
             jsonData => {
@@ -172,6 +172,12 @@ export let searchcomponent = {
                 if (myEnd >= component.resultcount) {
                     component.end = component.resultcount
                     component.next = null
+                }
+            }
+        ).catch(
+            error => {
+                if (error.name === "AbortError") {
+                    // console.log("count cancelled")
                 }
             }
         );
@@ -331,7 +337,8 @@ export let searchcomponent = {
             document.getElementById("result-count-bottom").innerHTML = "0";
         },
         cancelSearch() {
-            this.abortController.abort()
+            this.abortController.abort();
+            this.start = this.end = 0;
         }
     },
     components: {
