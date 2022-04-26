@@ -260,7 +260,7 @@ class RecordsList(Resource):
 
         # exec query
         collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
-        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
         # process
         if fmt == 'xml':
@@ -362,7 +362,8 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        data = cls().handle.count_documents(query.compile()) if query else cls().handle.estimated_document_count()
+        
+        data = cls().handle.count_documents(query.compile(), maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 

@@ -153,6 +153,7 @@ export let searchcomponent = {
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
         component.start = component.params.start;
+        let startTime = Date.now();
 
         // start the count
         fetch(this.search_url.replace('/records', '/records/count'), this.abortController).then(
@@ -177,12 +178,11 @@ export let searchcomponent = {
         ).catch(
             error => {
                 if (error.name === "AbortError") {
-                    // console.log("count cancelled")
+                    document.getElementById("result-count-top").innerHTML = '⏱'
+                    document.getElementById("result-count-bottom").innerHTML = '⏱'
                 }
             }
         );
-
-        let startTime = Date.now();
         
         fetch(this.search_url, this.abortController).then(
             response => {
@@ -289,7 +289,7 @@ export let searchcomponent = {
     
                 }
             )
-        })
+        });
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
