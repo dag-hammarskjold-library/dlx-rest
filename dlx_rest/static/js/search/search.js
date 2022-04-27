@@ -237,59 +237,76 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        ).then( () => {
-            user.getProfile(this.api_prefix, 'my_profile').then(
-                myProfile => {
-                    //console.log("got my profile")
-                    if (myProfile) {
-                        this.user = myProfile.data.email;
-                    }
-    
-                    if (typeof this.user !== "undefined") {
-                        //console.log("this user is not undefined")
-                        basket.getBasket(this.api_prefix).then(
-                            myBasket => {
-                                //console.log("got my basket contents")
-                                for (let result of this.results) {
-                                    //console.log("processing result")
-                                    let myId = `icon-${this.collection}-${result._id}`
-                                    let iconEl = document.getElementById(myId);
+        ).then( 
+            () => {
+                user.getProfile(component.api_prefix, 'my_profile').then(
+                    myProfile => {
+                        //console.log("got my profile")
+                        if (myProfile) {
+                            component.user = myProfile.data.email;
+                        }
                     
-                                    iconEl.classList.add('fa-folder-plus');
-                                    iconEl.addEventListener("click", async () => {
-                                        basket.getBasket(this.api_prefix).then(
-                                            myBasket => {
-                                                this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
-                    
-                                                if (this.basketContains(myBasket, this.collection, result._id)) {
+                        if (typeof component.user !== "undefined") {
+                            //console.log("this user is not undefined")
+                            basket.getBasket(component.api_prefix).then(
+                                myBasket => {
+                                    //console.log("got my basket contents")
+                                    for (let result of component.results) {
+                                        //console.log("processing result")
+                                        let myId = `icon-${component.collection}-${result._id}`;
+                                        let iconEl = document.getElementById(myId);
+                                    
+                                        if (component.basketContains(myBasket, component.collection, result._id)) {
+                                            //iconEl.classList.remove('fa-folder-plus',);
+                                            iconEl.classList.add('fa-folder-minus');
+                                            iconEl.title = "Remove from basket";
+                                        } else {
+                                            iconEl.classList.add('fa-folder-plus');
+                                            iconEl.title = "Add to basket";
+                                        }
+
+                                        // checking if the record is locked and displaying a lock if it is.
+                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
+                                            itemLocked => {
+                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                                                    // Display a lock icon
                                                     iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.add('fa-folder-minus');
-                                                    iconEl.title = "Remove from basket";
+                                                    iconEl.classList.remove('fa-folder-minus',);
+                                                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
+                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
                                                 }
                                             }
                                         );
-                                    });
-                    
-                                    // checking if the record is locked and displaying a lock if it is.
-                                    basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                        itemLocked => {
-                                            if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                // Display a lock icon
-                                                iconEl.classList.remove('fa-folder-plus',);
-                                                iconEl.classList.remove('fa-folder-minus',);
-                                                iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
-                                                iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+
+                                        iconEl.addEventListener("click", function() {
+                                            if (iconEl.classList.value === "fas fa-folder-plus") {
+                                                // we can run an add
+                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
+                                                    function() {
+                                                        iconEl.classList.remove("fa-folder-plus");
+                                                        iconEl.classList.add("fa-folder-minus");
+                                                        iconEl.title = "Remove from basket";
+                                                    }
+                                                )
+                                            } else {
+                                                // we can run a deletion
+                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
+                                                    function() {
+                                                        iconEl.classList.remove("fa-folder-minus");
+                                                        iconEl.classList.add("fa-folder-plus");
+                                                        iconEl.title = "Add to basket";
+                                                    }
+                                                )
                                             }
-                                        }
-                                    )
+                                        });
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }        
                     }
-    
-                }
-            )
-        });
+                )
+            }
+        );
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
@@ -315,21 +332,6 @@ export let searchcomponent = {
                 }
             }
             return false;
-        },
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
-                })
-            } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
-            }
         },
         reportError(message) {
             document.getElementById("results-spinner").innerHTML = message;
