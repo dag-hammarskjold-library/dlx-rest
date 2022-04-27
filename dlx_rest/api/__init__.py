@@ -417,8 +417,8 @@ class RecordsListBrowse(Resource):
         data = [
             {
                 'value': x['_id'],
-                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
+                'search': URL('api_records_list', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str()
             } for x in values
         ]
 

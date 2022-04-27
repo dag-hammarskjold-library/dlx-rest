@@ -43,7 +43,15 @@ export let browsecomponent = {
                 </div>
             </div>
             <div v-for="result in results_before" class="row my-2">
-                <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div>
+                <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
+                <div class="col">
+                    <a :id="'link-' + result.value" :href=result.url target="_blank">
+                        {{result.value}}&nbsp;
+                        <span :id="'count-' + result.value">
+                            <i class="fas fa-spinner"></i>
+                        </span>
+                    </a>
+                </div>
             </div>
             <div class="row">
                 <div class="col"><i class="fas fa-angle-double-right mr-2 text-success"></i><span class="text-success">{{q}}</span></div>
@@ -56,7 +64,15 @@ export let browsecomponent = {
                 </div>
             </div>
             <div v-for="result in results_after" class="row my-2">
-                <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div>
+                <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
+                <div class="col">
+                    <a :id="'link-' + result.value" :href=result.url target="_blank">
+                        {{result.value}}&nbsp;
+                        <span :id="'count-' + result.value">
+                            <i class="fas fa-spinner"></i>
+                        </span>
+                    </a>
+                </div>
             </div>
             <div>
                 <a>Next >>></a>
@@ -123,34 +139,30 @@ export let browsecomponent = {
                     for (let result of json.data) {
                         // tanslate api search to app search
                         let searchStr = result.search.split('search=')[1];
-                        let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`
-                    
+                        let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
+                        resultsList.push({'value': result.value, 'url': searchUrl});
+                        
                         // get the count
                         fetch(result.count).then(
                             response => response.json()
                         ).then(
                             json => {
                                 let count = json.data;
+                                document.getElementById(`count-${result.value}`).innerHTML = `(${count})`;
                             
                                 if (count === 1) {
                                     // return direct link to record
                                     fetch(result.search).then(
-                                        response => {
-                                            return response.json()
-                                        }
+                                        response => response.json()
                                     ).then(
                                         json => {
                                             let apiUrl = json.data[0];
                                             let parts = apiUrl.split("/");
                                             let recordId = parts[parts.length-1];
                                             let recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
-                                            resultsList.push({'value': result.value, 'count': count, 'url': recordUrl})
+                                            document.getElementById(`link-${result.value}`).href = recordUrl
                                         }
                                     )
-                                }
-                                else {
-                                    // return link to search results list
-                                    resultsList.push({'value': result.value, 'count': count, 'url': searchUrl})
                                 }
                             }
                         )
