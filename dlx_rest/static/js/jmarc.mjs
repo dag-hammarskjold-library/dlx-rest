@@ -1,5 +1,5 @@
 "use strict";
-	
+
 const authMap = {
 	"bibs": {
 		'191': {'b': '190', 'c': '190'},
@@ -198,8 +198,82 @@ export class Jmarc {
 		this.recordId = null;
 		this.fields = [];
 		this._history = [];
+		this.undoredoIndex=0;
+		this.undoredoVector=[];
 	}
 	
+	// add a new undoredoEntry
+	// this method should be add each time we are changing the value of one input
+	addUndoredoEntry(entry,changeon){
+
+		// collecting the values to assign
+		let today = new Date();
+		let dateEntry = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()
+		let recordIdEntry=entry.recordId
+		let timeEntry = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+		let changeonEntry=changeon
+		//let valueEntry=entry;
+		let valueEntry=entry.clone();
+
+		// defining the undoredoEntry Object
+		
+		let undoredoEntry= {}
+		//undoredoEntry=entry.clone()
+		 
+		// adding the properties
+		undoredoEntry.dateEntry=dateEntry
+		undoredoEntry.timeEntry=timeEntry
+		undoredoEntry.recordIdEntry=recordIdEntry
+		undoredoEntry.changeonEntry=changeonEntry
+		undoredoEntry.valueEntry=valueEntry
+		
+		// adding the entry inside the vector
+		this.undoredoVector.push(undoredoEntry)
+
+		console.log(this.undoredoVector.length)
+
+		// reset the index to the last value
+		this.undoredoIndex=this.undoredoVector.length
+	}
+
+	// clear the undoredo Vector
+	clearUndoredoVector(){
+		this.undoredoVector=[]
+	}
+
+	// move undoredoIndex 
+	// direction can be :
+	// undo : right from left
+	// redo : left from right
+	moveUndoredoIndex(direction){
+	
+		if (direction==="undo") {
+			if (this.undoredoIndex>0){
+				alert("click on UNDO!!!")
+				this.undoredoIndex = this.undoredoIndex - 1
+				alert("Date: "+ this.undoredoVector[this.undoredoIndex].dateEntry + "\n"+ 
+                "Time: "+ this.undoredoVector[this.undoredoIndex].timeEntry +  "\n"+ 
+                "RecordId: "+ this.undoredoVector[this.undoredoIndex].recordIdEntry +  "\n"+ 
+				"Change on: "+ this.undoredoVector[this.undoredoIndex].changeonEntry +  "\n"+ 
+                "Tag nunber 7: "+ this.undoredoVector[this.undoredoIndex].valueEntry.fields[6].tag+  "\n"+
+                "-------------------------------------")
+			}
+		} else { // case direction ==="redo"
+			
+			if (this.undoredoIndex<this.undoredoVector.length){
+				alert("click on REDO!!!")
+				alert("Date: "+ this.undoredoVector[this.undoredoIndex].dateEntry + "\n"+ 
+                "Time: "+ this.undoredoVector[this.undoredoIndex].timeEntry +  "\n"+ 
+                "RecordId: "+ this.undoredoVector[this.undoredoIndex].recordIdEntry +  "\n"+ 
+				"Change on: "+ this.undoredoVector[this.undoredoIndex].changeonEntry +  "\n"+ 
+                "Tag nunber 7: "+ this.undoredoVector[this.undoredoIndex].valueEntry.fields[6].tag+  "\n"+
+                "-------------------------------------")
+				this.undoredoIndex = this.undoredoIndex + 1
+
+			}
+		} 
+	}
+
 	isAuthorityControlled(tag, code) {
 		let map = authMap;
 		
@@ -235,7 +309,7 @@ export class Jmarc {
 					throw new Error(json['message'])
 				}
 				
-				jmarc.parse(json['data']);
+				jmarc.parse(json['data']);  
 				jmarc.savedState = jmarc.compile();
 
 				jmarc.files = json['data']['files']
@@ -246,24 +320,25 @@ export class Jmarc {
 	}
 	
 	static async listWorkforms(collection) {
-	    return fetch(Jmarc.apiUrl + `marc/${collection}/workforms`).then(response => {
-            return response.json();
-        }).then(json => {
-            let workforms = [];
-            for (let url of json.data) {
-                let wname = url.split("/").slice(-1)[0];
-                wname = decodeURIComponent(wname);
-                fetch(url).then(wfRes => {
-                    return wfRes.json();
-                }).then(wfJson => {
-                    workforms.push({"name": wname, "description": wfJson.data.description});
-                });
-            }
-            return workforms;
-        });
+	    let response = await fetch(Jmarc.apiUrl + `marc/${collection}/workforms`);
+        let json = await response.json();
+        
+        return json.data.map(
+            url => url.split("/").slice(-1)[0]
+        );
 	}
     
-    static async fromWorkform(collection, workformName) {
+    static async workforms(collection) {
+	    let workforms = []
+        
+        for (let name of await Jmarc.listWorkforms(collection)) {
+            workforms.push(await Jmarc.fromWorkform(collection, name))
+        }
+        
+        return workforms
+    }
+    
+    static fromWorkform(collection, workformName) {
         let jmarc = new Jmarc(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
@@ -285,21 +360,17 @@ export class Jmarc {
         )
 	}
     
-    static async deleteWorkform(collection, workformName) {
-        let error = false;
-        
-        const response = await fetch(
+    static deleteWorkform(collection, workformName) {
+        return fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
             { method: 'DELETE' }
-        );
-        if (!response.ok) {
-            error = true;
-        }
-        const json = await response.json();
-        if (error === true) {
-            throw new Error(json['message']);
-        }
-        return true;
+        ).then(
+            response => response.json()
+        ).then(
+            json => {
+                return true
+            }
+        )
     }
 
     async saveWorkform(workformName, description) {
@@ -388,6 +459,10 @@ export class Jmarc {
 				
 				return this;
 			}
+		).catch(
+		    error => {
+		        throw error
+		    }
 		)
 	}
 
@@ -716,4 +791,13 @@ export class Auth extends Jmarc {
 	validate() {
         super.validate();
     }
+}
+
+export class Workform extends Jmarc {
+	// work in progress
+    
+    constructor(collection, name=null) {
+		super(collection);
+        
+	}
 }

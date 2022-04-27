@@ -8,8 +8,8 @@ export let workformcomponent = {
             <div class="col-2">Auth Workforms</div>
             <div class="col-10">
                 <div v-for="w in auths_workforms" class="row">
-                    <span class="mx-2" contenteditable="true">{{w.name}}</span>
-                    <span class="mx-2" contenteditable="true">{{w.description}}</span>
+                    <span class="mx-2" contenteditable="true">{{w.workformName}}</span>
+                    <span class="mx-2" contenteditable="true">{{w.workformDescription}}</span>
                     <a :href="'/editor?workform=bibs/' + w.name"><i class="fas fa-edit"></i></a>
                 </div>
                 <div class="row"><a href="#">Create a new auth workform</a></div>
@@ -37,12 +37,11 @@ export let workformcomponent = {
     },
     created: async function() {
         Jmarc.apiUrl = this.api_prefix;
-        await Jmarc.listWorkforms("auths").then(wf => {
-            this.auths_workforms = wf;
-        });
-
-        await Jmarc.listWorkforms("bibs").then(wf => {
-            this.bibs_workforms = wf;
-        })
+        
+        console.log("hello")
+        
+        for (let col of ["auths", "bibs"]) {
+            this[`${col}_workforms`] = await Jmarc.listWorkforms(col);
+        }
     }
 }

@@ -1,0 +1,26 @@
+/**************************************************************
+********  CSS TRYING TO MATCH THE OFFICIAL UN POLICY **********
+***************************************************************/
+
+table{
+    border-radius: 30px 30px 30px 30px;
+}
+
+.record_displayed{
+    background-color: #4D4D4D; 
+    color: white;
+}
+
+.table_editor{
+    background-color: #F2F2F2;
+}
+
+tbody{
+    font-size: 85%;
+}
+
+thead > tr {
+    background-color: #F2F2F2;
+    color: black;
+}
+

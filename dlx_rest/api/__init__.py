@@ -184,7 +184,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['updated', 'date', 'symbol', 'title', 'heading'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -228,16 +228,6 @@ class RecordsList(Resource):
         
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
-            
-        # sort
-        sort_by = args.get('sort')
-        
-        if sort_by:
-            sort = [(sort_by, ASC)] if (args['direction'] or '').lower() == 'asc' else [(sort_by, DESC)]
-            # only include results wiht the sorted field. desired?
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
-        else:
-            sort = None
         
         # format
         fmt = args['format'] or None
@@ -250,12 +240,26 @@ class RecordsList(Resource):
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
-            project = None
+            project = {}
         else:
             project = {'_id': 1}
+          
+        # sort
+        sort_by = args.get('sort')
+        
+        if sort_by == 'relevance':
+            project['score'] = {'$meta': 'textScore'}
+            sort = [('score', {'$meta': 'textScore'})]
+        elif sort_by:
+            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
+            # only include results with the sorted field. otherwise, records with the field missing will be the first results
+            # TODO review
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
+        else:
+            sort = None
 
         # exec query
-        collation = {'locale': 'en', 'numericOrdering': True} if sort_by == 'symbol' else None
+        collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
         
         # process
@@ -359,7 +363,7 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        data = cls.from_query(query).count
+        data = cls().handle.count_documents(query.compile()) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -499,6 +503,7 @@ class Record(Resource):
             },
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
+                'history': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
@@ -1183,13 +1188,18 @@ class RecordHistory(Resource):
         # temporary implemention
         hcol = collection[:-1] + '_history'
         hrec = DB.handle[hcol].find_one({'_id': record_id}) or {}
-        history = hrec.get('history')
+        history = hrec.get('history') or []
         
-        if history:
-            data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
-        else:
-            data = None
-        
+        data = [
+            {
+                'user': history[i].get('user'),
+                'time': history[i].get('updated'),
+                'event': URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str()
+            } 
+                
+            for i in range(0, len(history))
+        ]
+
         links = {
             '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
             'related': {
@@ -1199,7 +1209,7 @@ class RecordHistory(Resource):
         
         meta = {
             'name': 'api_record_history',
-            'returns': URL('api_schema', schema_name='api.urllist').to_str()
+            'returns': URL('api_schema', schema_name='api.history.list').to_str()
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
@@ -1221,6 +1231,7 @@ class RecordHistoryEvent(Resource):
         
         data = marc.to_dict()
         data['updated'] = marc.updated
+        data['user'] = marc.user
         
         links = {
             '_self': URL('api_record_history_event', collection=collection, record_id=record_id, instance=instance).to_str(),
@@ -1464,17 +1475,15 @@ class MyUserProfileRecord(Resource):
     def get(self):        
         return_data = {}
 
-        try:
-            this_u = User.objects.get(id=current_user.id)
-            user_id = this_u['id']
-            return_data['email'] = this_u.email
-            return_data['roles'] = []
-            for r in this_u.roles:
-                return_data['roles'].append(r.name)
+        this_u = User.objects.get(id=current_user.id)
+        user_id = this_u['id']
+        return_data['email'] = this_u.email
+        return_data['roles'] = []
             
-            my_basket = URL('api_my_basket_record').to_str()
-        except:
-            raise
+        for r in this_u.roles:
+            return_data['roles'].append(r.name or '')
+            
+        my_basket = URL('api_my_basket_record').to_str()
 
         links = {
             '_self': URL('api_my_user_profile_record').to_str(),
@@ -1533,9 +1542,9 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        print(item)
+        #print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
-        print(lock_status)
+        #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
@@ -1546,10 +1555,11 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    losing_basket = Basket.objects.get(name=lock_status["in"])
-                    #print(losing_basket)
+                    print(lock_status["in"])
+                    for losing_basket in Basket.objects(name=lock_status["in"]):
+                        #print(losing_basket)
 
-                    losing_basket.remove_item(lock_status["item_id"])
+                        losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201
                 else:
@@ -1583,7 +1593,11 @@ class MyBasketItem(Resource):
             this_u = User.objects.get(id=current_user['id'])
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
-            item_data = this_basket.get_item_by_id(item_id)
+            item_data_raw = this_basket.get_item_by_id(item_id)
+            item_data = item_data_raw
+            if isinstance(item_data_raw, list):
+                item_data = item_data_raw[0]
+            print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
