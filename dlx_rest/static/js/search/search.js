@@ -73,7 +73,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -272,31 +272,37 @@ export let searchcomponent = {
                                                     // Display a lock icon
                                                     iconEl.classList.remove('fa-folder-plus',);
                                                     iconEl.classList.remove('fa-folder-minus',);
-                                                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
+                                                    iconEl.classList.add('fa-lock',);
                                                     iconEl.title = `This item is locked by ${itemLocked["by"]}`;
                                                 }
                                             }
                                         );
 
                                         iconEl.addEventListener("click", function() {
-                                            if (iconEl.classList.value === "fas fa-folder-plus") {
+                                            if (iconEl.classList.contains("fa-folder-plus")) {
+                                                iconEl.classList.add("fa-spinner");
                                                 // we can run an add
                                                 basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
                                                     function() {
+                                                        iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-plus");
                                                         iconEl.classList.add("fa-folder-minus");
                                                         iconEl.title = "Remove from basket";
                                                     }
                                                 )
-                                            } else {
+                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
+                                                iconEl.classList.add("fa-spinner");
                                                 // we can run a deletion
                                                 basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
                                                     function() {
+                                                        iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-minus");
                                                         iconEl.classList.add("fa-folder-plus");
                                                         iconEl.title = "Add to basket";
                                                     }
                                                 )
+                                            } else if (iconEl.classList.contains("fa-lock")) {
+                                                // TODO: unlock
                                             }
                                         });
                                     }
