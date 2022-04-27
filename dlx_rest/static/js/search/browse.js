@@ -1,3 +1,5 @@
+
+
 export let browsecomponent = {
     props: {
         api_prefix: {
@@ -24,17 +26,14 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
-            <a><<< Previous</a>
-            <!--
             <nav>
-                <ul class="pagination pagination-md justify-content-center">
+                <ul class="pagination pagination-md justify-content-left">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
                     <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
                     <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
                     <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
                 </ul>
             </nav>
-            -->
             <div class="row">
                 <div id="before-spinner" class="col d-flex justify-content-center">
                     <div class="spinner-border" role="status">
@@ -65,7 +64,7 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_after" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
-                <div class="col">
+                <div class="col ">
                     <a :id="'link-' + result.value" :href=result.url target="_blank">
                         {{result.value}}&nbsp;
                         <span :id="'count-' + result.value">
@@ -74,9 +73,14 @@ export let browsecomponent = {
                     </a>
                 </div>
             </div>
-            <div>
-                <a>Next >>></a>
-            </div>
+            <nav>
+                <ul class="pagination pagination-md justify-content-left">
+                    <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
+                    <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
+                    <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
+                    <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                </ul>
+            </nav>
         </div>
         <div v-else>
             <div class="col pt-2 m-auto" style="background-color:white;">
@@ -133,10 +137,17 @@ export let browsecomponent = {
                 }
             ).then(
                 jsondata => {
-                    let json = jsondata;
-                    //this.prev = json._links._prev;
-                
-                    for (let result of json.data) {
+                    let searchStr = decodeURIComponent(jsondata.data[0].search);
+                    searchStr = searchStr.split('search=')[1]; 
+                    let field = searchStr.split(":")[0]; // the logical field that is being browsed on
+
+                    if (url === beforeBrowse) {
+                        this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?q=${jsondata.data[0].value}`;
+                    } else {
+                        this.next = `${this.base_url}/records/${this.collection}/browse/${field}?q=${jsondata.data[jsondata.data.length-1].value}`;
+                    }
+
+                    for (let result of jsondata.data) {
                         // tanslate api search to app search
                         let searchStr = result.search.split('search=')[1];
                         let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
