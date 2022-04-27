@@ -59,7 +59,7 @@ export let searchcomponent = {
         <br>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
-                <div class="col-sm-11">
+                <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
                         <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
                             {{result.first_line}}
