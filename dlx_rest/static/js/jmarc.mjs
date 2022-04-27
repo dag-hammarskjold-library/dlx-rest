@@ -238,38 +238,40 @@ export class Jmarc {
 		this.undoredoVector=[]
 	}
 
-	// move undoredoIndex 
+	// move undoredoIndex f
 	// direction can be
 	// undo : right from left
 	// redo : left from right
 	
 	moveUndoredoIndexUndo(){
-	if (this.undoredoVector.length>0) {		
-			if (this.undoredoIndex>=0){
-				if (this.undoredoIndex==0){
-					alert("this is the first entry!!!!")
-				}
-				this.fields=[]
-				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
+
+		if (this.undoredoVector.length>0) {		
 				if (this.undoredoIndex>0){
+					if (this.undoredoIndex==1){
+						alert("this is the first entry!!!!")
+					}
+					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
 					}
+					this.fields=[]
+					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
+				}
 			}
-		}
 	}
 
 	moveUndoredoIndexRedo(){
+
 	if (this.undoredoVector.length>0) {		
 			if (this.undoredoIndex<this.undoredoVector.length){
 
-				if (this.undoredoIndex==this.undoredoVector.length-1){
+				if (this.undoredoIndex==this.undoredoVector.length-2){
 					alert("this is the last entry!!!!")
+				}	
+				if (this.undoredoIndex<this.undoredoVector.length-1){
+						this.undoredoIndex=this.undoredoIndex+1
 				}	
 				this.fields=[]
 				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
-				if (this.undoredoIndex<this.undoredoVector.length-1){
-					this.undoredoIndex=this.undoredoIndex+1
-				}	
 			}
 		}
 	}  

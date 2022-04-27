@@ -244,15 +244,15 @@ export let multiplemarcrecordcomponent = {
         // undo feature
         moveUndoredoIndexUndo(jmarc){
             jmarc.moveUndoredoIndexUndo()
-            this.removeRecordFromEditor(jmarc,false)
-            this.displayMarcRecord(jmarc,false)           
+            this.removeRecordFromEditor(jmarc,true)
+            this.displayMarcRecord(jmarc,false,true)           
         },
 
         // redo feature
         moveUndoredoIndexRedo(jmarc){
             jmarc.moveUndoredoIndexRedo()
-            this.removeRecordFromEditor(jmarc,false)
-            this.displayMarcRecord(jmarc,false)      
+            this.removeRecordFromEditor(jmarc,true)
+            this.displayMarcRecord(jmarc,false,true)      
         },
 
         pasteField(jmarc){
@@ -361,13 +361,16 @@ export let multiplemarcrecordcomponent = {
                 newField.tagSpan.focus();
                 document.execCommand("selectall");
                 newField.subfields[0].valueCell.classList.add("unsaved");
-           
+
             })
  
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
             jmarc.saveButton.classList.remove("text-primary");
             jmarc.saveButton.title = "save";
+
+            // undoredo snapshot
+            //jmarc.addUndoredoEntry("ADD FIELD") 
         },
         deleteField(jmarc){
             // delete the field
@@ -393,6 +396,10 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.remove("text-primary");
                 jmarc.saveButton.title = "save";
             }
+
+            // undoredo snapshot
+            //jmarc.addUndoredoEntry("DELETE FIELD") 
+
         },
         deleteRecord(jmarc) {
             if (jmarc.workformName) {
@@ -457,7 +464,7 @@ export let multiplemarcrecordcomponent = {
         },
         selectRecord(jmarc) {
             this.clearSelectedRecord()
-            this.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
+            //this.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
@@ -467,7 +474,6 @@ export let multiplemarcrecordcomponent = {
             checkBox.classList.replace("fa-square","fa-check-square")
         },
         async unlockRecord(jmarc, lockedBy) {
-            console.log(jmarc)
             let uibase = this.prefix.replace("/api/","")
             let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
             if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
@@ -763,7 +769,7 @@ export let multiplemarcrecordcomponent = {
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
             // clear the entries for the undoredo vector
-            if (keepDataInVector==true) { 
+            if (keepDataInVector==false) { 
                 jmarc.clearUndoredoVector()
             }    
 
@@ -808,8 +814,7 @@ export let multiplemarcrecordcomponent = {
             }
  
         },
-        displayMarcRecord(jmarc, readOnly) {
-            console.log("The vector has : " + jmarc.undoredoVector.length + " items")
+        displayMarcRecord(jmarc, readOnly,reload=false) {
             let myDivId;
            
             if (this.isRecordOneDisplayed == false) {
@@ -826,6 +831,10 @@ export let multiplemarcrecordcomponent = {
             }
             else {
                 // replace record?
+            }
+
+            if (reload==false){
+                jmarc.addUndoredoEntry()
             }
            
             jmarc.div = document.getElementById(myDivId);
@@ -845,16 +854,6 @@ export let multiplemarcrecordcomponent = {
  
             this.targetedTable=table
             this.optimizeEditorDisplay(table)
-
-            // init snapshot feature
-            // adding the listener to enable the snapshot feature in all the spans
-
-            let selectedSpans=document.getElementsByTagName("span")
-            let selectedSpansArray=Array.from(selectedSpans)            
-            selectedSpansArray.forEach(element => {
-                element.addEventListener('click',() =>{ jmarc.addUndoredoEntry("global") });
-            })
-
         },
         buildRecordTable(jmarc, readOnly) {
             let table = document.createElement("table");
@@ -1211,6 +1210,10 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.remove("text-primary");
                     jmarc.saveButton.title = "save";
                 }
+
+                // adding the snapshot 
+                jmarc.addUndoredoEntry("from Delete Field")
+             
  
             });
    
@@ -1297,13 +1300,8 @@ export let multiplemarcrecordcomponent = {
                     field.tagSpan.classList.remove("unsaved");
                     field.tagSpan.classList.add("invalid");
                 } 
-
+                
             });
-
-            tagSpan.addEventListener("dblclick", ()=> {
-                    jmarc.addUndoredoEntry("TAG")
-                }
-            );
  
             tagSpan.addEventListener("mouseover", function() {
                 tagSpan.focus()
@@ -1323,6 +1321,13 @@ export let multiplemarcrecordcomponent = {
             tagSpan.addEventListener("keydown", function() {
                 $(tagMenu).dropdown("hide");
             });
+
+            tagSpan.addEventListener("input",function(){
+                // adding the snapshot 
+                if (tagSpan.innerText.length === 3) {
+                    jmarc.addUndoredoEntry("from Tag")
+                }
+            });
    
             // Indicators
             if (! field.tag.match(/^00/)) {
@@ -1331,7 +1336,7 @@ export let multiplemarcrecordcomponent = {
        
                 let ind2Span = document.createElement("span");
                 tagCell.append(ind2Span);
-       
+
                 for (let span of [ind1Span, ind2Span]) {
                     let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
                     span.className = "mx-1 text-secondary"
@@ -1468,6 +1473,11 @@ export let multiplemarcrecordcomponent = {
                 if (checkSubfield && checkSubfield.value !== subfield.value) {
                     subfield.valueCell.classList.add("unsaved");
                 }
+
+                // adding the snapshot 
+                if (codeSpan.innerText.length === 1) {
+                    jmarc.addUndoredoEntry("from Code Subfield")
+                }
             });
    
             codeSpan.addEventListener("keydown", function (event) {
@@ -1509,7 +1519,7 @@ export let multiplemarcrecordcomponent = {
                 saveButton.classList.add("text-danger");
                 saveButton.classList.remove("text-primary");
                 saveButton.title = "unsaved changes";
-       
+
                 return
             });
    
@@ -1540,6 +1550,9 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.remove("text-primary");
                     jmarc.saveButton.title = "save";
                 }
+
+                // adding the snapshot 
+                jmarc.addUndoredoEntry("from Delete SubField")
  
             });
    
@@ -1574,6 +1587,12 @@ export let multiplemarcrecordcomponent = {
                 else {
                     valCell.classList.remove("unsaved");
                 }
+
+                // adding the snapshot 
+                if (valCell.innerText.length > 0) {
+                    jmarc.addUndoredoEntry("from Subfield Value")
+                }
+
             });
    
             valSpan.addEventListener("keydown", function (event) {
@@ -1618,6 +1637,8 @@ export let multiplemarcrecordcomponent = {
                 } else {
                     component.removeAuthControl(subfield)
                 }
+                // undoredo snapshot
+                // jmarc.addUndoredoEntry("EDIT SUBFIELD CODE") 
             });
    
             // create the last cell
