@@ -17,7 +17,11 @@ export let searchcomponent = {
         collection: {
             type: String,
             required: true
-        }
+        },
+        logged_in: {
+            type: String,
+            required: true
+        },
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
@@ -61,9 +65,8 @@ export let searchcomponent = {
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
-                        <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
-                            {{result.first_line}}
-                        </a>
+                        <a v-if="logged_in" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-else class="lead" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
@@ -78,6 +81,7 @@ export let searchcomponent = {
                 </div>
             </div>
         </div>
+        </br>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
