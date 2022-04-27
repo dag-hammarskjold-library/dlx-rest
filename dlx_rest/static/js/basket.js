@@ -68,6 +68,7 @@ export let basketcomponent = {
             }   
             else
             {
+                this.$root.$refs.multiplemarcrecordcomponent.recordlist.push(`${myCollection}/${myRecord}`);
                 let jmarc = await Jmarc.get(myCollection, myRecord);
                 this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
                 // add record displayed

@@ -41,8 +41,8 @@ export let multiplemarcrecordcomponent = {
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
                     <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
                         <div class="container">
-                            <h1 class="display-4 text-center">No record selected</h1>
-                            <p class="lead text-center">You can select one from the basket to the left or create one via the menu above.</p>
+                            <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner"></p>
+                            <p v-else class="text-center">No record selected</p>
                         </div>
                     </div>                               
                 </div>
@@ -69,6 +69,7 @@ export let multiplemarcrecordcomponent = {
             visible: true,
             record1: "",
             record2: "",
+            recordlist: [],
             collectionRecord1:"",
             collectionRecord2:"",
             isRecordOneDisplayed: false,
@@ -117,47 +118,36 @@ export let multiplemarcrecordcomponent = {
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
  
-        let myProfile = await user.getProfile(this.prefix, 'my_profile');
-        if (myProfile) {
-            this.user = myProfile.data.email;
-            this.myBasket = await basket.getBasket(this.prefix);
-        }
-       
+        user.getProfile(this.prefix, 'my_profile').then(
+            myProfile => {
+                this.user = myProfile.data.email;
+                
+                basket.getBasket(this.prefix).then(
+                    myBasket => this.myBasket = myBasket
+                )
+            }
+        );
+        
+        // the "records" param from the URL
         if (this.records !== "None") {
-            this.records.split(",").forEach(
-                record => {
-                    var split_rec = record.split("/")
-                    
-                    if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
-                            if (this.readonly && this.user !== null) {
-                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                                this.displayMarcRecord(jmarc, true);
-                            } else if (this.user === null) {
-                                this.displayMarcRecord(jmarc, true);
-                            } else {
-                                this.displayMarcRecord(jmarc, false); // record ID and collection
-                            }
-                        })
-                       
+            // "<col>/<id>"
+            this.recordlist = this.records.split(","); 
+
+            for (let record of this.recordlist) {
+                let collection = record.split("/")[0]
+                let recordId = record.split("/")[1]
+            
+                Jmarc.get(collection, recordId).then(async jmarc => {
+                    if (this.readonly && this.user !== null) {
+                        this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                        this.displayMarcRecord(jmarc, true);
+                    } else if (this.user === null) {
+                        this.displayMarcRecord(jmarc, true);
                     } else {
-                        let jmarc = new Jmarc(split_rec[0]);
-                       
-                        if (split_rec[0] == "bibs") {
-                            let field = jmarc.createField('245');
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
-                        } else if (split_rec[0] == "auths") {
-                            let field = jmarc.createField('100')
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
-                        }
-                       
                         this.displayMarcRecord(jmarc);
                     }
-                }
-            );
- 
+                })
+            }
         } else if (this.workform !== 'None') {
             let wfCollection = this.workform.split('/')[0];
             let wfRecordId = this.workform.split('/')[1]
@@ -809,7 +799,9 @@ export let multiplemarcrecordcomponent = {
                 this.selectedDiv=this.displayedJmarcObject[0].recordId     
                 this.selectRecord(this.displayedJmarcObject[0])
             }
- 
+
+            //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
         },
         displayMarcRecord(jmarc, readOnly) {
             // Add to div
@@ -840,8 +832,14 @@ export let multiplemarcrecordcomponent = {
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
  
-            this.addJmarcTodisplayedJmarcObject(jmarc)    
- 
+            this.addJmarcTodisplayedJmarcObject(jmarc);
+
+            let recordString = `${jmarc.collection}/${jmarc.recordId}`;
+
+            if (! this.recordlist.includes(recordString)) {
+                this.recordlist.push(recordString)
+            }
+
             //////////////////////////////////////////////////////////////////////////////
             // optimize the display just when you have one record displayed
             //////////////////////////////////////////////////////////////////////////////
