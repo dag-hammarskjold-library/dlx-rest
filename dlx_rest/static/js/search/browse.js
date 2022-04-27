@@ -1,5 +1,3 @@
-
-
 export let browsecomponent = {
     props: {
         api_prefix: {
@@ -21,6 +19,10 @@ export let browsecomponent = {
         index_list: {
             type: String,
             required: false
+        },
+        logged_in: {
+            type: String,
+            required: true
         }
     },
     template: `
@@ -170,7 +172,14 @@ export let browsecomponent = {
                                             let apiUrl = json.data[0];
                                             let parts = apiUrl.split("/");
                                             let recordId = parts[parts.length-1];
-                                            let recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
+                                            let recordUrl;
+                                            
+                                            if (this.logged_in) {
+                                                recordUrl = `${this.base_url}/editor?records=${this.collection}/${recordId}`
+                                            } else {
+                                                recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
+                                            }
+                                            
                                             document.getElementById(`link-${result.value}`).href = recordUrl
                                         }
                                     )
