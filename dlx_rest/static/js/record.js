@@ -848,8 +848,13 @@ export let multiplemarcrecordcomponent = {
             this.optimizeEditorDisplay(table)
         },
         buildRecordTable(jmarc, readOnly) {
+            let component = this;
             let table = document.createElement("table");
             jmarc.table = table;
+
+            table.addEventListener("click", function() {
+                component.selectRecord(jmarc) 
+            });
  
             window.addEventListener("click",  function() {
                 let dropdown = document.getElementById("typeahead-dropdown")
