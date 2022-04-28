@@ -1,4 +1,8 @@
 
+table.marc-record {
+    box-shadow: 0 0 15px 1px #505050;
+}
+
 table.marc-record.read-only.tbody {
     pointer-events: none;
 }

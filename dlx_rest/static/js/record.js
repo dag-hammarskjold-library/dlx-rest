@@ -1134,7 +1134,7 @@ export let multiplemarcrecordcomponent = {
             // Tag cell
             let tagCell = field.row.insertCell();
             field.tagCell = tagCell;
-            tagCell.className = "field-tag badge badge-pill badge-warning dropdown-toggle";
+            tagCell.className = "field-tag badge badge-dark dropdown-toggle";
    
             // menu
             let tagMenu = document.createElement("div");
@@ -1323,7 +1323,7 @@ export let multiplemarcrecordcomponent = {
        
                 for (let span of [ind1Span, ind2Span]) {
                     let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
-                    span.className = "mx-1 text-secondary"
+                    span.className = "mx-1"
                     span.innerText = indicator;
                     span.contentEditable = true;
        
@@ -1405,7 +1405,7 @@ export let multiplemarcrecordcomponent = {
             // Subfield code
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
-            codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
+            codeCell.className = "subfield-code badge bg-light text-dark dropdown-toggle";
    
             // menu
             let codeMenu = document.createElement("div");
