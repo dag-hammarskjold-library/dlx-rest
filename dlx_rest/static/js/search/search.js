@@ -65,8 +65,8 @@ export let searchcomponent = {
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
-                        <a v-if="logged_in" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
@@ -136,7 +136,7 @@ export let searchcomponent = {
         }
     },
     created: async function() {
-        
+        this.allowDirectEdit = this.logged_in ? true : false;
     },
     mounted: async function() {
         let component = this;
@@ -278,6 +278,9 @@ export let searchcomponent = {
                                                     iconEl.classList.remove('fa-folder-minus',);
                                                     iconEl.classList.add('fa-lock',);
                                                     iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                                                    // revert link to read only view. 
+                                                    // TODO: acquire the lock status earlier 
+                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
                                                 }
                                             }
                                         );
