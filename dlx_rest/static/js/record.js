@@ -1139,7 +1139,7 @@ export let multiplemarcrecordcomponent = {
             // Tag cell
             let tagCell = field.row.insertCell();
             field.tagCell = tagCell;
-            tagCell.className = "field-tag badge badge-dark dropdown-toggle";
+            tagCell.className = "field-tag badge badge-warning dropdown-toggle";
    
             // menu
             let tagMenu = document.createElement("div");
@@ -1410,7 +1410,7 @@ export let multiplemarcrecordcomponent = {
             // Subfield code
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
-            codeCell.className = "subfield-code badge bg-light text-dark dropdown-toggle";
+            codeCell.className = "subfield-code badge bg-primary dropdown-toggle";
    
             // menu
             let codeMenu = document.createElement("div");
