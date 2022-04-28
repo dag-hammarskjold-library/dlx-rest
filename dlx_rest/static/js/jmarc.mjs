@@ -204,21 +204,19 @@ export class Jmarc {
 	
 	// add a new undoredoEntry
 	// this method should be add each time we are changing the value of one input
-	addUndoredoEntry(entry,changeon){
+	addUndoredoEntry(changeon){
 
 		// collecting the values to assign
 		let today = new Date();
 		let dateEntry = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()
-		let recordIdEntry=entry.recordId
+		let recordIdEntry=this.recordId
 		let timeEntry = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
 		let changeonEntry=changeon
-		//let valueEntry=entry;
-		let valueEntry=entry.clone();
+		let valueEntry={}
+		valueEntry=this.compile()
 
 		// defining the undoredoEntry Object
-		
 		let undoredoEntry= {}
-		//undoredoEntry=entry.clone()
 		 
 		// adding the properties
 		undoredoEntry.dateEntry=dateEntry
@@ -230,10 +228,9 @@ export class Jmarc {
 		// adding the entry inside the vector
 		this.undoredoVector.push(undoredoEntry)
 
-		console.log(this.undoredoVector.length)
-
 		// reset the index to the last value
-		this.undoredoIndex=this.undoredoVector.length
+		this.undoredoIndex=this.undoredoVector.length-1
+
 	}
 
 	// clear the undoredo Vector
@@ -241,38 +238,44 @@ export class Jmarc {
 		this.undoredoVector=[]
 	}
 
-	// move undoredoIndex 
-	// direction can be :
+	// move undoredoIndex f
+	// direction can be
 	// undo : right from left
 	// redo : left from right
-	moveUndoredoIndex(direction){
 	
-		if (direction==="undo") {
-			if (this.undoredoIndex>0){
-				alert("click on UNDO!!!")
-				this.undoredoIndex = this.undoredoIndex - 1
-				alert("Date: "+ this.undoredoVector[this.undoredoIndex].dateEntry + "\n"+ 
-                "Time: "+ this.undoredoVector[this.undoredoIndex].timeEntry +  "\n"+ 
-                "RecordId: "+ this.undoredoVector[this.undoredoIndex].recordIdEntry +  "\n"+ 
-				"Change on: "+ this.undoredoVector[this.undoredoIndex].changeonEntry +  "\n"+ 
-                "Tag nunber 7: "+ this.undoredoVector[this.undoredoIndex].valueEntry.fields[6].tag+  "\n"+
-                "-------------------------------------")
-			}
-		} else { // case direction ==="redo"
-			
-			if (this.undoredoIndex<this.undoredoVector.length){
-				alert("click on REDO!!!")
-				alert("Date: "+ this.undoredoVector[this.undoredoIndex].dateEntry + "\n"+ 
-                "Time: "+ this.undoredoVector[this.undoredoIndex].timeEntry +  "\n"+ 
-                "RecordId: "+ this.undoredoVector[this.undoredoIndex].recordIdEntry +  "\n"+ 
-				"Change on: "+ this.undoredoVector[this.undoredoIndex].changeonEntry +  "\n"+ 
-                "Tag nunber 7: "+ this.undoredoVector[this.undoredoIndex].valueEntry.fields[6].tag+  "\n"+
-                "-------------------------------------")
-				this.undoredoIndex = this.undoredoIndex + 1
+	moveUndoredoIndexUndo(){
 
+		if (this.undoredoVector.length>0) {		
+				if (this.undoredoIndex>0){
+					if (this.undoredoIndex==1){
+						//alert("this is the first entry!!!!")
+					}
+					if (this.undoredoIndex>0){
+						this.undoredoIndex=this.undoredoIndex-1
+					}
+					this.fields=[]
+					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
+				}
 			}
-		} 
 	}
+
+	moveUndoredoIndexRedo(){
+
+	if (this.undoredoVector.length>0) {		
+			if (this.undoredoIndex<this.undoredoVector.length){
+
+				if (this.undoredoIndex==this.undoredoVector.length-2){
+					//alert("this is the last entry!!!!")
+				}	
+				if (this.undoredoIndex<this.undoredoVector.length-1){
+						this.undoredoIndex=this.undoredoIndex+1
+				}	
+				this.fields=[]
+				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
+			}
+		}
+	}  
+	
 
 	isAuthorityControlled(tag, code) {
 		let map = authMap;
@@ -617,7 +620,7 @@ export class Jmarc {
 		
 		return historyRecords
 	}
-	
+
 	clone() {
 		let cloned = (new this.recordClass).parse(this.compile());
 		
@@ -701,6 +704,7 @@ export class Jmarc {
 		return this.fields.filter(x => ! x.tag.match(/^0{2}/))
 	}
 	
+
 	getFields(tag) {
 		return this.fields.filter(x => x.tag == tag)
 	}
