@@ -17,7 +17,11 @@ export let searchcomponent = {
         collection: {
             type: String,
             required: true
-        }
+        },
+        logged_in: {
+            type: String,
+            required: true
+        },
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
@@ -59,11 +63,10 @@ export let searchcomponent = {
         <br>
         <div v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
-                <div class="col-sm-11">
+                <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
-                        <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
-                            {{result.first_line}}
-                        </a>
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
@@ -73,11 +76,12 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
         </div>
+        </br>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
@@ -132,7 +136,7 @@ export let searchcomponent = {
         }
     },
     created: async function() {
-        
+        this.allowDirectEdit = this.logged_in ? true : false;
     },
     mounted: async function() {
         let component = this;
@@ -153,6 +157,7 @@ export let searchcomponent = {
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
         component.start = component.params.start;
+        let startTime = Date.now();
 
         // start the count
         fetch(this.search_url.replace('/records', '/records/count'), this.abortController).then(
@@ -177,12 +182,11 @@ export let searchcomponent = {
         ).catch(
             error => {
                 if (error.name === "AbortError") {
-                    // console.log("count cancelled")
+                    document.getElementById("result-count-top").innerHTML = '⏱'
+                    document.getElementById("result-count-bottom").innerHTML = '⏱'
                 }
             }
         );
-
-        let startTime = Date.now();
         
         fetch(this.search_url, this.abortController).then(
             response => {
@@ -237,59 +241,85 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        ).then( () => {
-            user.getProfile(this.api_prefix, 'my_profile').then(
-                myProfile => {
-                    //console.log("got my profile")
-                    if (myProfile) {
-                        this.user = myProfile.data.email;
-                    }
-    
-                    if (typeof this.user !== "undefined") {
-                        //console.log("this user is not undefined")
-                        basket.getBasket(this.api_prefix).then(
-                            myBasket => {
-                                //console.log("got my basket contents")
-                                for (let result of this.results) {
-                                    //console.log("processing result")
-                                    let myId = `icon-${this.collection}-${result._id}`
-                                    let iconEl = document.getElementById(myId);
+        ).then( 
+            () => {
+                user.getProfile(component.api_prefix, 'my_profile').then(
+                    myProfile => {
+                        //console.log("got my profile")
+                        if (myProfile) {
+                            component.user = myProfile.data.email;
+                        }
                     
-                                    iconEl.classList.add('fa-folder-plus');
-                                    iconEl.addEventListener("click", async () => {
-                                        basket.getBasket(this.api_prefix).then(
-                                            myBasket => {
-                                                this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
-                    
-                                                if (this.basketContains(myBasket, this.collection, result._id)) {
+                        if (typeof component.user !== "undefined") {
+                            //console.log("this user is not undefined")
+                            basket.getBasket(component.api_prefix).then(
+                                myBasket => {
+                                    //console.log("got my basket contents")
+                                    for (let result of component.results) {
+                                        //console.log("processing result")
+                                        let myId = `icon-${component.collection}-${result._id}`;
+                                        let iconEl = document.getElementById(myId);
+                                    
+                                        if (component.basketContains(myBasket, component.collection, result._id)) {
+                                            //iconEl.classList.remove('fa-folder-plus',);
+                                            iconEl.classList.add('fa-folder-minus');
+                                            iconEl.title = "Remove from basket";
+                                        } else {
+                                            iconEl.classList.add('fa-folder-plus');
+                                            iconEl.title = "Add to basket";
+                                        }
+
+                                        // checking if the record is locked and displaying a lock if it is.
+                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
+                                            itemLocked => {
+                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                                                    // Display a lock icon
                                                     iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.add('fa-folder-minus');
-                                                    iconEl.title = "Remove from basket";
+                                                    iconEl.classList.remove('fa-folder-minus',);
+                                                    iconEl.classList.add('fa-lock',);
+                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                                                    // revert link to read only view. 
+                                                    // TODO: acquire the lock status earlier 
+                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
                                                 }
                                             }
                                         );
-                                    });
-                    
-                                    // checking if the record is locked and displaying a lock if it is.
-                                    basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                        itemLocked => {
-                                            if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                // Display a lock icon
-                                                iconEl.classList.remove('fa-folder-plus',);
-                                                iconEl.classList.remove('fa-folder-minus',);
-                                                iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
-                                                iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+
+                                        iconEl.addEventListener("click", function() {
+                                            if (iconEl.classList.contains("fa-folder-plus")) {
+                                                iconEl.classList.add("fa-spinner");
+                                                // we can run an add
+                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
+                                                    function() {
+                                                        iconEl.classList.remove("fa-spinner");
+                                                        iconEl.classList.remove("fa-folder-plus");
+                                                        iconEl.classList.add("fa-folder-minus");
+                                                        iconEl.title = "Remove from basket";
+                                                    }
+                                                )
+                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
+                                                iconEl.classList.add("fa-spinner");
+                                                // we can run a deletion
+                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
+                                                    function() {
+                                                        iconEl.classList.remove("fa-spinner");
+                                                        iconEl.classList.remove("fa-folder-minus");
+                                                        iconEl.classList.add("fa-folder-plus");
+                                                        iconEl.title = "Add to basket";
+                                                    }
+                                                )
+                                            } else if (iconEl.classList.contains("fa-lock")) {
+                                                // TODO: unlock
                                             }
-                                        }
-                                    )
+                                        });
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }        
                     }
-    
-                }
-            )
-        })
+                )
+            }
+        );
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
@@ -315,21 +345,6 @@ export let searchcomponent = {
                 }
             }
             return false;
-        },
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
-                })
-            } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
-            }
         },
         reportError(message) {
             document.getElementById("results-spinner").innerHTML = message;
