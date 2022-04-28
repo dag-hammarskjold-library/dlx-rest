@@ -296,6 +296,7 @@ class RecordsList(Resource):
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             },
             'related': {
+                #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
@@ -412,7 +413,7 @@ class RecordsListBrowse(Resource):
         collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
 
-        values = [d for d in DB.handle[f'{field}_index'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
             values = list(reversed(list(values)))    
@@ -420,11 +421,12 @@ class RecordsListBrowse(Resource):
         data = [
             {
                 'value': x['_id'],
-                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
-                
+                'search': URL('api_records_list', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str()
             } for x in values
         ]
+
+        print(data)
         
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),

@@ -477,7 +477,6 @@ def check_response(response):
         if sublinks:
             for linktype in sublinks:
                 res = client.get(sublinks[linktype])
-                
                 assert res.status_code == 200
  
     return data    
