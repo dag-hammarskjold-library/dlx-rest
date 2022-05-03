@@ -202,8 +202,13 @@ export let multiplemarcrecordcomponent = {
                 });
             } else {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                
+                jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.style = "pointer-events: none";
  
                 promise.then(jmarc => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -216,6 +221,8 @@ export let multiplemarcrecordcomponent = {
                     }
                     //this.selectRecord(jmarc)
                 }).catch(error => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                 });
             }
@@ -982,13 +989,16 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     if (control["param"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["param"]) }
+                            this[control["click"]](control["param"]) 
+                        }
                     } else if (control["params"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
+                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                        }
                     } else {
                         controlButton.onclick = () => {
-                            this[control["click"]](jmarc) }
+                            this[control["click"]](jmarc) 
+                        }
                     }
                     jmarc[control["name"]] = controlButton;
                } else {
