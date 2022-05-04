@@ -47,7 +47,7 @@ export let multiplemarcrecordcomponent = {
                     </div>                               
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
@@ -59,6 +59,7 @@ export let multiplemarcrecordcomponent = {
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                         </div> -->
                     </div>
+                    <br>&nbsp;
                 </div>
             </div>
         </div>
