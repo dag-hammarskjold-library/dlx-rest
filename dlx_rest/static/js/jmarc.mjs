@@ -547,6 +547,7 @@ export class Jmarc {
 	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
+		this.fields = [];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
@@ -610,9 +611,9 @@ export class Jmarc {
 		let data = json['data'];
 		let historyRecords = [];
 		
-		for (let url of data) {
+		for (let result of data) {
 			let record = new Jmarc(this.collection);
-			let response = await fetch(url);
+			let response = await fetch(result.event);
 			let json = await response.json();
 			record.parse(json['data']);
 			historyRecords.push(record);
