@@ -342,7 +342,7 @@ export class Jmarc {
     }
     
     static fromWorkform(collection, workformName) {
-        let jmarc = new Jmarc(collection);
+        let jmarc = new Workform(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
             response => {
@@ -622,6 +622,24 @@ export class Jmarc {
 		return historyRecords
 	}
 
+	diff(other) {
+		// returns a new Jmarc record where the fields different from "other" are tagged
+		if (! other instanceof Jmarc) {throw new Error("First argument must be instance of Jmarc")};
+
+		let diff = new Diff(this.collection);
+		diff.parse(this.compile());
+
+		for (let field of diff.fields) {
+			if (other.fields.map(x => x.toStr()).includes(field.toStr())) {
+				field.isDiff = false
+			} else {
+				field.isDiff = true
+			}
+		}
+
+		return diff
+	}
+
 	clone() {
 		let cloned = (new this.recordClass).parse(this.compile());
 		
@@ -803,6 +821,13 @@ export class Workform extends Jmarc {
     
     constructor(collection, name=null) {
 		super(collection);
-        
+	}
+}
+
+export class Diff extends Jmarc {
+	// work in progress
+    
+	constructor(collection) {
+		super(collection);
 	}
 }

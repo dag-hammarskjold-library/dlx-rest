@@ -12,6 +12,7 @@ TESTING mode, the spec will fail at the app login prompt */
 
 import {Jmarc, Bib, Auth, DataField, Subfield} from "../static/js/jmarc.mjs";
 import fetch from "node-fetch";
+import { recordExpression } from "@babel/types";
 
 if (! globalThis.fetch) {
 	globalThis.fetch = fetch;
@@ -192,6 +193,25 @@ describe(
                 expect(jmarc.getField("245").getSubfield("a").value).toEqual("New record");
             }
         );
+
+        it(
+            "diff",
+            function() {
+                // test records
+                let record1 = new Bib();
+                let record2 = new Bib();
+                record1.createField("245").createSubfield("a").value = "Same";
+                record1.createField("999").createSubfield("a").value = "1";
+                record2.createField("245").createSubfield("a").value = "Same";
+                record2.createField("999").createSubfield("a").value = "2";
+                
+                // diff
+                let diff = record1.diff(record2);
+                expect(diff).toBeInstanceOf(Jmarc);
+                expect(diff.getField("245").isDiff).toBeFalse();
+                expect(diff.getField("999").isDiff).toBeTrue();
+            }
+        );
         
         it(
             "clone",
@@ -229,7 +249,7 @@ describe(
                 auth.deleteField(field);
                 expect(auth.getField("999")).toBeUndefined();
             }
-        )
+        );
         
         it(
             "delete subfields",
@@ -255,7 +275,7 @@ describe(
                 field.deleteSubfield(subfield); // use the subfield object to delete
                 expect(field.getSubfield("c")).toBeUndefined();
             }
-        )
+        );
         
         it(
             "workforms",
@@ -286,6 +306,6 @@ describe(
                 
                 expect(await Jmarc.deleteWorkform("bibs", "Test_workform")).toBeTrue;
             }
-        )
+        );
     }
 );
