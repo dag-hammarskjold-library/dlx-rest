@@ -305,8 +305,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "unsaved changes";
+                    jmarc.saveButton.title = "Save Record";
                 })
                                
         },
@@ -379,8 +378,7 @@ export let multiplemarcrecordcomponent = {
  
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "save";
+            jmarc.saveButton.title = "Save Record";
 
             // undoredo snapshot
             //jmarc.addUndoredoEntry("ADD FIELD") 
@@ -402,12 +400,10 @@ export let multiplemarcrecordcomponent = {
             // Manage virtual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
 
             // undoredo snapshot
@@ -908,12 +904,12 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    //jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    //jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "Save Record";
                 }
             });
            
@@ -937,7 +933,7 @@ export let multiplemarcrecordcomponent = {
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
                 {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Record", "click": "saveRecord"},
+                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
@@ -1206,8 +1202,7 @@ export let multiplemarcrecordcomponent = {
  
                 // Manage visual indicators
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
  
                 return
             });
@@ -1227,23 +1222,18 @@ export let multiplemarcrecordcomponent = {
                 }
                
                 jmarc.deleteField(field);
-               
                 table.deleteRow(field.row.rowIndex);
  
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
-             
- 
             });
    
             // Tag span
@@ -1292,6 +1282,8 @@ export let multiplemarcrecordcomponent = {
                         subfield.valueCell.classList.add("unsaved");
                     }
                 }
+
+                console.log(JSON.stringify(jmarc.savedState))
             });
    
             tagSpan.addEventListener("keydown", function (event) {
@@ -1376,11 +1368,28 @@ export let multiplemarcrecordcomponent = {
                         if (span.innerText.length > 1) {   
                             span.innerText = span.innerText.substring(0, 1);
                         }
-           
+                        
+                        // editing the indicators array directly has strange side effects
+                        let updated = [field.indicators[0], field.indicators[1]]
+
                         if (span == ind1Span) {
-                            field.indicators[0] = span.innerText;
+                            updated[0] = span.innerText;
                         } else {
-                            field.indicators[1] = span.innerText;
+                            updated[1] = span.innerText;
+                        }
+
+                        field.indicators = updated;
+
+                        if (jmarc.saved) {
+                            jmarc.saveButton.classList.remove("text-danger");
+                            jmarc.saveButton.title = "No Unsaved Changes";
+
+                            console.log("SAVED")
+                        } else {
+                            jmarc.saveButton.classList.add("text-danger");
+                            jmarc.saveButton.title = "Save Record";
+
+                            console.log("NOT SAVED")
                         }
  
                     });
@@ -1572,12 +1581,10 @@ export let multiplemarcrecordcomponent = {
                 // Manage visual indicators
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
