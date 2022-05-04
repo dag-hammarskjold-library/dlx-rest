@@ -201,7 +201,7 @@ export let multiplemarcrecordcomponent = {
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
-            } else {
+            } else if (! jmarc.saved) {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
                 
                 jmarc.saveButton.classList.add("fa-spinner");
