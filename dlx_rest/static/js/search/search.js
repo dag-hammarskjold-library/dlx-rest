@@ -368,6 +368,7 @@ export let searchcomponent = {
                             //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
+                                    //console.log(myBasket)
                                     //console.log("got my basket contents")
                                     for (let result of component.results) {
                                         //console.log("processing result")
@@ -401,6 +402,8 @@ export let searchcomponent = {
 
                                         iconEl.addEventListener("click", function() {
                                             if (iconEl.classList.contains("fa-folder-plus")) {
+                                                //console.log("We're trying to create something.")
+                                                basket.getBasket(component.api_prefix)
                                                 iconEl.classList.add("fa-spinner");
                                                 // we can run an add
                                                 basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
@@ -412,10 +415,13 @@ export let searchcomponent = {
                                                     }
                                                 )
                                             } else if (iconEl.classList.contains("fa-folder-minus")) {
+                                                //console.log("We're trying to delete something.")
+                                                basket.getBasket(component.api_prefix)
                                                 iconEl.classList.add("fa-spinner");
                                                 // we can run a deletion
                                                 basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
                                                     function() {
+                                                        //console.log("But did we do it?")
                                                         iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-minus");
                                                         iconEl.classList.add("fa-folder-plus");
