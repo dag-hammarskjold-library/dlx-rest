@@ -37,7 +37,7 @@ export let multiplemarcrecordcomponent = {
     },
     template: `
         <div class="container col-sm-10" id="app1" style="background-color:white;">
-            <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
+            <div class='mt-3 shadow'>
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
                     <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
                         <div class="container">
@@ -47,18 +47,19 @@ export let multiplemarcrecordcomponent = {
                     </div>                               
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                         </div> -->
                     </div>
-                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                         </div> -->
                     </div>
+                    <br>&nbsp;
                 </div>
             </div>
         </div>
@@ -211,10 +212,15 @@ export let multiplemarcrecordcomponent = {
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
-            } else {
+            } else if (! jmarc.saved) {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                
+                jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.style = "pointer-events: none";
  
                 promise.then(jmarc => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -227,6 +233,8 @@ export let multiplemarcrecordcomponent = {
                     }
                     //this.selectRecord(jmarc)
                 }).catch(error => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                 });
             }
@@ -309,8 +317,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "unsaved changes";
+                    jmarc.saveButton.title = "Save Record";
                 })
                                
         },
@@ -383,8 +390,7 @@ export let multiplemarcrecordcomponent = {
  
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "save";
+            jmarc.saveButton.title = "Save Record";
 
             // undoredo snapshot
             //jmarc.addUndoredoEntry("ADD FIELD") 
@@ -406,12 +412,10 @@ export let multiplemarcrecordcomponent = {
             // Manage virtual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
 
             // undoredo snapshot
@@ -912,12 +916,12 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    //jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    //jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "Save Record";
                 }
             });
            
@@ -941,7 +945,7 @@ export let multiplemarcrecordcomponent = {
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
                 {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Record", "click": "saveRecord"},
+                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
@@ -993,13 +997,16 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     if (control["param"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["param"]) }
+                            this[control["click"]](control["param"]) 
+                        }
                     } else if (control["params"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
+                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                        }
                     } else {
                         controlButton.onclick = () => {
-                            this[control["click"]](jmarc) }
+                            this[control["click"]](jmarc) 
+                        }
                     }
                     jmarc[control["name"]] = controlButton;
                } else {
@@ -1207,8 +1214,7 @@ export let multiplemarcrecordcomponent = {
  
                 // Manage visual indicators
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
  
                 return
             });
@@ -1228,23 +1234,18 @@ export let multiplemarcrecordcomponent = {
                 }
                
                 jmarc.deleteField(field);
-               
                 table.deleteRow(field.row.rowIndex);
  
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
-             
- 
             });
    
             // Tag span
@@ -1293,6 +1294,8 @@ export let multiplemarcrecordcomponent = {
                         subfield.valueCell.classList.add("unsaved");
                     }
                 }
+
+                console.log(JSON.stringify(jmarc.savedState))
             });
    
             tagSpan.addEventListener("keydown", function (event) {
@@ -1377,11 +1380,28 @@ export let multiplemarcrecordcomponent = {
                         if (span.innerText.length > 1) {   
                             span.innerText = span.innerText.substring(0, 1);
                         }
-           
+                        
+                        // editing the indicators array directly has strange side effects
+                        let updated = [field.indicators[0], field.indicators[1]]
+
                         if (span == ind1Span) {
-                            field.indicators[0] = span.innerText;
+                            updated[0] = span.innerText;
                         } else {
-                            field.indicators[1] = span.innerText;
+                            updated[1] = span.innerText;
+                        }
+
+                        field.indicators = updated;
+
+                        if (jmarc.saved) {
+                            jmarc.saveButton.classList.remove("text-danger");
+                            jmarc.saveButton.title = "No Unsaved Changes";
+
+                            console.log("SAVED")
+                        } else {
+                            jmarc.saveButton.classList.add("text-danger");
+                            jmarc.saveButton.title = "Save Record";
+
+                            console.log("NOT SAVED")
                         }
  
                     });
@@ -1573,12 +1593,10 @@ export let multiplemarcrecordcomponent = {
                 // Manage visual indicators
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 

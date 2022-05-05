@@ -307,5 +307,23 @@ describe(
                 expect(await Jmarc.deleteWorkform("bibs", "Test_workform")).toBeTrue;
             }
         );
+
+        fit(
+            "saved state",
+            async function() {
+                let jmarc = new Jmarc("bibs");
+
+                let field = jmarc.createField("245");
+                field.createSubfield("a").value = "test";
+                field.indicators = ["9", "9"];
+                await jmarc.post();   
+                
+                field.indicators = ["0", "9"];
+                expect(jmarc.saved).toBeFalse;
+
+                await jmarc.put();
+                expect(jmarc.saved).toBeTrue;
+            }
+        )
     }
 );
