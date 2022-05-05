@@ -12,6 +12,7 @@ TESTING mode, the spec will fail at the app login prompt */
 
 import {Jmarc, Bib, Auth, DataField, Subfield} from "../static/js/jmarc.mjs";
 import fetch from "node-fetch";
+import { recordExpression } from "@babel/types";
 
 if (! globalThis.fetch) {
 	globalThis.fetch = fetch;
@@ -165,17 +166,50 @@ describe(
         it(
             "record history",
             async function() {
-                var bib = new Bib();
-                var hist = await bib.history();
-                expect(hist).toEqual([]);
+                // record created
+                var jmarc = new Bib();
+                var history = await jmarc.history();
+                expect(history).toEqual([]);
                 
-                bib.createField("245").createSubfield("a").value = "New record";
-                await bib.post();
-                hist = await bib.history();
-                expect(hist[0]).toBeInstanceOf(Jmarc);
-                expect(hist[0].getField("245").getSubfield("a").value).toEqual("New record");
-                expect(hist[0].updated).toBeDefined();
-                expect(hist[0].user).toBeUndefined(); // there is no user in test environment
+                // record saved
+                jmarc.createField("245").createSubfield("a").value = "New record";
+                await jmarc.post();
+                history = await jmarc.history();
+                expect(history[0]).toBeInstanceOf(Jmarc);
+                expect(history[0].getField("245").getSubfield("a").value).toEqual("New record");
+                expect(history[0].updated).toBeDefined(); // ISO date string
+                expect(history[0].user).toEqual("testing");
+
+                // record updated
+                jmarc.getField("245").getSubfield("a").value = "Updated";
+                await jmarc.put();
+                // history is updated 
+                history = await jmarc.history();
+                expect(history[1].getField("245").getSubfield("a").value).toEqual("Updated");
+
+                // revert
+                jmarc.parse(history[0].compile()) // parse the version data into the jmarc
+                await jmarc.put();
+                expect(jmarc.getField("245").getSubfield("a").value).toEqual("New record");
+            }
+        );
+
+        it(
+            "diff",
+            function() {
+                // test records
+                let record1 = new Bib();
+                let record2 = new Bib();
+                record1.createField("245").createSubfield("a").value = "Same";
+                record1.createField("999").createSubfield("a").value = "1";
+                record2.createField("245").createSubfield("a").value = "Same";
+                record2.createField("999").createSubfield("a").value = "2";
+                
+                // diff
+                let diff = record1.diff(record2);
+                expect(diff).toBeInstanceOf(Jmarc);
+                expect(diff.getField("245").isDiff).toBeFalse();
+                expect(diff.getField("999").isDiff).toBeTrue();
             }
         );
         

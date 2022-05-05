@@ -127,46 +127,57 @@ export let multiplemarcrecordcomponent = {
                     myBasket => this.myBasket = myBasket
                 )
             }
-        );
-        
-        // the "records" param from the URL
-        if (this.records !== "None") {
-            // "<col>/<id>"
-            this.recordlist = this.records.split(","); 
+        ).then( () => {
+            // the "records" param from the URL
+            if (this.records !== "None") {
+                // "<col>/<id>"
+                this.recordlist = this.records.split(","); 
 
-            for (let record of this.recordlist) {
-                let collection = record.split("/")[0]
-                let recordId = record.split("/")[1]
-            
-                Jmarc.get(collection, recordId).then(async jmarc => {
-                    if (this.readonly && this.user !== null) {
-                        this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                        this.displayMarcRecord(jmarc, true);
-                    } else if (this.user === null) {
-                        this.displayMarcRecord(jmarc, true);
-                    } else {
-                        this.displayMarcRecord(jmarc);
-                    }
+                for (let record of this.recordlist) {
+                    let collection = record.split("/")[0]
+                    let recordId = record.split("/")[1]
+                
+                    Jmarc.get(collection, recordId).then(async jmarc => {
+                        if (this.readonly && this.user !== null) {
+                            //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                            basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
+                                this.displayMarcRecord(jmarc, true)
+                            })
+                            
+                        } else if (this.user === null) {
+                            this.displayMarcRecord(jmarc, true);
+                        } else {
+                            this.displayMarcRecord(jmarc);
+                        }
+                    })
+                }
+            } else if (this.workform !== 'None') {
+                let wfCollection = this.workform.split('/')[0];
+                let wfRecordId = this.workform.split('/')[1]
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    this.displayMarcRecord(jmarc, false);
                 })
+                
+            } else if (this.fromworkform !== 'None') {
+                // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
+                let wfCollection = this.fromworkform.split('/')[0];
+                let wfRecordId = this.fromworkform.split('/')[1]
+                //console.log(wfCollection, wfRecordId)
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    jmarc.workformName = this.fromworkform
+                    //this.displayMarcRecord(jmarc, false);
+                    this.cloneRecord(jmarc)
+                })
+                
             }
-        } else if (this.workform !== 'None') {
-            let wfCollection = this.workform.split('/')[0];
-            let wfRecordId = this.workform.split('/')[1]
-            
-            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-            this.displayMarcRecord(jmarc, false);
-        } else if (this.fromworkform !== 'None') {
-            // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
-            let wfCollection = this.fromworkform.split('/')[0];
-            let wfRecordId = this.fromworkform.split('/')[1]
-            //console.log(wfCollection, wfRecordId)
-            
-            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-            jmarc.workformName = this.fromworkform
-            //this.displayMarcRecord(jmarc, false);
-            this.cloneRecord(jmarc)
-        }
-        recup=this
+            recup=this
+        })
+        
+        
     },
     methods: {
  
@@ -456,7 +467,7 @@ export let multiplemarcrecordcomponent = {
         async editRecord(jmarc) {
             let uibase = this.prefix.replace("/api/","");
             let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
-            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                 window.location.href = editLink;
             })
         },
@@ -487,7 +498,7 @@ export let multiplemarcrecordcomponent = {
             let uibase = this.prefix.replace("/api/","")
             let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
             if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
-                await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
                     window.location.href = editHref;
                 })
             }
