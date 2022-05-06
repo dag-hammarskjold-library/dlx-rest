@@ -1385,16 +1385,32 @@ export let multiplemarcrecordcomponent = {
                             span.innerText = '_';
                         }
                         
-                        // editing the indicators array directly has strange side effects
+                        // update the indicators 
                         let updated = [field.indicators[0], field.indicators[1]]
 
                         if (span == ind1Span) {
                             updated[0] = span.innerText;
-                        } else {
+                        } else if (span == ind2Span) {
                             updated[1] = span.innerText;
                         }
 
                         field.indicators = updated;
+
+                        // detect state
+                        let savedState = new Jmarc(jmarc.collection);
+                        savedState.parse(jmarc.savedState);
+                        let i = jmarc.fields.indexOf(field);
+
+                        console.log(savedState.fields[i].indicators)
+                        console.log(field.indicators)
+
+                        let j = span === ind1Span ? 0 : 1;
+
+                        if (savedState.fields[i].indicators[j] === field.indicators[j]) {
+                            span.classList.remove("unsaved")
+                        } else {
+                            span.classList.add("unsaved")
+                        }
 
                         if (jmarc.saved) {
                             jmarc.saveButton.classList.remove("text-danger");
@@ -1403,7 +1419,7 @@ export let multiplemarcrecordcomponent = {
                             jmarc.saveButton.classList.add("text-danger");
                             jmarc.saveButton.title = "Save Record";
                         }
- 
+
                     });
        
                     span.addEventListener("keydown", function (event) {
