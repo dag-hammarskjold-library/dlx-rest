@@ -916,11 +916,20 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    //jmarc.saveButton.classList.add("text-primary");
                     jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    //jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "Save Record";
+                }
+            });
+
+            // check the save status on mousedown (auth conrrol select)
+            table.addEventListener("mousedown", function() {
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.title = "No Unsaved Changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
                     jmarc.saveButton.title = "Save Record";
                 }
             });
@@ -1634,8 +1643,8 @@ export let multiplemarcrecordcomponent = {
             valSpan.contentEditable = true;
  
             valCell.addEventListener("click", function () {valSpan.focus()});
- 
-            valCell.addEventListener("input", function () {
+            
+            function checkState() {
                 subfield.value = valSpan.innerText;
        
                 let savedState = new Jmarc(jmarc.collection);
@@ -1656,8 +1665,10 @@ export let multiplemarcrecordcomponent = {
                 if (valCell.innerText.length > 0) {
                     jmarc.addUndoredoEntry("from Subfield Value")
                 }
+            }
 
-            });
+            valCell.addEventListener("input", checkState);
+            valCell.addEventListener("mousedown", checkState); // auth control selection
    
             valSpan.addEventListener("keydown", function (event) {
                 // prevent newline and blur on return key
@@ -1694,6 +1705,12 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             });
+
+            const observer = new MutationObserver(function() {
+                console.log('callback that runs when observer is triggered');
+            });
+
+            observer.observe(valSpan, {subtree: true, childList: true});
    
             codeSpan.addEventListener("input", function() {
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
