@@ -1380,6 +1380,10 @@ export let multiplemarcrecordcomponent = {
                         if (span.innerText.length > 1) {   
                             span.innerText = span.innerText.substring(0, 1);
                         }
+
+                        if (span.innerText.length === 0) {   
+                            span.innerText = '_';
+                        }
                         
                         // editing the indicators array directly has strange side effects
                         let updated = [field.indicators[0], field.indicators[1]]
@@ -1395,13 +1399,9 @@ export let multiplemarcrecordcomponent = {
                         if (jmarc.saved) {
                             jmarc.saveButton.classList.remove("text-danger");
                             jmarc.saveButton.title = "No Unsaved Changes";
-
-                            console.log("SAVED")
                         } else {
                             jmarc.saveButton.classList.add("text-danger");
                             jmarc.saveButton.title = "Save Record";
-
-                            console.log("NOT SAVED")
                         }
  
                     });
