@@ -57,6 +57,37 @@ export let multiplemarcrecordcomponent = {
                     </div>
                 </div>
             </div>
+       
+        <!-- Modal displaying history records -->
+        <div id="modal" v-show="this.showModal">
+            <transition name="modal">
+                <div class="modal-mask">
+                <div class="modal-wrapper" >
+                    <div class="modal-container" id="modalchild">
+
+                    <div class="modal-header" id="title">
+                        <slot name="header">
+                            <h1> Record(s) list </h1>
+                        </slot>
+                    </div>
+  
+                    <div id="contenthistory" class="modal-body" >
+                    </div>
+                    <div class="modal-footer">
+                        <slot name="footer">
+                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                            @click="closeModal()"> Close the window
+                        </button>
+                        </slot>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </transition>
+        </div>
+
+
+
         </div>
     `,
  
@@ -84,7 +115,12 @@ export let multiplemarcrecordcomponent = {
             selectedDiv:"",
             selectedJmarc:"",
             selectedFields:[],
-            recordLocked: {"locked": false}
+            recordLocked: {"locked": false},
+            showModal:false,
+            numberRecordHistory:0,
+            historyMode:false,
+            historyJmarcOriginal:"",
+            historyJmarcHistory:""
         }
     },
 
@@ -469,9 +505,11 @@ export let multiplemarcrecordcomponent = {
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
             let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
-            idRow.style.backgroundColor = "#009edb"
+            if (idRow) {idRow.style.backgroundColor = "#009edb"}
+            //idRow.style.backgroundColor = "#009edb"
             let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
-            checkBox.classList.replace("fa-square","fa-check-square")
+            if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
+           
         },
         async unlockRecord(jmarc, lockedBy) {
             let uibase = this.prefix.replace("/api/","")
@@ -505,7 +543,7 @@ export let multiplemarcrecordcomponent = {
             }    
         },
         changeSelectedRecordListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
                 if (this.isRecordOneDisplayed==true && this.isRecordTwoDisplayed==true)
                     if (event.ctrlKey && event.key === "q"){
                         if (this.selectedJmarc.recordId===this.displayedJmarcObject[0].recordId){
@@ -520,7 +558,7 @@ export let multiplemarcrecordcomponent = {
                     }
         }, 
         pasteFieldListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "p"){
                     event.preventDefault();
@@ -531,7 +569,7 @@ export let multiplemarcrecordcomponent = {
            
         },  
         addSubFieldListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "/"){
                     event.preventDefault();
@@ -542,7 +580,7 @@ export let multiplemarcrecordcomponent = {
            
         },
         deleteSubFieldListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "m"){
                     event.preventDefault();
@@ -553,7 +591,7 @@ export let multiplemarcrecordcomponent = {
            
         },    
         addFieldListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "Enter"){
                     event.preventDefault();
@@ -564,7 +602,7 @@ export let multiplemarcrecordcomponent = {
            
         },
         deleteFieldListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
@@ -575,7 +613,7 @@ export let multiplemarcrecordcomponent = {
            
         },
         saveRecordListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "s") {
                     event.preventDefault();
@@ -587,7 +625,7 @@ export let multiplemarcrecordcomponent = {
            
         },
         removeRecordListener(event) {
-            if (this.selectedRecord!=="")
+            if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.code === "F4")   {
                     event.preventDefault();
@@ -744,6 +782,9 @@ export let multiplemarcrecordcomponent = {
         getIdFromRecordId(recId, coll) {
             this.id = this.$root.$refs.basketcomponent.getId(recId, coll)
         },
+        getHistorylabel(){
+            return "(History record)"
+        },
         toggleBasketItem(recId, coll) {
             let myBasketId = this.$root.$refs.basketcomponent.getId(recId, coll);
             let myI = document.getElementById(`${coll}/${recId}`);
@@ -766,8 +807,141 @@ export let multiplemarcrecordcomponent = {
             })
  
         },
-        removeRecordFromEditor(jmarc,keepDataInVector=false) {
+        closeModal() {
+            this.showModal = false;
+        },
 
+        displayHistoryModal(jmarc){
+            this.showModal=true;
+            
+            // insert the parent div inside the content history    
+            let recup=document.getElementById("contenthistory")
+            recup.innerHTML=""
+
+            // creation of the parent div for the progress bar
+            let parentProgressBarDiv=document.createElement("div");
+            parentProgressBarDiv.classList.add("d-flex");
+            parentProgressBarDiv.classList.add("align-items-center");
+            parentProgressBarDiv.classList.add("mt-4");
+            parentProgressBarDiv.classList.add("ml-4");
+            parentProgressBarDiv.id="progressBar"
+            parentProgressBarDiv.style.border = "none"
+            parentProgressBarDiv.style.width= "auto"
+
+            // creation of the h3
+            let myH3=document.createElement("H3");
+            myH3.innerHTML="Loading....."
+
+            parentProgressBarDiv.appendChild(myH3)
+
+            // creation of the div for the progress bar
+            let progressBarDiv=document.createElement("div");
+            progressBarDiv.classList.add("spinner-border");
+            progressBarDiv.classList.add("ms-auto");
+            progressBarDiv.setAttribute("role", "status");
+            progressBarDiv.setAttribute("aria-hidden", "true");
+            
+            parentProgressBarDiv.appendChild(progressBarDiv)
+
+            recup.appendChild(parentProgressBarDiv)
+
+                                
+            // transfer reference
+            let that=this
+
+            try {
+                jmarc.history()
+                    .then(function(result) {
+    
+                        recup.innerHTML=""
+                        result.forEach(element=>{
+
+                        // creation of the first div
+                        let firstDiv=document.createElement("div")
+                        firstDiv.classList.add("card");
+                        firstDiv.classList.add("mt-2");
+                        firstDiv.style.border = "none"
+                        firstDiv.style.width= "auto"
+
+                        // adding the contents to the div
+                        let tmpDate = new Date(element.updated);
+                        !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate} </strong> , user : ${element.user} `
+
+                        // adding some events on mouverover / mouseout to change background color
+                        firstDiv.addEventListener("mouseover",()=>{
+                            firstDiv.style.backgroundColor="#87CEFA"
+                        })
+
+                        firstDiv.addEventListener("mouseout",()=>{
+                            firstDiv.style.backgroundColor=""
+                        })
+
+                        // adding some events on mouverover / mouseout to change background color
+                        firstDiv.addEventListener("click",()=>{
+                            
+                            // // active the history mode
+                            // that.historyMode=true
+                            
+                            // recordiD to the history record for displaying purpose
+                            element.recordId=that.selectedJmarc.recordId
+                            that.historyJmarcHistory=element
+                            that.historyJmarcOriginal=that.selectedJmarc
+                            that.closeModal()
+                            that.displayHistoryEditorView(that.selectedJmarc)
+                        })
+                        recup.appendChild(firstDiv)
+                        })
+                    });
+            }
+            catch (error) {
+                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+            }
+        },
+
+        displayHistoryEditorView(jmarcToKeep){
+
+            // remove all the records from the editor stage keeping the undorecord
+            this.displayedJmarcObject.forEach(element=>{
+                (element===jmarcToKeep)? this.removeRecordFromEditor(element,true): this.removeRecordFromEditor(element,false)
+            })
+
+            // display the "original" record
+            this.displayMarcRecord(this.historyJmarcOriginal)
+
+            // change the mode
+            this.historyMode=true
+
+            // put the history record on read only mode
+            this.historyJmarcHistory.readOnly=true
+            console.log(this.historyJmarcHistory.readOnly)
+
+            // display the "history" record
+            this.displayMarcRecord(this.historyJmarcHistory)
+            
+        },
+
+        // revert the jmarc record
+        revert(){
+
+            // load the data inside 
+            this.historyJmarcOriginal.fields=[]
+            this.historyJmarcOriginal.parse(this.historyJmarcHistory.compile())
+            // save the record to keep changes
+            this.saveRecord(this.historyJmarcOriginal)
+            
+            // change the mode
+            this.historyMode=false
+            // remove the history record
+            let recup=this.historyJmarcHistory
+            this.historyJmarcHistory=""
+            this.historyJmarcOriginal=""
+            this.removeRecordFromEditor(recup)
+
+            this.callChangeStyling("Record reverted!!!", "row alert alert-success")
+            
+        },
+
+        removeRecordFromEditor(jmarc,keepDataInVector=false) {
             // clear the entries for the undoredo vector
             if (keepDataInVector==false) { 
                 jmarc.clearUndoredoVector()
@@ -811,6 +985,28 @@ export let multiplemarcrecordcomponent = {
                 this.selectedRecord = this.displayedJmarcObject[0].recordId
                 this.selectedDiv=this.displayedJmarcObject[0].recordId     
                 this.selectRecord(this.displayedJmarcObject[0])
+            }
+
+            // change the history mode to false and remove other record if the history mode was activated
+            if (this.historyMode==true){
+                
+                //let recup=this.historyJmarcHistory
+                this.historyJmarcHistory=""
+                this.historyJmarcOriginal=""
+      
+                if (divID==="record1") {
+                   // remove the second div (history record)
+                    this.historyMode=false
+                    this.removeJmarcTodisplayedJmarcObject(this.record2)
+                    this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
+                    this.record2 = ""
+                    this.isRecordTwoDisplayed = false
+                    this.collectionRecord2=""
+                    let recup=document.getElementById("record2")
+                    recup.innerHTML=""
+                }
+                
+                this.historyMode=false
             }
  
         },
@@ -919,6 +1115,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Record",  "click": "deleteRecord" },
                 {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
+                {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
@@ -932,9 +1129,19 @@ export let multiplemarcrecordcomponent = {
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
                     {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndexUndo","param":jmarc},
                     {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndexRedo","param":jmarc},
+                    // i think we don't need that for this type of record   {"name": "historyButton", "element": "i", "class": "fas fa-history dropdown-menu", "title": "History", "click": "displayHistoryModal","param":jmarc},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
                 ]
             }
+            // history record
+            if (this.historyMode){
+                controls = [
+                    {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
+                    {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert",  "click": "revert"},
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
+                ]
+            }
+
             if (this.readonly && this.user !== null) {
                 controls = [
                     {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
@@ -966,7 +1173,7 @@ export let multiplemarcrecordcomponent = {
                             this[control["click"]](control["param"]) }
                     } else if (control["params"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
+                        this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
                     } else {
                         controlButton.onclick = () => {
                             this[control["click"]](jmarc) }
@@ -975,10 +1182,13 @@ export let multiplemarcrecordcomponent = {
                } else {
                     if (jmarc.workformName) {
                         controlButton.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
+                    } else if (this.historyMode==true){
+                        controlButton.innerText = `${jmarc.collection}/${jmarc.recordId} (history record)`;
                     } else {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
                         controlButton.innerText = `${jmarc.collection}/${recordId}`;
                     }
+
                     controlButton.className = `${control["class"]} float-left`;
                 }
                 
@@ -1114,7 +1324,8 @@ export let multiplemarcrecordcomponent = {
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
             inputCheckboxCell.setAttribute("type","checkbox")
-            checkCell.appendChild(inputCheckboxCell)
+            // adding the checkbox only if we are not in dual mode
+            if (!this.historyMode) checkCell.appendChild(inputCheckboxCell)
    
             // the instance of the calling object
             // let that = component;
