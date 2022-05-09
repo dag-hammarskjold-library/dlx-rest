@@ -23,7 +23,8 @@ class Constraint(EmbeddedDocument):
 
 class Permission(Document):
     action = StringField(required=True)
-    constraint = EmbeddedDocumentField(Constraint)
+    constraint_must = EmbeddedDocumentField(Constraint)
+    constraint_must_not = EmbeddedDocumentField(Constraint)
 
 class Role(Document):
     name = StringField(primary_key=True)
