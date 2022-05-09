@@ -63,9 +63,10 @@ def init_roles():
     Role.drop_collection()
     print("Setting up admin role.")
     r = Role(name='admin')
-    for p in ['readAdmin', 'createUser', 'readUser', 'updateUser', 'deleteUser']:
-        this_p = Permission(action=p)
-        this_p.save()
+    for a in ['create','read','update','delete']:
+        for comp in ['Admin', 'User', 'Role', 'Permission', 'File', 'Record']:
+            this_p = Permission(action=f'{a}{comp}')
+            this_p.save()
     for p in Permission.objects:
         r.permissions.append(p)
     r.save()

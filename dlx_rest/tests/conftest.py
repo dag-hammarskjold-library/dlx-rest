@@ -56,9 +56,12 @@ def db():
 @pytest.fixture(scope='module')
 def permissions():
     from dlx_rest.models import Permission
-    for perm in ['readAdmin','readUser','createUser','updateUser','deleteUser']:
-        p = Permission(action=perm)
-        p.save()
+    for a in ['create','read','update','delete']:
+        for comp in ['Admin', 'User', 'Role', 'Permission', 'File', 'Record']:
+            for coll in ["bibs","auths"]:
+                this_p = Permission(action=f'{a}{comp}')
+                # this_p.constraints = ...
+                this_p.save()
     
     return Permission
 
