@@ -47,7 +47,7 @@ export let multiplemarcrecordcomponent = {
                     </div>                               
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px; position: relative">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
@@ -90,7 +90,10 @@ export let multiplemarcrecordcomponent = {
             selectedDiv:"",
             selectedJmarc:"",
             selectedFields:[],
-            recordLocked: {"locked": false}
+            recordLocked: {"locked": false},
+            shiftPressed: false,
+            controlPressed: false,
+            commandPressed: false,
         }
     },
 
@@ -112,7 +115,7 @@ export let multiplemarcrecordcomponent = {
     window.addEventListener("keydown", this.changeSelectedRecordListener)  // ctrl + q => change the selected record
     
     //////////////////////////////////////////////////////////////////////////
- 
+        let component = this;
         Jmarc.apiUrl = this.prefix;
         this.baseUrl = this.prefix.replace("/api", "");
        
@@ -177,7 +180,46 @@ export let multiplemarcrecordcomponent = {
             recup=this
         })
         
-        
+        // Top level events
+        window.addEventListener("keydown", function(event) {
+            // shift
+            if (event.keyCode === 16) {
+                component.shiftPressed = true;
+            }
+
+            // control
+            if (event.keyCode === 17) {
+                component.controlPressed = true;
+            }
+
+            // command (mac)
+            if (event.keyCode === 91) {
+                component.commandPressed = true;
+            }
+        });
+
+        window.addEventListener("keyup", function(event) {
+            // shift
+            if (event.keyCode === 16) {
+                component.shiftPressed = false;
+            }
+
+            // control
+            if (event.keyCode === 17) {
+                component.controlPressed = false;
+            }
+
+            // command (mac)
+            if (event.keyCode === 91) {
+                component.commandPressed = false;
+            }
+        });
+
+        // Cancel popups and stuff
+        window.addEventListener("click",  function(event) {
+            let dropdown = document.getElementById("typeahead-dropdown")
+            dropdown && dropdown.remove();
+        });
     },
     methods: {
  
@@ -892,11 +934,6 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("click", function() {
                 component.selectRecord(jmarc) 
             });
- 
-            window.addEventListener("click",  function() {
-                let dropdown = document.getElementById("typeahead-dropdown")
-                dropdown && dropdown.remove();
-            });
            
             // record.css
             table.className = jmarc.collection === "bibs" ? "bib" : "auth";
@@ -1134,15 +1171,10 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
-
             let component = this;
             let jmarc = field.parentRecord;
-
-
             let table = jmarc.table;
-
             let tableBody = jmarc.tableBody; 
-            
             field.row = tableBody.insertRow(place);
    
             // add the checkboxes
@@ -1180,18 +1212,27 @@ export let multiplemarcrecordcomponent = {
                 }
             });
 
-            // Tag cell
-            let tagCell = field.row.insertCell();
-            field.tagCell = tagCell;
-            tagCell.className = "field-tag badge badge-warning dropdown-toggle";
-   
+            // tag container cell
+            let tagContainerCell = field.row.insertCell();
+            tagContainerCell.classList.add("tag-container");
+
+            // Field Table
+            let fieldTable = document.createElement("table");
+            tagContainerCell.append(fieldTable);
+
+            let tagRow = fieldTable.insertRow();
             // menu
+            let menuCell = tagRow.insertCell();
             let tagMenu = document.createElement("div");
-            tagCell.append(tagMenu);
+            menuCell.append(tagMenu);
+            //tagMenu.tabIndex = 0;
             tagMenu.className = "dropdown-menu tag-menu";
+            let menuButton = document.createElement("button");
+            menuCell.appendChild(menuButton);
+            menuButton.className = "fa fa-bars field-menu";
  
             // enable elems to toggle menu
-            tagCell.setAttribute("data-toggle", "dropdown");
+            menuButton.setAttribute("data-toggle", "dropdown");
  
             // menu item add field
             let addField = document.createElement("i");
@@ -1199,6 +1240,92 @@ export let multiplemarcrecordcomponent = {
             addField.className = "dropdown-item";
             addField.innerText = "Add field";
    
+            // menu item delete field
+            let deleteField = document.createElement("i");
+            tagMenu.append(deleteField);
+            deleteField.className = "dropdown-item";
+            deleteField.innerText = "Delete field";
+
+            // Tag
+            let tagCell = tagRow.insertCell();
+            field.tagCell = tagCell;
+            tagCell.className = "field-tag";
+            let tagDiv = document.createElement("div");
+            tagCell.append(tagDiv);
+            tagDiv.className = "field-tag";
+            let tagSpan = document.createElement("span");
+            tagDiv.append(tagSpan);
+            tagSpan.tabIndex = 0; // makes the element focusable and tabbable
+            field.tagSpan = tagSpan;
+            //tagSpan.contentEditable = true;
+            tagSpan.innerText = field.tag;
+
+            // Indicators
+            let ind1Cell = tagRow.insertCell();
+            ind1Cell.classList.add("indicators");
+            let ind1Div = document.createElement("div");
+            ind1Cell.append(ind1Div);
+            ind1Div.className = "indicators";
+            let ind1Span = document.createElement("span");
+            ind1Div.append(ind1Span);
+            ind1Span.className = "mx-1";
+            ind1Span.tabIndex = 0;
+            
+            let ind2Cell = tagRow.insertCell();
+            ind2Cell.classList.add("indicators");
+            let ind2Div = document.createElement("div");
+            ind2Cell.append(ind2Div);
+            ind2Div.className = "indicators";
+            let ind2Span = document.createElement("span");
+            ind2Div.append(ind2Span);
+            ind2Span.className = "mx-1";
+            ind2Span.tabIndex = 0;
+
+            // Subfield table
+            let fieldCell = field.row.insertCell();
+            let subfieldTable = document.createElement("table");
+            field.subfieldTable = subfieldTable;
+            fieldCell.append(subfieldTable);
+            subfieldTable.className = "marc-field";
+
+            // Controlfield
+            // no subfields
+            if (field.constructor.name == "ControlField") {
+                field.row.classList.add("hidden-field");
+                let fieldRow = subfieldTable.insertRow();
+                fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
+                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                let valCell = fieldRow.insertCell();
+                valCell.innerHTML = field.value;
+            } else {
+                // indicators 
+                for (let span of [ind1Span, ind2Span]) {
+                    let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
+                    span.innerText = indicator;
+                }
+
+                for (let subfield of field.subfields) {
+                    this.buildSubfieldRow(subfield);  
+                }
+            }
+
+            // Events
+
+            // Call when field is active
+            function fieldSelected() {
+                for (let f of jmarc.fields) {
+                    f.row.classList.remove("field-row-selected");
+                    f.selected = false;
+                }
+
+                field.row.classList.add("field-row-selected");
+                field.selected = true;
+            }
+
+            field.row.addEventListener("click", fieldSelected);
+            field.row.addEventListener("keydown", fieldSelected);
+
+            // Menu add field
             addField.addEventListener("click", function() {
                 let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
                 newField.indicators = ["_", "_"];
@@ -1209,7 +1336,6 @@ export let multiplemarcrecordcomponent = {
        
                 newField = component.buildFieldRow(newField, field.row.rowIndex - 1);
                 newField.tagSpan.focus();
-                document.execCommand("selectall");
                 newField.subfields[0].valueCell.classList.add("unsaved");
  
                 // Manage visual indicators
@@ -1218,13 +1344,8 @@ export let multiplemarcrecordcomponent = {
  
                 return
             });
-   
-            // menu item delete field
-            let deleteField = document.createElement("i");
-            tagMenu.append(deleteField);
-            deleteField.className = "dropdown-item";
-            deleteField.innerText = "Delete field";
-   
+
+            // Menu delete field
             deleteField.addEventListener("click", function() {
                 if (jmarc.fields.length === 1) {
                     // this is the record's only field
@@ -1247,25 +1368,74 @@ export let multiplemarcrecordcomponent = {
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
             });
-   
-            // Tag span
-            let tagSpan = document.createElement("span");
-            tagCell.append(tagSpan);
-            field.tagSpan = tagSpan;
-            tagSpan.contentEditable = true;
-            tagSpan.innerText = field.tag;
-   
-            // for storing the state of the control/command keypress
-            let metaKey = false;
-   
-            tagSpan.addEventListener("input", function () {
-                tagSpan.classList.remove("invalid");
-                field.tagSpan.classList.remove("unsaved");
-       
+
+            tagDiv.addEventListener("click", tagActivate);
+            tagSpan.addEventListener("focus", tagActivate);
+            tagSpan.addEventListener("blur", tagUpdate);
+
+            // Activate
+            // call when user clicks or tabs into tag field
+            function tagActivate() {
+                fieldSelected();
+                tagCell.classList.add("field-tag-selected");
+
+                let popout = document.createElement("div");
+                tagCell.append(popout);
+                popout.className = "tag-input-popout";
+
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "tag-input";
+                input.placeholder = tagSpan.innerText;
+                input.maxLength = 3;
+                input.focus();
+                
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
+                        menuButton.focus();
+                    }
+                });
+
+                input.addEventListener("blur", function() {
+                    tagSpan.innerText = input.value || tagSpan.innerText;
+                    tagCell.classList.remove("field-tag-selected");
+                    input.remove();
+                    tagUpdate();
+                });
+
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (tagSpan.innerText.length === 3) {
+                        jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
+            
+            // Tag update actions
+            // call when user changes the tag value
+            function tagUpdate() {
                 field.tag = tagSpan.innerText;
+                field.tagSpan.classList.remove("invalid");
+                field.tagSpan.classList.remove("unsaved");
        
                 let savedState = new Jmarc(jmarc.collection);
                 savedState.parse(jmarc.savedState);
+
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+ 
+                if (! checkField || field.tag !== checkField.tag) {
+                    field.tagSpan.classList.add("unsaved");
+                }
  
                 for (let subfield of field.subfields) {
                     subfield.codeCell.classList.remove("unsaved");
@@ -1276,309 +1446,246 @@ export let multiplemarcrecordcomponent = {
                     } else {
                         component.removeAuthControl(subfield);
                     }
-           
-                    let i = field.subfields.indexOf(subfield);
-                    let j = jmarc.fields.indexOf(field);
-                    let checkField = savedState.fields[j] ? savedState.fields[j] : null;
-                    let checkSubfield = checkField ? checkField.subfields[i] : null;
- 
-                    if (! checkField || field.tag !== checkField.tag) {
-                        field.tagSpan.classList.add("unsaved");
-                    }
-           
-                    if (! checkSubfield || checkSubfield.code !== subfield.code) {
-                        subfield.codeCell.classList.add("unsaved");
-                    }
-           
-                    if (checkSubfield && checkSubfield.value !== subfield.value) {
-                        subfield.valueCell.classList.add("unsaved");
-                    }
+                }
+            }
+
+            // Indicator actions
+            ind1Div.addEventListener("click", function() {indActivate(1)});
+            ind1Span.addEventListener("focus", function() {indActivate(1)});
+            ind1Span.addEventListener("blur", function() {indUpdate(1)});
+            ind2Div.addEventListener("click", function() {indActivate(2);});
+            ind2Span.addEventListener("focus", function() {indActivate(2)});
+            ind2Span.addEventListener("blur", function() {indUpdate(2);});
+
+            function indActivate(ind) {
+                let [cell, div, span] = [null, null, null];
+
+                if (ind === 1) {
+                    [cell, div, span] = [ind1Cell, ind1Div, ind1Span];
+                } else if (ind === 2) {
+                    [cell, div, span] = [ind2Cell, ind2Div, ind2Span];
                 }
 
-                console.log(JSON.stringify(jmarc.savedState))
-            });
-   
-            tagSpan.addEventListener("keydown", function (event) {
-                // prevent newline and blur on return key
-                if (event.keyCode === 13) {
-                    event.preventDefault();
-                    tagSpan.blur();
-                }
-       
-                // store control/command key press
-                if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
-                    metaKey = true
-                }
-       
-                // prevent typing more than 3 characters
-                if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    // field value resets
-                    tagSpan.innerText = ''
-                }
-            });
-   
-            tagSpan.addEventListener("keyup", function (event) {
-                // clear control/command key press
-                if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
-                    metaKey = false
-                }
-            });
-   
-            tagSpan.addEventListener("blur", function() {
-                while (tagSpan.innerText.length < 3) {
-                    tagSpan.innerText += '_';
-                }
- 
-                if (! tagSpan.innerText.match(/^\d{3}/)) {
-                    field.tagSpan.classList.remove("unsaved");
-                    field.tagSpan.classList.add("invalid");
-                } 
-                
-            });
- 
-            tagSpan.addEventListener("mouseover", function() {
-                tagSpan.focus()
-            });
-   
-            tagSpan.addEventListener("click", function() {
-                tagSpan.focus();
-                document.execCommand("selectall", null, false);
-            });
- 
-            // keep menu on click
-            tagSpan.addEventListener("click", function() {
-                $(tagMenu).dropdown("hide");
-            });
-   
-            // hide menu when typing
-            tagSpan.addEventListener("keydown", function() {
-                $(tagMenu).dropdown("hide");
-            });
+                let popout = document.createElement("div");
+                cell.append(popout);
+                cell.classList.add("ind-selected");
+                popout.className = "ind-input-popout";
 
-            tagSpan.addEventListener("input",function(){
-                // adding the snapshot 
-                if (tagSpan.innerText.length === 3) {
-                    jmarc.addUndoredoEntry("from Tag")
-                }
-            });
-   
-            // Indicators
-            if (! field.tag.match(/^00/)) {
-                let ind1Span = document.createElement("span");
-                tagCell.append(ind1Span);
-       
-                let ind2Span = document.createElement("span");
-                tagCell.append(ind2Span);
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "ind-input";
+                input.placeholder = span.innerText;
+                input.maxLength = 1;
+                input.focus();
 
-                for (let span of [ind1Span, ind2Span]) {
-                    let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
-                    span.className = "mx-1"
-                    span.innerText = indicator;
-                    span.contentEditable = true;
-       
-                    span.addEventListener("input", function() {
-                        if (span.innerText.length > 1) {   
-                            span.innerText = span.innerText.substring(0, 1);
-                        }
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
                         
-                        // editing the indicators array directly has strange side effects
-                        let updated = [field.indicators[0], field.indicators[1]]
-
-                        if (span == ind1Span) {
-                            updated[0] = span.innerText;
+                        if (ind === 1) {
+                            tagSpan.focus();
                         } else {
-                            updated[1] = span.innerText;
+                            ind1Span.focus();
                         }
+                    }
+                });
 
-                        field.indicators = updated;
+                input.addEventListener("blur", function() {
+                    span.innerText = input.value || span.innerText;
+                    cell.classList.remove("ind-selected");
+                    input.remove();
+                    indUpdate(ind);
+                });
 
-                        if (jmarc.saved) {
-                            jmarc.saveButton.classList.remove("text-danger");
-                            jmarc.saveButton.title = "No Unsaved Changes";
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (tagSpan.innerText.length === 3) {
+                        // todo: add detetction for indicators
+                        //jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
 
-                            console.log("SAVED")
-                        } else {
-                            jmarc.saveButton.classList.add("text-danger");
-                            jmarc.saveButton.title = "Save Record";
+            function indUpdate(ind) {
+                let cell = ind === 1 ? ind1Cell : ind2Cell;
+                let span = ind === 1 ? ind1Span : ind2Span;
 
-                            console.log("NOT SAVED")
-                        }
+                // editing the indicators array directly has strange side effects
+                let updated = [field.indicators[0], field.indicators[1]]
+
+                if (span == ind1Span) {
+                    updated[0] = span.innerText;
+                } else {
+                    updated[1] = span.innerText;
+                }
+
+                field.indicators = updated;
+
+                cell.classList.remove("invalid");
+                cell.classList.remove("unsaved");
+
+                let savedState = new Jmarc(jmarc.collection);
+                savedState.parse(jmarc.savedState);
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
  
-                    });
-       
-                    span.addEventListener("keydown", function (event) {
-                        // prevent newline and blur on return key
-                        if (event.keyCode === 13) {
-                            event.preventDefault();
-                            span.blur();
-                        }
-                    });
-           
-                    span.addEventListener("blur", function() {
-                        while (span.innerText.length < 1) {
-                            span.innerText += '_';
-                        }
-                    });
-           
-                    // keep menu on click
-                    span.addEventListener("click", function() {
-                        $(tagMenu).dropdown("hide");
-                    });
-   
-                    // hide menu when typing
-                    span.addEventListener("keydown", function() {
-                        $(tagMenu).dropdown("hide")
-                    });
+                if (! checkField || checkField.indicators[ind-1] !== field.indicators[ind-1]) {
+                    cell.classList.add("unsaved");
+                }
+
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.title = "No Unsaved Changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.title = "Save Record";
                 }
             }
-   
-            // Field table
-            let fieldCell = field.row.insertCell();
-            let fieldTable = document.createElement("table");
-            field.table = fieldTable;
-            fieldCell.append(fieldTable);
-            fieldTable.className = "marc-field";
-   
-            // Controlfield
-            if (field.constructor.name == "ControlField") {
-                field.row.classList.add("hidden-field");
-       
-                let fieldRow = fieldTable.insertRow();
-                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
-                let valCell = fieldRow.insertCell();
-                valCell.innerHTML = field.value;
-       
-                return
-            }
- 
-           
-            // Datafield
-            for (let subfield of field.subfields) {
-                this.buildSubfieldRow(subfield);  
-            }
-   
+        
+            for (let span of [ind1Span, ind2Span]) {
+                span.addEventListener("input", function() {
+                    if (span.innerText.length > 1) {   
+                        span.innerText = span.innerText.substring(0, 1);
+                    }
+
+                    // editing the indicators array directly has strange side effects
+                    let updated = [field.indicators[0], field.indicators[1]]
+
+                    if (span == ind1Span) {
+                        updated[0] = span.innerText;
+                    } else {
+                        updated[1] = span.innerText;
+                    }
+
+                    field.indicators = updated;
+
+                    if (jmarc.saved) {
+                        jmarc.saveButton.classList.remove("text-danger");
+                        jmarc.saveButton.title = "No Unsaved Changes";
+
+                    } else {
+                        jmarc.saveButton.classList.add("text-danger");
+                        jmarc.saveButton.title = "Save Record";
+                    }
+
+                });
+
+                span.addEventListener("keydown", function (event) {
+                    // prevent newline and blur on return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        span.blur();
+                    }
+                });
+            
+                span.addEventListener("blur", function() {
+                    while (span.innerText.length < 1) {
+                        span.innerText += '_';
+                    }
+                });
+            }   
+
             return field
         },
         buildSubfieldRow(subfield, place) {
             let component = this;
             let field = subfield.parentField;
-            let table = field.table;
+            let table = field.subfieldTable;
             let jmarc = field.parentRecord;
    
             // create the row
             subfield.row = table.insertRow(place);
- 
+            subfield.row.classList.add("subfield-row");
+
+            // menu
+            let menuCell = subfield.row.insertCell();
+            let codeMenu = document.createElement("div");
+            menuCell.append(codeMenu);
+            codeMenu.className = "dropdown-menu subfield-menu";
+            let menuButton = document.createElement("button");
+            menuCell.append(menuButton);
+            menuButton.classList = "fa fa-bars subfield-menu";
+   
+            // enable elems to toggle menu
+            menuButton.setAttribute("data-toggle", "dropdown");
+
             // Subfield code
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
-            codeCell.className = "subfield-code badge bg-primary dropdown-toggle";
-   
-            // menu
-            let codeMenu = document.createElement("div");
-            codeCell.append(codeMenu);
-            codeMenu.className = "dropdown-menu subfield-menu";
-   
-            // enable elems to toggle menu
-            codeCell.setAttribute("data-toggle", "dropdown");
-   
+            codeCell.className = "subfield-code";
+            let codeDiv = document.createElement("div");
+            codeCell.append(codeDiv);
+            codeDiv.classList.add("subfield-code");
             let codeSpan = document.createElement("span");
             subfield.codeSpan = codeSpan;
-            codeCell.append(codeSpan);
-            codeSpan.contentEditable = true;
+            codeDiv.append(codeSpan);
+            //codeSpan.contentEditable = true;
             codeSpan.innerText = subfield.code;
-   
-            // keep menu on click
-            codeSpan.addEventListener("click", function() {
-                $(codeMenu).dropdown("hide");
-            });
-   
-            // hide menu when typing
-            codeSpan.addEventListener("keydown", function() {
-                $(codeMenu).dropdown("hide")
-            });
- 
-            codeSpan.addEventListener("input", function() {
-                subfield.codeSpan.classList.remove("invalid");
-                subfield.codeSpan.classList.remove("unsaved");
-                subfield.valueCell.classList.remove("unsaved");
-       
-                if (codeSpan.innerText.length > 1) {
-                    // don't allow more than 1 char
-                    codeSpan.innerText = codeSpan.innerText.substring(0, 1)
-                }
-       
-                subfield.code = codeSpan.innerText;
-       
-                let savedState = new Jmarc(jmarc.collection);
-                savedState.parse(jmarc.savedState);
-                let i = field.subfields.indexOf(subfield);
-                let j = jmarc.fields.indexOf(field);
-                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
-                let checkSubfield = checkField ? checkField.subfields[i] : null;
- 
-                if (! checkSubfield || checkSubfield.code !== subfield.code) {
-                    subfield.codeSpan.classList.add("unsaved");
-                }
-       
-                if (checkSubfield && checkSubfield.value !== subfield.value) {
-                    subfield.valueCell.classList.add("unsaved");
-                }
+            codeSpan.tabIndex = 0;
 
-                // adding the snapshot 
-                if (codeSpan.innerText.length === 1) {
-                    jmarc.addUndoredoEntry("from Code Subfield")
-                }
-            });
-   
-            codeSpan.addEventListener("keydown", function (event) {
-                // prevent newline and blur on return key
-                if (event.keyCode === 13) {
-                    event.preventDefault();
-                    codeSpan.blur();
-                }
-            });
-   
-            codeSpan.addEventListener("blur", function() {
-                while (codeSpan.innerText.length < 1) {
-                    codeSpan.innerText += '_';
-                }
-       
-                // move to css
-                if (codeSpan.innerText === '_') {
-                    codeSpan.classList.remove("unsaved");
-                    codeSpan.classList.add("invalid");
-                }
-            });
-   
             // add subfield
             let addSubfield = document.createElement("i");
             codeMenu.append(addSubfield);
             addSubfield.className = "dropdown-item";
             addSubfield.innerText = "Add subfield";
    
-            addSubfield.addEventListener("click", function() {
-                let place = field.subfields.indexOf(subfield) + 1;
-                let newSubfield = field.createSubfield("_", place);
-                newSubfield.value = "";
-                newSubfield = component.buildSubfieldRow(newSubfield, place);
-       
-                newSubfield.codeSpan.focus();
-                document.execCommand("selectall");
-       
-                newSubfield.valueCell.classList.add("unsaved");
-                saveButton.classList.add("text-danger");
-                saveButton.classList.remove("text-primary");
-                saveButton.title = "unsaved changes";
-
-                return
-            });
-   
             // delete subfield
             let deleteSubfield = document.createElement("i");
             codeMenu.append(deleteSubfield);
             deleteSubfield.className = "dropdown-item";
             deleteSubfield.innerText = "Delete subfield";
- 
+   
+            // Subfield value
+            let valCell = subfield.row.insertCell();
+            valCell.className = "subfield-value";
+            valCell.setAttribute("data-taggle", "tooltip");
+            //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
+   
+            let valSpan = document.createElement("span");
+            valCell.appendChild(valSpan);
+            valSpan.classList.add("subfield-value");
+
+            subfield.valueCell = valCell;
+            subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
+            valSpan.innerText = subfield.value;
+            valSpan.contentEditable = true;
+
+            // create the last cell
+            subfield.xrefCell = subfield.row.insertCell()
+   
+            // auth controlled
+            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                this.setAuthControl(field, subfield)
+            }
+            
+            // Events
+
+            // Menu actions
+            // Add subfiueld
+            addSubfield.addEventListener("click", function() {
+                let place = field.subfields.indexOf(subfield) + 1;
+                let newSubfield = field.createSubfield("_", place);
+                newSubfield.value = "";
+                newSubfield = component.buildSubfieldRow(newSubfield, place);
+                newSubfield.codeSpan.focus();
+
+                newSubfield.valueCell.classList.add("unsaved");
+                saveButton.classList.add("text-danger");
+                saveButton.classList.remove("text-primary");
+                saveButton.title = "unsaved changes";
+                
+                return
+            });
+            
+            // Delete subfield
             deleteSubfield.addEventListener("click", function() {
                 if (field.subfields.length == 1) {
                     component.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
@@ -1603,20 +1710,92 @@ export let multiplemarcrecordcomponent = {
                 jmarc.addUndoredoEntry("from Delete SubField")
  
             });
-   
-            // Subfield value
-            let valCell = subfield.row.insertCell();
-            valCell.className = "subfield-value";
-            valCell.setAttribute("data-taggle", "tooltip");
-            //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
-   
-            let valSpan = document.createElement("span");
-            valCell.appendChild(valSpan);
-            subfield.valueCell = valCell;
-            subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
-            valSpan.innerText = subfield.value;
-            valSpan.contentEditable = true;
+
+            // Subfield code actions
+            function subfieldCodeActivate() {
+                codeCell.classList.add("subfield-code-selected");
+
+                let popout = document.createElement("div");
+                codeCell.append(popout);
+                popout.className = "subfield-code-input-popout";
+
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "subfield-code-input";
+                input.placeholder = codeSpan.innerText;
+                input.maxLength = 1;
+                input.focus();
+                
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
+                        menuButton.focus();
+                    }
+                });
+
+                input.addEventListener("blur", function() {
+                    codeSpan.innerText = input.value || codeSpan.innerText;
+                    codeCell.classList.remove("subfield-code-selected");
+                    input.remove();
+                    subfieldCodeUpdate();
+                });
+
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (codeSpan.innerText.length === 1) {
+                        // todo: detect subfield code changes
+                        //jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
+
+            function subfieldCodeUpdate() {
+                subfield.code = codeSpan.innerText || subfield.code;
+
+                subfield.codeSpan.classList.remove("invalid");
+                subfield.codeSpan.classList.remove("unsaved");
+
+                let savedState = new Jmarc(jmarc.collection);
+                savedState.parse(jmarc.savedState);
+                let i = field.subfields.indexOf(subfield);
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+                let checkSubfield = checkField ? checkField.subfields[i] : null;
  
+                if (! checkSubfield || checkSubfield.code !== subfield.code) {
+                    subfield.codeSpan.classList.add("unsaved");
+                }
+
+                if (codeSpan.innerText === '_') {
+                    codeSpan.classList.remove("unsaved");
+                    codeSpan.classList.add("invalid");
+                }
+
+                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                    component.setAuthControl(field, subfield)
+                } else {
+                    component.removeAuthControl(subfield)
+                }
+
+                // adding the snapshot 
+                if (codeSpan.innerText.length === 1) {
+                    jmarc.addUndoredoEntry("from Code Subfield")
+                }
+            }
+
+            codeDiv.addEventListener("click", subfieldCodeActivate);
+            codeSpan.addEventListener("focus", subfieldCodeActivate);
+            codeSpan.addEventListener("blur", subfieldCodeUpdate);
+
+            // Subfield value actions
             valCell.addEventListener("click", function () {valSpan.focus()});
  
             valCell.addEventListener("input", function () {
@@ -1641,6 +1820,21 @@ export let multiplemarcrecordcomponent = {
                     jmarc.addUndoredoEntry("from Subfield Value")
                 }
 
+            });
+
+            valSpan.addEventListener("focus", function() {
+                valSpan.classList.add("subfield-value-selected");
+                subfield.selected = true;
+            });
+
+            valCell.addEventListener("click", function() {
+                valSpan.classList.add("subfield-value-selected");
+                subfield.selected = true;
+            });
+
+            valSpan.addEventListener("blur", function() {
+                valSpan.classList.remove("subfield-value-selected");
+                subfield.selected = false;
             });
    
             valSpan.addEventListener("keydown", function (event) {
@@ -1678,24 +1872,6 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             });
-   
-            codeSpan.addEventListener("input", function() {
-                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                    component.setAuthControl(field, subfield)
-                } else {
-                    component.removeAuthControl(subfield)
-                }
-                // undoredo snapshot
-                // jmarc.addUndoredoEntry("EDIT SUBFIELD CODE") 
-            });
-   
-            // create the last cell
-            subfield.xrefCell = subfield.row.insertCell()
-   
-            // auth controlled
-            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                this.setAuthControl(field, subfield)
-            }
    
             return subfield
         },

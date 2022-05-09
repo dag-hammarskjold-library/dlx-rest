@@ -67,6 +67,7 @@ table.marc-field tr:first-child {
 }
    
 table.marc-field td {
+    vertical-align: baseline;
     border-top: 1px solid LightGray;
 }
 
@@ -74,27 +75,143 @@ tr.hidden-field {
     display: none;
 }
 
+tr.field-row-selected {
+    outline: thin solid;
+    box-shadow: -5px 10px 10px 1px gray;
+}
+
+tr.subfield-row {
+    box-shadow: -1px 1px 1px lightgray;
+}
+
 td.field-checkbox {
-    vertical-align: top
+    vertical-align: top;
+}
+
+input.field-checkbox {
+    box-shadow: -2px 5px 5px gray;
+}
+
+button.field-menu {
+    background-color: silver;
+    box-shadow: -2px 3px 10px gray;
+}
+
+i.dropdown-item {
+    cursor: pointer;
+}
+
+td.tag-container {
+    vertical-align: top;
 }
 
 td.field-tag {
-    font-size: 11px;
-    text-align: left;
+    width: 200px;
+    padding: 3px;
+    font-size: 12px;
+    text-align: center;
+    font-weight: bold;
+    background-color: silver;
+}
+
+div.field-tag {
+    cursor: pointer;
+    box-shadow: -5px 5px 5px gray;
+}
+
+td.field-tag-selected {
+    position: relative
+}
+
+div.tag-input-popout {
+    position: absolute; 
+    padding: 1px; 
+    top: -50%; 
+    left: 0%;
+}
+
+input.tag-input {
+    font-size: 24px; 
+    width: 125%; 
+    text-align: center
+}
+
+td.indicators {
+    width: 40px;
+    font-size: 100%;
+    background-color: silver;
+}
+
+div.indicators {
+    cursor: pointer;
+    box-shadow: 0px 5px 5px gray;
+}
+
+td.ind-selected {
+    position: relative
+}
+
+div.ind-input-popout {
+    position: absolute; 
+    padding: 1px; 
+    top: -50%; 
+    left: 0%;
+}
+
+input.ind-input {
+    font-size: 24px; 
+    width: 125%; 
+    text-align: center
+}
+
+button.subfield-menu {
+    background-color: gainsboro;
+    box-shadow: -2px 3px 10px gray;
 }
 
 td.subfield-code {
-    font-size: 10px;
+    font-weight: bold;
+    font-size: 13px;
+    background-color: gainsboro;
+}
+
+div.subfield-code {
+    padding-left: 5px;
+    padding-right: 5px;
+    cursor: pointer;
+    box-shadow: 0px 5px 5px gray;
+}
+
+td.subfield-code-selected {
+    position: relative;
+}
+
+div.subfield-code-input-popout {
+    position: absolute; 
+    padding: 1px; 
+    top: -50%; 
+    left: 0%;
+}
+
+input.subfield-code-input {
+    font-size: 24px; 
+    width: 125%; 
+    text-align: center
 }
 
 td.subfield-value {
     /* set to value larger than div, pushing all other cells outward */
     width: 10000px;
     font-size: 14px;
+    border-left: 3px groove black;
 }
 
 td.unsaved {
     background-color: rgba(255, 255, 128, .5);
+}
+
+span.subfield-value-selected {
+    background-color: white;
 }
 
 span.authority-controlled {
@@ -119,12 +236,4 @@ span.lookup-choice-code {
 
 li.lookup-choice:hover {
     background-color: gray;
-}
-
-div.tag-menu {
-    cursor: default;
-}
-
-div.subfield-menu {
-    cursor: default;
 }
