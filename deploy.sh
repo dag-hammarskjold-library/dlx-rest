@@ -29,7 +29,7 @@ then
 fi
 
 # update the project code
-if [ $ENV -eq "dev"]
+if [ $ENV = "dev"]
 then
     git pull origin master
 else
