@@ -248,7 +248,7 @@ export class Jmarc {
 		if (this.undoredoVector.length>0) {		
 				if (this.undoredoIndex>0){
 					if (this.undoredoIndex==1){
-						alert("this is the first entry!!!!")
+						//alert("this is the first entry!!!!")
 					}
 					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
@@ -265,7 +265,7 @@ export class Jmarc {
 			if (this.undoredoIndex<this.undoredoVector.length){
 
 				if (this.undoredoIndex==this.undoredoVector.length-2){
-					alert("this is the last entry!!!!")
+					//alert("this is the last entry!!!!")
 				}	
 				if (this.undoredoIndex<this.undoredoVector.length-1){
 						this.undoredoIndex=this.undoredoIndex+1
@@ -319,6 +319,8 @@ export class Jmarc {
 				
 				return jmarc
 			}
+		).catch(
+			error => console.error(error)
 		)
 	}
 	
@@ -342,7 +344,7 @@ export class Jmarc {
     }
     
     static fromWorkform(collection, workformName) {
-        let jmarc = new Jmarc(collection);
+        let jmarc = new Workform(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
             response => {
@@ -466,6 +468,8 @@ export class Jmarc {
 		    error => {
 		        throw error
 		    }
+		).catch(
+			error => console.error(error)
 		)
 	}
 
@@ -505,6 +509,8 @@ export class Jmarc {
 
 				return this;
 			} 
+		).catch(
+			error => console.error(error)
 		)
 	}
 	
@@ -537,6 +543,8 @@ export class Jmarc {
 				
 				throw new Error(check['message'])
 			}
+		).catch(
+			error => console.error(error)
 		)
 	}
 
@@ -547,6 +555,7 @@ export class Jmarc {
 	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
+		this.fields = [];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
@@ -610,15 +619,33 @@ export class Jmarc {
 		let data = json['data'];
 		let historyRecords = [];
 		
-		for (let url of data) {
+		for (let result of data) {
 			let record = new Jmarc(this.collection);
-			let response = await fetch(url);
+			let response = await fetch(result.event);
 			let json = await response.json();
 			record.parse(json['data']);
 			historyRecords.push(record);
 		}
 		
 		return historyRecords
+	}
+
+	diff(other) {
+		// returns a new Jmarc record where the fields different from "other" are tagged
+		if (! other instanceof Jmarc) {throw new Error("First argument must be instance of Jmarc")};
+
+		let diff = new Diff(this.collection);
+		diff.parse(this.compile());
+
+		for (let field of diff.fields) {
+			if (other.fields.map(x => x.toStr()).includes(field.toStr())) {
+				field.isDiff = false
+			} else {
+				field.isDiff = true
+			}
+		}
+
+		return diff
 	}
 
 	clone() {
@@ -802,6 +829,13 @@ export class Workform extends Jmarc {
     
     constructor(collection, name=null) {
 		super(collection);
-        
+	}
+}
+
+export class Diff extends Jmarc {
+	// work in progress
+    
+	constructor(collection) {
+		super(collection);
 	}
 }

@@ -29,32 +29,37 @@ export let multiplemarcrecordcomponent = {
         readonly: {
             type: Boolean,
             default: false
+        },
+        fromworkform: {
+            type: String,
+            required: false
         }
     },
     template: `
         <div class="container col-sm-10" id="app1" style="background-color:white;">
-            <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
+            <div class='mt-3 shadow'>
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
                     <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
                         <div class="container">
-                            <h1 class="display-4 text-center">No record selected</h1>
-                            <p class="lead text-center">You can select one from the basket to the left or create one via the menu above.</p>
+                            <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner"></p>
+                            <p v-else class="text-center">No record selected</p>
                         </div>
                     </div>                               
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                         </div> -->
                     </div>
-                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                         </div> -->
                     </div>
+                    <br>&nbsp;
                 </div>
             </div>
        
@@ -96,6 +101,7 @@ export let multiplemarcrecordcomponent = {
             visible: true,
             record1: "",
             record2: "",
+            recordlist: [],
             collectionRecord1:"",
             collectionRecord2:"",
             isRecordOneDisplayed: false,
@@ -149,55 +155,65 @@ export let multiplemarcrecordcomponent = {
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
  
-        let myProfile = await user.getProfile(this.prefix, 'my_profile');
-        if (myProfile) {
-            this.user = myProfile.data.email;
-            this.myBasket = await basket.getBasket(this.prefix);
-        }
-       
-        if (this.records !== "None") {
-            this.records.split(",").forEach(
-                record => {
-                    var split_rec = record.split("/")
-                    
-                    if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
-                            if (this.readonly && this.user !== null) {
-                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                                this.displayMarcRecord(jmarc, true);
-                            } else if (this.user === null) {
-                                this.displayMarcRecord(jmarc, true);
-                            } else {
-                                this.displayMarcRecord(jmarc, false); // record ID and collection
-                            }
-                        })
-                       
-                    } else {
-                        let jmarc = new Jmarc(split_rec[0]);
-                       
-                        if (split_rec[0] == "bibs") {
-                            let field = jmarc.createField('245');
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
-                        } else if (split_rec[0] == "auths") {
-                            let field = jmarc.createField('100')
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
+        user.getProfile(this.prefix, 'my_profile').then(
+            myProfile => {
+                this.user = myProfile.data.email;
+                
+                basket.getBasket(this.prefix).then(
+                    myBasket => this.myBasket = myBasket
+                )
+            }
+        ).then( () => {
+            // the "records" param from the URL
+            if (this.records !== "None") {
+                // "<col>/<id>"
+                this.recordlist = this.records.split(","); 
+
+                for (let record of this.recordlist) {
+                    let collection = record.split("/")[0]
+                    let recordId = record.split("/")[1]
+                
+                    Jmarc.get(collection, recordId).then(async jmarc => {
+                        if (this.readonly && this.user !== null) {
+                            //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                            basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
+                                this.displayMarcRecord(jmarc, true)
+                            })
+                            
+                        } else if (this.user === null) {
+                            this.displayMarcRecord(jmarc, true);
+                        } else {
+                            this.displayMarcRecord(jmarc);
                         }
-                       
-                        this.displayMarcRecord(jmarc);
-                    }
+                    })
                 }
-            );
- 
-        } else if (this.workform !== 'None') {
-            let wfCollection = this.workform.split('/')[0];
-            let wfRecordId = this.workform.split('/')[1]
-            
-            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-            this.displayMarcRecord(jmarc, false);
-        }
-        recup=this
+            } else if (this.workform !== 'None') {
+                let wfCollection = this.workform.split('/')[0];
+                let wfRecordId = this.workform.split('/')[1]
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    this.displayMarcRecord(jmarc, false);
+                })
+                
+            } else if (this.fromworkform !== 'None') {
+                // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
+                let wfCollection = this.fromworkform.split('/')[0];
+                let wfRecordId = this.fromworkform.split('/')[1]
+                //console.log(wfCollection, wfRecordId)
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    jmarc.workformName = this.fromworkform
+                    //this.displayMarcRecord(jmarc, false);
+                    this.cloneRecord(jmarc)
+                })
+                
+            }
+            recup=this
+        })
+        
+        
     },
     methods: {
  
@@ -232,10 +248,15 @@ export let multiplemarcrecordcomponent = {
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
-            } else {
+            } else if (! jmarc.saved) {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                
+                jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.style = "pointer-events: none";
  
                 promise.then(jmarc => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -248,13 +269,17 @@ export let multiplemarcrecordcomponent = {
                     }
                     //this.selectRecord(jmarc)
                 }).catch(error => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                 });
             }
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            if (jmarc.divID) {
+                this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            }
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
             } else {
@@ -328,8 +353,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "unsaved changes";
+                    jmarc.saveButton.title = "Save Record";
                 })
                                
         },
@@ -403,7 +427,7 @@ export let multiplemarcrecordcomponent = {
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
             jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "save";
+            jmarc.saveButton.title = "Save Record";
 
             // undoredo snapshot
             //jmarc.addUndoredoEntry("ADD FIELD") 
@@ -425,12 +449,10 @@ export let multiplemarcrecordcomponent = {
             // Manage virtual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
 
             // undoredo snapshot
@@ -482,7 +504,7 @@ export let multiplemarcrecordcomponent = {
         async editRecord(jmarc) {
             let uibase = this.prefix.replace("/api/","");
             let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
-            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                 window.location.href = editLink;
             })
         },
@@ -515,7 +537,7 @@ export let multiplemarcrecordcomponent = {
             let uibase = this.prefix.replace("/api/","")
             let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
             if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
-                await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
                     window.location.href = editHref;
                 })
             }
@@ -807,6 +829,7 @@ export let multiplemarcrecordcomponent = {
             })
  
         },
+
         closeModal() {
             this.showModal = false;
         },
@@ -1009,6 +1032,9 @@ export let multiplemarcrecordcomponent = {
                 this.historyMode=false
             }
  
+            //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+            // needed?
+            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
         },
         displayMarcRecord(jmarc, readOnly,reload=false) {
             let myDivId;
@@ -1042,8 +1068,14 @@ export let multiplemarcrecordcomponent = {
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
  
-            this.addJmarcTodisplayedJmarcObject(jmarc)    
- 
+            this.addJmarcTodisplayedJmarcObject(jmarc);
+
+            let recordString = `${jmarc.collection}/${jmarc.recordId}`;
+
+            if (! this.recordlist.includes(recordString)) {
+                this.recordlist.push(recordString)
+            }
+
             //////////////////////////////////////////////////////////////////////////////
             // optimize the display just when you have one record displayed
             //////////////////////////////////////////////////////////////////////////////
@@ -1052,8 +1084,13 @@ export let multiplemarcrecordcomponent = {
             this.optimizeEditorDisplay(table)
         },
         buildRecordTable(jmarc, readOnly) {
+            let component = this;
             let table = document.createElement("table");
             jmarc.table = table;
+
+            table.addEventListener("click", function() {
+                component.selectRecord(jmarc) 
+            });
  
             window.addEventListener("click",  function() {
                 let dropdown = document.getElementById("typeahead-dropdown")
@@ -1078,12 +1115,12 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    //jmarc.saveButton.classList.add("text-primary");
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    //jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "Save Record";
                 }
             });
            
@@ -1107,7 +1144,7 @@ export let multiplemarcrecordcomponent = {
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
                 {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Record", "click": "saveRecord"},
+                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
@@ -1129,7 +1166,6 @@ export let multiplemarcrecordcomponent = {
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
                     {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndexUndo","param":jmarc},
                     {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndexRedo","param":jmarc},
-                    // i think we don't need that for this type of record   {"name": "historyButton", "element": "i", "class": "fas fa-history dropdown-menu", "title": "History", "click": "displayHistoryModal","param":jmarc},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
                 ]
             }
@@ -1170,13 +1206,16 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     if (control["param"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["param"]) }
+                            this[control["click"]](control["param"]) 
+                        }
                     } else if (control["params"]) {
                         controlButton.onclick = () => {
-                        this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
+                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                        }
                     } else {
                         controlButton.onclick = () => {
-                            this[control["click"]](jmarc) }
+                            this[control["click"]](jmarc) 
+                        }
                     }
                     jmarc[control["name"]] = controlButton;
                } else {
@@ -1357,7 +1396,7 @@ export let multiplemarcrecordcomponent = {
             // Tag cell
             let tagCell = field.row.insertCell();
             field.tagCell = tagCell;
-            tagCell.className = "field-tag badge badge-pill badge-warning dropdown-toggle";
+            tagCell.className = "field-tag badge badge-warning dropdown-toggle";
    
             // menu
             let tagMenu = document.createElement("div");
@@ -1388,8 +1427,7 @@ export let multiplemarcrecordcomponent = {
  
                 // Manage visual indicators
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
  
                 return
             });
@@ -1409,23 +1447,19 @@ export let multiplemarcrecordcomponent = {
                 }
                
                 jmarc.deleteField(field);
-               
                 table.deleteRow(field.row.rowIndex);
  
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
-             
- 
+
             });
    
             // Tag span
@@ -1474,6 +1508,8 @@ export let multiplemarcrecordcomponent = {
                         subfield.valueCell.classList.add("unsaved");
                     }
                 }
+
+                console.log(JSON.stringify(jmarc.savedState))
             });
    
             tagSpan.addEventListener("keydown", function (event) {
@@ -1490,8 +1526,8 @@ export let multiplemarcrecordcomponent = {
        
                 // prevent typing more than 3 characters
                 if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    //tagSpan.innerText = ''
-                    event.preventDefault()
+                    // field value resets
+                    tagSpan.innerText = ''
                 }
             });
    
@@ -1550,7 +1586,7 @@ export let multiplemarcrecordcomponent = {
 
                 for (let span of [ind1Span, ind2Span]) {
                     let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
-                    span.className = "mx-1 text-secondary"
+                    span.className = "mx-1"
                     span.innerText = indicator;
                     span.contentEditable = true;
        
@@ -1558,11 +1594,28 @@ export let multiplemarcrecordcomponent = {
                         if (span.innerText.length > 1) {   
                             span.innerText = span.innerText.substring(0, 1);
                         }
-           
+                        
+                        // editing the indicators array directly has strange side effects
+                        let updated = [field.indicators[0], field.indicators[1]]
+
                         if (span == ind1Span) {
-                            field.indicators[0] = span.innerText;
+                            updated[0] = span.innerText;
                         } else {
-                            field.indicators[1] = span.innerText;
+                            updated[1] = span.innerText;
+                        }
+
+                        field.indicators = updated;
+
+                        if (jmarc.saved) {
+                            jmarc.saveButton.classList.remove("text-danger");
+                            jmarc.saveButton.title = "No Unsaved Changes";
+
+                            console.log("SAVED")
+                        } else {
+                            jmarc.saveButton.classList.add("text-danger");
+                            jmarc.saveButton.title = "Save Record";
+
+                            console.log("NOT SAVED")
                         }
  
                     });
@@ -1632,7 +1685,7 @@ export let multiplemarcrecordcomponent = {
             // Subfield code
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
-            codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
+            codeCell.className = "subfield-code badge bg-primary dropdown-toggle";
    
             // menu
             let codeMenu = document.createElement("div");
@@ -1754,12 +1807,10 @@ export let multiplemarcrecordcomponent = {
                 // Manage visual indicators
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 

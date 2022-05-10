@@ -4,7 +4,7 @@
         <messagecomponent></messagecomponent>
         <div class="row">
             <sidebarcomponent sbtype="facet"></sidebarcomponent>
-            <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}"></searchcomponent>
+            <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" logged_in="{{'1' if current_user.is_authenticated else ''}}"></searchcomponent>
             <sidebarcomponent sbtype="other"></sidebarcomponent>
         </div>
     </div>

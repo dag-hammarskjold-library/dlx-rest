@@ -164,6 +164,10 @@ class Schemas():
             data = {'type': 'array'}
         elif schema_name == 'api.basket.item':
             data = {'type': 'object'}
+        elif schema_name == 'api.history.list':
+            data = {'type': 'array'}
+        elif schema_name == 'api.history.event':
+            data = {'type': 'object'}
         else:
             abort(404)
         

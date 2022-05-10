@@ -34,7 +34,8 @@ def editor():
     this_prefix = url_for('doc', _external=True)
     records = request.args.get('records', None)
     workform = request.args.get('workform', None)
-    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform)
+    fromWorkform = request.args.get('fromWorkform', None)
+    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform)
 
 
 @app.route('/workform')
@@ -390,22 +391,20 @@ def search_records(coll):
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
-    # for now, only default to updated desc if no search term
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
-    if q:
-        terms = re.split(' +', q)
+    terms = re.split(' *(AND|OR|NOT) +', q)
         
-        for term in terms:
-            if ':' not in term and term not in ('AND', 'OR') and not sort:
-                if re.match('[A-z]+/[A-z0-9]+', term) and len(terms) == 1:
-                    # TODO "looks like symbol" util function
-                    q = f'symbol:{term.upper()}*'
-                else:    
-                    # appears to be free text term
-                    sort = 'relevance'
+    for term in (filter(None, terms)):
+        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT') and not sort:
+            if re.match('[A-z]+/', term) and len(terms) == 1:
+                # TODO "looks like symbol" util function
+                q = f'symbol:{term.upper()}*'
+            else:    
+                # appears to be free text term
+                sort = 'relevance'
                 
     if not sort:
         sort = 'updated'
