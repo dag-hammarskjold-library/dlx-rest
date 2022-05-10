@@ -1618,6 +1618,8 @@ export let multiplemarcrecordcomponent = {
                         }
 
                         field.indicators = updated;
+                        // undoredo snapshot
+                        jmarc.addUndoredoEntry("INDICATORS") 
 
                         // detect state
                         let savedState = new Jmarc(jmarc.collection);
