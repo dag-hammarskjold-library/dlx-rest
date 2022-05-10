@@ -1532,20 +1532,9 @@ export let multiplemarcrecordcomponent = {
             }
 
             // Events
-
-            // Call when field is active
-            function fieldSelected() {
-                for (let f of jmarc.fields) {
-                    f.row.classList.remove("field-row-selected");
-                    f.selected = false;
-                }
-
-                field.row.classList.add("field-row-selected");
-                field.selected = true;
-            }
-
-            field.row.addEventListener("click", fieldSelected);
-            field.row.addEventListener("keydown", fieldSelected);
+            field.row.addEventListener("click", function() {
+                component.fieldSelected(field)
+            });
 
             // Menu add field
             addField.addEventListener("click", function() {
@@ -1599,7 +1588,7 @@ export let multiplemarcrecordcomponent = {
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate() {
-                fieldSelected();
+                component.fieldSelected(field);
                 tagCell.classList.add("field-tag-selected");
 
                 let popout = document.createElement("div");
@@ -2048,6 +2037,7 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
             valSpan.addEventListener("focus", function() {
+                component.fieldSelected(field);
                 valSpan.classList.add("subfield-value-selected");
                 subfield.selected = true;
             });
@@ -2077,6 +2067,7 @@ export let multiplemarcrecordcomponent = {
                         let i = jmarc.fields.indexOf(field) - 1;
                         let f = jmarc.fields[i];
                         f.subfields[f.subfields.length-1].valueSpan.focus();
+                        component.fieldSelected(f);
                     } else {
                         let i = field.subfields.indexOf(subfield) - 1;
                         valSpan.blur();
@@ -2091,6 +2082,7 @@ export let multiplemarcrecordcomponent = {
                         let i = jmarc.fields.indexOf(field) + 1;
                         let f = jmarc.fields[i];
                         f.subfields[0].valueSpan.focus();
+                        component.fieldSelected(f);  
                     } else {
                         let i = field.subfields.indexOf(subfield) + 1;
                         valSpan.blur();
@@ -2167,6 +2159,15 @@ export let multiplemarcrecordcomponent = {
             subfield.valueSpan.classList.remove("authority-controlled");
             subfield.valueSpan.classList.remove("authority-controlled-unmatched");
             subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+        },
+        fieldSelected(field) {
+            for (let f of field.parentRecord.fields) {
+                f.row.classList.remove("field-row-selected");
+                f.selected = false;
+            }
+
+            field.row.classList.add("field-row-selected");
+            field.selected = true;
         }
     }
 }
