@@ -1843,6 +1843,35 @@ export let multiplemarcrecordcomponent = {
                     event.preventDefault();
                     valSpan.blur();
                 }
+
+                // arrow keys
+                if (event.keyCode === 38) {
+                    // up
+                    if (field.subfields.indexOf(subfield) === 0) {
+                        // first subfield
+                        let i = jmarc.fields.indexOf(field) - 1;
+                        let f = jmarc.fields[i];
+                        f.subfields[f.subfields.length-1].valueSpan.focus();
+                    } else {
+                        let i = field.subfields.indexOf(subfield) - 1;
+                        valSpan.blur();
+                        field.subfields[i].valueSpan.focus();
+                    }
+                }
+
+                if (event.keyCode === 40) {
+                    // down
+                    if (field.subfields.indexOf(subfield) === field.subfields.length - 1) {
+                        // last subfield
+                        let i = jmarc.fields.indexOf(field) + 1;
+                        let f = jmarc.fields[i];
+                        f.subfields[0].valueSpan.focus();
+                    } else {
+                        let i = field.subfields.indexOf(subfield) + 1;
+                        valSpan.blur();
+                        field.subfields[i].valueSpan.focus();
+                    }
+                }
             });
 
             valSpan.addEventListener("input", function () {
