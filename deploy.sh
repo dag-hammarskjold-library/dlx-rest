@@ -29,34 +29,13 @@ then
 fi
 
 # update the project code
-git pull origin master
-
-if [ ! $? -eq 0 ]
+if [ $ENV -eq "dev"]
 then
-    # git pull returned an error exit code
-    echo "Git pull failed"
-    exit 1
+    git pull origin master
+else
+    git checkout $ENV
+    git pull
 fi
 
-# activate the venv
-. $PWD/$VENV/bin/activate
 
-if [ -z $VIRTUAL_ENV ]
-then
-    # the venv was not found or something went wrong
-    echo "Virtual environment not activated"
-    exit 1
-fi
-
-# install requirements and test
-pip uninstall -r $PWD/requirements.txt -y
-pip install -r $PWD/requirements.txt
-pytest
-
-if [ $? -eq 0 ]
-then
-    # the tests passed
-    echo "Deploying to $ENV environment"
-    zappa update $ENV
-fi
 
