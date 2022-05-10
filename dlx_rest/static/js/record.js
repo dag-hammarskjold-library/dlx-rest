@@ -916,11 +916,20 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    //jmarc.saveButton.classList.add("text-primary");
                     jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    //jmarc.saveButton.classList.remove("text-primary");
+                    jmarc.saveButton.title = "Save Record";
+                }
+            });
+
+            // check the save status on mousedown (auth conrrol select)
+            table.addEventListener("mousedown", function() {
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.title = "No Unsaved Changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
                     jmarc.saveButton.title = "Save Record";
                 }
             });
@@ -1380,30 +1389,46 @@ export let multiplemarcrecordcomponent = {
                         if (span.innerText.length > 1) {   
                             span.innerText = span.innerText.substring(0, 1);
                         }
+
+                        if (span.innerText.length === 0) {   
+                            span.innerText = '_';
+                        }
                         
-                        // editing the indicators array directly has strange side effects
+                        // update the indicators 
                         let updated = [field.indicators[0], field.indicators[1]]
 
                         if (span == ind1Span) {
                             updated[0] = span.innerText;
-                        } else {
+                        } else if (span == ind2Span) {
                             updated[1] = span.innerText;
                         }
 
                         field.indicators = updated;
 
+                        // detect state
+                        let savedState = new Jmarc(jmarc.collection);
+                        savedState.parse(jmarc.savedState);
+                        let i = jmarc.fields.indexOf(field);
+
+                        console.log(savedState.fields[i].indicators)
+                        console.log(field.indicators)
+
+                        let j = span === ind1Span ? 0 : 1;
+
+                        if (savedState.fields[i].indicators[j] === field.indicators[j]) {
+                            span.classList.remove("unsaved")
+                        } else {
+                            span.classList.add("unsaved")
+                        }
+
                         if (jmarc.saved) {
                             jmarc.saveButton.classList.remove("text-danger");
                             jmarc.saveButton.title = "No Unsaved Changes";
-
-                            console.log("SAVED")
                         } else {
                             jmarc.saveButton.classList.add("text-danger");
                             jmarc.saveButton.title = "Save Record";
-
-                            console.log("NOT SAVED")
                         }
- 
+
                     });
        
                     span.addEventListener("keydown", function (event) {
@@ -1618,8 +1643,8 @@ export let multiplemarcrecordcomponent = {
             valSpan.contentEditable = true;
  
             valCell.addEventListener("click", function () {valSpan.focus()});
- 
-            valCell.addEventListener("input", function () {
+            
+            function checkState() {
                 subfield.value = valSpan.innerText;
        
                 let savedState = new Jmarc(jmarc.collection);
@@ -1640,8 +1665,10 @@ export let multiplemarcrecordcomponent = {
                 if (valCell.innerText.length > 0) {
                     jmarc.addUndoredoEntry("from Subfield Value")
                 }
+            }
 
-            });
+            valCell.addEventListener("input", checkState);
+            valCell.addEventListener("mousedown", checkState); // auth control selection
    
             valSpan.addEventListener("keydown", function (event) {
                 // prevent newline and blur on return key
@@ -1678,6 +1705,12 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             });
+
+            const observer = new MutationObserver(function() {
+                console.log('callback that runs when observer is triggered');
+            });
+
+            observer.observe(valSpan, {subtree: true, childList: true});
    
             codeSpan.addEventListener("input", function() {
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
