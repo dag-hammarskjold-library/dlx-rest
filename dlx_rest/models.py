@@ -15,16 +15,17 @@ from dlx_rest.config import Config
 
 ## Setup some models for use
 
-class Constraint(EmbeddedDocument):
-    collection = StringField(required=True)
+class Constraint(Document):
+    name = StringField(required=True, unique=True)
+    collection = StringField()
     field = StringField()
     subfield = StringField()
     value = StringField()
 
 class Permission(Document):
     action = StringField(required=True)
-    constraint_must = EmbeddedDocumentField(Constraint)
-    constraint_must_not = EmbeddedDocumentField(Constraint)
+    constraint_must = ListField(ReferenceField(Constraint))
+    constraint_must_not = ListField(ReferenceField(Constraint))
 
 class Role(Document):
     name = StringField(primary_key=True)

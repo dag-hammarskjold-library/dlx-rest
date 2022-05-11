@@ -1,4 +1,6 @@
 import os
+
+from dlx_rest.models import Constraint, Permission
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
@@ -10,6 +12,8 @@ from dlx.file import File, Identifier, S3
 from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
+
+print(Config.connect_string)
 
 assert Config.TESTING == True
 assert Config.connect_string == 'mongomock://localhost'
@@ -24,8 +28,7 @@ def default_users():
         },
         'non-admin': {
             'email':'user@un.org',
-            'password': 'password',
-            'role': 'user'
+            'password': 'password'
         },
         'invalid': {
             'email':'invalid@un.org',
@@ -33,8 +36,7 @@ def default_users():
         },
         'new': {
             'email': 'new_test_user@un.org',
-            'password': 'password',
-            'role': 'user'
+            'password': 'password'
         }
     }
 
@@ -54,14 +56,39 @@ def db():
     # ?
 
 @pytest.fixture(scope='module')
+def constraints():
+    from dlx_rest.models import Constraint
+    # Collection and Location Constraints
+    for coll in ["bibs","auths","files"]:
+        col_c = Constraint(name=f'constraint-{coll}', collection=coll)
+        col_c.save()
+        for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
+            this_c = Constraint(name=f'constraint-{coll}-{c["loc"]}', collection=coll, field='040', subfield='a', value=c['code'])
+            this_c.save()
+
+@pytest.fixture(scope='module')
 def permissions():
-    from dlx_rest.models import Permission
+    from dlx_rest.models import Permission, Constraint
+    # Global Administrator permissions
     for a in ['create','read','update','delete']:
         for comp in ['Admin', 'User', 'Role', 'Permission', 'File', 'Record']:
-            for coll in ["bibs","auths"]:
-                this_p = Permission(action=f'{a}{comp}')
-                # this_p.constraints = ...
-                this_p.save()
+            this_p = Permission(action=f'{a}{comp}')
+            this_p.save()
+    
+    # Collection and location permissions
+    for a in ['create','read','update','delete']:
+        for comp in ['File', 'Record']:
+            for coll in ["bibs","auths", "files"]:    
+                col_p = Permission(action=f'{a}{comp}')
+                #col_p.constraint_must.append(Constraint(collection=coll))
+                col_p.constraint_must = list(filter(lambda x: x['collection'] == coll and not x['field'], Constraint.objects))
+                col_p.save()
+                for loc in ['NNUN', 'SzGeBNU']:
+                    if comp == "File" or comp == "Record":
+                        loc_p = Permission(action=f'{a}{comp}')
+                        #loc_p.constraint_must.append(Constraint(collection=coll, field='040', subfield='a', value=loc))
+                        loc_p.constraint_must = list(filter(lambda x: x['collection'] == coll and x['field'] == '040', Constraint.objects))
+                        loc_p.save()
     
     return Permission
 
@@ -70,12 +97,25 @@ def roles(permissions):
     from dlx_rest.models import Role
 
     r = Role(name='admin')
-    r.permissions = permissions.objects()
+    r.permissions = permissions.objects(constraint_must=[], constraint_must_not=[])
     r.save()
 
-    r = Role(name='user')
-    r.permissions = []
-    r.save()
+    # Collection admin roles
+    for coll in ["bibs","auths","files"]:
+        admin_r = Role(name=f'{coll}-admin')
+        constraints = Constraint.objects(collection=coll, field=None)
+        permissions = Permission.objects(constraint_must__in=constraints)
+        admin_r.permissions = permissions
+        admin_r.save()
+
+    # Collection location admin roles
+    for coll in ["bibs","auths","files"]:
+        for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
+            admin_r = Role(name=f'{coll}-{c["loc"]}-admin')
+            constraints = Constraint.objects(collection=coll, field='040', subfield='a', value=c["code"])
+            permissions = Permission.objects(constraint_must__in=constraints)
+            admin_r.permissions = permissions
+            admin_r.save()
 
     return Role
     
@@ -87,7 +127,10 @@ def users(roles, default_users):
         u = default_users[utype]
         user = User(email = u['email'], created=datetime.now())
         user.set_password(u['password'])
-        user.add_role_by_name(u['role'])
+        try:
+            user.add_role_by_name(u['role'])
+        except KeyError:
+            pass
         user.save()
 
     return User

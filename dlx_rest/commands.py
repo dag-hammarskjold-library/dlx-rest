@@ -1,5 +1,5 @@
 from dlx_rest.app import app
-from dlx_rest.models import User, Role, Permission
+from dlx_rest.models import User, Role, Permission, Constraint
 from bson.objectid import ObjectId
 import click
 import string
@@ -19,7 +19,6 @@ def create_user(email):
     try:
         user = User(email=email)
         user.set_password(my_password)
-        user.add_role_by_name('user')
         user.save()
         print(f"User {email} has been created. Password: {my_password}")
         print("Copy the password from here, because this is the only time it will be displayed.")
@@ -33,8 +32,6 @@ def make_admin(email):
         user = User.objects.get(email=email)
 
         user.roles = []
-        # All users should start with this role.
-        user.add_role_by_name('user')
         # But only admins should have this one.
         user.add_role_by_name('admin')
         user.save()
@@ -50,18 +47,15 @@ def init_roles():
         user_role = {'email': user.email, 'roles': []}
         if len(user.roles) > 0:
             for role in user.roles:
-                user_role['roles'].append(role.name)
-        else:
-            user_role['roles'].append('user')
-        if 'user' not in user_role['roles']:
-            user_role['roles'].append('user')
+                user_role['roles'].append(role)
         user_roles.append(user_role)
 
 
     print("Dropping Role and Permission collections.")
     Permission.drop_collection()
     Role.drop_collection()
-    print("Setting up admin role.")
+    Constraint.drop_collection()
+    print("Setting up global admin role.")
     r = Role(name='admin')
     for a in ['create','read','update','delete']:
         for comp in ['Admin', 'User', 'Role', 'Permission', 'File', 'Record']:
@@ -71,11 +65,6 @@ def init_roles():
         r.permissions.append(p)
     r.save()
 
-    print("Setting up user role.")
-    r = Role(name='user')
-    r.permissions = []
-    r.save()
-
     print("Resetting roles for existing users.")
     for user_role in user_roles:
         user = User.objects.get(email=user_role['email'])
@@ -83,7 +72,7 @@ def init_roles():
         user.save()
         user.reload()
         for role in user_role['roles']:
-            user.add_role_by_name(role)
+            user.add_role_by_name(role.name)
         user.save()
 
     print('''
