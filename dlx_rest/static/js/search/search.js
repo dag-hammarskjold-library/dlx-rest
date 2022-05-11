@@ -377,7 +377,8 @@ export let searchcomponent = {
                                     
                                         if (component.basketContains(myBasket, component.collection, result._id)) {
                                             //iconEl.classList.remove('fa-folder-plus',);
-                                            iconEl.classList.add('fa-folder-minus');
+                                            iconEl.classList.add("fa-folder-minus");
+                                            iconEl.classList.add("text-muted");
                                             iconEl.title = "Remove from basket";
                                         } else {
                                             iconEl.classList.add('fa-folder-plus');
@@ -411,6 +412,7 @@ export let searchcomponent = {
                                                         iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-plus");
                                                         iconEl.classList.add("fa-folder-minus");
+                                                        iconEl.classList.add("text-muted");
                                                         iconEl.title = "Remove from basket";
                                                     }
                                                 )
@@ -425,6 +427,7 @@ export let searchcomponent = {
                                                         iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-minus");
                                                         iconEl.classList.add("fa-folder-plus");
+                                                        iconEl.classList.remove("text-muted");
                                                         iconEl.title = "Add to basket";
                                                     }
                                                 )
