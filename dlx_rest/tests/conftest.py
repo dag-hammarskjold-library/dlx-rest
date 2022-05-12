@@ -185,6 +185,9 @@ def users(roles, default_users):
 
 @pytest.fixture
 def marc():
+    '''
+    To do: Create default bibs, auths, and templates with location data for location-based permissions testing.
+    '''
     auths = []
     
     for i in range(1, 3):
