@@ -54,6 +54,28 @@ def test_api_records_list(client, marc):
         
         for i in (1, 2):
             assert f'{API}/marc/{col}/records/{i}' in data['data']
+
+        # POST NY bib record by global administrator == 200
+        # POST NY auth record by global administrator == 200
+        # POST GE bib record by global administrator == 200
+        # POST GE auth record by global administrator == 200
+
+        # POST NY bib record by global bib administrator == 200
+        # POST GE bib record by glbal bib administrator == 200
+        # POST NY auth record by global auth administrator == 200
+        # POST GE auth record by global auth administrator == 200
+
+        # POST NY bib record by global auth administrator == 403
+        # POST GE bib record by glbal auth administrator == 403
+        # POST NY auth record by global bib administrator == 403
+        # POST GE auth record by global bib administrator == 403
+
+        # POST NY bib record by NY bib administrator == 200
+        # POST GE bib record by NY bib administrator == 403
+        # POST NY auth record by NY auth administrator == 200
+        # POST GE auth record by NY auth administrator == 403
+
+        # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.
             
         # post
         if col == 'bibs':    
@@ -115,7 +137,28 @@ def test_api_record(client, marc):
             res = client.get(f'{API}/marc/{col}/records/{i}')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
-            
+
+    # PUT NY bib record by global administrator == 200
+    # PUT NY auth record by global administrator == 200
+    # PUT GE bib record by global administrator == 200
+    # PUT GE auth record by global administrator == 200
+
+    # PUT NY bib record by global bib administrator == 200
+    # PUT GE bib record by glbal bib administrator == 200
+    # PUT NY auth record by global auth administrator == 200
+    # PUT GE auth record by global auth administrator == 200
+
+    # PUT NY bib record by global auth administrator == 403
+    # PUT GE bib record by glbal auth administrator == 403
+    # PUT NY auth record by global bib administrator == 403
+    # PUT GE auth record by global bib administrator == 403
+
+    # PUT NY bib record by NY bib administrator == 200
+    # PUT GE bib record by NY bib administrator == 403
+    # PUT NY auth record by NY auth administrator == 200
+    # PUT GE auth record by NY auth administrator == 403
+
+    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.          
     # put
     if col == 'bibs':    
         cls = Bib
@@ -132,6 +175,29 @@ def test_api_record(client, marc):
         
     assert res.status_code == 200
     
+    # DELETE NY bib record by global administrator == 200
+    # DELETE NY auth record by global administrator == 200
+    # DELETE GE bib record by global administrator == 200
+    # DELETE GE auth record by global administrator == 200
+
+    # DELETE NY bib record by global bib administrator == 200
+    # DELETE GE bib record by glbal bib administrator == 200
+    # DELETE NY auth record by global auth administrator == 200
+    # DELETE GE auth record by global auth administrator == 200
+
+    # DELETE NY bib record by global auth administrator == 403
+    # DELETE GE bib record by glbal auth administrator == 403
+    # DELETE NY auth record by global bib administrator == 403
+    # DELETE GE auth record by global bib administrator == 403
+
+    # DELETE NY bib record by NY bib administrator == 200
+    # DELETE GE bib record by NY bib administrator == 403
+    # DELETE NY auth record by NY auth administrator == 200
+    # DELETE GE auth record by NY auth administrator == 403
+
+    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.      
+
+
     # delete
     res = client.delete(f'{API}/marc/bibs/records/1')
     assert res.status_code == 204

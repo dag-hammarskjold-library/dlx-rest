@@ -37,7 +37,55 @@ def default_users():
         'new': {
             'email': 'new_test_user@un.org',
             'password': 'password'
-        }
+        },
+        'bib-admin': {
+            'email': 'bib_admin@un.org',
+            'password': 'password',
+            'role': 'bib-admin'
+        },
+        'auth-admin': {
+            'email': 'auth_admin@un.org',
+            'password': 'password',
+            'role': 'auth-admin'
+        },
+        'file-admin': {
+            'email': 'file_admin@un.org',
+            'password': 'password',
+            'role': 'file-admin'
+        },
+        'bib-NY-admin': {
+            'email': 'bib_ny_admin@un.org',
+            'password': 'password',
+            'role': 'bib-NY-admin'
+        },
+        'auth-NY-admin': {
+            'email': 'auth_ny_admin@un.org',
+            'password': 'password',
+            'role': 'auth-NY-admin'
+        },
+        'bib-GE-admin': {
+            'email': 'bib_ge_admin@un.org',
+            'password': 'password',
+            'role': 'bib-GE-admin'
+        },
+        'auth-GE-admin': {
+            'email': 'auth_ge_admin@un.org',
+            'password': 'password',
+            'role': 'auth-GE-admin'
+        },
+
+        # Once we have file tests and location data ready, we can enable these users
+        #'file-NY-admin': {
+        #    'email': 'file_ny_admin@un.org',
+        #    'password': 'password',
+        #    'role': 'file-NY-admin'
+        #},
+        #'file-GE-admin': {
+        #    'email': 'file_ge_admin@un.org',
+        #    'password': 'password',
+        #    'role': 'file-GE-admin'
+        #},
+
     }
 
 
