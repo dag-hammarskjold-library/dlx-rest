@@ -106,7 +106,7 @@ export let searchcomponent = {
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
                     <span>X</span>
                 </button>
-            </form>
+            </form>    
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
@@ -134,7 +134,8 @@ export let searchcomponent = {
             </div>
         </div>
         <br>
-        <div v-for="result in this.results" :key="result._id">
+        <div id="message-display" class="col-xs-1 text-center"></div>
+        <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
@@ -518,20 +519,28 @@ export let searchcomponent = {
         submitAdvancedSearch() {
             // Build the URL
             var expressions = []
+            var anycount = 0
             for (let i of ["1","2","3"]) {
+                let term  = this.advancedParams[`searchTerm${i}`]
                 let termList = []
                 // First figure out if there IS a search term here, then split it by space
-                if (this.advancedParams[`searchTerm${i}`] !== null) {
-                    termList = this.advancedParams[`searchTerm${i}`].split(" ")
+                if (term !== null) {
+                    termList = term.split(/\s+/)
                 }
                 // Next figure out if we're searching in a field or not
                 if (this.advancedParams[`searchField${i}`] == "any" ) {
+                    if (term) {
+                        console.log(term)
+                        anycount++
+                    }
                     // What kind of search are we doing?
                     switch (this.advancedParams[`searchType${i}`]) {
                         case "any":
                             // Any of the words in any field
-                            expressions.push(termList.join(" "))
-                            break
+                            // expressions.push(termList.join(" "))
+                            // break
+                            this.reportError('"Any of the words" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
                         case "all":
                             // All of the words in any field
                             expressions.push(termList.join(" "))
@@ -546,7 +555,9 @@ export let searchcomponent = {
                             break
                         case "regex":
                             // This can't be done like this on MDB, so we should disable the option
-                            break
+                            //break
+                            this.reportError('"Regular expression" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
                         default:
                             expressions.push(termList.join(" "))
                     }                    
@@ -584,8 +595,11 @@ export let searchcomponent = {
                     }
                 }
             }
+            if (anycount > 1) {                  
+                this.reportError("Can't have more than one \"in any field\" term")
+                throw new Error("Search cancelled");
+            }
             this.expressions = expressions
-
             let compiledExpr = []
             if (this.vcoll) {
                 compiledExpr.push(`${this.vcoll} AND`)
@@ -593,7 +607,7 @@ export let searchcomponent = {
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
-                console.log(i, expressions[i], accessor, this.advancedParams[accessor])
+                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
                 }
@@ -608,13 +622,19 @@ export let searchcomponent = {
             while (compiledExpr[compiledExpr.length - 1] === 'OR') {
                 compiledExpr.pop()
             }
+
+            // Catch and warn of invalid searches
+            // ...
+
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
             
             window.location = url
         },
-
         reportError(message) {
-            document.getElementById("results-spinner").innerHTML = message;
+            let display = document.getElementById("results-spinner");
+            display = display || document.getElementById("message-display");
+            display.innerText = message;
+            this.results = []; // clear any exisiting results
             document.getElementById("result-count-top").innerHTML = "0";
             document.getElementById("result-count-bottom").innerHTML = "0";
         },
