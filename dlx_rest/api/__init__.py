@@ -1480,13 +1480,14 @@ class MyUserProfileRecord(Resource):
         user_id = this_u['id']
         return_data['email'] = this_u.email
         return_data['roles'] = []
+        return_data['default_views'] = []
             
         for r in this_u.roles:
             return_data['roles'].append(r.name or '')
         
         try:
             for v in this_u.default_views:
-                return_data['default_views'].append(v.name)
+                return_data['default_views'].append(v.to_json())
         except KeyError:
             pass
             

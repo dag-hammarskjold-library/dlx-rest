@@ -78,6 +78,19 @@ class RecordView(Document):
     collection = StringField(choices=["bibs","auths"])
     fieldsets = EmbeddedDocumentListField(MarcFieldSet)
 
+    def to_json(self):
+        return_data = {
+            'name': self.name,
+            'collection': self.collection,
+            'fieldsets': []
+        }
+
+        for f in self.fieldsets:
+            return_data['fieldsets'].append({'field': f.field, 'subfields': f.subfields})
+        
+        return return_data
+
+
 
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
