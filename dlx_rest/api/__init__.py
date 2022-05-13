@@ -1483,6 +1483,12 @@ class MyUserProfileRecord(Resource):
             
         for r in this_u.roles:
             return_data['roles'].append(r.name or '')
+        
+        try:
+            for v in this_u.default_views:
+                return_data['default_views'].append(v.name)
+        except KeyError:
+            pass
             
         my_basket = URL('api_my_basket_record').to_str()
 
