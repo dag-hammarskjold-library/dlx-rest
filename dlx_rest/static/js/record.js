@@ -1726,9 +1726,13 @@ export let multiplemarcrecordcomponent = {
                 });
             }
 
+
             function indUpdate(ind) {
                 let cell = ind === 1 ? ind1Cell : ind2Cell;
                 let span = ind === 1 ? ind1Span : ind2Span;
+                field.indicators = updated;
+                // undoredo snapshot
+                jmarc.addUndoredoEntry("INDICATORS") 
 
                 // editing the indicators array directly has strange side effects
                 let updated = [field.indicators[0], field.indicators[1]]
