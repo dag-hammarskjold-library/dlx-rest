@@ -78,10 +78,34 @@ class Basket(Document):
         self.items = []
         self.save()
 
+class MarcFieldSet(EmbeddedDocument):
+    field = StringField(max_length=3, min_length=3, required=True)
+    subfields = ListField()         # Consider adding choices here
+
+class RecordView(Document):
+    name = StringField()
+    collection = StringField(choices=["bibs","auths"])
+    fieldsets = EmbeddedDocumentListField(MarcFieldSet)
+
+    def to_json(self):
+        return_data = {
+            'name': self.name,
+            'collection': self.collection,
+            'fieldsets': []
+        }
+
+        for f in self.fieldsets:
+            return_data['fieldsets'].append({'field': f.field, 'subfields': f.subfields})
+        
+        return return_data
+
+
+
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
     password_hash = StringField(max_length=200)
     roles = ListField(ReferenceField(Role))
+    default_views = ListField(ReferenceField(RecordView))
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
 

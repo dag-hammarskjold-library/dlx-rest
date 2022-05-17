@@ -25,7 +25,80 @@ export let searchcomponent = {
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
-        <div class="row pt-2">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
+            <div class="collapse navbar-collapse" id="advancedSearchToggle">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
+                    <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div id="advanced-search" class="row pt-2" style="display:none">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-append">
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
+        </div>
+        <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
@@ -33,7 +106,7 @@ export let searchcomponent = {
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
                     <span>X</span>
                 </button>
-            </form>
+            </form>    
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
@@ -61,7 +134,8 @@ export let searchcomponent = {
             </div>
         </div>
         <br>
-        <div v-for="result in this.results" :key="result._id">
+        <div id="message-display" class="col-xs-1 text-center"></div>
+        <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
@@ -121,6 +195,33 @@ export let searchcomponent = {
             links: {},
             action: `${myUIBase}/records/${this.collection}/search`,
             params: myProps,
+            searchType: "all",
+            advancedParams: {
+                'searchType1': 'all',
+                'searchTerm1': null,
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchTerm2': null,
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchTerm3': null,
+                'searchField3': 'any'
+            },
+            // To do: Get these logical fields from the configuration
+            bibSearchFields: ['author','title','symbol','notes','subject'],
+            authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
+            voteSearchFields: ['symbol','title','agenda','year'],
+            speechSearchFields: ['symbol'],
+            searchFields: [],
+            searchTypes: [
+                {'name': 'All of the words:', 'value': 'all'},
+                {'name': 'Any of the words:', 'value': 'any'},
+                {'name': 'Exact prhase:', 'value': 'exact'},
+                {'name': 'Partial prhase:', 'value': 'partial'},
+                {'name': 'Regular expression:', 'value': 'regex'},
+            ],
             uibase: myUIBase,
             count: null,
             prev: null,
@@ -130,6 +231,8 @@ export let searchcomponent = {
             end: 0,
             basketcontents: ['foo'],
             lookup_maps: {},
+            expressions: [],
+            vcoll: null,
             searchTime: 0,
             maxTime: 15000, //milliseconds
             abortController: new AbortController()
@@ -143,6 +246,7 @@ export let searchcomponent = {
         
         // [what is this used for?]
         if (component.collection == "auths") {
+            this.searchFields = this.authSearchFields
             let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
@@ -152,6 +256,16 @@ export let searchcomponent = {
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
             component.lookup_maps['bibs'] = bibMapData.data;
+        } else if (component.collection == "bibs") {
+            this.searchFields = this.bibSearchFields
+        } 
+        if (this.params.search.includes("989:Voting Data")) {
+            this.searchFields = this.voteSearchFields
+            this.vcoll = "989:Voting Data"
+        } 
+        if (this.params.search.includes("989:Speeches")) {
+            this.searchFields = this.speechSearchFields
+            this.vcoll = "989:Speeches"
         }
 
         let myEnd = component.params.start + component.params.limit -1;
@@ -241,6 +355,7 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
+
         ).then( 
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
@@ -319,6 +434,7 @@ export let searchcomponent = {
                                                 )
                                             } else if (iconEl.classList.contains("fa-lock")) {
                                                 // TODO: unlock
+
                                             }
                                         });
                                     }
@@ -355,8 +471,170 @@ export let searchcomponent = {
             }
             return false;
         },
+
+        toggleAddRemove(el, myBasket, collection, record_id) {
+            if (el.classList.value === "fas fa-2x fa-folder-plus") {
+                // we can run an add
+                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
+                    el.classList.remove("fa-folder-plus");
+                    el.classList.add("fa-folder-minus");
+                })
+            } else {
+                // we can run a deletion
+                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
+                    el.classList.remove("fa-folder-minus");
+                    el.classList.add("fa-folder-plus");
+                })
+            }
+        },
+        toggleAdvancedSearch() {
+            let el = document.getElementById("advanced-search")
+            let ss = document.getElementById("simple-search")
+            let toggleASLink = document.getElementById("toggleASLink")
+            let toggleSSLink = document.getElementById("toggleSSLink")
+            if (el.style.display == "none"){
+                el.style.display = "block"
+                ss.style.display = "none"
+                toggleASLink.classList.add("active")
+                toggleSSLink.classList.remove("active")
+                //toggleLink.textContent = "Simple Search"
+            } else {
+                el.style.display = "none"
+                ss.style.display = "block"
+                toggleSSLink.classList.add("active")
+                toggleASLink.classList.remove("active")
+                //toggleLink.textContent = "Advanced Search"
+            }
+        },
+        setParameter(which, what) {
+            this.advancedParams[which] = what
+            let el = document.getElementById(which)
+            if (typeof what === "object") {
+                el.innerText = what.name
+                this.advancedParams[which] = what.value
+            } else {
+                el.innerText = what
+            }
+        },
+        submitAdvancedSearch() {
+            // Build the URL
+            var expressions = []
+            var anycount = 0
+            for (let i of ["1","2","3"]) {
+                let term  = this.advancedParams[`searchTerm${i}`]
+                let termList = []
+                // First figure out if there IS a search term here, then split it by space
+                if (term !== null) {
+                    termList = term.split(/\s+/)
+                }
+                // Next figure out if we're searching in a field or not
+                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                    if (term) {
+                        console.log(term)
+                        anycount++
+                    }
+                    // What kind of search are we doing?
+                    switch (this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            // expressions.push(termList.join(" "))
+                            // break
+                            this.reportError('"Any of the words" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // This can't be done like this on MDB, so we should disable the option
+                            //break
+                            this.reportError('"Regular expression" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        default:
+                            expressions.push(termList.join(" "))
+                    }                    
+                } else {
+                    let myField = this.advancedParams[`searchField${i}`]
+                    let myExpr = []
+                    // To do: add a flag for case insensitive search
+                    switch(this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            for (let term of termList) {
+                                myExpr.push(`${myField}:${term}`)
+                            }
+                            expressions.push(myExpr.join(" OR "))
+                            break
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`${myField}:'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`${myField}:"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // Regular expression; this probably needs additional validation to make sure it IS a regex
+                            // Also it doesn't work quite right...
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        default:
+                            expressions.push(termList.join(" "))
+                    }
+                }
+            }
+            if (anycount > 1) {                  
+                this.reportError("Can't have more than one \"in any field\" term")
+                throw new Error("Search cancelled");
+            }
+            this.expressions = expressions
+            let compiledExpr = []
+            if (this.vcoll) {
+                compiledExpr.push(`${this.vcoll} AND`)
+            }
+            for (let i in expressions) {
+                let j = parseInt(i)+1
+                let accessor = `searchConnector${j.toString()}`
+                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
+                if (expressions[i] !== "") {
+                    compiledExpr.push(expressions[i])
+                }
+                if (this.advancedParams[accessor]) {
+                    compiledExpr.push(this.advancedParams[accessor])
+                }
+            }
+            // Get rid of any trailing boolean connectors if they don't connect to another expression
+            while (compiledExpr[compiledExpr.length - 1] === 'AND') {
+                compiledExpr.pop()
+            }
+            while (compiledExpr[compiledExpr.length - 1] === 'OR') {
+                compiledExpr.pop()
+            }
+
+            // Catch and warn of invalid searches
+            // ...
+
+            let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
+            
+            window.location = url
+        },
         reportError(message) {
-            document.getElementById("results-spinner").innerHTML = message;
+            let display = document.getElementById("results-spinner");
+            display = display || document.getElementById("message-display");
+            display.innerText = message;
+            this.results = []; // clear any exisiting results
             document.getElementById("result-count-top").innerHTML = "0";
             document.getElementById("result-count-bottom").innerHTML = "0";
         },
