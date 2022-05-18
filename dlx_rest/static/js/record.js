@@ -940,7 +940,70 @@ export let multiplemarcrecordcomponent = {
 
             // display the "history" record
             this.displayMarcRecord(this.historyJmarcHistory)
+
+            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory)
             
+        },
+
+        // visual diff between the original record and the history one
+        // the diff will be executed from the history 
+
+        diff(original,history){
+        
+            // set the array receiving the diffs
+            let diffEntry=[]
+
+            history.fields.forEach(historyElement=>{
+                // save the values to compare
+                let historyTag = historyElement.tag
+                let historyIndicators = historyElement.indicators
+                let historySubFields = historyElement.subfields
+                let findTag=false
+                let findIndicators=false
+                let findSubFields=false
+  
+                if (historyElement.constructor.name !== "ControlField"){
+                    original.fields.forEach(originalElement=>{
+                        if (originalElement.constructor.name !== "ControlField"){
+                            let originalTag = originalElement.tag
+                            let originalIndicators = originalElement.indicators
+                            let originalSubFields = originalElement.subfields
+
+                            if (originalTag===historyTag){
+                                findTag=tru
+                                if ((originalIndicators[0]==historyIndicators[0]) && (originalIndicators[1]===historyIndicators[1])) {
+                                    findIndicators=true
+                                    
+                                    // loop inside the subfields
+                                    let myIndex=0
+                                    historySubFields.forEach(historySubfield =>{
+                                        if (myIndex<originalSubFields.length){ 
+                                            if (historySubfield.code===originalSubFields[myIndex].code) {
+                                                if (historySubfield.value===originalSubFields[myIndex].value) {
+                                                    findSubFields=true
+                                                }
+                                            } 
+                                        myIndex++
+                                        }
+                                    })
+                                    
+                                    
+                                }
+                            }
+                        }
+                            
+                    })
+                }
+                // if the tag is not inside the original one
+                //if ((findTag===false) || (findIndicators===false) || (findSubFields===false)){ diffEntry.push(historyElement) }
+                if ((findTag===false) || (findIndicators===false) || (findSubFields===false)){ 
+                    // change the background of the row
+                    //historyElement.row.backgroundColor="yellow"
+                    historyElement.row.bgColor="#FFFACD"
+                }
+
+            })
+
         },
 
         // revert the jmarc record
@@ -949,12 +1012,14 @@ export let multiplemarcrecordcomponent = {
             // load the data inside 
             this.historyJmarcOriginal.fields=[]
             this.historyJmarcOriginal.parse(this.historyJmarcHistory.compile())
+
             // save the record to keep changes
             this.saveRecord(this.historyJmarcOriginal)
             
             // change the mode
             this.historyMode=false
-            // remove the history record
+
+            // clean
             let recup=this.historyJmarcHistory
             this.historyJmarcHistory=""
             this.historyJmarcOriginal=""
