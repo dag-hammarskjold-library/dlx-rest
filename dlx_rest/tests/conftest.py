@@ -145,7 +145,7 @@ def roles(permissions):
     from dlx_rest.models import Role
 
     r = Role(name='admin')
-    r.permissions = permissions.objects(constraint_must=[], constraint_must_not=[])
+    r.permissions = Permission.objects(constraint_must=[], constraint_must_not=[])
     r.save()
 
     # Collection admin roles

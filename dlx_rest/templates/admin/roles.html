@@ -5,6 +5,7 @@
         <thead>
             <th>Name</th>
             <th>Permissions</th>
+            <th>Actions</th>
         </thead>
         <tbody>
             {% for role in roles %}
@@ -12,7 +13,40 @@
                 <td>{{role.name}}</td>
                 <td>
                     {% for permission in role.permissions %}
-                        {{permission.action}}{{ ", " if not loop.last else "" }}
+                        {{permission.action}}
+                        {% if permission.constraint_must|length > 0 %}
+                            [
+                            {% for must in permission.constraint_must %}
+                            + {{ must.collection }}
+                                {% if must.field %}
+                                    {{ must.field }}
+                                {% endif %}
+                                {% if must.subfield %}
+                                    ${{must.subfield}}
+                                {% endif %}
+                                {% if must.value %}
+                                    ={{must.value}}
+                                {% endif %}
+                            {% endfor %}
+                            ] 
+                        {% endif %}
+                        {% if permission.constraint_must_not|length > 0 %}
+                            [
+                            {% for must in permission.constraint_must_not %}
+                            - {{ must.collection }}
+                                {% if must.field %}
+                                    {{ must.field }}
+                                {% endif %}
+                                {% if must.subfield %}
+                                    ${{must.subfield}}
+                                {% endif %}
+                                {% if must.value %}
+                                    ={{must.value}}
+                                {% endif %}
+                            {% endfor %}
+                            ] 
+                        {% endif %}
+                        {{ ", " if not loop.last else "" }}
                     {% endfor %}
                 </td>
                 <td>
