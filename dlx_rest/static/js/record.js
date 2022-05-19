@@ -983,68 +983,30 @@ export let multiplemarcrecordcomponent = {
             // display the "history" record
             this.displayMarcRecord(this.historyJmarcHistory)
 
-            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory)
+            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
             
         },
 
         // visual diff between the original record and the history one
         // the diff will be executed from the history 
 
-        diff(original,history){
-        
-            // set the array receiving the diffs
-            let diffEntry=[]
-
-            history.fields.forEach(historyElement=>{
-                // save the values to compare
-                let historyTag = historyElement.tag
-                let historyIndicators = historyElement.indicators
-                let historySubFields = historyElement.subfields
-                let findTag=false
-                let findIndicators=false
-                let findSubFields=false
-  
-                if (historyElement.constructor.name !== "ControlField"){
-                    original.fields.forEach(originalElement=>{
-                        if (originalElement.constructor.name !== "ControlField"){
-                            let originalTag = originalElement.tag
-                            let originalIndicators = originalElement.indicators
-                            let originalSubFields = originalElement.subfields
-
-                            if (originalTag===historyTag){
-                                findTag=tru
-                                if ((originalIndicators[0]==historyIndicators[0]) && (originalIndicators[1]===historyIndicators[1])) {
-                                    findIndicators=true
-                                    
-                                    // loop inside the subfields
-                                    let myIndex=0
-                                    historySubFields.forEach(historySubfield =>{
-                                        if (myIndex<originalSubFields.length){ 
-                                            if (historySubfield.code===originalSubFields[myIndex].code) {
-                                                if (historySubfield.value===originalSubFields[myIndex].value) {
-                                                    findSubFields=true
-                                                }
-                                            } 
-                                        myIndex++
-                                        }
-                                    })
-                                    
-                                    
-                                }
-                            }
-                        }
-                            
-                    })
+        diff(original,history,color){
+            let occur=0
+            history.fields.forEach(elementHistory=>{
+                let historyValueRow=elementHistory.row.cells
+                let findHistoryRow=false
+                original.fields.forEach(originalElement=>{
+                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
+                        findHistoryRow=true
+                    }
+                })
+                if (findHistoryRow===false) {
+                    occur++
+                    elementHistory.row.bgColor=color
                 }
-                // if the tag is not inside the original one
-                //if ((findTag===false) || (findIndicators===false) || (findSubFields===false)){ diffEntry.push(historyElement) }
-                if ((findTag===false) || (findIndicators===false) || (findSubFields===false)){ 
-                    // change the background of the row
-                    //historyElement.row.backgroundColor="yellow"
-                    historyElement.row.bgColor="#FFFACD"
-                }
-
             })
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
 
         },
 
