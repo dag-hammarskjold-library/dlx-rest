@@ -50,6 +50,10 @@ export class ControlField {
 		this.value = value;
 	}
     
+	toStr() {
+		return this.value
+	}
+
     validate() {}
 }
 

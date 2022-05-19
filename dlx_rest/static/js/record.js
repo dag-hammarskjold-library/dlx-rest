@@ -920,6 +920,16 @@ export let multiplemarcrecordcomponent = {
     
                         recup.innerHTML=""
                         result.forEach(element=>{
+                        
+                        // element is an instance of Jmarc
+                        // make element an instance off Diff (Jmarc subclass)
+                        element = jmarc.diff(element)
+
+                        // The jmarc fields are now marked "isDiff" if they are not found
+                        // in the original jmarc
+                        for (let field of element.fields) {
+                            console.log(field.isDiff)
+                        }
 
                         // creation of the first div
                         let firstDiv=document.createElement("div")
