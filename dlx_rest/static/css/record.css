@@ -237,3 +237,7 @@ span.lookup-choice-code {
 li.lookup-choice:hover {
     background-color: gray;
 }
+
+tr.diff {
+    background-color: red;
+}

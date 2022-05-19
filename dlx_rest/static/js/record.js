@@ -1407,6 +1407,10 @@ export let multiplemarcrecordcomponent = {
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
             field.row = tableBody.insertRow(place);
+
+            if (field.isDiff) {
+                field.row.className = "diff"
+            }
    
             // add the checkboxes
             let checkCell = field.row.insertCell();
