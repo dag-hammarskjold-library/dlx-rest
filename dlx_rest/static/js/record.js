@@ -937,6 +937,7 @@ export let multiplemarcrecordcomponent = {
             this.historyJmarcOriginal=""
             this.removeRecordFromEditor(recup)
 
+            
             this.callChangeStyling("Record reverted!!!", "row alert alert-success")
             
         },
