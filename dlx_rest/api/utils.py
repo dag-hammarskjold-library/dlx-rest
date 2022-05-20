@@ -231,23 +231,18 @@ def has_permission(user, action, record):
     return_bool=False
     if hasattr(user, 'roles'):
         for user_role in set(user.roles):
-            for perm in user_role.permissions:
-                if user_role.has_permission(action):
-                    return_bool = True
-                    if record.collection is not None and record.collection == perm.collection:
-                        return_bool = True
-                        if len(perm.constraint_must) > 0:
-                            return_bool = False
-                            for cm in perm.constraint_must:
-                                these_values = record.get_values(cm.field, cm.subfield)
-                                if cm.value in these_values:
-                                    return_bool = True
-                        if len(perm.constraint_must_not) > 0:
-                            return_bool = False
-                            for cm in perm.constraint_must_not:
-                                these_values = record.get_values(cm.field, cm.subfield)
-                                if cm.value in these_values:
-                                    return_bool = False
-                else:
-                    return_bool = False
+            if user_role.has_permission(action):
+                print("has right action")
+                return_bool = True
+                for perm in user_role.permissions:
+                    for cm in perm.constraint_must:
+                        if hasattr(cm, "collection"):
+                            if cm.collection == record.collection:
+                                return_bool = True
+                        if hasattr(cm, "field"):
+                            these_values = record.get_values(cm.field, cm.subfield)
+                            if cm.value in these_values:
+                                return_bool = True
+                    for cmn in perm.constraint_must_not:
+                        pass
     return return_bool

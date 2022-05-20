@@ -317,8 +317,7 @@ class RecordsList(Resource):
         user = request_loader(request)
         if user.email == 'bib_admin@un.org':
             print(user.permissions_list())
-        if not has_permission(user, "createRecord"):
-            abort(403, f'The current user is not authorized to perform this action.')
+        
 
         if args.format == 'mrk':
             try:
@@ -330,6 +329,9 @@ class RecordsList(Resource):
                 jmarc = json.loads(request.data)
 
                 print(jmarc)
+
+                if not has_permission(user, "createRecord", jmarc):
+                    abort(403, f'The current user is not authorized to perform this action.')
                 
                 if '_id' in jmarc:
                     if jmarc['_id'] is None:
