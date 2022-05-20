@@ -28,7 +28,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
 
 # Init
 authorizations = {
@@ -309,10 +309,17 @@ class RecordsList(Resource):
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
     def post(self, collection):
-        user = 'testing' if current_user.is_anonymous else current_user.email
+        #user = 'testing' if current_user.is_anonymous else current_user.email
+        #print(user)
         cls = ClassDispatch.by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
     
+        user = request_loader(request)
+        if user.email == 'bib_admin@un.org':
+            print(user.permissions_list())
+        if not has_permission(user, "createRecord"):
+            abort(403, f'The current user is not authorized to perform this action.')
+
         if args.format == 'mrk':
             try:
                 result = cls.from_mrk(request.data.decode()).commit(user=user)
@@ -321,6 +328,8 @@ class RecordsList(Resource):
         else:
             try:
                 jmarc = json.loads(request.data)
+
+                print(jmarc)
                 
                 if '_id' in jmarc:
                     if jmarc['_id'] is None:
@@ -329,7 +338,7 @@ class RecordsList(Resource):
                         abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                     
                 record = cls(jmarc, auth_control=True)
-                result = record.commit(user=user)
+                result = record.commit(user=user.email)
             except Exception as e:
                 abort(400, str(e))
         

@@ -43,11 +43,107 @@ def test_api_collection(client):
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
         
-def test_api_records_list(client, marc):
+def test_api_records_list(client, marc, users, roles, default_users):
     from dlx.marc import Bib, Auth
+
+    # NY Bib Record
+    bibNY = Bib()
+    bibNY.set('245', 'a', 'AAA')
+    bibNY.set('040', 'a', 'NNUN')
+
+    # GE Bib Record
+    bibGE = Bib()
+    bibGE.set('245', 'a', 'AAA')
+    bibGE.set('040', 'a', 'SzGeBNU')
     
-    for col in ['bibs', 'auths']:
+
+    # NY Auth Record
+    authNY = Auth()
+    authNY.set('100', 'a', 'Heading')
+    authNY.set('040', 'a', 'NNUN')
+
+    # GE Auth Record
+    authGE = Auth()
+    authGE.set('100', 'a', 'Heading')
+    authGE.set('040', 'a', 'SzGeBNU')
+
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # POST NY bib record by global administrator == 200
+    res = client.post(f'{API}/marc/bibs/records', data=bibNY.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST NY auth record by global administrator == 200
+    res = client.post(f'{API}/marc/auths/records', data=authNY.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST GE bib record by global administrator == 200
+    res = client.post(f'{API}/marc/bibs/records', data=bibGE.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST GE auth record by global administrator == 200
+    res = client.post(f'{API}/marc/auths/records', data=authGE.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # global bib administrator
+    username = default_users['bib-admin']['email']
+    password = default_users['bib-admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # POST NY bib record by global bib administrator == 200
+    res = client.post(f'{API}/marc/bibs/records', data=bibNY.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST GE bib record by glbal bib administrator == 200
+    res = client.post(f'{API}/marc/bibs/records', data=bibGE.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # global auth administrator
+    username = default_users['auth-admin']['email']
+    password = default_users['auth-admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # POST NY auth record by global auth administrator == 200
+    res = client.post(f'{API}/marc/auths/records', data=authNY.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST GE auth record by global auth administrator == 200
+    res = client.post(f'{API}/marc/auths/records', data=authGE.to_json(), headers={"Authorization": f"Basic {credentials}"})
+    assert res.status_code == 201
+
+    # POST NY bib record by global auth administrator == 403
+    # POST GE bib record by glbal auth administrator == 403
+    # POST NY auth record by global bib administrator == 403
+    # POST GE auth record by global bib administrator == 403
+
+    # POST NY bib record by NY bib administrator == 200
+    # POST GE bib record by NY bib administrator == 403
+    # POST NY auth record by NY auth administrator == 200
+    # POST GE auth record by NY auth administrator == 403
+
+    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.
         
+    # post
+    '''
+    if col == 'bibs':    
+        cls = Bib
+        bib = Bib()
+        bib.set('245', 'a', 'AAA')
+        res = client.post(f'{API}/marc/{col}/records', data=bib.to_json())
+    else:
+        cls = Auth
+        auth = Auth()
+        auth.set('100', 'a', 'Heading')
+        res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
+        
+    assert res.status_code == 201
+    '''
+
+    # GET methods, only read is necessary here
+    for col in ['bibs', 'auths']:
         res = client.get(f'{API}/marc/{col}/records')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
@@ -55,42 +151,7 @@ def test_api_records_list(client, marc):
         for i in (1, 2):
             assert f'{API}/marc/{col}/records/{i}' in data['data']
 
-        # POST NY bib record by global administrator == 200
-        # POST NY auth record by global administrator == 200
-        # POST GE bib record by global administrator == 200
-        # POST GE auth record by global administrator == 200
-
-        # POST NY bib record by global bib administrator == 200
-        # POST GE bib record by glbal bib administrator == 200
-        # POST NY auth record by global auth administrator == 200
-        # POST GE auth record by global auth administrator == 200
-
-        # POST NY bib record by global auth administrator == 403
-        # POST GE bib record by glbal auth administrator == 403
-        # POST NY auth record by global bib administrator == 403
-        # POST GE auth record by global bib administrator == 403
-
-        # POST NY bib record by NY bib administrator == 200
-        # POST GE bib record by NY bib administrator == 403
-        # POST NY auth record by NY auth administrator == 200
-        # POST GE auth record by NY auth administrator == 403
-
-        # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.
-            
-        # post
-        if col == 'bibs':    
-            cls = Bib
-            bib = Bib()
-            bib.set('245', 'a', 'AAA')
-            res = client.post(f'{API}/marc/{col}/records', data=bib.to_json())
-        else:
-            cls = Auth
-            auth = Auth()
-            auth.set('100', 'a', 'Heading')
-            res = client.post(f'{API}/marc/{col}/records', data=auth.to_json())
-            
-        assert res.status_code == 201
-
+    
         # search
         res = client.get(f'{API}/marc/{col}/records?search=title:\'AAA\'')
         data = check_response(res)

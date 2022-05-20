@@ -41,37 +41,37 @@ def default_users():
         'bib-admin': {
             'email': 'bib_admin@un.org',
             'password': 'password',
-            'role': 'bib-admin'
+            'role': 'bibs-admin'
         },
         'auth-admin': {
             'email': 'auth_admin@un.org',
             'password': 'password',
-            'role': 'auth-admin'
+            'role': 'auths-admin'
         },
         'file-admin': {
             'email': 'file_admin@un.org',
             'password': 'password',
-            'role': 'file-admin'
+            'role': 'files-admin'
         },
         'bib-NY-admin': {
             'email': 'bib_ny_admin@un.org',
             'password': 'password',
-            'role': 'bib-NY-admin'
+            'role': 'bibs-NY-admin'
         },
         'auth-NY-admin': {
             'email': 'auth_ny_admin@un.org',
             'password': 'password',
-            'role': 'auth-NY-admin'
+            'role': 'auths-NY-admin'
         },
         'bib-GE-admin': {
             'email': 'bib_ge_admin@un.org',
             'password': 'password',
-            'role': 'bib-GE-admin'
+            'role': 'bibs-GE-admin'
         },
         'auth-GE-admin': {
             'email': 'auth_ge_admin@un.org',
             'password': 'password',
-            'role': 'auth-GE-admin'
+            'role': 'auths-GE-admin'
         },
 
         # Once we have file tests and location data ready, we can enable these users
@@ -171,8 +171,9 @@ def roles(permissions):
 def users(roles, default_users):
     from dlx_rest.models import User
     
-    for utype in ['admin','non-admin']:
+    for utype in default_users:
         u = default_users[utype]
+        print(u)
         user = User(email = u['email'], created=datetime.now())
         user.set_password(u['password'])
         try:
