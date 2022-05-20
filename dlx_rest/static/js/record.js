@@ -990,6 +990,7 @@ export let multiplemarcrecordcomponent = {
         },
 
         // filter the record view according the filter view parameter e.g : itp view
+        //filterRecordView(record,filter =[])
         filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] }], "name": "ITP" }])
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
         {
