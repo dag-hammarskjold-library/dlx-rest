@@ -116,6 +116,7 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
+            myDefaultViews: [],
             targetedTable:"",
             selectedRecord:"",
             selectedDiv:"",
@@ -161,10 +162,12 @@ export let multiplemarcrecordcomponent = {
         user.getProfile(this.prefix, 'my_profile').then(
             myProfile => {
                 this.user = myProfile.data.email;
+
+                this.myDefaultViews = myProfile.data.default_views
                 
                 basket.getBasket(this.prefix).then(
                     myBasket => this.myBasket = myBasket
-                )
+                )                
             }
         ).then( () => {
             // the "records" param from the URL
@@ -990,9 +993,9 @@ export let multiplemarcrecordcomponent = {
         },
 
         // filter the record view according the filter view parameter e.g : itp view
-        //filterRecordView(record,filter =[])
-        filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] }], "name": "ITP" }])
+        //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] }], "name": "ITP" }])
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
+        filterRecordView(record,filter)
         {
             try {
                     // check the size of the filter
@@ -1276,7 +1279,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
-                {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "filterRecordView","param":jmarc },
+                {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "filterRecordView","params":{"jmarc": jmarc, "filter": this.myDefaultViews} },
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
@@ -1333,8 +1336,15 @@ export let multiplemarcrecordcomponent = {
                             this[control["click"]](control["param"]) 
                         }
                     } else if (control["params"]) {
-                        controlButton.onclick = () => {
-                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                        if (control["name"] == "editButton") {
+                            controlButton.onclick = () => {
+                                this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                            }
+                        }
+                        if (control["name"] == "recordViewButton") {
+                            controlButton.onclick = () => {
+                                this[control["click"]](control["params"]["jmarc"], control["params"]["filter"]) 
+                            }
                         }
                     } else {
                         controlButton.onclick = () => {
