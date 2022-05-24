@@ -228,21 +228,31 @@ def item_locked(collection, record_id):
     return {"locked": False}
 
 def has_permission(user, action, record):
-    return_bool=False
+    bool_list = []
     if hasattr(user, 'roles'):
         for user_role in set(user.roles):
             if user_role.has_permission(action):
                 print("has right action")
-                return_bool = True
+                bool_list.append("T")
                 for perm in user_role.permissions:
                     for cm in perm.constraint_must:
                         if hasattr(cm, "collection"):
                             if cm.collection == record.collection:
-                                return_bool = True
+                                bool_list.append("T")
+                            else:
+                                bool_list.append("F")
                         if hasattr(cm, "field"):
                             these_values = record.get_values(cm.field, cm.subfield)
                             if cm.value in these_values:
-                                return_bool = True
+                                bool_list.append("T")
+                            else:
+                                bool_list.append("F")
                     for cmn in perm.constraint_must_not:
                         pass
-    return return_bool
+            else:
+                bool_list.append("F")
+    print(bool_list)
+    if "F" in bool_list:
+        return False
+    else:
+        return True

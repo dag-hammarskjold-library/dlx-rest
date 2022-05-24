@@ -109,13 +109,13 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
-@requires_permission(register_permission('readAdmin'))
+@requires_permission('readAdmin')
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
-@requires_permission(register_permission('readSync'))
+@requires_permission('readSync')
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
@@ -124,14 +124,14 @@ def get_sync_log():
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
-@requires_permission(register_permission('readUser'))
+@requires_permission('readUser')
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
-@requires_permission(register_permission('createUser'))
+@requires_permission('createUser')
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -165,7 +165,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
-@requires_permission(register_permission('updateUser'))
+@requires_permission('updateUser')
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -206,7 +206,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
-@requires_permission(register_permission('deleteUser'))
+@requires_permission('deleteUser')
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -220,14 +220,14 @@ def delete_user(id):
 '''Roles and permissions admin'''
 @app.route('/admin/roles', methods=['GET'])
 @login_required
-@requires_permission(register_permission('readRole'))
+@requires_permission('readRole')
 def get_roles():
     roles = Role.objects
     return render_template('admin/roles.html', title="Roles", roles=roles)
 
 @app.route('/admin/roles/new', methods=['GET', 'POST'])
 @login_required
-@requires_permission(register_permission('createRole'))
+@requires_permission('createRole')
 def create_role():
     form = CreateRoleForm()
     form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
@@ -258,7 +258,7 @@ def create_role():
 
 @app.route('/admin/roles/<id>', methods=['GET', 'POST'])
 @login_required
-@requires_permission(register_permission('updateRole'))
+@requires_permission('updateRole')
 def update_role(id):
     try:
         role = Role.objects.get(name=id)
@@ -297,7 +297,7 @@ def update_role(id):
 
 @app.route('/admin/roles/<id>/delete')
 @login_required
-@requires_permission(register_permission('deleteRole'))
+@requires_permission('deleteRole')
 def delete_role(id):
     role = Role.objects.get(name=id)
     if role:
@@ -472,7 +472,7 @@ def search_records_old(coll):
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
     # register the permission, but don't require it yet, TBI
-    register_permission('updateRecord')
+    #register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 

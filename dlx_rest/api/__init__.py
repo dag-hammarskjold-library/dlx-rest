@@ -315,8 +315,9 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
     
         user = request_loader(request)
-        if user.email == 'bib_admin@un.org':
-            print(user.permissions_list())
+        print("user and permissions", user.email, user.roles[0].name, user.permissions_list())
+        #if user.email == 'bib_admin@un.org':
+            
         
 
         if args.format == 'mrk':
@@ -325,24 +326,24 @@ class RecordsList(Resource):
             except Exception as e:
                 abort(400, str(e))
         else:
-            try:
-                jmarc = json.loads(request.data)
+            #try:
+            jmarc = json.loads(request.data)
 
-                print(jmarc)
+            print("jmarc: " + str(jmarc))
 
-                if not has_permission(user, "createRecord", jmarc):
-                    abort(403, f'The current user is not authorized to perform this action.')
+            if not has_permission(user, "createRecord", jmarc):
+                abort(403, f'The current user is not authorized to perform this action.')
+            
+            if '_id' in jmarc:
+                if jmarc['_id'] is None:
+                    del jmarc['_id']
+                else:
+                    abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                 
-                if '_id' in jmarc:
-                    if jmarc['_id'] is None:
-                        del jmarc['_id']
-                    else:
-                        abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
-                    
-                record = cls(jmarc, auth_control=True)
-                result = record.commit(user=user.email)
-            except Exception as e:
-                abort(400, str(e))
+            record = cls(jmarc, auth_control=True)
+            result = record.commit(user=user.email)
+            #except Exception as e:
+            #    abort(400, str(e))
         
             if result:
                 data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
@@ -1574,7 +1575,7 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    print(lock_status["in"])
+                    #print(lock_status["in"])
                     for losing_basket in Basket.objects(name=lock_status["in"]):
                         #print(losing_basket)
 
@@ -1616,7 +1617,7 @@ class MyBasketItem(Resource):
             item_data = item_data_raw
             if isinstance(item_data_raw, list):
                 item_data = item_data_raw[0]
-            print(item_data)
+            #print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'

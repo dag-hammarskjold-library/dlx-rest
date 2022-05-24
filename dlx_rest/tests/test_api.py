@@ -43,7 +43,7 @@ def test_api_collection(client):
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
         
-def test_api_records_list(client, marc, users, roles, default_users):
+def test_api_records_list(client, marc, users, roles, permissions, constraints, default_users):
     from dlx.marc import Bib, Auth
 
     # NY Bib Record

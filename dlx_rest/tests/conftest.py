@@ -113,6 +113,8 @@ def constraints():
         for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
             this_c = Constraint(name=f'constraint-{coll}-{c["loc"]}', collection=coll, field='040', subfield='a', value=c['code'])
             this_c.save()
+    
+    return Constraint
 
 @pytest.fixture(scope='module')
 def permissions():
@@ -123,19 +125,19 @@ def permissions():
             this_p = Permission(action=f'{a}{comp}')
             this_p.save()
     
-    # Collection and location permissions
+     # Collection and location permissions
     for a in ['create','read','update','delete']:
         for comp in ['File', 'Record']:
-            for coll in ["bibs","auths", "files"]:    
+            for coll in ["bibs", "auths", "files"]:    
                 col_p = Permission(action=f'{a}{comp}')
-                #col_p.constraint_must.append(Constraint(collection=coll))
-                col_p.constraint_must = list(filter(lambda x: x['collection'] == coll and not x['field'], Constraint.objects))
+                col_p.constraint_must = list(filter(lambda x: x['name'] == f'constraint-{coll}', Constraint.objects))
+                print(col_p.constraint_must)
                 col_p.save()
                 for loc in ['NNUN', 'SzGeBNU']:
-                    if comp == "File" or comp == "Record":
+                    if comp == "Record":
                         loc_p = Permission(action=f'{a}{comp}')
-                        #loc_p.constraint_must.append(Constraint(collection=coll, field='040', subfield='a', value=loc))
-                        loc_p.constraint_must = list(filter(lambda x: x['collection'] == coll and x['field'] == '040', Constraint.objects))
+                        loc_p.constraint_must = list(filter(lambda x: x['name'] == f'constraint={coll}-{loc}', Constraint.objects))
+                        print(loc_p.constraint_must)
                         loc_p.save()
     
     return Permission
@@ -151,7 +153,7 @@ def roles(permissions):
     # Collection admin roles
     for coll in ["bibs","auths","files"]:
         admin_r = Role(name=f'{coll}-admin')
-        constraints = Constraint.objects(collection=coll, field=None)
+        constraints = Constraint.objects(name=f'constraint-{coll}')
         permissions = Permission.objects(constraint_must__in=constraints)
         admin_r.permissions = permissions
         admin_r.save()
@@ -160,7 +162,7 @@ def roles(permissions):
     for coll in ["bibs","auths","files"]:
         for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
             admin_r = Role(name=f'{coll}-{c["loc"]}-admin')
-            constraints = Constraint.objects(collection=coll, field='040', subfield='a', value=c["code"])
+            constraints = Constraint.objects(name=f'constraint-{coll}-{c["loc"]}')
             permissions = Permission.objects(constraint_must__in=constraints)
             admin_r.permissions = permissions
             admin_r.save()
