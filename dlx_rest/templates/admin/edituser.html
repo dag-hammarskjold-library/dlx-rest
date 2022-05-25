@@ -2,7 +2,6 @@
 
 <style type="text/css">
     .customize {
-        height: 400px;
         width: 600px;
     }
 </style>
@@ -20,6 +19,11 @@
         <div class="form-group">
             <p>
                 {{ form.roles.label }}<br> {{ form.roles(class="form-control", value=user.roles) }}
+            </p>
+        </div>
+        <div class="form-group">
+            <p>
+                {{ form.views.label }}<br> {{ form.views(class="form-control", value=user.default_views)}}
             </p>
         </div>
         <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>

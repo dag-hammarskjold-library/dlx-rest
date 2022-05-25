@@ -22,6 +22,7 @@ class CreateUserForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
     roles = SelectMultipleField('Roles')
+    views = SelectMultipleField('Views')
     submit = SubmitField('Create')
 
 class UpdateUserForm(FlaskForm):
@@ -29,6 +30,7 @@ class UpdateUserForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
     roles = SelectMultipleField('Roles')
+    views = SelectMultipleField('Views')
     submit = SubmitField('Update')
 
 class CreateRoleForm(FlaskForm):
