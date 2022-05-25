@@ -1676,6 +1676,7 @@ class ViewList(Resource):
         for item in view_list:
             data.append({
                 'name': item.name,
+                'collection': item.collection,
                 'url': URL('api_view', coll=coll, id=item['id']).to_str()
             })
 
