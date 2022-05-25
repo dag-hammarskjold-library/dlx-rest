@@ -230,7 +230,7 @@ def get_roles():
 @requires_permission('createRole')
 def create_role():
     form = CreateRoleForm()
-    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
+    form.permissions.choices = [(p.id, f'{p.action} + {p.constraint_must} - {p.constraint_must_not}') for p in Permission.objects()]
     if request.method == 'POST':
         name = request.form.get('name')
         permissions = request.form.getlist('permissions')
@@ -267,8 +267,8 @@ def update_role(id):
         return redirect(url_for('list_rolees'))
 
     form = UpdateRoleForm()
-    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
-    form.permissions.process_data([p.action for p in role.permissions])
+    form.permissions.choices = [(p.id, f'{p.action} + {p.constraint_must} - {p.constraint_must_not}') for p in Permission.objects()]
+    form.permissions.process_data([p.id for p in role.permissions])
 
     if request.method == 'POST':
         role = Role.objects.get(name=id)

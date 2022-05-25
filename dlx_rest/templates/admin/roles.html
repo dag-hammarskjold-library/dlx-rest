@@ -17,32 +17,14 @@
                         {% if permission.constraint_must|length > 0 %}
                             [
                             {% for must in permission.constraint_must %}
-                            + {{ must.collection }}
-                                {% if must.field %}
-                                    {{ must.field }}
-                                {% endif %}
-                                {% if must.subfield %}
-                                    ${{must.subfield}}
-                                {% endif %}
-                                {% if must.value %}
-                                    ={{must.value}}
-                                {% endif %}
+                            + {{ must }}
                             {% endfor %}
                             ] 
                         {% endif %}
                         {% if permission.constraint_must_not|length > 0 %}
                             [
                             {% for must in permission.constraint_must_not %}
-                            - {{ must.collection }}
-                                {% if must.field %}
-                                    {{ must.field }}
-                                {% endif %}
-                                {% if must.subfield %}
-                                    ${{must.subfield}}
-                                {% endif %}
-                                {% if must.value %}
-                                    ={{must.value}}
-                                {% endif %}
+                            - {{ must }}
                             {% endfor %}
                             ] 
                         {% endif %}
