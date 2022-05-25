@@ -878,7 +878,108 @@ export let multiplemarcrecordcomponent = {
         closeModal() {
             this.showModal = false;
         },
+        
+        async getRecordView(collection="bibs") {
+            console.log(this.prefix)
+            let content= `/views/${collection}`
+            let url = `${this.prefix}${content}`
+            const response = await fetch(url);
+            const jsonData = await response.json();
+            jsonData.data.forEach(item=>{
+                if (item.collection===collection){
+                    return item
+                }
+            }) 
+        },
 
+        displayHistoryModalToGetRecordView(jmarc){
+            this.showModal=true;
+            
+            // insert the parent div inside the content history    
+            let recup=document.getElementById("contenthistory")
+            recup.innerHTML=""
+
+            // creation of the parent div for the progress bar
+            let parentProgressBarDiv=document.createElement("div");
+            parentProgressBarDiv.classList.add("d-flex");
+            parentProgressBarDiv.classList.add("align-items-center");
+            parentProgressBarDiv.classList.add("mt-4");
+            parentProgressBarDiv.classList.add("ml-4");
+            parentProgressBarDiv.id="progressBar"
+            parentProgressBarDiv.style.border = "none"
+            parentProgressBarDiv.style.width= "auto"
+
+            // creation of the h3
+            let myH3=document.createElement("H3");
+            myH3.innerHTML="Loading....."
+
+            parentProgressBarDiv.appendChild(myH3)
+
+            // creation of the div for the progress bar
+            let progressBarDiv=document.createElement("div");
+            progressBarDiv.classList.add("spinner-border");
+            progressBarDiv.classList.add("ms-auto");
+            progressBarDiv.setAttribute("role", "status");
+            progressBarDiv.setAttribute("aria-hidden", "true");
+            
+            parentProgressBarDiv.appendChild(progressBarDiv)
+
+            recup.appendChild(parentProgressBarDiv)
+
+                                
+            // transfer reference
+            let that=this
+
+            try {
+                this.getRecordView()
+                // // call the API route to get the views
+                // jmarc.history()
+                //     .then(function(result) {
+    
+                //         recup.innerHTML=""
+                //         result.forEach(element=>{
+
+                //         // creation of the first div
+                //         let firstDiv=document.createElement("div")
+                //         firstDiv.classList.add("card");
+                //         firstDiv.classList.add("mt-2");
+                //         firstDiv.style.border = "none"
+                //         firstDiv.style.width= "auto"
+
+                //         // adding the contents to the div
+                //         let tmpDate = new Date(element.updated);
+                //         !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate} </strong> , user : ${element.user} `
+
+                //         // adding some events on mouverover / mouseout to change background color
+                //         firstDiv.addEventListener("mouseover",()=>{
+                //             firstDiv.style.backgroundColor="#87CEFA"
+                //         })
+
+                //         firstDiv.addEventListener("mouseout",()=>{
+                //             firstDiv.style.backgroundColor=""
+                //         })
+
+                //         // adding some events on mouverover / mouseout to change background color
+                //         firstDiv.addEventListener("click",()=>{
+                            
+                //             // // active the history mode
+                //             // that.historyMode=true
+                            
+                //             // recordiD to the history record for displaying purpose
+                //             element.recordId=that.selectedJmarc.recordId
+                //             that.historyJmarcHistory=element
+                //             that.historyJmarcOriginal=that.selectedJmarc
+                //             that.closeModal()
+                //             that.displayHistoryEditorView(that.selectedJmarc)
+                //         })
+                //         recup.appendChild(firstDiv)
+                //         })
+                //     });
+            }
+            catch (error) {
+                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+            }
+        },
         displayHistoryModal(jmarc){
             this.showModal=true;
             
@@ -987,9 +1088,7 @@ export let multiplemarcrecordcomponent = {
             this.displayMarcRecord(this.historyJmarcHistory)
 
             this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
-
-            this.filterRecordView(this.historyJmarcOriginal)
-            
+           
         },
 
         // filter the record view according the filter view parameter e.g : itp view
@@ -997,6 +1096,7 @@ export let multiplemarcrecordcomponent = {
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
         filterRecordView(record,filter)
         {
+
             try {
                     // check the size of the filter
                     if (filter && filter[0].collection===record.collection){ // we should filter on the same collection
@@ -1021,12 +1121,18 @@ export let multiplemarcrecordcomponent = {
                             else { // tag include in myFields
                                 myFieldsets.forEach(myFieldset=>{
                                     if (myFieldset.field===field.tag) {
-                                        field.subfields.forEach(sfield=>{
-                                            if (!myFieldset.subfields.includes(sfield.code)){
-                                                // hide the field from the record
-                                                sfield.row.style="display:none;"
-                                            }
-                                        })
+
+                                            field.subfields.forEach(sfield=>{
+                                                
+                                                    if (!myFieldset.subfields.includes(sfield.code)){
+                                                        // hide the field from the record
+                                                        sfield.row.style="display:none;"
+                                                    }
+                                                    if (myFieldset.subfields.length===0){
+                                                        // show all the fields from the record
+                                                        sfield.row.style="display:block;"
+                                                    }
+                                            })
                                     }
 
                                 })
@@ -1041,6 +1147,7 @@ export let multiplemarcrecordcomponent = {
 
         },
 
+       
         // visual diff between the original record and the history one
         // the diff will be executed from the history 
 
@@ -1204,6 +1311,17 @@ export let multiplemarcrecordcomponent = {
  
             this.targetedTable=table
             this.optimizeEditorDisplay(table)
+
+            // check if we have some values for the default views
+            if (this.myDefaultViews.length>0)
+                this.myDefaultViews.forEach(myDefaultView => {
+                    if (myDefaultView.collection===jmarc.collection){
+                        let myFilter=[]
+                        myFilter.push(myDefaultView)
+                        this.filterRecordView(jmarc,myFilter)
+                    }
+                })
+
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
@@ -1279,7 +1397,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
-                {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "filterRecordView","params":{"jmarc": jmarc, "filter": this.myDefaultViews} },
+                {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
