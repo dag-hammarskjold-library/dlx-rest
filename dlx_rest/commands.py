@@ -56,4 +56,57 @@ def init_roles():
     Permission.drop_collection()
     Role.drop_collection()
 
+    # basic admin permissions
+    admin_permissions = []
+    for action in ["create", "read", "update", "delete"]:
+        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User"]:
+            this_permission = Permission(action=f'{action}{comp}')
+            this_permission.save()
+            admin_permissions.append(this_permission)
     
+    admin_role = Role(name="admin")
+    admin_role.permissions = admin_permissions
+    admin_role.save()
+
+    # Collection admins
+    for coll in ["bibs", "auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
+            this_permission.save()
+            coll_perms.append(this_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    # Location based collection admins
+    # NY
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ny_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|NNUN'])
+            ny_permission.save()
+            coll_perms.append(ny_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-NY-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    # GE
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ge_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|SzGeBNU'])
+            ge_permission.save()
+            coll_perms.append(ge_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-GE-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()    
+
+    # Resetting previously existing roles
+    for r in user_roles:
+        this_u = User.objects.get(email=r["email"])
+        this_u.roles = r["roles"]
+        this_u.save()

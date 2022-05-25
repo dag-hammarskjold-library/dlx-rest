@@ -234,13 +234,39 @@ def test_api_records_list_count(client, marc):
         data = json.loads(res.data)
         assert data['data'] == 2
         
-def test_api_record(client, marc):
+def test_api_record(client, marc, default_users):
     # get
     for col in ('bibs', 'auths'):
         for i in (1, 2):
             res = client.get(f'{API}/marc/{col}/records/{i}')
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
+
+    # Credentials
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # global bib administrator
+    username = default_users['bib-admin']['email']
+    password = default_users['bib-admin']['password']
+    bib_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # global auth administrator
+    username = default_users['auth-admin']['email']
+    password = default_users['auth-admin']['password']
+    auth_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # NY bib administrator
+    username = default_users['bib-NY-admin']['email']
+    password = default_users['bib-NY-admin']['password']
+    bib_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # NY auth administrator
+    username = default_users['auth-NY-admin']['email']
+    password = default_users['auth-NY-admin']['password']
+    auth_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # PUT NY bib record by global administrator == 200
     # PUT NY auth record by global administrator == 200
@@ -264,18 +290,20 @@ def test_api_record(client, marc):
 
     # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.          
     # put
+
+    # These can now be properly authenticated
     if col == 'bibs':    
         cls = Bib
         bib = Bib()
         bib.id = 1
         bib.set('245', 'a', 'Title')
-        res = client.put(f'{API}/marc/{col}/records/{bib.id}', data=bib.to_json())
+        res = client.put(f'{API}/marc/{col}/records/{bib.id}', data=bib.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
     else:
         cls = Auth
         auth = Auth()
         auth.id = 1
         auth.set('100', 'a', 'Heading 2')
-        res = client.put(f'{API}/marc/{col}/records/{auth.id}', data=auth.to_json())
+        res = client.put(f'{API}/marc/{col}/records/{auth.id}', data=auth.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
         
     assert res.status_code == 200
     
@@ -303,15 +331,15 @@ def test_api_record(client, marc):
 
 
     # delete
-    res = client.delete(f'{API}/marc/bibs/records/1')
+    res = client.delete(f'{API}/marc/bibs/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 204
     
     print(Auth.from_id(2).in_use())
     
-    res = client.delete(f'{API}/marc/auths/records/2')
+    res = client.delete(f'{API}/marc/auths/records/2', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 403 # auth in use
     
-    res = client.delete(f'{API}/marc/auths/records/1')
+    res = client.delete(f'{API}/marc/auths/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 204
              
 def test_api_record_fields_list(client, marc):
@@ -609,7 +637,7 @@ def test_api_userbasket(client, default_users, users, marc):
 
 
     # delete; this should be the same record as in the payload
-    res = client.delete(f'{API}/marc/bibs/records/1')
+    res = client.delete(f'{API}/marc/bibs/records/1', headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 204
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)

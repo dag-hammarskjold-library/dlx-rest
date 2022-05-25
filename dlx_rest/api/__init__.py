@@ -315,6 +315,7 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
     
         user = request_loader(request)
+        print(user)
 
         if args.format == 'mrk':
             try:
@@ -527,7 +528,10 @@ class Record(Resource):
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @login_required
     def put(self, collection, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
+        #user = 'testing' if current_user.is_anonymous else current_user.email
+        #print(user)
+        user = request_loader(request)
+        print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         args = Record.args.parse_args()
@@ -540,10 +544,14 @@ class Record(Resource):
             except Exception as e:
                 abort(400, str(e))
         else:
+            jmarc = json.loads(request.data)
+            record = cls(jmarc, auth_control=True)
+            
+            if not has_permission(user, "updateRecord", record, collection):
+                abort(403, f'The current user is not authorized to perform this action.')
+
             try:
-                jmarc = json.loads(request.data)
-                record = cls(jmarc, auth_control=True)
-                result = record.commit(user=user)
+                result = record.commit(user=user.email)
             except Exception as e:
                 abort(400, str(e))
         
@@ -557,13 +565,18 @@ class Record(Resource):
     @ns.doc(description='Delete the Bibliographic or Authority Record with the given identifier', security='basic')
     @login_required
     def delete(self, collection, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
+        #user = 'testing' if current_user.is_anonymous else current_user.email
+
+        user = request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
+        if not has_permission(user, "deleteRecord", record, collection):
+            abort(403, f'The current user is not authorized to perform this action.')
+
         try:
-            result = record.delete(user=user)
+            result = record.delete(user=user.email)
         except AuthInUse as e:
             abort(403, 'Authority record in use')
         
@@ -592,6 +605,10 @@ class RecordLockStatus(Resource):
         return lock_status, 200
 
 # Fields
+'''
+The fields and subfields endpoints aren't in active use, and we don't have defined permission sets for them.
+Recommendation: Deprecate these API routes.
+'''
 @ns.route('/marc/<string:collection>/records/<int:record_id>/fields')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -701,6 +718,10 @@ class RecordFieldPlaceList(Resource):
             print(record.to_dict())
             abort(400, str(e))
 
+        # There are no createField permissions 
+        #if not has_permission(user, "createField", record, collection):
+        #    abort(403, f'The current user is not authorized to perform this action.')
+
         result = record.commit(user=user)
         
         if result:
@@ -772,6 +793,11 @@ class RecordFieldPlace(Resource):
             record_data = record.to_dict()
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
+
+            # There is no updateField permission; also an abort(403) nested in an abort(400) only returns the 400.
+            #if not has_permission(user, "updateField", record, collection):
+            #    abort(403, f'The current user is not authorized to perform this action.')
+
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
             abort(400, str(e))
@@ -797,6 +823,10 @@ class RecordFieldPlace(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         record.get_field(field_tag, place=field_place) or abort(404)
+
+        # There is no deleteField permission
+        #if not has_permission(user, "deleteField", record, collection):
+        #    abort(403, f'The current user is not authorized to perform this action.')
         
         record.delete_field(field_tag, place=field_place)
         
@@ -1107,6 +1137,8 @@ class RecordMerge(Resource):
         losing_id = request.args.get('target') or abort(400, '"target" param required')
         losing_id = int(losing_id)
         losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
+
+        # To do: add a permssion for mergeRecord?
         
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(403, "Auth records not of the same type")
@@ -1301,6 +1333,10 @@ class WorkformsList(Resource):
         except Exception as e:
             raise e
         
+        # To do
+        #if not has_permission(user, "createWorkform", record, collection):
+        #    abort(403, f'The current user is not authorized to perform this action.')
+
         workform_collection.insert_one(data) or abort(500)
         
         return {'result': URL('api_workform', collection=collection, workform_name=data['name']).to_str()}, 201
@@ -1351,6 +1387,11 @@ class Workform(Resource):
             abort(400, 'Invalid workform')
         except Exception as e:
             raise e
+
+
+        # To do
+        #if not has_permission(user, "updateWorkform", record, collection):
+        #    abort(403, f'The current user is not authorized to perform this action.')
 
         result = workform_collection.replace_one({'_id': old_data['_id']}, new_data)
         result or abort(500, 'PUT request failed for unknown reasons')
