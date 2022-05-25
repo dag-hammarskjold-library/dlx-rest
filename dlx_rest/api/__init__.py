@@ -315,10 +315,6 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
     
         user = request_loader(request)
-        print("user and permissions", user.email, user.roles[0].name, user.permissions_list())
-        #if user.email == 'bib_admin@un.org':
-            
-        
 
         if args.format == 'mrk':
             try:
@@ -328,11 +324,6 @@ class RecordsList(Resource):
         else:
             #try:
             jmarc = json.loads(request.data)
-
-            print("jmarc: " + str(jmarc))
-
-            if not has_permission(user, "createRecord", jmarc):
-                abort(403, f'The current user is not authorized to perform this action.')
             
             if '_id' in jmarc:
                 if jmarc['_id'] is None:
@@ -341,6 +332,11 @@ class RecordsList(Resource):
                     abort(400, f'"_id" {jmarc["_id"]} is invalid for a new record')
                 
             record = cls(jmarc, auth_control=True)
+
+            if not has_permission(user, "createRecord", record, collection):
+                abort(403, f'The current user is not authorized to perform this action.')
+
+
             result = record.commit(user=user.email)
             #except Exception as e:
             #    abort(400, str(e))

@@ -1,6 +1,6 @@
 import os
 
-from dlx_rest.models import Constraint, Permission
+from dlx_rest.models import Permission
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
@@ -88,7 +88,6 @@ def default_users():
 
     }
 
-
 @pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
@@ -102,71 +101,67 @@ def client():
 def db():
     from dlx import DB
     # ?
-
-@pytest.fixture(scope='module')
-def constraints():
-    from dlx_rest.models import Constraint
-    # Collection and Location Constraints
-    for coll in ["bibs","auths","files"]:
-        col_c = Constraint(name=f'constraint-{coll}', collection=coll)
-        col_c.save()
-        for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
-            this_c = Constraint(name=f'constraint-{coll}-{c["loc"]}', collection=coll, field='040', subfield='a', value=c['code'])
-            this_c.save()
-    
-    return Constraint
-
 @pytest.fixture(scope='module')
 def permissions():
-    from dlx_rest.models import Permission, Constraint
-    # Global Administrator permissions
-    for a in ['create','read','update','delete']:
-        for comp in ['Admin', 'User', 'Role', 'Permission', 'File', 'Record']:
-            this_p = Permission(action=f'{a}{comp}')
-            this_p.save()
-    
-     # Collection and location permissions
-    for a in ['create','read','update','delete']:
-        for comp in ['File', 'Record']:
-            for coll in ["bibs", "auths", "files"]:    
-                col_p = Permission(action=f'{a}{comp}')
-                col_p.constraint_must = list(filter(lambda x: x['name'] == f'constraint-{coll}', Constraint.objects))
-                print(col_p.constraint_must)
-                col_p.save()
-                for loc in ['NNUN', 'SzGeBNU']:
-                    if comp == "Record":
-                        loc_p = Permission(action=f'{a}{comp}')
-                        loc_p.constraint_must = list(filter(lambda x: x['name'] == f'constraint={coll}-{loc}', Constraint.objects))
-                        print(loc_p.constraint_must)
-                        loc_p.save()
-    
+    from dlx_rest.models import Permission
+
     return Permission
 
 @pytest.fixture(scope='module')
 def roles(permissions):
-    from dlx_rest.models import Role
+    from dlx_rest.models import Role, Permission
 
-    r = Role(name='admin')
-    r.permissions = Permission.objects(constraint_must=[], constraint_must_not=[])
-    r.save()
+    # basic admin permissions
+    admin_permissions = []
+    for action in ["create", "read", "update", "delete"]:
+        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User"]:
+            this_permission = Permission(action=f'{action}{comp}')
+            this_permission.save()
+            admin_permissions.append(this_permission)
+    
+    admin_role = Role(name="admin")
+    admin_role.permissions = admin_permissions
+    admin_role.save()
 
-    # Collection admin roles
-    for coll in ["bibs","auths","files"]:
-        admin_r = Role(name=f'{coll}-admin')
-        constraints = Constraint.objects(name=f'constraint-{coll}')
-        permissions = Permission.objects(constraint_must__in=constraints)
-        admin_r.permissions = permissions
-        admin_r.save()
+    # Collection admins
+    for coll in ["bibs", "auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
+            this_permission.save()
+            coll_perms.append(this_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
 
-    # Collection location admin roles
-    for coll in ["bibs","auths","files"]:
-        for c in [{'loc': 'NY', 'code': 'NNUN'}, {'loc': 'GE', 'code': 'SzGeBNU'}]:
-            admin_r = Role(name=f'{coll}-{c["loc"]}-admin')
-            constraints = Constraint.objects(name=f'constraint-{coll}-{c["loc"]}')
-            permissions = Permission.objects(constraint_must__in=constraints)
-            admin_r.permissions = permissions
-            admin_r.save()
+    # Location based collection admins
+    # NY
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ny_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|NNUN'])
+            ny_permission.save()
+            coll_perms.append(ny_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-NY-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
 
+    # GE
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ge_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|SzGeBNU'])
+            ge_permission.save()
+            coll_perms.append(ge_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-GE-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    
+        
     return Role
     
 @pytest.fixture(scope='module')
@@ -174,15 +169,15 @@ def users(roles, default_users):
     from dlx_rest.models import User
     
     for utype in default_users:
-        u = default_users[utype]
-        print(u)
-        user = User(email = u['email'], created=datetime.now())
-        user.set_password(u['password'])
-        try:
-            user.add_role_by_name(u['role'])
-        except KeyError:
-            pass
-        user.save()
+        if utype not in ["invalid","new"]:
+            u = default_users[utype]
+            user = User(email = u['email'], created=datetime.now())
+            user.set_password(u['password'])
+            try:
+                user.add_role_by_name(u['role'])
+            except KeyError:
+                pass
+            user.save()
 
     return User
 
