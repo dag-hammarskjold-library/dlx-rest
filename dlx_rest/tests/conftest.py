@@ -1,6 +1,5 @@
 import os
 
-from dlx_rest.models import Permission
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
