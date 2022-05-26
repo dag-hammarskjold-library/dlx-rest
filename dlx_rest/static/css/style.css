@@ -390,7 +390,7 @@ button:focus {
   background-color: rgba(0, 0, 0, 0.5);
   display: table;
   transition: opacity 0.3s ease;
-  opacity: 0.75;
+  opacity:1;
 }
 
 .modal-wrapper {

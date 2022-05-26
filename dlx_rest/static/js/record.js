@@ -72,7 +72,7 @@ export let multiplemarcrecordcomponent = {
 
                     <div class="modal-header" id="title">
                         <slot name="header">
-                            <h1> Record(s) list </h1>
+                            <h1> List of values </h1>
                         </slot>
                     </div>
   
@@ -879,20 +879,28 @@ export let multiplemarcrecordcomponent = {
             this.showModal = false;
         },
         
-        async getRecordView(collection="bibs") {
-            console.log(this.prefix)
+        async getRecordView(collection) {
             let content= `/views/${collection}`
             let url = `${this.prefix}${content}`
-            const response = await fetch(url);
-            const jsonData = await response.json();
-            jsonData.data.forEach(item=>{
-                if (item.collection===collection){
-                    return item
-                }
-            }) 
+            let recordCollection=[]
+            try {
+                const response = await fetch(url);
+                const jsonData = await response.json();
+                jsonData.data.forEach(item=>{
+                    if (item.collection===collection){
+                        // save the item inside the array
+                        recordCollection.push(item)
+                    }
+                })
+            }
+            catch(error){
+                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+            }
+            
+            return recordCollection 
         },
 
-        displayHistoryModalToGetRecordView(jmarc){
+        async displayHistoryModalToGetRecordView(jmarc){
             this.showModal=true;
             
             // insert the parent div inside the content history    
@@ -931,50 +939,67 @@ export let multiplemarcrecordcomponent = {
             let that=this
 
             try {
-                this.getRecordView()
-                // // call the API route to get the views
-                // jmarc.history()
-                //     .then(function(result) {
-    
-                //         recup.innerHTML=""
-                //         result.forEach(element=>{
+                // call the API route to get the views
 
-                //         // creation of the first div
-                //         let firstDiv=document.createElement("div")
-                //         firstDiv.classList.add("card");
-                //         firstDiv.classList.add("mt-2");
-                //         firstDiv.style.border = "none"
-                //         firstDiv.style.width= "auto"
+                let result=await this.getRecordView(jmarc.collection)
+                recup.innerHTML=""
+                if (result.length>0){
+                    result.forEach(element=>{
 
-                //         // adding the contents to the div
-                //         let tmpDate = new Date(element.updated);
-                //         !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate} </strong> , user : ${element.user} `
+                            // creation of the first div
+                            let firstDiv=document.createElement("div")
+                            firstDiv.classList.add("card-body");
+                            firstDiv.classList.add("mt-2");
+                            firstDiv.style.border = "none"
+                            firstDiv.style.width= "auto"
 
-                //         // adding some events on mouverover / mouseout to change background color
-                //         firstDiv.addEventListener("mouseover",()=>{
-                //             firstDiv.style.backgroundColor="#87CEFA"
-                //         })
+                            // adding the contents to the div
+                            firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
+                            firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
+                            // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
 
-                //         firstDiv.addEventListener("mouseout",()=>{
-                //             firstDiv.style.backgroundColor=""
-                //         })
+                            // adding some events on mouverover / mouseout to change background color
+                            firstDiv.addEventListener("mouseover",()=>{
+                                firstDiv.style.backgroundColor="#87CEFA"
+                            })
 
-                //         // adding some events on mouverover / mouseout to change background color
-                //         firstDiv.addEventListener("click",()=>{
-                            
-                //             // // active the history mode
-                //             // that.historyMode=true
-                            
-                //             // recordiD to the history record for displaying purpose
-                //             element.recordId=that.selectedJmarc.recordId
-                //             that.historyJmarcHistory=element
-                //             that.historyJmarcOriginal=that.selectedJmarc
-                //             that.closeModal()
-                //             that.displayHistoryEditorView(that.selectedJmarc)
-                //         })
-                //         recup.appendChild(firstDiv)
-                //         })
-                //     });
+                            firstDiv.addEventListener("mouseout",()=>{
+                                firstDiv.style.backgroundColor=""
+                            })
+
+                            // adding some events on mouverover / mouseout to change background color
+                            firstDiv.addEventListener("click",async ()=>{
+
+                                try {
+                                    const response = await fetch(element.url);
+                                    const jsonData = await response.json();
+                                    that.closeModal()
+                                    let myFilter=[]
+                                    myFilter.push(jsonData.data)
+                                    that.filterRecordView(jmarc,myFilter)
+                                }
+                                catch(error){
+                                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+                                }
+                            })
+                            recup.appendChild(firstDiv)
+                    })
+                } 
+                if (result.length===0){
+                    // creation of the first div
+                    let firstDiv=document.createElement("div")
+                    firstDiv.classList.add("card-body");
+                    firstDiv.classList.add("mt-2");
+                    firstDiv.classList.add("alert");
+                    firstDiv.classList.add("alert-warning");
+                    firstDiv.style.border = "none"
+                    firstDiv.style.width= "auto"
+
+                    // adding the contents to the div
+                    firstDiv.innerHTML= `<strong> Sorry, no match!!!</strong>` 
+
+                    recup.appendChild(firstDiv)
+                }
             }
             catch (error) {
                 this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
