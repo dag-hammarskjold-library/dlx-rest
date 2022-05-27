@@ -16,7 +16,9 @@ from dlx_rest.config import Config
 ## Setup some models for use
 
 class Permission(Document):
-    action = StringField(primary_key=True)
+    action = StringField(required=True)
+    constraint_must = ListField()
+    constraint_must_not = ListField()
 
 class Role(Document):
     name = StringField(primary_key=True)
