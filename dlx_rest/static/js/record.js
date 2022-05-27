@@ -131,6 +131,7 @@ export let multiplemarcrecordcomponent = {
             shiftPressed: false,
             controlPressed: false,
             commandPressed: false,
+            isFiltered:false
         }
     },
 
@@ -901,108 +902,128 @@ export let multiplemarcrecordcomponent = {
         },
 
         async displayHistoryModalToGetRecordView(jmarc){
-            this.showModal=true;
             
-            // insert the parent div inside the content history    
-            let recup=document.getElementById("contenthistory")
-            recup.innerHTML=""
-
-            // creation of the parent div for the progress bar
-            let parentProgressBarDiv=document.createElement("div");
-            parentProgressBarDiv.classList.add("d-flex");
-            parentProgressBarDiv.classList.add("align-items-center");
-            parentProgressBarDiv.classList.add("mt-4");
-            parentProgressBarDiv.classList.add("ml-4");
-            parentProgressBarDiv.id="progressBar"
-            parentProgressBarDiv.style.border = "none"
-            parentProgressBarDiv.style.width= "auto"
-
-            // creation of the h3
-            let myH3=document.createElement("H3");
-            myH3.innerHTML="Loading....."
-
-            parentProgressBarDiv.appendChild(myH3)
-
-            // creation of the div for the progress bar
-            let progressBarDiv=document.createElement("div");
-            progressBarDiv.classList.add("spinner-border");
-            progressBarDiv.classList.add("ms-auto");
-            progressBarDiv.setAttribute("role", "status");
-            progressBarDiv.setAttribute("aria-hidden", "true");
-            
-            parentProgressBarDiv.appendChild(progressBarDiv)
-
-            recup.appendChild(parentProgressBarDiv)
-
-                                
-            // transfer reference
-            let that=this
-
-            try {
-                // call the API route to get the views
-
-                let result=await this.getRecordView(jmarc.collection)
+            if (this.isFiltered==false)
+                {
+                this.showModal=true;
+                
+                // insert the parent div inside the content history    
+                let recup=document.getElementById("contenthistory")
                 recup.innerHTML=""
-                if (result.length>0){
-                    result.forEach(element=>{
 
-                            // creation of the first div
-                            let firstDiv=document.createElement("div")
-                            firstDiv.classList.add("card-body");
-                            firstDiv.classList.add("mt-2");
-                            firstDiv.style.border = "none"
-                            firstDiv.style.width= "auto"
+                // creation of the parent div for the progress bar
+                let parentProgressBarDiv=document.createElement("div");
+                parentProgressBarDiv.classList.add("d-flex");
+                parentProgressBarDiv.classList.add("align-items-center");
+                parentProgressBarDiv.classList.add("mt-4");
+                parentProgressBarDiv.classList.add("ml-4");
+                parentProgressBarDiv.id="progressBar"
+                parentProgressBarDiv.style.border = "none"
+                parentProgressBarDiv.style.width= "auto"
 
-                            // adding the contents to the div
-                            firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
-                            firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
-                            // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
+                // creation of the h3
+                let myH3=document.createElement("H3");
+                myH3.innerHTML="Loading....."
 
-                            // adding some events on mouverover / mouseout to change background color
-                            firstDiv.addEventListener("mouseover",()=>{
-                                firstDiv.style.backgroundColor="#87CEFA"
-                            })
+                parentProgressBarDiv.appendChild(myH3)
 
-                            firstDiv.addEventListener("mouseout",()=>{
-                                firstDiv.style.backgroundColor=""
-                            })
+                // creation of the div for the progress bar
+                let progressBarDiv=document.createElement("div");
+                progressBarDiv.classList.add("spinner-border");
+                progressBarDiv.classList.add("ms-auto");
+                progressBarDiv.setAttribute("role", "status");
+                progressBarDiv.setAttribute("aria-hidden", "true");
+                
+                parentProgressBarDiv.appendChild(progressBarDiv)
 
-                            // adding some events on mouverover / mouseout to change background color
-                            firstDiv.addEventListener("click",async ()=>{
+                recup.appendChild(parentProgressBarDiv)
 
-                                try {
-                                    const response = await fetch(element.url);
-                                    const jsonData = await response.json();
-                                    that.closeModal()
-                                    let myFilter=[]
-                                    myFilter.push(jsonData.data)
-                                    that.filterRecordView(jmarc,myFilter)
-                                }
-                                catch(error){
-                                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
-                                }
-                            })
-                            recup.appendChild(firstDiv)
-                    })
-                } 
-                if (result.length===0){
-                    // creation of the first div
-                    let firstDiv=document.createElement("div")
-                    firstDiv.classList.add("card-body");
-                    firstDiv.classList.add("mt-2");
-                    firstDiv.classList.add("alert");
-                    firstDiv.classList.add("alert-warning");
-                    firstDiv.style.border = "none"
-                    firstDiv.style.width= "auto"
+                                    
+                // transfer reference
+                let that=this
 
-                    // adding the contents to the div
-                    firstDiv.innerHTML= `<strong> Sorry, no match!!!</strong>` 
+                try {
+                    // call the API route to get the views
 
-                    recup.appendChild(firstDiv)
+                    let result=await this.getRecordView(jmarc.collection)
+                    recup.innerHTML=""
+                    if (result.length>0){
+                        result.forEach(element=>{
+
+                                // creation of the first div
+                                let firstDiv=document.createElement("div")
+                                firstDiv.classList.add("card-body");
+                                firstDiv.classList.add("mt-2");
+                                firstDiv.style.border = "none"
+                                firstDiv.style.width= "auto"
+
+                                // adding the contents to the div
+                                firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
+                                firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
+                                // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
+
+                                // adding some events on mouverover / mouseout to change background color
+                                firstDiv.addEventListener("mouseover",()=>{
+                                    firstDiv.style.backgroundColor="#87CEFA"
+                                })
+
+                                firstDiv.addEventListener("mouseout",()=>{
+                                    firstDiv.style.backgroundColor=""
+                                })
+
+                                // adding some events on mouverover / mouseout to change background color
+                                firstDiv.addEventListener("click",async ()=>{
+
+                                    try {
+                                        const response = await fetch(element.url);
+                                        const jsonData = await response.json();
+                                        that.closeModal()
+                                        let myFilter=[]
+                                        myFilter.push(jsonData.data)
+                                        let myIcon=document.getElementById("recordViewButton")
+                                        myIcon.className=""
+                                        myIcon.className="fa fa-times float-left p-1 record-control"
+                                        that.isFiltered=true
+                                        that.filterRecordView(jmarc,myFilter)
+                                        
+                                    }
+                                    catch(error){
+                                        this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+                                    }
+                                })
+                                recup.appendChild(firstDiv)
+                        })
+                    } 
+                    if (result.length===0){
+                        // creation of the first div
+                        let firstDiv=document.createElement("div")
+                        firstDiv.classList.add("card-body");
+                        firstDiv.classList.add("mt-2");
+                        firstDiv.classList.add("alert");
+                        firstDiv.classList.add("alert-warning");
+                        firstDiv.style.border = "none"
+                        firstDiv.style.width= "auto"
+
+                        // adding the contents to the div
+                        firstDiv.innerHTML= `<strong> Sorry, no match!!!</strong>` 
+
+                        recup.appendChild(firstDiv)
+                    
+                    }
                 }
-            }
-            catch (error) {
-                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                catch (error) {
+                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                }
+            } else {
+                // change the value of isfiltered
+                this.isFiltered=false
+                // change the icone and re-display the record
+                let myIcon=document.getElementById("recordViewButton")
+                myIcon.className=""
+                myIcon.className="fas fa-filter float-left p-1 record-control"
+                // reload the record
+                this.removeRecordFromEditor(jmarc,true)
+                this.displayMarcRecord(this.selectedJmarc)
             }
         },
         displayHistoryModal(jmarc){
