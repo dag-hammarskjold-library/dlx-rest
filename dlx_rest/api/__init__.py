@@ -260,7 +260,7 @@ class RecordsList(Resource):
 
         # exec query
         collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
-        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
         # process
         if fmt == 'xml':
@@ -296,6 +296,7 @@ class RecordsList(Resource):
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             },
             'related': {
+                #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
@@ -362,7 +363,8 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        data = cls().handle.count_documents(query.compile()) if query else cls().handle.estimated_document_count()
+        
+        data = cls().handle.count_documents(query.compile(), maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -412,7 +414,7 @@ class RecordsListBrowse(Resource):
         collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
 
-        values = [d for d in DB.handle[f'{field}_index'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
             values = list(reversed(list(values)))    
@@ -420,11 +422,12 @@ class RecordsListBrowse(Resource):
         data = [
             {
                 'value': x['_id'],
-                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
-                
+                'search': URL('api_records_list', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str()
             } for x in values
         ]
+
+        print(data)
         
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
@@ -1477,9 +1480,16 @@ class MyUserProfileRecord(Resource):
         user_id = this_u['id']
         return_data['email'] = this_u.email
         return_data['roles'] = []
+        return_data['default_views'] = []
             
         for r in this_u.roles:
             return_data['roles'].append(r.name or '')
+        
+        try:
+            for v in this_u.default_views:
+                return_data['default_views'].append(v.to_json())
+        except KeyError:
+            pass
             
         my_basket = URL('api_my_basket_record').to_str()
 

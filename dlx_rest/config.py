@@ -54,4 +54,4 @@ class Config(object):
     BIB_COLLECTION = 'bibs'
     AUTH_COLLECTION = 'auths'
     FILE_COLLECTION = 'files'
-
+    MAX_QUERY_TIME = 15000

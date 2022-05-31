@@ -5,9 +5,9 @@
         <div class="row">
             <sidebarcomponent sbtype="facet"></sidebarcomponent>
             {% if index and q %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
+            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}" logged_in="{{'1'}} if current_user.is_authenticated() else ''"></browsecomponent>
             {% else %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}"></browsecomponent>
+            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}" logged_in="{{'1'}} if current_user.is_authenticated() else ''"></browsecomponent>
             {% endif %}
             <sidebarcomponent sbtype="other"></sidebarcomponent>
         </div>
