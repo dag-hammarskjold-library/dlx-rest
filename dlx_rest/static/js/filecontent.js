@@ -134,6 +134,44 @@ class FileContent {
       this.overwrite = true
     }
   }
+  /*
+  getLangArray() {
+    let langArray = [];
+    
+    if (this.en.selected)
+     langArray.push("EN");
+
+    if (this.fr.selected)
+     langArray.push("FR");
+    
+    if (this.es.selected)
+     langArray.push("ES");
+
+    if (this.ar.selected)
+     langArray.push("AR");
+
+    if (this.zh.selected)
+     langArray.push("ZH");
+    
+    if (this.ru.selected)
+     langArray.push("RU");
+     
+    if (this.de.selected)
+     langArray.push("DE");
+
+    console.log(langArray);
+    return langArray;
+
+  }
+  getJSON() {
+    record = {
+      "filename": this.filename,
+      "docSymbol": this.docSymbol,
+      "languages": getLangArray()
+    }
+    return record;
+  }
+  */
 }
 
 export default FileContent;

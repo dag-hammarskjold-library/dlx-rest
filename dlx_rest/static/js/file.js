@@ -211,7 +211,7 @@ function createFileObjects() {
       i = i + 1;
     }
 
-    console.log(fileObjectArray)
+    console.log(JSON.stringify(fileObjectArray));
 
     fileObjectArray.forEach((file) => {
     // const fileList = fileOjectArray.map((file) => {
@@ -283,11 +283,11 @@ function createFileObjects() {
          a.addEventListener("click", toggleAction);
       }
       tbody.append(fileEntry);
-
     });
 
     /** COME BACK TO THIS PART */
     // txt.value = JSON.stringify(fileObjectArray);
+    
   }
 }
 

@@ -641,3 +641,9 @@ def update_file():
 
     except Exception as e:
         return e
+
+##Testing something out
+@app.route('/files/manage')
+@login_required
+def manage_file():
+    return render_template("file_manage.html")
