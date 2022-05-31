@@ -1,4 +1,4 @@
-import FileContent from "./filecontent.js";
+import FileContent from "./filecontent2.js";
 
 //https://stackoverflow.com/questions/56871192/how-to-pass-data-from-flask-to-javascript
 
@@ -167,7 +167,7 @@ function createFileObjects(results) {
     icon.classList.add("bi", "bi-save")
 
     save_btn.append(icon)
-    // save_btn.innerHTML = "Save";
+    save_btn.innerHTML = " Save ";
     save_btn.onclick =  function () {
 
       const record = new FormData();
