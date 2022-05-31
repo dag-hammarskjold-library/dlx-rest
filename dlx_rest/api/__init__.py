@@ -318,8 +318,13 @@ class RecordsList(Resource):
         print(user)
 
         if args.format == 'mrk':
-            try:
-                result = cls.from_mrk(request.data.decode()).commit(user=user)
+            
+            record = cls.from_mrk(request.data.decode())
+            if not has_permission(user, "createRecord", record, collection):
+                abort(403, f'The current user is not authorized to perform this action.')
+
+            try:    
+                record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -537,9 +542,14 @@ class Record(Resource):
         args = Record.args.parse_args()
         
         if args.format == 'mrk':
+            
+            record = cls.from_mrk(request.data.decode())
+            record.id = record_id
+
+            if not has_permission(user, "updateRecord", record, collection):
+                abort(403, f'The current user is not authorized to perform this action.')
+
             try:
-                record = cls.from_mrk(request.data.decode())
-                record.id = record_id
                 result = record.commit(user=user)
             except Exception as e:
                 abort(400, str(e))
