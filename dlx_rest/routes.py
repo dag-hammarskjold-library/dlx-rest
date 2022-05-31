@@ -503,6 +503,7 @@ def process_files():
 
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
+
     i = 0
     fileResults = []
     record = {}
@@ -511,17 +512,45 @@ def process_files():
         try:
             record['filename'] = f.filename
             record['docSymbol'] = fileTxt[i]["docSymbol"]
-            record['languages'] = fileTxt[i]["language"]
+
+            langArray = []
+    
+            if (fileTxt[i]["en"]["selected"]):
+                langArray.append("EN")
+
+            if (fileTxt[i]["fr"]["selected"]):
+                langArray.append("FR")
+            
+            if (fileTxt[i]["es"]["selected"]):
+                langArray.append("ES")
+
+            if (fileTxt[i]["ar"]["selected"]):
+                langArray.append("AR")
+            
+            if (fileTxt[i]["zh"]["selected"]):
+                langArray.append("ZH")
+
+            if (fileTxt[i]["ru"]["selected"]):
+                langArray.append("RU")
+
+            if (fileTxt[i]["de"]["selected"]):
+                langArray.append("DE")
+
+            record['languages'] = langArray
+
+            record['docSymbol'] = fileTxt[i]["docSymbol"]
+
+            record['overwrite'] = fileTxt[i]["overwrite"]
 
             result = File.import_from_handle(
                 f,
-                filename=File.encode_fn(fileTxt[i]["docSymbol"], fileTxt[i]["language"], 'pdf'),
+                filename=File.encode_fn(record['docSymbol'], record['languages'], 'pdf'),
                 #identifiers=[Identifier('symbol', s) for s in fileTxt[i]["docSymbol"]],
-                identifiers=[Identifier('symbol', fileTxt[i]["docSymbol"])],
-                languages=fileTxt[i]["language"],
+                identifiers=[Identifier('symbol', record['docSymbol'])],
+                languages=record['languages'],
                 mimetype='application/pdf',
                 source='ME::File::Uploader',
-                overwrite=False
+                overwrite=record['overwrite']
             )
             record['result'] = "File uploaded successfully"
         except FileExistsLanguageConflict as e:
@@ -641,9 +670,3 @@ def update_file():
 
     except Exception as e:
         return e
-
-##Testing something out
-@app.route('/files/manage')
-@login_required
-def manage_file():
-    return render_template("file_manage.html")

@@ -27,6 +27,8 @@ txt.style.opacity = 0;
 
   //re-add the class name
   this.classList.add(fileObject.en.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
   
 };
 const toggleFR = function () {
@@ -45,6 +47,8 @@ const toggleFR = function () {
   //re-add the class name
   this.classList.add(fileObject.fr.className);
 
+  txt.value = JSON.stringify(fileObjectArray);
+
 };
 const toggleES = function () {
   
@@ -61,6 +65,8 @@ const toggleES = function () {
 
   //re-add the class name
   this.classList.add(fileObject.es.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
 
 };
 const toggleAR = function () {
@@ -79,6 +85,7 @@ const toggleAR = function () {
   //re-add the class name
   this.classList.add(fileObject.ar.className);
 
+  txt.value = JSON.stringify(fileObjectArray);
 };
 const toggleZH = function () {
   
@@ -95,6 +102,8 @@ const toggleZH = function () {
 
   //re-add the class name
   this.classList.add(fileObject.zh.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
 
 };
 const toggleRU = function () {
@@ -113,6 +122,8 @@ const toggleRU = function () {
   //re-add the class name
   this.classList.add(fileObject.ru.className);
 
+  txt.value = JSON.stringify(fileObjectArray);
+
 };
 const toggleDE = function () {
   
@@ -130,6 +141,8 @@ const toggleDE = function () {
   //re-add the class name
   this.classList.add(fileObject.de.className);
 
+  txt.value = JSON.stringify(fileObjectArray);
+
 };
 
 /**
@@ -144,6 +157,8 @@ const toggleDE = function () {
 
   //update the document symbol to the current text
   fileObject.updateSymbol(this.innerText);
+
+  txt.value = JSON.stringify(fileObjectArray);
 };
 
 /**
@@ -158,6 +173,8 @@ const toggleAction = function (e) {
 
   //update the status
   fileObject.updateOverwrite(e.target.value);
+
+  txt.value = JSON.stringify(fileObjectArray);
 };
 /** END updated section */
 
@@ -211,7 +228,7 @@ function createFileObjects() {
       i = i + 1;
     }
 
-    console.log(JSON.stringify(fileObjectArray));
+    // console.log(JSON.stringify(fileObjectArray));
 
     fileObjectArray.forEach((file) => {
     // const fileList = fileOjectArray.map((file) => {
@@ -286,7 +303,7 @@ function createFileObjects() {
     });
 
     /** COME BACK TO THIS PART */
-    // txt.value = JSON.stringify(fileObjectArray);
+    txt.value = JSON.stringify(fileObjectArray);
     
   }
 }
