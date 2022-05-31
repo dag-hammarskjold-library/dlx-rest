@@ -6,6 +6,9 @@ name: Python package
 on:
   pull_request:
     branches: [ master ]
+    
+env:
+  DLX_REST_TESTING: True
 
 jobs:
   build:

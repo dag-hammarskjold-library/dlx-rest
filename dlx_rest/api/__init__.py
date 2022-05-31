@@ -260,7 +260,7 @@ class RecordsList(Resource):
 
         # exec query
         collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
-        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation)
+        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
         # process
         if fmt == 'xml':
@@ -296,6 +296,7 @@ class RecordsList(Resource):
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
             },
             'related': {
+                #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
             }
@@ -362,7 +363,8 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        data = cls.from_query(query).count
+        
+        data = cls().handle.count_documents(query.compile(), maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -412,7 +414,7 @@ class RecordsListBrowse(Resource):
         collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
 
-        values = [d for d in DB.handle[f'{field}_index'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
             values = list(reversed(list(values)))    
@@ -420,11 +422,12 @@ class RecordsListBrowse(Resource):
         data = [
             {
                 'value': x['_id'],
-                'search': URL('api_records_list', collection=collection, search=f'{field}:{x.get("_id")}').to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=f'{field}:{x.get("_id")}').to_str()
-                
+                'search': URL('api_records_list', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str(),
+                'count': URL('api_records_list_count', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str()
             } for x in values
         ]
+
+        print(data)
         
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),
@@ -501,6 +504,7 @@ class Record(Resource):
             },
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
+                'history': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
             }
@@ -1185,13 +1189,18 @@ class RecordHistory(Resource):
         # temporary implemention
         hcol = collection[:-1] + '_history'
         hrec = DB.handle[hcol].find_one({'_id': record_id}) or {}
-        history = hrec.get('history')
+        history = hrec.get('history') or []
         
-        if history:
-            data = [URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str() for i in range(0, len(history))]
-        else:
-            data = None
-        
+        data = [
+            {
+                'user': history[i].get('user'),
+                'time': history[i].get('updated'),
+                'event': URL('api_record_history_event', collection=collection, record_id=record_id, instance=i).to_str()
+            } 
+                
+            for i in range(0, len(history))
+        ]
+
         links = {
             '_self': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
             'related': {
@@ -1201,7 +1210,7 @@ class RecordHistory(Resource):
         
         meta = {
             'name': 'api_record_history',
-            'returns': URL('api_schema', schema_name='api.urllist').to_str()
+            'returns': URL('api_schema', schema_name='api.history.list').to_str()
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
@@ -1223,6 +1232,7 @@ class RecordHistoryEvent(Resource):
         
         data = marc.to_dict()
         data['updated'] = marc.updated
+        data['user'] = marc.user
         
         links = {
             '_self': URL('api_record_history_event', collection=collection, record_id=record_id, instance=instance).to_str(),
@@ -1466,17 +1476,22 @@ class MyUserProfileRecord(Resource):
     def get(self):        
         return_data = {}
 
-        try:
-            this_u = User.objects.get(id=current_user.id)
-            user_id = this_u['id']
-            return_data['email'] = this_u.email
-            return_data['roles'] = []
-            for r in this_u.roles:
-                return_data['roles'].append(r.name)
+        this_u = User.objects.get(id=current_user.id)
+        user_id = this_u['id']
+        return_data['email'] = this_u.email
+        return_data['roles'] = []
+        return_data['default_views'] = []
             
-            my_basket = URL('api_my_basket_record').to_str()
-        except:
-            raise
+        for r in this_u.roles:
+            return_data['roles'].append(r.name or '')
+        
+        try:
+            for v in this_u.default_views:
+                return_data['default_views'].append(v.to_json())
+        except KeyError:
+            pass
+            
+        my_basket = URL('api_my_basket_record').to_str()
 
         links = {
             '_self': URL('api_my_user_profile_record').to_str(),
