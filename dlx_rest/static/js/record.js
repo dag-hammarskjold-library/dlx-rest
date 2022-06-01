@@ -1134,6 +1134,9 @@ export let multiplemarcrecordcomponent = {
             this.displayMarcRecord(this.historyJmarcHistory)
 
             this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
+
+            this.filterRecordView(this.historyJmarcOriginal)
+            
            
         },
 
@@ -1194,6 +1197,29 @@ export let multiplemarcrecordcomponent = {
         },
 
        
+        // visual diff between the original record and the history one
+        // the diff will be executed from the history 
+
+        diff(original,history,color){
+            let occur=0
+            history.fields.forEach(elementHistory=>{
+                let historyValueRow=elementHistory.row.cells
+                let findHistoryRow=false
+                original.fields.forEach(originalElement=>{
+                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
+                        findHistoryRow=true
+                    }
+                })
+                if (findHistoryRow===false) {
+                    occur++
+                    elementHistory.row.bgColor=color
+                }
+            })
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
+
+        },
+
         // visual diff between the original record and the history one
         // the diff will be executed from the history 
 
