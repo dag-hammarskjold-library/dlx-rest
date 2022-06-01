@@ -1,4 +1,5 @@
 # Imports from requirements.txt
+from email.policy import default
 import re
 import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
@@ -15,7 +16,7 @@ from dlx import DB
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import User, SyncLog, Permission, Role, requires_permission, register_permission
+from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, requires_permission, register_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
@@ -136,9 +137,11 @@ def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
     form.roles.choices = [(r.id, r.id) for r in Role.objects()]
+    form.views.choices = [(v.id, f'{v.collection}/{v.name}') for v in RecordView.objects()]
     if request.method == 'POST':
         email = request.form.get('email')
         roles = form.roles.data
+        default_views = form.views.data
         password = request.form.get('password')
         created = datetime.now()
 
@@ -151,6 +154,9 @@ def create_user():
                 user.roles.append(r)
             except:
                 pass
+        for view in default_views:
+            v = RecordView.objects.get(id=view)
+            user.default_views.append(v)
         # This still allows submission of a blank user document. We need more validation.
         try:
             user.save(validate=True)
@@ -169,6 +175,7 @@ def create_user():
 def update_user(id):
     try:
         user = User.objects.get(id=id)
+        print("default views:", user.default_views)
     except IndexError:
         flash("The user was not found.")
         return redirect(url_for('list_users'))
@@ -176,11 +183,15 @@ def update_user(id):
     form = UpdateUserForm()
     form.roles.choices = [(r.id, r.id) for r in Role.objects()]
     form.roles.process_data([r.id for r in user.roles])
+    form.views.choices = [(v.id, f'{v.collection}/{v.name}') for v in RecordView.objects()]
+    form.views.process_data([v.id for v in user.default_views])
 
     if request.method == 'POST':
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
         roles = request.form.getlist('roles')
+        default_views = request.form.getlist('views')
+        print(default_views)
 
         user.email = email  #unsure if this is a good idea
         user.roles = []
@@ -191,6 +202,10 @@ def update_user(id):
                 user.roles.append(r)
             except:
                 pass
+        user.default_views = []
+        for view in default_views:
+            v = RecordView.objects.get(id=view)
+            user.default_views.append(v)
         user.updated = datetime.now()
         
         try:
@@ -503,6 +518,7 @@ def process_files():
 
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
+
     i = 0
     fileResults = []
     record = {}
@@ -511,17 +527,45 @@ def process_files():
         try:
             record['filename'] = f.filename
             record['docSymbol'] = fileTxt[i]["docSymbol"]
-            record['languages'] = fileTxt[i]["language"]
+
+            langArray = []
+    
+            if (fileTxt[i]["en"]["selected"]):
+                langArray.append("EN")
+
+            if (fileTxt[i]["fr"]["selected"]):
+                langArray.append("FR")
+            
+            if (fileTxt[i]["es"]["selected"]):
+                langArray.append("ES")
+
+            if (fileTxt[i]["ar"]["selected"]):
+                langArray.append("AR")
+            
+            if (fileTxt[i]["zh"]["selected"]):
+                langArray.append("ZH")
+
+            if (fileTxt[i]["ru"]["selected"]):
+                langArray.append("RU")
+
+            if (fileTxt[i]["de"]["selected"]):
+                langArray.append("DE")
+
+            record['languages'] = langArray
+
+            record['docSymbol'] = fileTxt[i]["docSymbol"]
+
+            record['overwrite'] = fileTxt[i]["overwrite"]
 
             result = File.import_from_handle(
                 f,
-                filename=File.encode_fn(fileTxt[i]["docSymbol"], fileTxt[i]["language"], 'pdf'),
+                filename=File.encode_fn(record['docSymbol'], record['languages'], 'pdf'),
                 #identifiers=[Identifier('symbol', s) for s in fileTxt[i]["docSymbol"]],
-                identifiers=[Identifier('symbol', fileTxt[i]["docSymbol"])],
-                languages=fileTxt[i]["language"],
+                identifiers=[Identifier('symbol', record['docSymbol'])],
+                languages=record['languages'],
                 mimetype='application/pdf',
                 source='ME::File::Uploader',
-                overwrite=False
+                overwrite=record['overwrite']
             )
             record['result'] = "File uploaded successfully"
         except FileExistsLanguageConflict as e:

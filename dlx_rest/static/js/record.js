@@ -72,7 +72,7 @@ export let multiplemarcrecordcomponent = {
 
                     <div class="modal-header" id="title">
                         <slot name="header">
-                            <h1> Record(s) list </h1>
+                            <h1> List of values </h1>
                         </slot>
                     </div>
   
@@ -116,6 +116,7 @@ export let multiplemarcrecordcomponent = {
             id: "",
             user: null,
             myBasket: null,
+            myDefaultViews: [],
             targetedTable:"",
             selectedRecord:"",
             selectedDiv:"",
@@ -130,6 +131,7 @@ export let multiplemarcrecordcomponent = {
             shiftPressed: false,
             controlPressed: false,
             commandPressed: false,
+            isFiltered:false
         }
     },
 
@@ -161,10 +163,12 @@ export let multiplemarcrecordcomponent = {
         user.getProfile(this.prefix, 'my_profile').then(
             myProfile => {
                 this.user = myProfile.data.email;
+
+                this.myDefaultViews = myProfile.data.default_views
                 
                 basket.getBasket(this.prefix).then(
                     myBasket => this.myBasket = myBasket
-                )
+                )                
             }
         ).then( () => {
             // the "records" param from the URL
@@ -875,7 +879,153 @@ export let multiplemarcrecordcomponent = {
         closeModal() {
             this.showModal = false;
         },
+        
+        async getRecordView(collection) {
+            let content= `/views/${collection}`
+            let url = `${this.prefix}${content}`
+            let recordCollection=[]
+            try {
+                const response = await fetch(url);
+                const jsonData = await response.json();
+                jsonData.data.forEach(item=>{
+                    if (item.collection===collection){
+                        // save the item inside the array
+                        recordCollection.push(item)
+                    }
+                })
+            }
+            catch(error){
+                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+            }
+            
+            return recordCollection 
+        },
 
+        async displayHistoryModalToGetRecordView(jmarc){
+            
+            if (this.isFiltered==false)
+                {
+                this.showModal=true;
+                
+                // insert the parent div inside the content history    
+                let recup=document.getElementById("contenthistory")
+                recup.innerHTML=""
+
+                // creation of the parent div for the progress bar
+                let parentProgressBarDiv=document.createElement("div");
+                parentProgressBarDiv.classList.add("d-flex");
+                parentProgressBarDiv.classList.add("align-items-center");
+                parentProgressBarDiv.classList.add("mt-4");
+                parentProgressBarDiv.classList.add("ml-4");
+                parentProgressBarDiv.id="progressBar"
+                parentProgressBarDiv.style.border = "none"
+                parentProgressBarDiv.style.width= "auto"
+
+                // creation of the h3
+                let myH3=document.createElement("H3");
+                myH3.innerHTML="Loading....."
+
+                parentProgressBarDiv.appendChild(myH3)
+
+                // creation of the div for the progress bar
+                let progressBarDiv=document.createElement("div");
+                progressBarDiv.classList.add("spinner-border");
+                progressBarDiv.classList.add("ms-auto");
+                progressBarDiv.setAttribute("role", "status");
+                progressBarDiv.setAttribute("aria-hidden", "true");
+                
+                parentProgressBarDiv.appendChild(progressBarDiv)
+
+                recup.appendChild(parentProgressBarDiv)
+
+                                    
+                // transfer reference
+                let that=this
+
+                try {
+                    // call the API route to get the views
+
+                    let result=await this.getRecordView(jmarc.collection)
+                    recup.innerHTML=""
+                    if (result.length>0){
+                        result.forEach(element=>{
+
+                                // creation of the first div
+                                let firstDiv=document.createElement("div")
+                                firstDiv.classList.add("card-body");
+                                firstDiv.classList.add("mt-2");
+                                firstDiv.style.border = "none"
+                                firstDiv.style.width= "auto"
+
+                                // adding the contents to the div
+                                firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
+                                firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
+                                // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
+
+                                // adding some events on mouverover / mouseout to change background color
+                                firstDiv.addEventListener("mouseover",()=>{
+                                    firstDiv.style.backgroundColor="#87CEFA"
+                                })
+
+                                firstDiv.addEventListener("mouseout",()=>{
+                                    firstDiv.style.backgroundColor=""
+                                })
+
+                                // adding some events on mouverover / mouseout to change background color
+                                firstDiv.addEventListener("click",async ()=>{
+
+                                    try {
+                                        const response = await fetch(element.url);
+                                        const jsonData = await response.json();
+                                        that.closeModal()
+                                        let myFilter=[]
+                                        myFilter.push(jsonData.data)
+                                        let myIcon=document.getElementById("recordViewButton")
+                                        myIcon.className=""
+                                        myIcon.className="fa fa-times float-left p-1 record-control"
+                                        that.isFiltered=true
+                                        that.filterRecordView(jmarc,myFilter)
+                                        
+                                    }
+                                    catch(error){
+                                        this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+                                    }
+                                })
+                                recup.appendChild(firstDiv)
+                        })
+                    } 
+                    if (result.length===0){
+                        // creation of the first div
+                        let firstDiv=document.createElement("div")
+                        firstDiv.classList.add("card-body");
+                        firstDiv.classList.add("mt-2");
+                        firstDiv.classList.add("alert");
+                        firstDiv.classList.add("alert-warning");
+                        firstDiv.style.border = "none"
+                        firstDiv.style.width= "auto"
+
+                        // adding the contents to the div
+                        firstDiv.innerHTML= `<strong> Sorry, no match!!!</strong>` 
+
+                        recup.appendChild(firstDiv)
+                    
+                    }
+                }
+                catch (error) {
+                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                }
+            } else {
+                // change the value of isfiltered
+                this.isFiltered=false
+                // change the icone and re-display the record
+                let myIcon=document.getElementById("recordViewButton")
+                myIcon.className=""
+                myIcon.className="fas fa-filter float-left p-1 record-control"
+                // reload the record
+                this.removeRecordFromEditor(jmarc,true)
+                this.displayMarcRecord(this.selectedJmarc)
+            }
+        },
         displayHistoryModal(jmarc){
             this.showModal=true;
             
@@ -982,7 +1132,115 @@ export let multiplemarcrecordcomponent = {
 
             // display the "history" record
             this.displayMarcRecord(this.historyJmarcHistory)
+
+            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
+
+            this.filterRecordView(this.historyJmarcOriginal)
             
+           
+        },
+
+        // filter the record view according the filter view parameter e.g : itp view
+        //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] }], "name": "ITP" }])
+        //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
+        filterRecordView(record,filter)
+        {
+
+            try {
+                    // check the size of the filter
+                    if (filter && filter[0].collection===record.collection){ // we should filter on the same collection
+
+                        // retrieve the values
+                        let myFieldsets = filter[0].fieldsets
+                        let myFields=[]
+                        let myName=filter[0].name
+
+                        // load all the fields in an array
+                        myFieldsets.forEach(element=> {
+                            myFields.push(element.field)
+                        })
+                
+                        // filter the record according the array of fields (first iteration)
+                        record.fields.forEach(field=>{
+                            
+                            if (!myFields.includes(field.tag)){
+                                // hide the field from the record
+                                field.row.style="display:none;"
+                            }
+                            else { // tag include in myFields
+                                myFieldsets.forEach(myFieldset=>{
+                                    if (myFieldset.field===field.tag) {
+
+                                            field.subfields.forEach(sfield=>{
+                                                
+                                                    if (!myFieldset.subfields.includes(sfield.code)){
+                                                        // hide the field from the record
+                                                        sfield.row.style="display:none;"
+                                                    }
+                                                    if (myFieldset.subfields.length===0){
+                                                        // show all the fields from the record
+                                                        sfield.row.style="display:block;"
+                                                    }
+                                            })
+                                    }
+
+                                })
+                            }
+                        })
+                        this.callChangeStyling(`Record view ${myName} loaded!!!!`, "row alert alert-success")
+                    }
+                }
+            catch(err){
+                this.callChangeStyling(`There is an error ${err}!!!!`, "row alert alert-danger")
+            }
+
+        },
+
+       
+        // visual diff between the original record and the history one
+        // the diff will be executed from the history 
+
+        diff(original,history,color){
+            let occur=0
+            history.fields.forEach(elementHistory=>{
+                let historyValueRow=elementHistory.row.cells
+                let findHistoryRow=false
+                original.fields.forEach(originalElement=>{
+                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
+                        findHistoryRow=true
+                    }
+                })
+                if (findHistoryRow===false) {
+                    occur++
+                    elementHistory.row.bgColor=color
+                }
+            })
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
+
+        },
+
+        // visual diff between the original record and the history one
+        // the diff will be executed from the history 
+
+        diff(original,history,color){
+            let occur=0
+            history.fields.forEach(elementHistory=>{
+                let historyValueRow=elementHistory.row.cells
+                let findHistoryRow=false
+                original.fields.forEach(originalElement=>{
+                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
+                        findHistoryRow=true
+                    }
+                })
+                if (findHistoryRow===false) {
+                    occur++
+                    elementHistory.row.bgColor=color
+                }
+            })
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
+
         },
 
         // revert the jmarc record
@@ -996,7 +1254,8 @@ export let multiplemarcrecordcomponent = {
             
             // change the mode
             this.historyMode=false
-            // remove the history record
+
+            // clean
             let recup=this.historyJmarcHistory
             this.historyJmarcHistory=""
             this.historyJmarcOriginal=""
@@ -1124,6 +1383,17 @@ export let multiplemarcrecordcomponent = {
  
             this.targetedTable=table
             this.optimizeEditorDisplay(table)
+
+            // check if we have some values for the default views
+            if (this.myDefaultViews.length>0)
+                this.myDefaultViews.forEach(myDefaultView => {
+                    if (myDefaultView.collection===jmarc.collection){
+                        let myFilter=[]
+                        myFilter.push(myDefaultView)
+                        this.filterRecordView(jmarc,myFilter)
+                    }
+                })
+
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
@@ -1199,6 +1469,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
+                {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
@@ -1255,8 +1526,15 @@ export let multiplemarcrecordcomponent = {
                             this[control["click"]](control["param"]) 
                         }
                     } else if (control["params"]) {
-                        controlButton.onclick = () => {
-                            this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                        if (control["name"] == "editButton") {
+                            controlButton.onclick = () => {
+                                this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) 
+                            }
+                        }
+                        if (control["name"] == "recordViewButton") {
+                            controlButton.onclick = () => {
+                                this[control["click"]](control["params"]["jmarc"], control["params"]["filter"]) 
+                            }
                         }
                     } else {
                         controlButton.onclick = () => {
@@ -1392,8 +1670,11 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
+
             let component = this;
             let jmarc = field.parentRecord;
+
+
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
             field.row = tableBody.insertRow(place);
@@ -1578,7 +1859,6 @@ export let multiplemarcrecordcomponent = {
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
-
             });
 
             tagDiv.addEventListener("click", tagActivate);
