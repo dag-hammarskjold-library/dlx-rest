@@ -29,32 +29,37 @@ export let multiplemarcrecordcomponent = {
         readonly: {
             type: Boolean,
             default: false
+        },
+        fromworkform: {
+            type: String,
+            required: false
         }
     },
     template: `
         <div class="container col-sm-10" id="app1" style="background-color:white;">
-            <div class='mt-3 shadow' style="overflow-y: scroll; height:650px;">
+            <div class='mt-3 shadow'>
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
                     <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
                         <div class="container">
-                            <h1 class="display-4 text-center">No record selected</h1>
-                            <p class="lead text-center">You can select one from the basket to the left or create one via the menu above.</p>
+                            <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner"></p>
+                            <p v-else class="text-center">No record selected</p>
                         </div>
                     </div>                               
                 </div>
                 <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px; position: relative">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                         </div> -->
                     </div>
-                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="">
+                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                         </div> -->
                     </div>
+                    <br>&nbsp;
                 </div>
             </div>
        
@@ -96,6 +101,7 @@ export let multiplemarcrecordcomponent = {
             visible: true,
             record1: "",
             record2: "",
+            recordlist: [],
             collectionRecord1:"",
             collectionRecord2:"",
             isRecordOneDisplayed: false,
@@ -120,7 +126,10 @@ export let multiplemarcrecordcomponent = {
             numberRecordHistory:0,
             historyMode:false,
             historyJmarcOriginal:"",
-            historyJmarcHistory:""
+            historyJmarcHistory:"",
+            shiftPressed: false,
+            controlPressed: false,
+            commandPressed: false,
         }
     },
 
@@ -142,62 +151,111 @@ export let multiplemarcrecordcomponent = {
     window.addEventListener("keydown", this.changeSelectedRecordListener)  // ctrl + q => change the selected record
     
     //////////////////////////////////////////////////////////////////////////
- 
+        let component = this;
         Jmarc.apiUrl = this.prefix;
         this.baseUrl = this.prefix.replace("/api", "");
        
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
  
-        let myProfile = await user.getProfile(this.prefix, 'my_profile');
-        if (myProfile) {
-            this.user = myProfile.data.email;
-            this.myBasket = await basket.getBasket(this.prefix);
-        }
-       
-        if (this.records !== "None") {
-            this.records.split(",").forEach(
-                record => {
-                    var split_rec = record.split("/")
-                    
-                    if (split_rec.length === 2) {
-                        Jmarc.get(split_rec[0], split_rec[1]).then(async jmarc => {
-                            if (this.readonly && this.user !== null) {
-                                this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                                this.displayMarcRecord(jmarc, true);
-                            } else if (this.user === null) {
-                                this.displayMarcRecord(jmarc, true);
-                            } else {
-                                this.displayMarcRecord(jmarc, false); // record ID and collection
-                            }
-                        })
-                       
-                    } else {
-                        let jmarc = new Jmarc(split_rec[0]);
-                       
-                        if (split_rec[0] == "bibs") {
-                            let field = jmarc.createField('245');
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
-                        } else if (split_rec[0] == "auths") {
-                            let field = jmarc.createField('100')
-                            field.indicators = ["_", "_"];
-                            field.createSubfield('a').value = "";
+        user.getProfile(this.prefix, 'my_profile').then(
+            myProfile => {
+                this.user = myProfile.data.email;
+                
+                basket.getBasket(this.prefix).then(
+                    myBasket => this.myBasket = myBasket
+                )
+            }
+        ).then( () => {
+            // the "records" param from the URL
+            if (this.records !== "None") {
+                // "<col>/<id>"
+                this.recordlist = this.records.split(","); 
+
+                for (let record of this.recordlist) {
+                    let collection = record.split("/")[0]
+                    let recordId = record.split("/")[1]
+                
+                    Jmarc.get(collection, recordId).then(async jmarc => {
+                        if (this.readonly && this.user !== null) {
+                            //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                            basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
+                                this.displayMarcRecord(jmarc, true)
+                            })
+                            
+                        } else if (this.user === null) {
+                            this.displayMarcRecord(jmarc, true);
+                        } else {
+                            this.displayMarcRecord(jmarc);
                         }
-                       
-                        this.displayMarcRecord(jmarc);
-                    }
+                    })
                 }
-            );
- 
-        } else if (this.workform !== 'None') {
-            let wfCollection = this.workform.split('/')[0];
-            let wfRecordId = this.workform.split('/')[1]
-            
-            let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-            this.displayMarcRecord(jmarc, false);
-        }
-        recup=this
+            } else if (this.workform !== 'None') {
+                let wfCollection = this.workform.split('/')[0];
+                let wfRecordId = this.workform.split('/')[1]
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    this.displayMarcRecord(jmarc, false);
+                })
+                
+            } else if (this.fromworkform !== 'None') {
+                // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
+                let wfCollection = this.fromworkform.split('/')[0];
+                let wfRecordId = this.fromworkform.split('/')[1]
+                //console.log(wfCollection, wfRecordId)
+                
+                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                    jmarc.workformName = this.fromworkform
+                    //this.displayMarcRecord(jmarc, false);
+                    this.cloneRecord(jmarc)
+                })
+                
+            }
+            recup=this
+        })
+        
+        // Top level events
+        window.addEventListener("keydown", function(event) {
+            // shift
+            if (event.keyCode === 16) {
+                component.shiftPressed = true;
+            }
+
+            // control
+            if (event.keyCode === 17) {
+                component.controlPressed = true;
+            }
+
+            // command (mac)
+            if (event.keyCode === 91) {
+                component.commandPressed = true;
+            }
+        });
+
+        window.addEventListener("keyup", function(event) {
+            // shift
+            if (event.keyCode === 16) {
+                component.shiftPressed = false;
+            }
+
+            // control
+            if (event.keyCode === 17) {
+                component.controlPressed = false;
+            }
+
+            // command (mac)
+            if (event.keyCode === 91) {
+                component.commandPressed = false;
+            }
+        });
+
+        // Cancel popups and stuff
+        window.addEventListener("click",  function(event) {
+            let dropdown = document.getElementById("typeahead-dropdown")
+            dropdown && dropdown.remove();
+        });
     },
     methods: {
  
@@ -232,10 +290,15 @@ export let multiplemarcrecordcomponent = {
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
-            } else {
+            } else if (! jmarc.saved) {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                
+                jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.style = "pointer-events: none";
  
                 promise.then(jmarc => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
@@ -248,13 +311,17 @@ export let multiplemarcrecordcomponent = {
                     }
                     //this.selectRecord(jmarc)
                 }).catch(error => {
+                    jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
                 });
             }
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            if (jmarc.divID) {
+                this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            }
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
             } else {
@@ -328,8 +395,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "unsaved changes";
+                    jmarc.saveButton.title = "Save Record";
                 })
                                
         },
@@ -403,7 +469,7 @@ export let multiplemarcrecordcomponent = {
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
             jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "save";
+            jmarc.saveButton.title = "Save Record";
 
             // undoredo snapshot
             //jmarc.addUndoredoEntry("ADD FIELD") 
@@ -425,12 +491,10 @@ export let multiplemarcrecordcomponent = {
             // Manage virtual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
 
             // undoredo snapshot
@@ -482,7 +546,7 @@ export let multiplemarcrecordcomponent = {
         async editRecord(jmarc) {
             let uibase = this.prefix.replace("/api/","");
             let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
-            await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                 window.location.href = editLink;
             })
         },
@@ -515,7 +579,7 @@ export let multiplemarcrecordcomponent = {
             let uibase = this.prefix.replace("/api/","")
             let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
             if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
-                await basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
                     window.location.href = editHref;
                 })
             }
@@ -936,8 +1000,6 @@ export let multiplemarcrecordcomponent = {
             this.historyJmarcHistory=""
             this.historyJmarcOriginal=""
             this.removeRecordFromEditor(recup)
-
-            
             this.callChangeStyling("Record reverted!!!", "row alert alert-success")
             
         },
@@ -1010,6 +1072,9 @@ export let multiplemarcrecordcomponent = {
                 this.historyMode=false
             }
  
+            //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+            // needed?
+            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
         },
         displayMarcRecord(jmarc, readOnly,reload=false) {
             let myDivId;
@@ -1043,8 +1108,14 @@ export let multiplemarcrecordcomponent = {
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
  
-            this.addJmarcTodisplayedJmarcObject(jmarc)    
- 
+            this.addJmarcTodisplayedJmarcObject(jmarc);
+
+            let recordString = `${jmarc.collection}/${jmarc.recordId}`;
+
+            if (! this.recordlist.includes(recordString)) {
+                this.recordlist.push(recordString)
+            }
+
             //////////////////////////////////////////////////////////////////////////////
             // optimize the display just when you have one record displayed
             //////////////////////////////////////////////////////////////////////////////
@@ -1053,12 +1124,12 @@ export let multiplemarcrecordcomponent = {
             this.optimizeEditorDisplay(table)
         },
         buildRecordTable(jmarc, readOnly) {
+            let component = this;
             let table = document.createElement("table");
             jmarc.table = table;
- 
-            window.addEventListener("click",  function() {
-                let dropdown = document.getElementById("typeahead-dropdown")
-                dropdown && dropdown.remove();
+
+            table.addEventListener("click", function() {
+                component.selectRecord(jmarc) 
             });
            
             // record.css
@@ -1079,12 +1150,21 @@ export let multiplemarcrecordcomponent = {
             table.addEventListener("input", function() {
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
+                }
+            });
+
+            // check the save status on mousedown (auth conrrol select)
+            table.addEventListener("mousedown", function() {
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.title = "No Unsaved Changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.title = "Save Record";
                 }
             });
            
@@ -1108,7 +1188,7 @@ export let multiplemarcrecordcomponent = {
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
                 {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Record", "click": "saveRecord"},
+                {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
@@ -1171,13 +1251,15 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     if (control["param"]) {
                         controlButton.onclick = () => {
-                            this[control["click"]](control["param"]) }
+                            this[control["click"]](control["param"]) 
+                        }
                     } else if (control["params"]) {
                         controlButton.onclick = () => {
                         this[control["click"]](control["params"]["jmarc"], control["params"]["lockedBy"]) }
                     } else {
                         controlButton.onclick = () => {
-                            this[control["click"]](jmarc) }
+                            this[control["click"]](jmarc) 
+                        }
                     }
                     jmarc[control["name"]] = controlButton;
                } else {
@@ -1308,15 +1390,10 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
-
             let component = this;
             let jmarc = field.parentRecord;
-
-
             let table = jmarc.table;
-
-            let tableBody = jmarc.tableBody; 
-            
+            let tableBody = jmarc.tableBody;             
             field.row = tableBody.insertRow(place);
    
             // add the checkboxes
@@ -1355,18 +1432,27 @@ export let multiplemarcrecordcomponent = {
                 }
             });
 
-            // Tag cell
-            let tagCell = field.row.insertCell();
-            field.tagCell = tagCell;
-            tagCell.className = "field-tag badge badge-pill badge-warning dropdown-toggle";
-   
+            // tag container cell
+            let tagContainerCell = field.row.insertCell();
+            tagContainerCell.classList.add("tag-container");
+
+            // Field Table
+            let fieldTable = document.createElement("table");
+            tagContainerCell.append(fieldTable);
+
+            let tagRow = fieldTable.insertRow();
             // menu
+            let menuCell = tagRow.insertCell();
             let tagMenu = document.createElement("div");
-            tagCell.append(tagMenu);
+            menuCell.append(tagMenu);
+            //tagMenu.tabIndex = 0;
             tagMenu.className = "dropdown-menu tag-menu";
+            let menuButton = document.createElement("button");
+            menuCell.appendChild(menuButton);
+            menuButton.className = "fa fa-bars field-menu";
  
             // enable elems to toggle menu
-            tagCell.setAttribute("data-toggle", "dropdown");
+            menuButton.setAttribute("data-toggle", "dropdown");
  
             // menu item add field
             let addField = document.createElement("i");
@@ -1374,6 +1460,81 @@ export let multiplemarcrecordcomponent = {
             addField.className = "dropdown-item";
             addField.innerText = "Add field";
    
+            // menu item delete field
+            let deleteField = document.createElement("i");
+            tagMenu.append(deleteField);
+            deleteField.className = "dropdown-item";
+            deleteField.innerText = "Delete field";
+
+            // Tag
+            let tagCell = tagRow.insertCell();
+            field.tagCell = tagCell;
+            tagCell.className = "field-tag";
+            let tagDiv = document.createElement("div");
+            tagCell.append(tagDiv);
+            tagDiv.className = "field-tag";
+            let tagSpan = document.createElement("span");
+            tagDiv.append(tagSpan);
+            tagSpan.tabIndex = 0; // makes the element focusable and tabbable
+            field.tagSpan = tagSpan;
+            //tagSpan.contentEditable = true;
+            tagSpan.innerText = field.tag;
+
+            // Indicators
+            let ind1Cell = tagRow.insertCell();
+            ind1Cell.classList.add("indicators");
+            let ind1Div = document.createElement("div");
+            ind1Cell.append(ind1Div);
+            ind1Div.className = "indicators";
+            let ind1Span = document.createElement("span");
+            ind1Div.append(ind1Span);
+            ind1Span.className = "mx-1";
+            ind1Span.tabIndex = 0;
+            
+            let ind2Cell = tagRow.insertCell();
+            ind2Cell.classList.add("indicators");
+            let ind2Div = document.createElement("div");
+            ind2Cell.append(ind2Div);
+            ind2Div.className = "indicators";
+            let ind2Span = document.createElement("span");
+            ind2Div.append(ind2Span);
+            ind2Span.className = "mx-1";
+            ind2Span.tabIndex = 0;
+
+            // Subfield table
+            let fieldCell = field.row.insertCell();
+            let subfieldTable = document.createElement("table");
+            field.subfieldTable = subfieldTable;
+            fieldCell.append(subfieldTable);
+            subfieldTable.className = "marc-field";
+
+            // Controlfield
+            // no subfields
+            if (field.constructor.name == "ControlField") {
+                field.row.classList.add("hidden-field");
+                let fieldRow = subfieldTable.insertRow();
+                fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
+                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                let valCell = fieldRow.insertCell();
+                valCell.innerHTML = field.value;
+            } else {
+                // indicators 
+                for (let span of [ind1Span, ind2Span]) {
+                    let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
+                    span.innerText = indicator;
+                }
+
+                for (let subfield of field.subfields) {
+                    this.buildSubfieldRow(subfield);  
+                }
+            }
+
+            // Events
+            field.row.addEventListener("click", function() {
+                component.fieldSelected(field)
+            });
+
+            // Menu add field
             addField.addEventListener("click", function() {
                 let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
                 newField.indicators = ["_", "_"];
@@ -1384,23 +1545,16 @@ export let multiplemarcrecordcomponent = {
        
                 newField = component.buildFieldRow(newField, field.row.rowIndex - 1);
                 newField.tagSpan.focus();
-                document.execCommand("selectall");
                 newField.subfields[0].valueCell.classList.add("unsaved");
  
                 // Manage visual indicators
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
  
                 return
             });
-   
-            // menu item delete field
-            let deleteField = document.createElement("i");
-            tagMenu.append(deleteField);
-            deleteField.className = "dropdown-item";
-            deleteField.innerText = "Delete field";
-   
+
+            // Menu delete field
             deleteField.addEventListener("click", function() {
                 if (jmarc.fields.length === 1) {
                     // this is the record's only field
@@ -1410,43 +1564,87 @@ export let multiplemarcrecordcomponent = {
                 }
                
                 jmarc.deleteField(field);
-               
                 table.deleteRow(field.row.rowIndex);
  
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete Field")
-             
- 
             });
-   
-            // Tag span
-            let tagSpan = document.createElement("span");
-            tagCell.append(tagSpan);
-            field.tagSpan = tagSpan;
-            tagSpan.contentEditable = true;
-            tagSpan.innerText = field.tag;
-   
-            // for storing the state of the control/command keypress
-            let metaKey = false;
-   
-            tagSpan.addEventListener("input", function () {
-                tagSpan.classList.remove("invalid");
-                field.tagSpan.classList.remove("unsaved");
-       
+
+            tagDiv.addEventListener("click", tagActivate);
+            tagSpan.addEventListener("focus", tagActivate);
+            tagSpan.addEventListener("blur", tagUpdate);
+
+            // Activate
+            // call when user clicks or tabs into tag field
+            function tagActivate() {
+                component.fieldSelected(field);
+                tagCell.classList.add("field-tag-selected");
+
+                let popout = document.createElement("div");
+                tagCell.append(popout);
+                popout.className = "tag-input-popout";
+
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "tag-input";
+                input.placeholder = tagSpan.innerText;
+                input.maxLength = 3;
+                input.focus();
+                
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
+                        menuButton.focus();
+                    }
+                });
+
+                input.addEventListener("blur", function() {
+                    tagSpan.innerText = input.value || tagSpan.innerText;
+                    tagCell.classList.remove("field-tag-selected");
+                    input.remove();
+                    tagUpdate();
+                });
+
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (tagSpan.innerText.length === 3) {
+                        jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
+            
+            // Tag update actions
+            // call when user changes the tag value
+            function tagUpdate() {
                 field.tag = tagSpan.innerText;
+                field.tagSpan.classList.remove("invalid");
+                field.tagSpan.classList.remove("unsaved");
        
                 let savedState = new Jmarc(jmarc.collection);
                 savedState.parse(jmarc.savedState);
+
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+ 
+                if (! checkField || field.tag !== checkField.tag) {
+                    field.tagSpan.classList.add("unsaved");
+                }
  
                 for (let subfield of field.subfields) {
                     subfield.codeCell.classList.remove("unsaved");
@@ -1457,276 +1655,242 @@ export let multiplemarcrecordcomponent = {
                     } else {
                         component.removeAuthControl(subfield);
                     }
-           
-                    let i = field.subfields.indexOf(subfield);
-                    let j = jmarc.fields.indexOf(field);
-                    let checkField = savedState.fields[j] ? savedState.fields[j] : null;
-                    let checkSubfield = checkField ? checkField.subfields[i] : null;
- 
-                    if (! checkField || field.tag !== checkField.tag) {
-                        field.tagSpan.classList.add("unsaved");
-                    }
-           
-                    if (! checkSubfield || checkSubfield.code !== subfield.code) {
-                        subfield.codeCell.classList.add("unsaved");
-                    }
-           
-                    if (checkSubfield && checkSubfield.value !== subfield.value) {
-                        subfield.valueCell.classList.add("unsaved");
-                    }
                 }
-            });
-   
-            tagSpan.addEventListener("keydown", function (event) {
-                // prevent newline and blur on return key
-                if (event.keyCode === 13) {
-                    event.preventDefault();
-                    tagSpan.blur();
-                }
-       
-                // store control/command key press
-                if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
-                    metaKey = true
-                }
-       
-                // prevent typing more than 3 characters
-                if (metaKey === false && tagSpan.innerText.length === 3 && event.keyCode > 45 && event.keyCode < 224) {
-                    //tagSpan.innerText = ''
-                    event.preventDefault()
-                }
-            });
-   
-            tagSpan.addEventListener("keyup", function (event) {
-                // clear control/command key press
-                if (event.keyCode === 17 || event.keyCode === 91 || event.keyCode === 224) {
-                    metaKey = false
-                }
-            });
-   
-            tagSpan.addEventListener("blur", function() {
-                while (tagSpan.innerText.length < 3) {
-                    tagSpan.innerText += '_';
-                }
- 
-                if (! tagSpan.innerText.match(/^\d{3}/)) {
-                    field.tagSpan.classList.remove("unsaved");
-                    field.tagSpan.classList.add("invalid");
-                } 
-                
-            });
- 
-            tagSpan.addEventListener("mouseover", function() {
-                tagSpan.focus()
-            });
-   
-            tagSpan.addEventListener("click", function() {
-                tagSpan.focus();
-                document.execCommand("selectall", null, false);
-            });
- 
-            // keep menu on click
-            tagSpan.addEventListener("click", function() {
-                $(tagMenu).dropdown("hide");
-            });
-   
-            // hide menu when typing
-            tagSpan.addEventListener("keydown", function() {
-                $(tagMenu).dropdown("hide");
-            });
+            }
 
-            tagSpan.addEventListener("input",function(){
-                // adding the snapshot 
-                if (tagSpan.innerText.length === 3) {
-                    jmarc.addUndoredoEntry("from Tag")
-                }
-            });
-   
-            // Indicators
-            if (! field.tag.match(/^00/)) {
-                let ind1Span = document.createElement("span");
-                tagCell.append(ind1Span);
-       
-                let ind2Span = document.createElement("span");
-                tagCell.append(ind2Span);
+            // Indicator actions
+            ind1Div.addEventListener("click", function() {indActivate(1)});
+            ind1Span.addEventListener("focus", function() {indActivate(1)});
+            ind1Span.addEventListener("blur", function() {indUpdate(1)});
+            ind2Div.addEventListener("click", function() {indActivate(2);});
+            ind2Span.addEventListener("focus", function() {indActivate(2)});
+            ind2Span.addEventListener("blur", function() {indUpdate(2);});
 
-                for (let span of [ind1Span, ind2Span]) {
-                    let indicator = span === ind1Span ? field.indicators[0] : field.indicators[1];
-                    span.className = "mx-1 text-secondary"
-                    span.innerText = indicator;
-                    span.contentEditable = true;
-       
-                    span.addEventListener("input", function() {
-                        if (span.innerText.length > 1) {   
-                            span.innerText = span.innerText.substring(0, 1);
-                        }
-           
-                        if (span == ind1Span) {
-                            field.indicators[0] = span.innerText;
+            function indActivate(ind) {
+                let [cell, div, span] = [null, null, null];
+
+                if (ind === 1) {
+                    [cell, div, span] = [ind1Cell, ind1Div, ind1Span];
+                } else if (ind === 2) {
+                    [cell, div, span] = [ind2Cell, ind2Div, ind2Span];
+                }
+
+
+                let popout = document.createElement("div");
+                cell.append(popout);
+                cell.classList.add("ind-selected");
+                popout.className = "ind-input-popout";
+
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "ind-input";
+                input.placeholder = span.innerText;
+                input.maxLength = 1;
+                input.focus();
+
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
+                        
+                        if (ind === 1) {
+                            tagSpan.focus();
                         } else {
-                            field.indicators[1] = span.innerText;
+                            ind1Span.focus();
                         }
+                    }
+                });
+
+                input.addEventListener("blur", function() {
+                    span.innerText = input.value || span.innerText;
+                    cell.classList.remove("ind-selected");
+                    input.remove();
+                    indUpdate(ind);
+                });
+
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (tagSpan.innerText.length === 3) {
+                        // todo: add detetction for indicators
+                        //jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
+
+
+            function indUpdate(ind) {
+                let cell = ind === 1 ? ind1Cell : ind2Cell;
+                let span = ind === 1 ? ind1Span : ind2Span;
+                field.indicators = updated;
+                // undoredo snapshot
+                jmarc.addUndoredoEntry("INDICATORS") 
+
+                // editing the indicators array directly has strange side effects
+                let updated = [field.indicators[0], field.indicators[1]]
+
+                if (span == ind1Span) {
+                    updated[0] = span.innerText;
+                } else {
+                    updated[1] = span.innerText;
+                }
+
+                field.indicators = updated;
+
+                cell.classList.remove("invalid");
+                cell.classList.remove("unsaved");
+
+                let savedState = new Jmarc(jmarc.collection);
+                savedState.parse(jmarc.savedState);
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
  
-                    });
-       
-                    span.addEventListener("keydown", function (event) {
-                        // prevent newline and blur on return key
-                        if (event.keyCode === 13) {
-                            event.preventDefault();
-                            span.blur();
-                        }
-                    });
-           
-                    span.addEventListener("blur", function() {
-                        while (span.innerText.length < 1) {
-                            span.innerText += '_';
-                        }
-                    });
-           
-                    // keep menu on click
-                    span.addEventListener("click", function() {
-                        $(tagMenu).dropdown("hide");
-                    });
-   
-                    // hide menu when typing
-                    span.addEventListener("keydown", function() {
-                        $(tagMenu).dropdown("hide")
-                    });
+                if (! checkField || checkField.indicators[ind-1] !== field.indicators[ind-1]) {
+                    cell.classList.add("unsaved");
+                }
+
+                if (jmarc.saved) {
+                    jmarc.saveButton.classList.remove("text-danger");
+                    jmarc.saveButton.title = "No Unsaved Changes";
+                } else {
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.title = "Save Record";
                 }
             }
-   
-            // Field table
-            let fieldCell = field.row.insertCell();
-            let fieldTable = document.createElement("table");
-            field.table = fieldTable;
-            fieldCell.append(fieldTable);
-            fieldTable.className = "marc-field";
-   
-            // Controlfield
-            if (field.constructor.name == "ControlField") {
-                field.row.classList.add("hidden-field");
-       
-                let fieldRow = fieldTable.insertRow();
-                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
-                let valCell = fieldRow.insertCell();
-                valCell.innerHTML = field.value;
-       
-                return
-            }
- 
-           
-            // Datafield
-            for (let subfield of field.subfields) {
-                this.buildSubfieldRow(subfield);  
-            }
-   
+        
+            for (let span of [ind1Span, ind2Span]) {
+                span.addEventListener("input", function() {
+                    if (span.innerText.length > 1) {   
+                        span.innerText = span.innerText.substring(0, 1);
+                    }
+
+                    // editing the indicators array directly has strange side effects
+                    let updated = [field.indicators[0], field.indicators[1]]
+
+                    if (span == ind1Span) {
+                        updated[0] = span.innerText;
+                    } else {
+                        updated[1] = span.innerText;
+                    }
+
+                    field.indicators = updated;
+
+                    if (jmarc.saved) {
+                        jmarc.saveButton.classList.remove("text-danger");
+                        jmarc.saveButton.title = "No Unsaved Changes";
+
+                    } else {
+                        jmarc.saveButton.classList.add("text-danger");
+                        jmarc.saveButton.title = "Save Record";
+                    }
+
+                });
+
+                span.addEventListener("keydown", function (event) {
+                    // prevent newline and blur on return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        span.blur();
+                    }
+                });
+            
+                span.addEventListener("blur", function() {
+                    while (span.innerText.length < 1) {
+                        span.innerText += '_';
+                    }
+                });
+            }   
+
             return field
         },
         buildSubfieldRow(subfield, place) {
             let component = this;
             let field = subfield.parentField;
-            let table = field.table;
+            let table = field.subfieldTable;
             let jmarc = field.parentRecord;
    
             // create the row
             subfield.row = table.insertRow(place);
- 
+            subfield.row.classList.add("subfield-row");
+
+            // menu
+            let menuCell = subfield.row.insertCell();
+            let codeMenu = document.createElement("div");
+            menuCell.append(codeMenu);
+            codeMenu.className = "dropdown-menu subfield-menu";
+            let menuButton = document.createElement("button");
+            menuCell.append(menuButton);
+            menuButton.classList = "fa fa-bars subfield-menu";
+   
+            // enable elems to toggle menu
+            menuButton.setAttribute("data-toggle", "dropdown");
+
             // Subfield code
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
-            codeCell.className = "subfield-code badge badge-pill bg-primary text-light dropdown-toggle";
-   
-            // menu
-            let codeMenu = document.createElement("div");
-            codeCell.append(codeMenu);
-            codeMenu.className = "dropdown-menu subfield-menu";
-   
-            // enable elems to toggle menu
-            codeCell.setAttribute("data-toggle", "dropdown");
-   
+            codeCell.className = "subfield-code";
+            let codeDiv = document.createElement("div");
+            codeCell.append(codeDiv);
+            codeDiv.classList.add("subfield-code");
             let codeSpan = document.createElement("span");
             subfield.codeSpan = codeSpan;
-            codeCell.append(codeSpan);
-            codeSpan.contentEditable = true;
+            codeDiv.append(codeSpan);
+            //codeSpan.contentEditable = true;
             codeSpan.innerText = subfield.code;
-   
-            // keep menu on click
-            codeSpan.addEventListener("click", function() {
-                $(codeMenu).dropdown("hide");
-            });
-   
-            // hide menu when typing
-            codeSpan.addEventListener("keydown", function() {
-                $(codeMenu).dropdown("hide")
-            });
- 
-            codeSpan.addEventListener("input", function() {
-                subfield.codeSpan.classList.remove("invalid");
-                subfield.codeSpan.classList.remove("unsaved");
-                subfield.valueCell.classList.remove("unsaved");
-       
-                if (codeSpan.innerText.length > 1) {
-                    // don't allow more than 1 char
-                    codeSpan.innerText = codeSpan.innerText.substring(0, 1)
-                }
-       
-                subfield.code = codeSpan.innerText;
-       
-                let savedState = new Jmarc(jmarc.collection);
-                savedState.parse(jmarc.savedState);
-                let i = field.subfields.indexOf(subfield);
-                let j = jmarc.fields.indexOf(field);
-                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
-                let checkSubfield = checkField ? checkField.subfields[i] : null;
- 
-                if (! checkSubfield || checkSubfield.code !== subfield.code) {
-                    subfield.codeSpan.classList.add("unsaved");
-                }
-       
-                if (checkSubfield && checkSubfield.value !== subfield.value) {
-                    subfield.valueCell.classList.add("unsaved");
-                }
+            codeSpan.tabIndex = 0;
 
-                // adding the snapshot 
-                if (codeSpan.innerText.length === 1) {
-                    jmarc.addUndoredoEntry("from Code Subfield")
-                }
-            });
-   
-            codeSpan.addEventListener("keydown", function (event) {
-                // prevent newline and blur on return key
-                if (event.keyCode === 13) {
-                    event.preventDefault();
-                    codeSpan.blur();
-                }
-            });
-   
-            codeSpan.addEventListener("blur", function() {
-                while (codeSpan.innerText.length < 1) {
-                    codeSpan.innerText += '_';
-                }
-       
-                // move to css
-                if (codeSpan.innerText === '_') {
-                    codeSpan.classList.remove("unsaved");
-                    codeSpan.classList.add("invalid");
-                }
-            });
-   
             // add subfield
             let addSubfield = document.createElement("i");
             codeMenu.append(addSubfield);
             addSubfield.className = "dropdown-item";
             addSubfield.innerText = "Add subfield";
    
+            // delete subfield
+            let deleteSubfield = document.createElement("i");
+            codeMenu.append(deleteSubfield);
+            deleteSubfield.className = "dropdown-item";
+            deleteSubfield.innerText = "Delete subfield";
+   
+            // Subfield value
+            let valCell = subfield.row.insertCell();
+            valCell.className = "subfield-value";
+            valCell.setAttribute("data-taggle", "tooltip");
+            //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
+   
+            let valSpan = document.createElement("span");
+            valCell.appendChild(valSpan);
+            valSpan.classList.add("subfield-value");
+
+            subfield.valueCell = valCell;
+            subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
+            valSpan.innerText = subfield.value;
+            valSpan.contentEditable = true;
+
+            // create the last cell
+            subfield.xrefCell = subfield.row.insertCell()
+   
+            // auth controlled
+            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                this.setAuthControl(field, subfield)
+            }
+            
+            // Events
+
+            // Menu actions
+            // Add subfiueld
             addSubfield.addEventListener("click", function() {
                 let place = field.subfields.indexOf(subfield) + 1;
                 let newSubfield = field.createSubfield("_", place);
                 newSubfield.value = "";
                 newSubfield = component.buildSubfieldRow(newSubfield, place);
-       
                 newSubfield.codeSpan.focus();
-                document.execCommand("selectall");
-       
+
                 newSubfield.valueCell.classList.add("unsaved");
                 saveButton.classList.add("text-danger");
                 saveButton.classList.remove("text-primary");
@@ -1734,13 +1898,8 @@ export let multiplemarcrecordcomponent = {
 
                 return
             });
-   
-            // delete subfield
-            let deleteSubfield = document.createElement("i");
-            codeMenu.append(deleteSubfield);
-            deleteSubfield.className = "dropdown-item";
-            deleteSubfield.innerText = "Delete subfield";
- 
+            
+            // Delete subfield
             deleteSubfield.addEventListener("click", function() {
                 if (field.subfields.length == 1) {
                     component.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
@@ -1755,35 +1914,105 @@ export let multiplemarcrecordcomponent = {
                 // Manage visual indicators
                 if (jmarc.saved) {
                     jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.classList.add("text-primary");
-                    jmarc.saveButton.title = "no new changes";
+                    jmarc.saveButton.title = "No Unsaved Changes";
                 } else {
                     jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.classList.remove("text-primary");
-                    jmarc.saveButton.title = "save";
+                    jmarc.saveButton.title = "Save Record";
                 }
 
                 // adding the snapshot 
                 jmarc.addUndoredoEntry("from Delete SubField")
  
             });
-   
-            // Subfield value
-            let valCell = subfield.row.insertCell();
-            valCell.className = "subfield-value";
-            valCell.setAttribute("data-taggle", "tooltip");
-            //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
-   
-            let valSpan = document.createElement("span");
-            valCell.appendChild(valSpan);
-            subfield.valueCell = valCell;
-            subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
-            valSpan.innerText = subfield.value;
-            valSpan.contentEditable = true;
+
+            // Subfield code actions
+            function subfieldCodeActivate() {
+                codeCell.classList.add("subfield-code-selected");
+
+                let popout = document.createElement("div");
+                codeCell.append(popout);
+                popout.className = "subfield-code-input-popout";
+
+                let input = document.createElement("input");
+                popout.append(input);
+                input.className = "subfield-code-input";
+                input.placeholder = codeSpan.innerText;
+                input.maxLength = 1;
+                input.focus();
+                
+                input.addEventListener("keydown", function(event) {
+                    // return key
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        input.blur();
+                    }
+
+                    // shift + tab
+                    if (event.keyCode === 9 && component.shiftPressed) {
+                        event.preventDefault();
+                        input.blur();
+                        menuButton.focus();
+                    }
+                });
+
+                input.addEventListener("blur", function() {
+                    codeSpan.innerText = input.value || codeSpan.innerText;
+                    codeCell.classList.remove("subfield-code-selected");
+                    input.remove();
+                    subfieldCodeUpdate();
+                });
+
+                input.addEventListener("input",function(){
+                    // adding the snapshot 
+                    if (codeSpan.innerText.length === 1) {
+                        // todo: detect subfield code changes
+                        //jmarc.addUndoredoEntry("from Tag")
+                    }
+                });
+            }
+
+            function subfieldCodeUpdate() {
+                subfield.code = codeSpan.innerText || subfield.code;
+
+                subfield.codeSpan.classList.remove("invalid");
+                subfield.codeSpan.classList.remove("unsaved");
+
+                let savedState = new Jmarc(jmarc.collection);
+                savedState.parse(jmarc.savedState);
+                let i = field.subfields.indexOf(subfield);
+                let j = jmarc.fields.indexOf(field);
+                let checkField = savedState.fields[j] ? savedState.fields[j] : null;
+                let checkSubfield = checkField ? checkField.subfields[i] : null;
  
+                if (! checkSubfield || checkSubfield.code !== subfield.code) {
+                    subfield.codeSpan.classList.add("unsaved");
+                }
+
+                if (codeSpan.innerText === '_') {
+                    codeSpan.classList.remove("unsaved");
+                    codeSpan.classList.add("invalid");
+                }
+
+                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                    component.setAuthControl(field, subfield)
+                } else {
+                    component.removeAuthControl(subfield)
+                }
+
+                // adding the snapshot 
+                if (codeSpan.innerText.length === 1) {
+                    jmarc.addUndoredoEntry("from Code Subfield")
+                }
+            }
+
+            codeDiv.addEventListener("click", subfieldCodeActivate);
+            codeSpan.addEventListener("focus", subfieldCodeActivate);
+            codeSpan.addEventListener("blur", subfieldCodeUpdate);
+
+            // Subfield value actions
             valCell.addEventListener("click", function () {valSpan.focus()});
- 
-            valCell.addEventListener("input", function () {
+            
+            function checkState() {
                 subfield.value = valSpan.innerText;
        
                 let savedState = new Jmarc(jmarc.collection);
@@ -1804,14 +2033,63 @@ export let multiplemarcrecordcomponent = {
                 if (valCell.innerText.length > 0) {
                     jmarc.addUndoredoEntry("from Subfield Value")
                 }
+            }
 
+            valCell.addEventListener("input", checkState);
+            valCell.addEventListener("mousedown", checkState); // auth control selection
+
+            valSpan.addEventListener("focus", function() {
+                component.fieldSelected(field);
+                valSpan.classList.add("subfield-value-selected");
+                subfield.selected = true;
             });
-   
+
+            valCell.addEventListener("click", function() {
+                valSpan.classList.add("subfield-value-selected");
+                subfield.selected = true;
+            });
+
+            valSpan.addEventListener("blur", function() {
+                valSpan.classList.remove("subfield-value-selected");
+                subfield.selected = false;
+            });
+
             valSpan.addEventListener("keydown", function (event) {
                 // prevent newline and blur on return key
                 if (event.keyCode === 13) {
                     event.preventDefault();
                     valSpan.blur();
+                }
+
+                // arrow keys
+                if (event.keyCode === 38) {
+                    // up
+                    if (field.subfields.indexOf(subfield) === 0) {
+                        // first subfield
+                        let i = jmarc.fields.indexOf(field) - 1;
+                        let f = jmarc.fields[i];
+                        f.subfields[f.subfields.length-1].valueSpan.focus();
+                        component.fieldSelected(f);
+                    } else {
+                        let i = field.subfields.indexOf(subfield) - 1;
+                        valSpan.blur();
+                        field.subfields[i].valueSpan.focus();
+                    }
+                }
+
+                if (event.keyCode === 40) {
+                    // down
+                    if (field.subfields.indexOf(subfield) === field.subfields.length - 1) {
+                        // last subfield
+                        let i = jmarc.fields.indexOf(field) + 1;
+                        let f = jmarc.fields[i];
+                        f.subfields[0].valueSpan.focus();
+                        component.fieldSelected(f);  
+                    } else {
+                        let i = field.subfields.indexOf(subfield) + 1;
+                        valSpan.blur();
+                        field.subfields[i].valueSpan.focus();
+                    }
                 }
             });
 
@@ -1842,24 +2120,12 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             });
-   
-            codeSpan.addEventListener("input", function() {
-                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                    component.setAuthControl(field, subfield)
-                } else {
-                    component.removeAuthControl(subfield)
-                }
-                // undoredo snapshot
-                // jmarc.addUndoredoEntry("EDIT SUBFIELD CODE") 
+
+            const observer = new MutationObserver(function() {
+                console.log('callback that runs when observer is triggered');
             });
-   
-            // create the last cell
-            subfield.xrefCell = subfield.row.insertCell()
-   
-            // auth controlled
-            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-                this.setAuthControl(field, subfield)
-            }
+
+            observer.observe(valSpan, {subtree: true, childList: true});
    
             return subfield
         },
@@ -1895,6 +2161,15 @@ export let multiplemarcrecordcomponent = {
             subfield.valueSpan.classList.remove("authority-controlled");
             subfield.valueSpan.classList.remove("authority-controlled-unmatched");
             subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+        },
+        fieldSelected(field) {
+            for (let f of field.parentRecord.fields) {
+                f.row.classList.remove("field-row-selected");
+                f.selected = false;
+            }
+
+            field.row.classList.add("field-row-selected");
+            field.selected = true;
         }
     }
 }

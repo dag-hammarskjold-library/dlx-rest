@@ -17,16 +17,96 @@ export let searchcomponent = {
         collection: {
             type: String,
             required: true
-        }
+        },
+        logged_in: {
+            type: String,
+            required: true
+        },
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
-        <div class="row pt-2">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
+            <div class="collapse navbar-collapse" id="advancedSearchToggle">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
+                    <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div id="advanced-search" class="row pt-2" style="display:none">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-append">
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
+        </div>
+        <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
-            </form>
+                <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
+                    <span>X</span>
+                </button>
+            </form>    
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
@@ -34,12 +114,12 @@ export let searchcomponent = {
                 <li class="page-item disabled">
                     <span class="page-link">
                         {{start}} to {{end}} of
-                        <span id="result-count">
-                            <div class="spinner-border" role="status" style="width:1rem;height:1rem"> <!-- add to CSS -->
+                        <span id="result-count-top">
+                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
                                 <span class="sr-only">Loading...</span>
                             </div>
                         </span>
-                        Records
+                        Records ({{searchTime}} seconds)
                     </span>
                 </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -53,13 +133,14 @@ export let searchcomponent = {
                 <span class="sr-only">Loading...</span>
             </div>
         </div>
-        <div v-for="result in this.results" :key="result._id">
+        <br>
+        <div id="message-display" class="col-xs-1 text-center"></div>
+        <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row pt-2 border-bottom">
-                <div class="col-sm-11">
+                <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
-                        <a class="lead" :href="uibase + '/records/' + collection + '/' + result._id">
-                            {{result.first_line}}
-                        </a>
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
@@ -69,14 +150,25 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
         </div>
+        </br>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled"><span class="page-link">{{start}} to {{end}} of {{resultcount}} Records</span></li>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        {{start}} to {{end}} of 
+                        <span id="result-count-bottom">
+                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </span>
+                        Records ({{searchTime}} seconds)
+                    </span>
+                </li>
                 <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
                 <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
                 <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
@@ -103,6 +195,33 @@ export let searchcomponent = {
             links: {},
             action: `${myUIBase}/records/${this.collection}/search`,
             params: myProps,
+            searchType: "all",
+            advancedParams: {
+                'searchType1': 'all',
+                'searchTerm1': null,
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchTerm2': null,
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchTerm3': null,
+                'searchField3': 'any'
+            },
+            // To do: Get these logical fields from the configuration
+            bibSearchFields: ['author','title','symbol','notes','subject'],
+            authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
+            voteSearchFields: ['symbol','title','agenda','year'],
+            speechSearchFields: ['symbol'],
+            searchFields: [],
+            searchTypes: [
+                {'name': 'All of the words:', 'value': 'all'},
+                {'name': 'Any of the words:', 'value': 'any'},
+                {'name': 'Exact prhase:', 'value': 'exact'},
+                {'name': 'Partial prhase:', 'value': 'partial'},
+                {'name': 'Regular expression:', 'value': 'regex'},
+            ],
             uibase: myUIBase,
             count: null,
             prev: null,
@@ -111,14 +230,23 @@ export let searchcomponent = {
             start: 0,
             end: 0,
             basketcontents: ['foo'],
-            lookup_maps: {}
+            lookup_maps: {},
+            expressions: [],
+            vcoll: null,
+            searchTime: 0,
+            maxTime: 15000, //milliseconds
+            abortController: new AbortController()
         }
     },
     created: async function() {
+        this.allowDirectEdit = this.logged_in ? true : false;
+    },
+    mounted: async function() {
         let component = this;
         
         // [what is this used for?]
         if (component.collection == "auths") {
+            this.searchFields = this.authSearchFields
             let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
@@ -128,9 +256,53 @@ export let searchcomponent = {
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
             component.lookup_maps['bibs'] = bibMapData.data;
+        } else if (component.collection == "bibs") {
+            this.searchFields = this.bibSearchFields
+        } 
+        if (this.params.search.includes("989:Voting Data")) {
+            this.searchFields = this.voteSearchFields
+            this.vcoll = "989:Voting Data"
+        } 
+        if (this.params.search.includes("989:Speeches")) {
+            this.searchFields = this.speechSearchFields
+            this.vcoll = "989:Speeches"
         }
+
+        let myEnd = component.params.start + component.params.limit -1;
+        component.end = myEnd;
+        component.start = component.params.start;
+        let startTime = Date.now();
+
+        // start the count
+        fetch(this.search_url.replace('/records', '/records/count'), this.abortController).then(
+            response => response.json()
+        ).then(
+            jsonData => {
+                component.resultcount = jsonData["data"];
+                
+                // override the spinner
+                document.getElementById("result-count-top").innerHTML = component.resultcount;
+                document.getElementById("result-count-bottom").innerHTML = component.resultcount;
+
+                if (component.resultcount == 0) {
+                    component.start = 0;
+                }
+                
+                if (myEnd >= component.resultcount) {
+                    component.end = component.resultcount
+                    component.next = null
+                }
+            }
+        ).catch(
+            error => {
+                if (error.name === "AbortError") {
+                    document.getElementById("result-count-top").innerHTML = '⏱'
+                    document.getElementById("result-count-bottom").innerHTML = '⏱'
+                }
+            }
+        );
         
-        fetch(this.search_url).then(
+        fetch(this.search_url, this.abortController).then(
             response => {
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
@@ -139,6 +311,12 @@ export let searchcomponent = {
             }
         ).then(
             jsonData => {
+                if (! jsonData) {
+                    throw new Error("Invalid search")
+                }
+
+                component.searchTime = (Date.now() - startTime) / 1000;
+
                 let linkKeys = Object.keys(jsonData["_links"]);
                 linkKeys.forEach((key, index) => {
                     component.links[key] = jsonData["_links"][key];
@@ -166,76 +344,112 @@ export let searchcomponent = {
                     }
                     component.results.push(myResult);
                 }
+            }
+        ).catch(
+            error => {
+                if ((Date.now() - startTime) >= this.maxTime) {
+                    this.reportError(`The search is taking longer than the maximum time allowed (${this.maxTime / 1000} seconds). Try narrowing the search.`)
+                } else if (error.name === "AbortError") {
+                    this.reportError("Search cancelled")
+                } else {
+                    this.reportError(error.toString())
+                }
+            }
 
-                component.buildPagination();
-                
+        ).then( 
+            () => {
+                user.getProfile(component.api_prefix, 'my_profile').then(
+                    myProfile => {
+                        //console.log("got my profile")
+                        if (myProfile) {
+                            component.user = myProfile.data.email;
+                        }
+                    
+                        if (typeof component.user !== "undefined") {
+                            //console.log("this user is not undefined")
+                            basket.getBasket(component.api_prefix).then(
+                                myBasket => {
+                                    //console.log(myBasket)
+                                    //console.log("got my basket contents")
+                                    for (let result of component.results) {
+                                        //console.log("processing result")
+                                        let myId = `icon-${component.collection}-${result._id}`;
+                                        let iconEl = document.getElementById(myId);
+                                    
+                                        if (component.basketContains(myBasket, component.collection, result._id)) {
+                                            //iconEl.classList.remove('fa-folder-plus',);
+                                            iconEl.classList.add("fa-folder-minus");
+                                            iconEl.classList.add("text-muted");
+                                            iconEl.title = "Remove from basket";
+                                        } else {
+                                            iconEl.classList.add('fa-folder-plus');
+                                            iconEl.title = "Add to basket";
+                                        }
+
+                                        // checking if the record is locked and displaying a lock if it is.
+                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
+                                            itemLocked => {
+                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                                                    // Display a lock icon
+                                                    iconEl.classList.remove('fa-folder-plus',);
+                                                    iconEl.classList.remove('fa-folder-minus',);
+                                                    iconEl.classList.add('fa-lock',);
+                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
+                                                    // revert link to read only view. 
+                                                    // TODO: acquire the lock status earlier 
+                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
+                                                }
+                                            }
+                                        );
+
+                                        iconEl.addEventListener("click", function() {
+                                            if (iconEl.classList.contains("fa-folder-plus")) {
+                                                //console.log("We're trying to create something.")
+                                                basket.getBasket(component.api_prefix)
+                                                iconEl.classList.add("fa-spinner");
+                                                // we can run an add
+                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
+                                                    function() {
+                                                        iconEl.classList.remove("fa-spinner");
+                                                        iconEl.classList.remove("fa-folder-plus");
+                                                        iconEl.classList.add("fa-folder-minus");
+                                                        iconEl.classList.add("text-muted");
+                                                        iconEl.title = "Remove from basket";
+                                                    }
+                                                )
+                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
+                                                //console.log("We're trying to delete something.")
+                                                basket.getBasket(component.api_prefix)
+                                                iconEl.classList.add("fa-spinner");
+                                                // we can run a deletion
+                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
+                                                    function() {
+                                                        //console.log("But did we do it?")
+                                                        iconEl.classList.remove("fa-spinner");
+                                                        iconEl.classList.remove("fa-folder-minus");
+                                                        iconEl.classList.add("fa-folder-plus");
+                                                        iconEl.classList.remove("text-muted");
+                                                        iconEl.title = "Add to basket";
+                                                    }
+                                                )
+                                            } else if (iconEl.classList.contains("fa-lock")) {
+                                                // TODO: unlock
+
+                                            }
+                                        });
+                                    }
+                                }
+                            )
+                        }        
+                    }
+                )
             }
         );
-    },
-    mounted: async function() {
-        let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
-        if (myProfile) {
-            this.user = myProfile.data.email;
-        } 
-
-        if (typeof this.user !== "undefined") {
-            const myBasket = await basket.getBasket(this.api_prefix);
-            for (let result of this.results) {
-                let myId = `icon-${this.collection}-${result._id}`
-                let iconEl = document.getElementById(myId);
-
-                iconEl.classList.add('fa-folder-plus');
-                iconEl.addEventListener("click", async () => {
-                    const myBasket = await basket.getBasket(this.api_prefix);
-                    this.toggleAddRemove(iconEl, myBasket, this.collection, result._id);
-                });
-                if (this.basketContains(myBasket, this.collection, result._id)) {
-                    iconEl.classList.remove('fa-folder-plus',);
-                    iconEl.classList.add('fa-folder-minus');
-                    iconEl.title = "Remove from basket";
-                }
-                // checking if the record is locked and displaying a lock if it is.
-                const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, result._id);
-                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                    // Display a lock icon
-                    iconEl.classList.remove('fa-folder-plus',);
-                    iconEl.classList.remove('fa-folder-minus',);
-                    iconEl.classList.add('fa-lock',); // To do: add a click event here to "unlock" the item
-                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                }
-            }
-        }
+        
+        // cancel the search if it takes more than 15 seconds
+        setTimeout(() => this.abortController.abort(), this.maxTime);
     },
     methods: {
-        async buildPagination() {
-            let component = this;
-            
-            let myEnd = component.params.start + component.params.limit -1;
-            component.end = myEnd
-            component.start = component.params.start
-            
-            fetch(this.count).then(
-                response => {
-                    return response.json()
-                }
-            ).then(
-                jsonData => {
-                    component.resultcount = jsonData["data"];
-                    
-                    // override the spinner
-                    document.getElementById("result-count").innerHTML = component.resultcount;
-   
-                    if (component.resultcount == 0) {
-                        component.start = 0;
-                    }
-                    
-                    if (myEnd >= component.resultcount) {
-                        component.end = component.resultcount
-                        component.next = null
-                    }
-                }
-            );
-        },
         async getMyBasket(url) {
             let response = await fetch(url);
             if (response.ok) {
@@ -257,24 +471,176 @@ export let searchcomponent = {
             }
             return false;
         },
+
         toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-folder-plus") {
+            if (el.classList.value === "fas fa-2x fa-folder-plus") {
                 // we can run an add
-                const added = basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id)
-                if (added) {
+                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
                     el.classList.remove("fa-folder-plus");
                     el.classList.add("fa-folder-minus");
-                    // Send a message to the messagebar...
-                }
+                })
             } else {
                 // we can run a deletion
-                const deleted = basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id)
-                if (deleted) {
+                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
                     el.classList.remove("fa-folder-minus");
                     el.classList.add("fa-folder-plus");
-                    // Send a message to the messagebar...
+                })
+            }
+        },
+        toggleAdvancedSearch() {
+            let el = document.getElementById("advanced-search")
+            let ss = document.getElementById("simple-search")
+            let toggleASLink = document.getElementById("toggleASLink")
+            let toggleSSLink = document.getElementById("toggleSSLink")
+            if (el.style.display == "none"){
+                el.style.display = "block"
+                ss.style.display = "none"
+                toggleASLink.classList.add("active")
+                toggleSSLink.classList.remove("active")
+                //toggleLink.textContent = "Simple Search"
+            } else {
+                el.style.display = "none"
+                ss.style.display = "block"
+                toggleSSLink.classList.add("active")
+                toggleASLink.classList.remove("active")
+                //toggleLink.textContent = "Advanced Search"
+            }
+        },
+        setParameter(which, what) {
+            this.advancedParams[which] = what
+            let el = document.getElementById(which)
+            if (typeof what === "object") {
+                el.innerText = what.name
+                this.advancedParams[which] = what.value
+            } else {
+                el.innerText = what
+            }
+        },
+        submitAdvancedSearch() {
+            // Build the URL
+            var expressions = []
+            var anycount = 0
+            for (let i of ["1","2","3"]) {
+                let term  = this.advancedParams[`searchTerm${i}`]
+                let termList = []
+                // First figure out if there IS a search term here, then split it by space
+                if (term !== null) {
+                    termList = term.split(/\s+/)
+                }
+                // Next figure out if we're searching in a field or not
+                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                    if (term) {
+                        console.log(term)
+                        anycount++
+                    }
+                    // What kind of search are we doing?
+                    switch (this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            // expressions.push(termList.join(" "))
+                            // break
+                            this.reportError('"Any of the words" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // This can't be done like this on MDB, so we should disable the option
+                            //break
+                            this.reportError('"Regular expression" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        default:
+                            expressions.push(termList.join(" "))
+                    }                    
+                } else {
+                    let myField = this.advancedParams[`searchField${i}`]
+                    let myExpr = []
+                    // To do: add a flag for case insensitive search
+                    switch(this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            for (let term of termList) {
+                                myExpr.push(`${myField}:${term}`)
+                            }
+                            expressions.push(myExpr.join(" OR "))
+                            break
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`${myField}:'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`${myField}:"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // Regular expression; this probably needs additional validation to make sure it IS a regex
+                            // Also it doesn't work quite right...
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        default:
+                            expressions.push(termList.join(" "))
+                    }
                 }
             }
+            if (anycount > 1) {                  
+                this.reportError("Can't have more than one \"in any field\" term")
+                throw new Error("Search cancelled");
+            }
+            this.expressions = expressions
+            let compiledExpr = []
+            if (this.vcoll) {
+                compiledExpr.push(`${this.vcoll} AND`)
+            }
+            for (let i in expressions) {
+                let j = parseInt(i)+1
+                let accessor = `searchConnector${j.toString()}`
+                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
+                if (expressions[i] !== "") {
+                    compiledExpr.push(expressions[i])
+                }
+                if (this.advancedParams[accessor]) {
+                    compiledExpr.push(this.advancedParams[accessor])
+                }
+            }
+            // Get rid of any trailing boolean connectors if they don't connect to another expression
+            while (compiledExpr[compiledExpr.length - 1] === 'AND') {
+                compiledExpr.pop()
+            }
+            while (compiledExpr[compiledExpr.length - 1] === 'OR') {
+                compiledExpr.pop()
+            }
+
+            // Catch and warn of invalid searches
+            // ...
+
+            let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
+            
+            window.location = url
+        },
+        reportError(message) {
+            let display = document.getElementById("results-spinner");
+            display = display || document.getElementById("message-display");
+            display.innerText = message;
+            this.results = []; // clear any exisiting results
+            document.getElementById("result-count-top").innerHTML = "0";
+            document.getElementById("result-count-bottom").innerHTML = "0";
+        },
+        cancelSearch() {
+            this.abortController.abort();
+            this.start = this.end = 0;
         }
     },
     components: {

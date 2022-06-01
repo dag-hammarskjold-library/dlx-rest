@@ -8,6 +8,176 @@ const fileObjectArray = [];
 input.style.opacity = 0;
 txt.style.opacity = 0;
 
+/**Updated Section*/
+/**
+ * Add event listeners to the language pills.
+ */
+ const toggleEN = function () {
+   
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.en.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangEN();
+
+  //re-add the class name
+  this.classList.add(fileObject.en.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+  
+};
+const toggleFR = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.fr.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangFR();
+
+  //re-add the class name
+  this.classList.add(fileObject.fr.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+
+};
+const toggleES = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.es.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangES();
+
+  //re-add the class name
+  this.classList.add(fileObject.es.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+
+};
+const toggleAR = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.ar.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangAR();
+
+  //re-add the class name
+  this.classList.add(fileObject.ar.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+};
+const toggleZH = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.zh.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangZH();
+
+  //re-add the class name
+  this.classList.add(fileObject.zh.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+
+};
+const toggleRU = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.ru.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangRU();
+
+  //re-add the class name
+  this.classList.add(fileObject.ru.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+
+};
+const toggleDE = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.id)
+  );
+
+  //remove existing class name 
+  this.classList.remove(fileObject.de.className);
+
+  //update the language values to the opposite of what it was
+  fileObject.updateLangDE();
+
+  //re-add the class name
+  this.classList.add(fileObject.de.className);
+
+  txt.value = JSON.stringify(fileObjectArray);
+
+};
+
+/**
+ * Add event listener to document symbol column.
+ */
+ const changeDS = function () {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.id)
+  );
+
+  //update the document symbol to the current text
+  fileObject.updateSymbol(this.innerText);
+
+  txt.value = JSON.stringify(fileObjectArray);
+};
+
+/**
+ * Add event listener to overwrite/keep radio button.
+ */
+const toggleAction = function (e) {
+  
+  // Find the current file object in fileObjectArray
+  let fileObject = fileObjectArray.find(
+     ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.parentElement.parentElement.id)
+  );
+
+  //update the status
+  fileObject.updateOverwrite(e.target.value);
+
+  txt.value = JSON.stringify(fileObjectArray);
+};
+/** END updated section */
+
 input.addEventListener("change", createFileObjects);
 
 /* For each file added to the drag/drop or browse, create a file object*/
@@ -40,7 +210,7 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)"];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Action"];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
@@ -48,216 +218,94 @@ function createFileObjects() {
       tr.appendChild(th);
     }
 
+    const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+
+
     let i = 0;
     for (const file of curFiles) {
-      fileObjectArray.push(new FileContent(i, file.name, setDocSymbol(file.name), setLanguage(file.name)));
+      fileObjectArray.push(new FileContent(i, file.name, setLanguage(file.name)));
       i = i + 1;
     }
 
-    fileObjectArray.forEach((element) => {
-      const row = document.createElement("tr");
+    // console.log(JSON.stringify(fileObjectArray));
 
-      //column #1 - name of each file
-      const col_1 = document.createElement("td");
-      col_1.textContent = element.name;
-
-      //column #2 - document symbol
-      const col_2 = document.createElement("td");
-      col_2.textContent = element.docSymbol;
-      col_2.setAttribute("id", element.id); //new
-      col_2.setAttribute("contenteditable", true); //new
-
-      col_2.addEventListener("blur", function (e) {
-        element.updateSymbol(this.textContent);
-        txt.value = JSON.stringify(fileObjectArray);
-      });
-
-      //column #3 - language
-      const col_3 = document.createElement("td");
-      const lang_div = document.createElement("div");
-      //English
-      const span_e = document.createElement("span");
-      span_e.classList.add("badge", "rounded-pill", "outlined-primary");
-      span_e.textContent = "EN";
-
-      span_e.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-primary") == true) {
-          this.classList.replace("outlined-primary", "bg-primary");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-primary", "outlined-primary");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_e);
-
-      //French
-      const span_f = document.createElement("span");
-      span_f.classList.add("badge", "rounded-pill", "outlined-secondary");
-      span_f.textContent = "FR";
-
-      span_f.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-secondary") == true) {
-          this.classList.replace("outlined-secondary", "bg-secondary");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-secondary", "outlined-secondary");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_f);
-
-      //Spanish
-      const span_s = document.createElement("span");
-      span_s.classList.add("badge", "rounded-pill", "outlined-success");
-      span_s.textContent = "ES";
-
-      span_s.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-success") == true) {
-          this.classList.replace("outlined-success", "bg-success");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-success", "outlined-success");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_s);
-
-      //Arabic
-      const span_a = document.createElement("span");
-      span_a.classList.add("badge", "rounded-pill", "outlined-warning");
-      span_a.textContent = "AR";
-
-      span_a.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-warning") == true) {
-          this.classList.replace("outlined-warning", "bg-warning");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-warning", "outlined-warning");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_a);
-
-      //Chinese
-      const span_c = document.createElement("span");
-      span_c.classList.add("badge", "rounded-pill", "outlined-danger");
-      span_c.textContent = "ZH";
-
-      span_c.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-danger") == true) {
-          this.classList.replace("outlined-danger", "bg-danger");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-danger", "outlined-danger");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_c);
-
-      //Russian
-      const span_r = document.createElement("span");
-      span_r.classList.add("badge", "rounded-pill", "outlined-dark");
-      span_r.textContent = "RU";
-
-      span_r.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-dark") == true) {
-          this.classList.replace("outlined-dark", "bg-dark");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-dark", "outlined-dark");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_r);
-
-      //German
-      const span_g = document.createElement("span");
-      span_g.classList.add("badge", "rounded-pill", "outlined-info");
-      span_g.textContent = "DE";
-
-      span_g.addEventListener("click", function (e) {
-        if (this.classList.contains("outlined-info") == true) {
-          this.classList.replace("outlined-info", "bg-info");
-          element.addLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        } else {
-          this.classList.replace("bg-info", "outlined-info");
-          element.removeLanguage(this.textContent);
-          txt.value = JSON.stringify(fileObjectArray);
-        }
-      });
-
-      lang_div.appendChild(span_g);
-
-      col_3.appendChild(lang_div);
-
-      for (let l in element.language) {
-        switch (element.language[l]) {
-          case "EN":
-            span_e.classList.replace("outlined-primary", "bg-primary");
-            break;
-          case "FR":
-            span_f.classList.replace("outlined-secondary", "bg-secondary");
-            break;
-          case "ES":
-            span_s.classList.replace("outlined-success", "bg-success");
-            break;
-          case "AR":
-            span_a.classList.replace("outlined-warning", "bg-warning");
-            break;
-          case "ZH":
-            span_c.classList.replace("outlined-danger", "bg-danger");
-            break;
-          case "RU":
-            span_r.classList.replace("outlined-dark", "bg-dark");
-            break;
-          case "DE":
-            span_g.classList.replace("outline-info", "bg-info");
-            break;
-          default:
-            break;
-        }
+    fileObjectArray.forEach((file) => {
+    // const fileList = fileOjectArray.map((file) => {
+      let fileEntry = document.createElement("tr");
+      fileEntry.setAttribute("id", file.id);
+    
+      fileEntry.innerHTML = `
+        <td class="file__filename">${file.filename}</td>
+        <td class="file__docSymbol" contenteditable="true">${file.docSymbol}</td>
+        <td>
+           <div>
+              <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
+              <span class="badge rounded-pill ${file.fr.className} file__FR">FR</span>
+              <span class="badge rounded-pill ${file.es.className} file__ES">ES</span>
+              <span class="badge rounded-pill ${file.ar.className} file__AR">AR</span>
+              <span class="badge rounded-pill ${file.zh.className} file__ZH">ZH</span>
+              <span class="badge rounded-pill ${file.ru.className} file__RU">RU</span>
+              <span class="badge rounded-pill ${file.de.className} file__DE">DE</span>
+         </div>
+        </td>
+        <td>
+            <div class="row">
+               <div class="col">
+                  <div class="form-check col-form-label-sm">
+                  <input class="form-check-input file__action" type="radio" name="status${file.id}" 
+                     value="overwrite" ${file.overwrite ? "checked" : ""}>
+                  <label class="form-check-label" for="overwrite">Overwrite</label>
+               </div>
+           </div>
+         <div class="col">
+            <div class="col form-check col-form-label-sm">
+               <input class="form-check-input file__action" type="radio" name="status${file.id}" 
+                     value="keep" ${file.overwrite ? "" : "checked"}>
+               <label class="form-check-label" for="keep">Keep</label>
+               </div>
+               </div>
+          </div>
+         </td>
+      `;
+   
+      // Add event listeners
+      const ds = fileEntry.querySelector(".file__docSymbol");
+      ds.addEventListener("blur", changeDS);
+   
+      const en = fileEntry.querySelector(".file__EN");
+      en.addEventListener("click", toggleEN);
+   
+      const fr = fileEntry.querySelector(".file__FR");
+      fr.addEventListener("click", toggleFR);
+   
+      const es = fileEntry.querySelector(".file__ES");
+      es.addEventListener("click", toggleES);
+   
+      const ar = fileEntry.querySelector(".file__AR");
+      ar.addEventListener("click", toggleAR);
+   
+      const zh = fileEntry.querySelector(".file__ZH");
+      zh.addEventListener("click", toggleZH);
+   
+      const ru = fileEntry.querySelector(".file__RU");
+      ru.addEventListener("click", toggleRU);
+   
+      const de = fileEntry.querySelector(".file__DE");
+      de.addEventListener("click", toggleDE);
+   
+      const action = fileEntry.querySelectorAll(".file__action");
+      
+      for (const a of action) {
+         a.addEventListener("click", toggleAction);
       }
-      row.appendChild(col_1);
-      row.appendChild(col_2);
-      row.appendChild(col_3);
-
-      table.appendChild(row);
+      tbody.append(fileEntry);
     });
+
+    /** COME BACK TO THIS PART */
     txt.value = JSON.stringify(fileObjectArray);
+    
   }
-}
-
-function setDocSymbol(filename) {
-  //remove file extension
-  let sym_1 = filename.replace(/\.[^.$]+$/g, "");
-
-  //remove language extension "-[ACEFRSG]$"
-  let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); //
-
-  //replaces any underscores or dashes  with slashes
-  let sym_3 = sym_2.replaceAll(/-|_/g, "/");
-
-  return sym_3;
 }
 
 function setLanguage(filename) {

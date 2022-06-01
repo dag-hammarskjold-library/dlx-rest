@@ -29,7 +29,14 @@ then
 fi
 
 # update the project code
-git pull origin master
+if [ $ENV = "dev" ]
+then
+    git checkout master
+    git pull origin master
+else
+    git checkout $ENV
+    git pull
+fi
 
 if [ ! $? -eq 0 ]
 then
