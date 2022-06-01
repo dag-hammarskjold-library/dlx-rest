@@ -4,6 +4,7 @@ DLX REST API
 
 # external
 from http.client import HTTPResponse
+import this
 from dlx_rest.routes import login
 import os, json, re, boto3, mimetypes, jsonschema
 from datetime import datetime, timezone
@@ -27,7 +28,7 @@ from werkzeug import security
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import User, Basket, requires_permission, register_permission, DoesNotExist
+from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked
 
 # Init
@@ -1644,3 +1645,71 @@ class MyBasketItem(Resource):
             raise
 
         return 200
+
+@ns.route('/views/<string:coll>')
+class ViewList(Resource):
+    @ns.doc("List the available record views by collection.")
+    def get(self, coll):
+        try:
+            view_list = RecordView.objects(collection=coll)
+            for v in view_list:
+                print(v.id, v.name)
+        except:
+            raise
+        
+        links = {
+            '_self': URL('api_view_list',coll=coll).to_str(),
+        }
+
+        meta = {
+            'name': 'api_view_list',
+            'returns': URL('api_schema', schema_name='api.view.list').to_str()
+        }
+
+        '''
+        data = {
+            'items': [URL('api_view', coll=coll, id=item['id']).to_str() for item in view_list]
+        }
+        '''
+
+        data = []
+        for item in view_list:
+            data.append({
+                'name': item.name,
+                'collection': item.collection,
+                'url': URL('api_view', coll=coll, id=item['id']).to_str()
+            })
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+
+        
+
+@ns.route('/views/<string:coll>/<string:id>')
+class View(Resource):
+    @ns.doc("Get the contents of a record view by collection and id.")
+    def get(self, coll, id):
+        this_item = RecordView.objects.get(id=id)
+        print(this_item.name)
+
+        links = {
+            '_self': URL('api_view', coll=coll, id=id).to_str(),
+        }
+
+        meta = {
+            'name': 'api_view',
+            'returns': URL('api_schema', schema_name='api.view').to_str()
+        }
+
+        data = {
+            'name': this_item.name,
+            'collection': this_item.collection,
+            'fieldsets': []
+        }
+
+        for fs in this_item.fieldsets:
+            data["fieldsets"].append({
+                "field": fs.field,
+                "subfields": fs.subfields
+            })
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
