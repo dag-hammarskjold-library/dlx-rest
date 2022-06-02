@@ -163,6 +163,7 @@ export let multiplemarcrecordcomponent = {
         user.getProfile(this.prefix, 'my_profile').then(
             myProfile => {
                 this.user = myProfile.data.email;
+                console.log(this.user)
 
                 this.myDefaultViews = myProfile.data.default_views
                 

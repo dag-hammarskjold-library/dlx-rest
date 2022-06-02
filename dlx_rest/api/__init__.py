@@ -537,7 +537,8 @@ class Record(Resource):
         #user = 'testing' if current_user.is_anonymous else current_user.email
         #print(user)
         user = request_loader(request)
-        print(user, user.permissions_list())
+        print(user)
+        #print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         args = Record.args.parse_args()
