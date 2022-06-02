@@ -186,13 +186,20 @@ def marc():
     To do: Create default bibs, auths, and templates with location data for location-based permissions testing.
     '''
     auths = []
-    
     for i in range(1, 3):
         auth = Auth()
         auth.id = i
         auth.set('100', 'a', f'Heading {i}')
         auth.commit()
         auths.append(auth)
+
+    nyAuth = Auth()
+    nyAuth.id = 4
+    nyAuth.set('100', 'a', 'New York Auth Record')
+    nyAuth.set('040', 'a', 'NNUN')
+    nyAuth.commit()
+
+    auths.append(nyAuth)
     
     bibs = []
     
@@ -202,7 +209,15 @@ def marc():
         bib.set('245', 'a', 'Title {i}').set('700', 'a', f'Heading {i}')
         bib.commit()
         bibs.append(bib)
-    
+
+    nyBib = Bib()
+    nyBib.id = 4
+    nyBib.set('245', 'a', 'New York Bib Record')
+    nyBib.set('040', 'a', 'NNUN')
+    nyBib.commit()
+
+    bibs.append(nyBib)
+
     # templates
     for col in ('bibs', 'auths'):
         template = Bib() if col == 'bibs' else Auth()

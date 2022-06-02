@@ -206,8 +206,9 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
         
-        if col == 'bibs':
-            assert '/records/3' in data['data'][0]
+        # Not sure why this is being tested
+        #if col == 'bibs':
+        #    assert '/records/3' in data['data'][0]
             
         # format
         for fmt in ['mrk', 'xml']:
@@ -232,9 +233,10 @@ def test_api_records_list_count(client, marc):
     for col in ('bibs', 'auths'):
         res = client.get(f'{API}/marc/{col}/records/count')
         data = json.loads(res.data)
-        assert data['data'] == 2
+        assert data['data'] == 3
         
 def test_api_record(client, marc, default_users):
+    
     # get
     for col in ('bibs', 'auths'):
         for i in (1, 2):
@@ -269,6 +271,18 @@ def test_api_record(client, marc, default_users):
     auth_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # PUT NY bib record by global administrator == 200
+    res = client.get(f'{API}/marc/bibs/records/4')
+    data = check_response(res)
+    jmarc = json.loads(data)
+    print(data)
+    print(jmarc)
+    #res = client.post(f'{API}/marc/bibs/records', data=bibNY.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
+    #assert res.status_code == 201
+
+    print(len(marc['bibs']))
+
+    assert 2 == 1
+
     # PUT NY auth record by global administrator == 200
     # PUT GE bib record by global administrator == 200
     # PUT GE auth record by global administrator == 200
