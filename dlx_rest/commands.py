@@ -59,7 +59,7 @@ def init_roles():
     # basic admin permissions
     admin_permissions = []
     for action in ["create", "read", "update", "delete"]:
-        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User"]:
+        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User", "View"]:
             this_permission = Permission(action=f'{action}{comp}')
             this_permission.save()
             admin_permissions.append(this_permission)

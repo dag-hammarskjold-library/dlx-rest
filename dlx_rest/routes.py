@@ -499,12 +499,14 @@ def create_record(coll):
 
 @app.route('/files')
 @login_required
+@requires_permission('readFile')
 def upload_files():
     return render_template('process_files.html')
 
 
 @app.route('/files/process', methods=["POST"])
 @login_required
+@requires_permission('createFile')
 def process_files():
 
     DB.connect(Config.connect_string)
@@ -588,6 +590,7 @@ def process_files():
 
 @app.route('/files/search')
 @login_required
+@requires_permission('readFile')
 def search_files():
     baseURL = url_for('doc', _external=True)
     #this_prefix = baseURL.replace("/api/", url_for('files_results'))
@@ -597,6 +600,7 @@ def search_files():
 
 @app.route('/files/update/results', methods=['GET', 'POST'])
 @login_required
+@requires_permission('readFile')
 def files_results():
     text = request.form.get('text')
     option = request.form.get('exact')
@@ -659,6 +663,7 @@ def process_text(text, option):
 
 @app.route('/files/update', methods=['POST'])
 @login_required
+@requires_permission('updateFile')
 def update_file():
     """
     Updates the file entry based on record id

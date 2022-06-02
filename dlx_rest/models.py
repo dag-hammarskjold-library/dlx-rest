@@ -188,7 +188,8 @@ class SyncLog(Document):
 
 
 
-
+# This still should work for unconstrained permissions, but if we need additional
+# constraints, this will have to change
 def requires_permission(action):
     def wrapper(func):
         @wraps(func)
