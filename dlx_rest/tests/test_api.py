@@ -315,7 +315,6 @@ def test_api_record(client, marc, default_users):
     res = client.put(f'{API}/marc/auths/records/4', data=nyAuth.to_json(), headers={"Authorization": f"Basic {auth_admin_credentials}"})
     assert res.status_code == 200
 
-
     # PUT GE auth record by global auth administrator == 200
     geAuth.set('100', 'a', 'Updated GE Heading by Global Auth Admin')
     res = client.put(f'{API}/marc/auths/records/5', data=geAuth.to_json(), headers={"Authorization": f"Basic {auth_admin_credentials}"})
@@ -378,41 +377,100 @@ def test_api_record(client, marc, default_users):
         res = client.put(f'{API}/marc/{col}/records/{auth.id}', data=auth.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
         
     assert res.status_code == 200
+
+    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.      
+
+def test_api_record_delete_global_admin(client, marc, default_users):
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # delete a bib record as global administrator == 204
+    res = client.delete(f'{API}/marc/bibs/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
+    assert res.status_code == 204
     
+    # try to delete an in-use auth record as global administrator == 403 (appropriate code?)
+    res = client.delete(f'{API}/marc/auths/records/2', headers={"Authorization": f"Basic {admin_credentials}"})
+    assert res.status_code == 403 # auth in use
+    
+    # delete an unused auth record as global administrator
+    res = client.delete(f'{API}/marc/auths/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
+    assert res.status_code == 204
+
+    # These shouldn't be necessary; they'll succeed if the previous ones succeeded
     # DELETE NY bib record by global administrator == 200
     # DELETE NY auth record by global administrator == 200
     # DELETE GE bib record by global administrator == 200
     # DELETE GE auth record by global administrator == 200
 
-    # DELETE NY bib record by global bib administrator == 200
-    # DELETE GE bib record by glbal bib administrator == 200
-    # DELETE NY auth record by global auth administrator == 200
-    # DELETE GE auth record by global auth administrator == 200
+def test_api_record_delete_collection_admin(client, marc, default_users):
+    # Credentials
+    # global bib administrator
+    username = default_users['bib-admin']['email']
+    password = default_users['bib-admin']['password']
+    bib_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # global auth administrator
+    username = default_users['auth-admin']['email']
+    password = default_users['auth-admin']['password']
+    auth_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # DELETE NY bib record by global auth administrator == 403
+    res = client.delete(f'{API}/marc/bibs/records/4', headers={"Authorization": f"Basic {auth_admin_credentials}"})
+    assert res.status_code == 403
+
     # DELETE GE bib record by glbal auth administrator == 403
+    res = client.delete(f'{API}/marc/bibs/records/5', headers={"Authorization": f"Basic {auth_admin_credentials}"})
+    assert res.status_code == 403
+
     # DELETE NY auth record by global bib administrator == 403
+    res = client.delete(f'{API}/marc/auths/records/4', headers={"Authorization": f"Basic {bib_admin_credentials}"})
+    assert res.status_code == 403
+
     # DELETE GE auth record by global bib administrator == 403
+    res = client.delete(f'{API}/marc/auths/records/5', headers={"Authorization": f"Basic {bib_admin_credentials}"})
+    assert res.status_code == 403
+
+
+    # DELETE NY bib record by global bib administrator == 204
+    res = client.delete(f'{API}/marc/bibs/records/4', headers={"Authorization": f"Basic {bib_admin_credentials}"})
+    assert res.status_code == 204
+
+    # DELETE GE bib record by glbal bib administrator == 204
+    res = client.delete(f'{API}/marc/bibs/records/5', headers={"Authorization": f"Basic {bib_admin_credentials}"})
+    assert res.status_code == 204
+
+    # The rest of these should be unnecessary
+    # DELETE NY auth record by global auth administrator == 200
+    # DELETE GE auth record by global auth administrator == 200
+  
+def test_api_record_delete_location_admin(client, marc, default_users):
+    # NY bib administrator
+    username = default_users['bib-NY-admin']['email']
+    password = default_users['bib-NY-admin']['password']
+    bib_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # NY auth administrator
+    username = default_users['auth-NY-admin']['email']
+    password = default_users['auth-NY-admin']['password']
+    auth_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # DELETE NY bib record by NY bib administrator == 200
+    res = client.delete(f'{API}/marc/bibs/records/4', headers={"Authorization": f"Basic {bib_NY_admin_credentials}"})
+    assert res.status_code == 204
+
     # DELETE GE bib record by NY bib administrator == 403
+    res = client.delete(f'{API}/marc/bibs/records/5', headers={"Authorization": f"Basic {bib_NY_admin_credentials}"})
+    assert res.status_code == 403
+
     # DELETE NY auth record by NY auth administrator == 200
+    res = client.delete(f'{API}/marc/auths/records/4', headers={"Authorization": f"Basic {auth_NY_admin_credentials}"})
+    assert res.status_code == 204
+
     # DELETE GE auth record by NY auth administrator == 403
-
-    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.      
-
-
-    # delete
-    res = client.delete(f'{API}/marc/bibs/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
-    assert res.status_code == 204
-    
-    print(Auth.from_id(2).in_use())
-    
-    res = client.delete(f'{API}/marc/auths/records/2', headers={"Authorization": f"Basic {admin_credentials}"})
-    assert res.status_code == 403 # auth in use
-    
-    res = client.delete(f'{API}/marc/auths/records/1', headers={"Authorization": f"Basic {admin_credentials}"})
-    assert res.status_code == 204
+    res = client.delete(f'{API}/marc/auths/records/5', headers={"Authorization": f"Basic {auth_NY_admin_credentials}"})
+    assert res.status_code == 403
              
 def test_api_record_fields_list(client, marc):
     for col in ('bibs', 'auths'):
