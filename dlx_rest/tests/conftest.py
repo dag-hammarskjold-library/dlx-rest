@@ -183,7 +183,7 @@ def users(roles, default_users):
 @pytest.fixture
 def marc():
     '''
-    To do: Create default bibs, auths, and templates with location data for location-based permissions testing.
+    To do: Create default templates with location data for location-based permissions testing.
     '''
     auths = []
     for i in range(1, 3):
@@ -200,6 +200,14 @@ def marc():
     nyAuth.commit()
 
     auths.append(nyAuth)
+
+    geAuth = Auth()
+    geAuth.id = 5
+    geAuth.set('100', 'a', 'Geneva Auth Record')
+    geAuth.set('040', 'a', 'SzGeBNU')
+    geAuth.commit()
+
+    auths.append(geAuth)
     
     bibs = []
     
@@ -217,6 +225,14 @@ def marc():
     nyBib.commit()
 
     bibs.append(nyBib)
+
+    geBib = Bib()
+    geBib.id = 5
+    geBib.set('245', 'a', 'Geneva Bib Record')
+    geBib.set('040', 'a', 'SzGeBNU')
+    geBib.commit()
+
+    bibs.append(geBib)
 
     # templates
     for col in ('bibs', 'auths'):
