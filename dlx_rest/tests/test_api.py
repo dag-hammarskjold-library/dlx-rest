@@ -525,8 +525,13 @@ def test_api_lookup_field(client, marc):
     data = check_response(res)
     assert data['_meta']['returns'] == f'{API}/schemas/jmarc.batch'
     
+    # Reorganized to exclude location-based bibs, which don't have linked authorities
     for r in marc['auths']:
-        assert r.to_dict() in data['data']
+        r_dict = r.to_dict()
+        try:
+            loc = r_dict['040']
+        except KeyError:
+            assert r_dict in data['data']
         
 def test_api_lookup_map(client, marc):
     for col in ('bibs', 'auths'):
