@@ -3,12 +3,10 @@ from email.policy import default
 import re
 import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
-from flask_login import LoginManager, current_user, login_user, login_required, logout_user
-from mongoengine import connect, disconnect
+from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
-from mongoengine.errors import DoesNotExist
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
 from dlx.file.s3 import S3
 from dlx import DB
@@ -16,7 +14,7 @@ from dlx import DB
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, requires_permission, register_permission
+from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, requires_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 

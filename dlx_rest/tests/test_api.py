@@ -479,8 +479,13 @@ def test_api_record_fields_list(client, marc):
             data = check_response(res)
             assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
-def test_api_record_field_place_list(client, marc):
+def test_api_record_field_place_list(client, marc, default_users):
     # Requires permissions
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -494,16 +499,21 @@ def test_api_record_field_place_list(client, marc):
         if col == 'bibs':    
             field = Datafield(record_type="bib", tag="245")
             field.set("a", "Edited")
-            res = client.post(f'{API}/marc/{col}/records/1/fields/245', data=field.to_json())
+            res = client.post(f'{API}/marc/{col}/records/1/fields/245', data=field.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
         else:
             field = Datafield(record_type="auth", tag="100")
             field.set("a", "Heading 2")
-            res = client.post(f'{API}/marc/{col}/records/1/fields/100', data=field.to_json())
+            res = client.post(f'{API}/marc/{col}/records/1/fields/100', data=field.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
             
         assert res.status_code == 201
 
-def test_api_record_field_place(client, marc):
+def test_api_record_field_place(client, marc, default_users):
     # Requires permissions
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -517,19 +527,19 @@ def test_api_record_field_place(client, marc):
         if col == 'bibs':    
             field = Datafield(record_type="bib", tag="245")
             field.set("a", "Edited")
-            res = client.put(f'{API}/marc/{col}/records/1/fields/245/0', data=field.to_json())
+            res = client.put(f'{API}/marc/{col}/records/1/fields/245/0', data=field.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
         else:
             field = Datafield(record_type="auth", tag="100")
             field.set("a", "Heading 2")
-            res = client.put(f'{API}/marc/{col}/records/1/fields/100/0', data=field.to_json())
+            res = client.put(f'{API}/marc/{col}/records/1/fields/100/0', data=field.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
             
         assert res.status_code == 200
         
     # delete
-    res = client.delete(f'{API}/marc/bibs/records/1/fields/245/0')
+    res = client.delete(f'{API}/marc/bibs/records/1/fields/245/0', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 204
     
-    res = client.delete(f'{API}/marc/auths/records/1/fields/100/0')
+    res = client.delete(f'{API}/marc/auths/records/1/fields/100/0', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 204
                 
 def test_api_record_field_place_subfield_list(client, marc):
@@ -656,9 +666,14 @@ def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3?action=open')
     assert res.status_code == 200
 
-def test_api_auth_merge(client, marc):
+def test_api_auth_merge(client, marc, default_users):
     # Requires pemissions
-    res = client.get(f'{API}/marc/auths/records/1/merge?target=2')
+    # Global administrator
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    res = client.get(f'{API}/marc/auths/records/1/merge?target=2', headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 200
     
     res = client.get(f'{API}/marc/auths/records/2')

@@ -48,10 +48,7 @@ def request_loader(request):
     auth_header = request.headers.get('Authorization')
     #print(f"Auth header: {auth_header}")
     if not auth_header:
-        if current_user is not None:
-            return current_user
-        else:
-            return None
+        return None
 
     if 'Bearer ' in auth_header:
         # Try a token first
@@ -318,8 +315,8 @@ class RecordsList(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
     
-        user = request_loader(request)
-        print(user)
+        user = current_user if request_loader(request) is None else request_loader(request)
+        
 
         if args.format == 'mrk':
             
@@ -539,8 +536,8 @@ class Record(Resource):
     def put(self, collection, record_id):
         #user = 'testing' if current_user.is_anonymous else current_user.email
         #print(user)
-        user = request_loader(request)
-        print(user)
+        user = current_user if request_loader(request) is None else request_loader(request)
+        #print(user)
         #print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
@@ -582,7 +579,7 @@ class Record(Resource):
     def delete(self, collection, record_id):
         #user = 'testing' if current_user.is_anonymous else current_user.email
 
-        user = request_loader(request)
+        user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
@@ -705,7 +702,9 @@ class RecordFieldPlaceList(Resource):
     @ns.doc(description='Create new field with the given tag', security='basic')
     @login_required
     def post(self, collection, record_id, field_tag):
-        user = 'testing' if current_user.is_anonymous else current_user.email
+        #user = 'testing' if current_user.is_anonymous else current_user.email
+
+        user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
@@ -736,7 +735,7 @@ class RecordFieldPlaceList(Resource):
         if not has_permission(user, "updateRecord", record, collection):
             abort(403, f'The current user is not authorized to perform this action.')
 
-        result = record.commit(user=user)
+        result = record.commit(user=user.email)
         
         if result:
             url = URL(
@@ -786,7 +785,8 @@ class RecordFieldPlace(Resource):
     @ns.doc(description='Replace the field with the given tag at the given place', security='basic')
     @login_required
     def put(self, collection, record_id, field_tag, field_place):
-        user = f'testing' if current_user.is_anonymous else current_user.email
+        #user = f'testing' if current_user.is_anonymous else current_user.email
+        user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
@@ -811,7 +811,7 @@ class RecordFieldPlace(Resource):
             if not has_permission(user, "updateRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
-            result = cls(record_data, auth_control=True).commit()
+            result = cls(record_data, auth_control=True).commit(user=user.email)
         except Exception as e:
             abort(400, str(e))
 
@@ -831,7 +831,9 @@ class RecordFieldPlace(Resource):
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
     def delete(self, collection, record_id, field_tag, field_place):
-        user = f'testing' if current_user.is_anonymous else current_user.email
+        #user = f'testing' if current_user.is_anonymous else current_user.email
+
+        user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
@@ -842,7 +844,7 @@ class RecordFieldPlace(Resource):
         
         record.delete_field(field_tag, place=field_place)
         
-        if record.commit(user=user):
+        if record.commit(user=user.email):
             return Response(status=204)
         else:
             abort(500, 'DELETE request failed for unknown reasons')
