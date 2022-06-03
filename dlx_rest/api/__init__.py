@@ -48,7 +48,7 @@ def request_loader(request):
     auth_header = request.headers.get('Authorization')
     #print(f"Auth header: {auth_header}")
     if not auth_header:
-        return None
+        return current_user
 
     if 'Bearer ' in auth_header:
         # Try a token first
