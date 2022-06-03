@@ -159,6 +159,10 @@ def roles(permissions):
         coll_admin.permissions = coll_perms
         coll_admin.save()
 
+    # TO DO: Add these to commands.py under init-roles
+    # Local Indexer
+
+    # Local Indexing Assistant
     
         
     return Role

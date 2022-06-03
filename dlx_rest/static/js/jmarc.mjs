@@ -465,11 +465,7 @@ export class Jmarc {
 				return this;
 			}
 		).catch(
-		    error => {
-		        throw error
-		    }
-		).catch(
-			error => console.error(error)
+		    error => { throw new Error(error) }
 		)
 	}
 
@@ -510,7 +506,7 @@ export class Jmarc {
 				return this;
 			} 
 		).catch(
-			error => console.error(error)
+			 error => { throw new Error(error) }
 		)
 	}
 	
@@ -544,7 +540,8 @@ export class Jmarc {
 				throw new Error(check['message'])
 			}
 		).catch(
-			error => console.error(error)
+			// error => console.error(error)
+			error => { throw new Error(error) }
 		)
 	}
 
