@@ -471,7 +471,7 @@ def test_api_record_delete_location_admin(client, marc, default_users):
     # DELETE GE auth record by NY auth administrator == 403
     res = client.delete(f'{API}/marc/auths/records/5', headers={"Authorization": f"Basic {auth_NY_admin_credentials}"})
     assert res.status_code == 403
-             
+
 def test_api_record_fields_list(client, marc):
     for col in ('bibs', 'auths'):
         for i in (1, 2):
@@ -480,6 +480,7 @@ def test_api_record_fields_list(client, marc):
             assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
 
 def test_api_record_field_place_list(client, marc):
+    # Requires permissions
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -502,6 +503,7 @@ def test_api_record_field_place_list(client, marc):
         assert res.status_code == 201
 
 def test_api_record_field_place(client, marc):
+    # Requires permissions
     for col in ('bibs', 'auths'):
         tags = ['245', '700'] if col == 'bibs' else ['100']
         
@@ -610,6 +612,7 @@ def test_api_record_history(client, marc):
         assert data['_meta']['returns'] == f'{API}/schemas/jmarc'
 
 def test_api_workform_list(client, marc):
+    # Requires permissions
     for col in ('bibs', 'auths'):
         # get
         res = client.get(f'{API}/marc/bibs/workforms')
@@ -626,6 +629,7 @@ def test_api_workform_list(client, marc):
         assert res.status_code == 201
         
 def test_api_workform(client, marc):
+    # Requires permissions
     for col in ('bibs', 'auths'):
         # get
         res = client.get(f'{API}/marc/bibs/workforms/test') # from marc fixture
@@ -653,6 +657,7 @@ def test_api_file(client, files):
     assert res.status_code == 200
 
 def test_api_auth_merge(client, marc):
+    # Requires pemissions
     res = client.get(f'{API}/marc/auths/records/1/merge?target=2')
     assert res.status_code == 200
     

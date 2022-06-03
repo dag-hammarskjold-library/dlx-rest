@@ -48,7 +48,10 @@ def request_loader(request):
     auth_header = request.headers.get('Authorization')
     #print(f"Auth header: {auth_header}")
     if not auth_header:
-        return current_user
+        if current_user is not None:
+            return current_user
+        else:
+            return None
 
     if 'Bearer ' in auth_header:
         # Try a token first
@@ -730,9 +733,8 @@ class RecordFieldPlaceList(Resource):
             print(record.to_dict())
             abort(400, str(e))
 
-        # There are no createField permissions 
-        #if not has_permission(user, "createField", record, collection):
-        #    abort(403, f'The current user is not authorized to perform this action.')
+        if not has_permission(user, "updateRecord", record, collection):
+            abort(403, f'The current user is not authorized to perform this action.')
 
         result = record.commit(user=user)
         
@@ -806,9 +808,8 @@ class RecordFieldPlace(Resource):
             record_data.setdefault(field_tag, [])
             record_data[field_tag][field_place] = field_data
 
-            # There is no updateField permission; also an abort(403) nested in an abort(400) only returns the 400.
-            #if not has_permission(user, "updateField", record, collection):
-            #    abort(403, f'The current user is not authorized to perform this action.')
+            if not has_permission(user, "updateRecord", record, collection):
+                abort(403, f'The current user is not authorized to perform this action.')
 
             result = cls(record_data, auth_control=True).commit()
         except Exception as e:
@@ -836,9 +837,8 @@ class RecordFieldPlace(Resource):
         record = cls.from_id(record_id) or abort(404)
         record.get_field(field_tag, place=field_place) or abort(404)
 
-        # There is no deleteField permission
-        #if not has_permission(user, "deleteField", record, collection):
-        #    abort(403, f'The current user is not authorized to perform this action.')
+        if not has_permission(user, "updateRecord", record, collection):
+            abort(403, f'The current user is not authorized to perform this action.')
         
         record.delete_field(field_tag, place=field_place)
         
