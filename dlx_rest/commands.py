@@ -105,6 +105,21 @@ def init_roles():
         coll_admin.permissions = coll_perms
         coll_admin.save()    
 
+    # Local Indexer - Not admin
+    # NY
+    coll_perms = []
+    for action in ["create", "read", "update", "delete"]:
+        ny_permission = Permission(
+            action=f'{action}Record', 
+            constraint_must=[f'bibs|040|a|NNUN'], 
+            constraint_must_not=[f'biba|999|c|t'])
+        ny_permission.save()
+        coll_perms.append(ny_permission)
+    # collection role
+    coll_admin = Role(name=f'bibs-NY-indexer')
+    coll_admin.permissions = coll_perms
+    coll_admin.save()
+
     # Resetting previously existing roles
     for r in user_roles:
         this_u = User.objects.get(email=r["email"])

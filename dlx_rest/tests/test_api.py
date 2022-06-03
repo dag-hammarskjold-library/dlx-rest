@@ -251,27 +251,6 @@ def test_api_record(client, marc, default_users):
     password = default_users['admin']['password']
     admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
-    # global bib administrator
-    username = default_users['bib-admin']['email']
-    password = default_users['bib-admin']['password']
-    bib_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
-
-    # global auth administrator
-    username = default_users['auth-admin']['email']
-    password = default_users['auth-admin']['password']
-    auth_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
-
-    # NY bib administrator
-    username = default_users['bib-NY-admin']['email']
-    password = default_users['bib-NY-admin']['password']
-    bib_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
-
-    # NY auth administrator
-    username = default_users['auth-NY-admin']['email']
-    password = default_users['auth-NY-admin']['password']
-    auth_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
-
-    
     bib = ClassDispatch.by_collection('bibs')
     nyBib = bib.from_id(4)
     geBib = bib.from_id(5)
@@ -299,6 +278,27 @@ def test_api_record(client, marc, default_users):
     geAuth.set('100', 'a', 'Updated GE Heading by Global Admin')
     res = client.put(f'{API}/marc/auths/records/5', data=geAuth.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 200
+
+def test_api_record_update_collection_admin(client, marc, default_users):
+    from dlx_rest.api.utils import ClassDispatch
+
+    # global bib administrator
+    username = default_users['bib-admin']['email']
+    password = default_users['bib-admin']['password']
+    bib_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # global auth administrator
+    username = default_users['auth-admin']['email']
+    password = default_users['auth-admin']['password']
+    auth_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    bib = ClassDispatch.by_collection('bibs')
+    nyBib = bib.from_id(4)
+    geBib = bib.from_id(5)
+
+    auth = ClassDispatch.by_collection('auths')
+    nyAuth = auth.from_id(4)
+    geAuth = auth.from_id(5)
 
     # PUT NY bib record by global bib administrator == 200
     nyBib.set('245', 'a', 'Updated NY Title by Global Bib Admin')
@@ -340,6 +340,27 @@ def test_api_record(client, marc, default_users):
     res = client.put(f'{API}/marc/auths/records/5', data=geAuth.to_json(), headers={"Authorization": f"Basic {bib_admin_credentials}"})
     assert res.status_code == 403
 
+def test_api_record_update_local_admin(client, marc, default_users):
+    from dlx_rest.api.utils import ClassDispatch
+
+    # NY bib administrator
+    username = default_users['bib-NY-admin']['email']
+    password = default_users['bib-NY-admin']['password']
+    bib_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # NY auth administrator
+    username = default_users['auth-NY-admin']['email']
+    password = default_users['auth-NY-admin']['password']
+    auth_NY_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    bib = ClassDispatch.by_collection('bibs')
+    nyBib = bib.from_id(4)
+    geBib = bib.from_id(5)
+
+    auth = ClassDispatch.by_collection('auths')
+    nyAuth = auth.from_id(4)
+    geAuth = auth.from_id(5)
+
     # PUT NY bib record by NY bib administrator == 200
     nyBib.set('245', 'a', 'Updated NY Title by NY Bib Admin')
     res = client.put(f'{API}/marc/bibs/records/4', data=nyBib.to_json(), headers={"Authorization": f"Basic {bib_NY_admin_credentials}"})
@@ -362,23 +383,30 @@ def test_api_record(client, marc, default_users):
 
     # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.          
 
-    # These can now be properly authenticated
-    if col == 'bibs':    
-        cls = Bib
-        bib = Bib()
-        bib.id = 1
-        bib.set('245', 'a', 'Title')
-        res = client.put(f'{API}/marc/{col}/records/{bib.id}', data=bib.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
-    else:
-        cls = Auth
-        auth = Auth()
-        auth.id = 1
-        auth.set('100', 'a', 'Heading 2')
-        res = client.put(f'{API}/marc/{col}/records/{auth.id}', data=auth.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
-        
-    assert res.status_code == 200
+def test_api_bib_update_delete_local_indexer(client, marc, default_users):
+    from dlx_rest.api.utils import ClassDispatch
 
-    # Other tests to be developed: Roles that can POST and PUT but not DELETE; roles that have permissions with must_not constraints.      
+    # global bib administrator
+    username = default_users['bib-admin']['email']
+    password = default_users['bib-admin']['password']
+    bib_admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # NY bib indexer
+    username = default_users['bib-NY-indexer']['email']
+    password = default_users['bib-NY-indexer']['password']
+    bib_NY_indexer_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    bib = ClassDispatch.by_collection('bibs')
+    nyBib = bib.from_id(4)
+
+    # Main thing to test here is whether we can update records that are "locked" by the ITP admin.
+    nyBib.set('999', 'c', 't')
+    res = client.put(f'{API}/marc/bibs/records/4', data=nyBib.to_json(), headers={"Authorization": f"Basic {bib_admin_credentials}"})
+
+    # == 403
+    nyBib.set('245', 'a', 'Title updated by NY bib indexer')
+    res = client.put(f'{API}/marc/bibs/records/4', data=nyBib.to_json(), headers={"Authorization": f"Basic {bib_NY_indexer_credentials}"})
+    assert res.status_code == 403
 
 def test_api_record_delete_global_admin(client, marc, default_users):
     # Global administrator

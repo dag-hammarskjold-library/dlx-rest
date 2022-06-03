@@ -72,6 +72,11 @@ def default_users():
             'password': 'password',
             'role': 'auths-GE-admin'
         },
+        'bib-NY-indexer': {
+            'email': 'bib_ny_indexer@un.org',
+            'password': 'password',
+            'role': 'bibs-NY-indexer'
+        },
 
         # Once we have file tests and location data ready, we can enable these users
         #'file-NY-admin': {
@@ -160,7 +165,20 @@ def roles(permissions):
         coll_admin.save()
 
     # TO DO: Add these to commands.py under init-roles
-    # Local Indexer
+    # Local Indexer - Not admin
+    # NY
+    coll_perms = []
+    for action in ["create", "read", "update", "delete"]:
+        ny_permission = Permission(
+            action=f'{action}Record', 
+            constraint_must=[f'bibs|040|a|NNUN'], 
+            constraint_must_not=[f'biba|999|c|t'])
+        ny_permission.save()
+        coll_perms.append(ny_permission)
+    # collection role
+    coll_admin = Role(name=f'bibs-NY-indexer')
+    coll_admin.permissions = coll_perms
+    coll_admin.save()
 
     # Local Indexing Assistant
     

@@ -231,6 +231,12 @@ def item_locked(collection, record_id):
 
     return {"locked": False}
 
+'''
+This is a first draft of a granular permission adjudication system. 
+It needs REVIEW and probably refactoring, in part because it probably 
+doesn't account for all of the possible interactions between collection 
+and field/subfield/value permission sets.
+'''
 def has_permission(user, action, record, collection):
     bool_list = []
     if hasattr(user, 'roles'):
@@ -252,7 +258,13 @@ def has_permission(user, action, record, collection):
                                 else:
                                     bool_list.append("F")
                     for cmn in perm.constraint_must_not:
-                        pass
+                        constraint = parse_constraint(cmn)
+                        if "field" in constraint:
+                            these_values = record.get_values(constraint["field"], constraint["subfield"])
+                            # should we also be comparing the collection?
+                            if constraint["value"] in these_values:
+                                # We can't modify records that have this data in them
+                                bool_list.append("F")
             else:
                 bool_list.append("F")
     else:
