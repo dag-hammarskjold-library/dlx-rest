@@ -487,7 +487,7 @@ def search_records_old(coll):
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
     # register the permission, but don't require it yet, TBI
-    register_permission('updateRecord')
+    #register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
