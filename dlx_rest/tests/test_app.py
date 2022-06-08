@@ -40,6 +40,7 @@ def test_login(client, default_users):
     user = default_users['invalid']
     rv = login(client, user['email'], user['password'])
     assert rv.status_code == 200
+    print(rv.data)
     assert b'Invalid username or password' in rv.data
 
 def test_logout(client):
@@ -342,10 +343,7 @@ def test_delete_role(client, default_users):
     assert len(role) == 0
 
 '''
-Because the permissions aren't directly accessible/manageable from the UI, they
-are not tested here from a CRUD perspective. Ideally we should be testing the 
-creation of permissions when the system initializes, as well as the effect of 
-assigning and unassigning permissions.
+Next: Add tests to manage permissions
 '''
 
 # Test search listings sort ascending/descending

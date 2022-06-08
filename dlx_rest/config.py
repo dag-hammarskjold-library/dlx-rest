@@ -15,6 +15,12 @@ class Config(object):
         LOGIN_DISABLED = True
         dbname = 'dlx'
         sync_log_collection = 'sync_log'
+    elif 'DLX_REST_LOCAL' in os.environ:
+        environment = 'dev'
+        connect_string = "mongodb://localhost:27017/?authSource=undlFiles"
+        dbname = 'undlFiles'
+        sync_log_collection = 'sync_log'
+        bucket = 'dev-undl-files'
     elif 'DLX_REST_DEV' in os.environ:
         environment = 'dev'
         client = boto3.client('ssm')

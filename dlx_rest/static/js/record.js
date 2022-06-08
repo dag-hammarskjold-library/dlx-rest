@@ -162,13 +162,15 @@ export let multiplemarcrecordcomponent = {
  
         user.getProfile(this.prefix, 'my_profile').then(
             myProfile => {
-                this.user = myProfile.data.email;
+                if (myProfile != null) {
+                    this.user = myProfile.data.email;
 
-                this.myDefaultViews = myProfile.data.default_views
-                
-                basket.getBasket(this.prefix).then(
-                    myBasket => this.myBasket = myBasket
-                )                
+                    this.myDefaultViews = myProfile.data.default_views
+                    
+                    basket.getBasket(this.prefix).then(
+                        myBasket => this.myBasket = myBasket
+                    )        
+                }   
             }
         ).then( () => {
             // the "records" param from the URL
@@ -295,12 +297,13 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
                 });
             } else if (! jmarc.saved) {
+
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
                 
                 jmarc.saveButton.classList.add("fa-spinner");
                 jmarc.saveButton.style = "pointer-events: none";
  
-                promise.then(jmarc => {
+                promise.then(returnedJmarc => {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -1521,6 +1524,7 @@ export let multiplemarcrecordcomponent = {
                     controlButton.type = "button";
                     controlButton.className = `${control["class"]} float-left p-1 record-control`;
                     controlButton.title = control["title"];
+                    jmarc[control["name"]] = controlButton;
                     if (control["param"]) {
                         controlButton.onclick = () => {
                             this[control["click"]](control["param"]) 
@@ -1541,7 +1545,7 @@ export let multiplemarcrecordcomponent = {
                             this[control["click"]](jmarc) 
                         }
                     }
-                    jmarc[control["name"]] = controlButton;
+                    
                } else {
                     if (jmarc.workformName) {
                         controlButton.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;

@@ -3,12 +3,10 @@ from email.policy import default
 import re
 import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
-from flask_login import LoginManager, current_user, login_user, login_required, logout_user
-from mongoengine import connect, disconnect
+from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import json, requests
-from mongoengine.errors import DoesNotExist
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
 from dlx.file.s3 import S3
 from dlx import DB
@@ -16,7 +14,7 @@ from dlx import DB
 #Local app imports
 from dlx_rest.app import app, login_manager
 from dlx_rest.config import Config
-from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, requires_permission, register_permission
+from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, requires_permission
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
@@ -110,13 +108,13 @@ def logout():
 # Admin section
 @app.route('/admin')
 @login_required
-@requires_permission(register_permission('readAdmin'))
+@requires_permission('readAdmin')
 def admin_index():
     return render_template('admin/index.html', title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
-@requires_permission(register_permission('readSync'))
+@requires_permission('readSync')
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
@@ -125,14 +123,14 @@ def get_sync_log():
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
 @login_required
-@requires_permission(register_permission('readUser'))
+@requires_permission('readUser')
 def list_users():
     users = User.objects
     return render_template('admin/users.html', title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
-@requires_permission(register_permission('createUser'))
+@requires_permission('createUser')
 def create_user():
     # To do: add a create user form; separate GET and POST
     form = CreateUserForm()
@@ -171,7 +169,7 @@ def create_user():
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
-@requires_permission(register_permission('updateUser'))
+@requires_permission('updateUser')
 def update_user(id):
     try:
         user = User.objects.get(id=id)
@@ -221,7 +219,7 @@ def update_user(id):
 
 @app.route('/admin/users/<id>/delete')
 @login_required
-@requires_permission(register_permission('deleteUser'))
+@requires_permission('deleteUser')
 def delete_user(id):
     user = User.objects.get(id=id)
     if user:
@@ -235,17 +233,17 @@ def delete_user(id):
 '''Roles and permissions admin'''
 @app.route('/admin/roles', methods=['GET'])
 @login_required
-@requires_permission(register_permission('readRole'))
+@requires_permission('readRole')
 def get_roles():
     roles = Role.objects
     return render_template('admin/roles.html', title="Roles", roles=roles)
 
 @app.route('/admin/roles/new', methods=['GET', 'POST'])
 @login_required
-@requires_permission(register_permission('createRole'))
+@requires_permission('createRole')
 def create_role():
     form = CreateRoleForm()
-    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
+    form.permissions.choices = [(p.id, f'{p.action} + {p.constraint_must} - {p.constraint_must_not}') for p in Permission.objects()]
     if request.method == 'POST':
         name = request.form.get('name')
         permissions = request.form.getlist('permissions')
@@ -273,7 +271,7 @@ def create_role():
 
 @app.route('/admin/roles/<id>', methods=['GET', 'POST'])
 @login_required
-@requires_permission(register_permission('updateRole'))
+@requires_permission('updateRole')
 def update_role(id):
     try:
         role = Role.objects.get(name=id)
@@ -282,8 +280,8 @@ def update_role(id):
         return redirect(url_for('list_rolees'))
 
     form = UpdateRoleForm()
-    form.permissions.choices = [(p.action, p.action) for p in Permission.objects()]
-    form.permissions.process_data([p.action for p in role.permissions])
+    form.permissions.choices = [(p.id, f'{p.action} + {p.constraint_must} - {p.constraint_must_not}') for p in Permission.objects()]
+    form.permissions.process_data([p.id for p in role.permissions])
 
     if request.method == 'POST':
         role = Role.objects.get(name=id)
@@ -312,7 +310,7 @@ def update_role(id):
 
 @app.route('/admin/roles/<id>/delete')
 @login_required
-@requires_permission(register_permission('deleteRole'))
+@requires_permission('deleteRole')
 def delete_role(id):
     role = Role.objects.get(name=id)
     if role:
@@ -487,7 +485,7 @@ def search_records_old(coll):
 @app.route('/records/<coll>/<id>', methods=['GET'])
 def get_record_by_id(coll,id):
     # register the permission, but don't require it yet, TBI
-    register_permission('updateRecord')
+    #register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
     return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
 
@@ -499,12 +497,14 @@ def create_record(coll):
 
 @app.route('/files')
 @login_required
+@requires_permission('readFile')
 def upload_files():
     return render_template('process_files.html')
 
 
 @app.route('/files/process', methods=["POST"])
 @login_required
+@requires_permission('createFile')
 def process_files():
 
     DB.connect(Config.connect_string)
@@ -588,6 +588,7 @@ def process_files():
 
 @app.route('/files/search')
 @login_required
+@requires_permission('readFile')
 def search_files():
     baseURL = url_for('doc', _external=True)
     #this_prefix = baseURL.replace("/api/", url_for('files_results'))
@@ -597,6 +598,7 @@ def search_files():
 
 @app.route('/files/update/results', methods=['GET', 'POST'])
 @login_required
+@requires_permission('readFile')
 def files_results():
     text = request.form.get('text')
     option = request.form.get('exact')
@@ -659,6 +661,7 @@ def process_text(text, option):
 
 @app.route('/files/update', methods=['POST'])
 @login_required
+@requires_permission('updateFile')
 def update_file():
     """
     Updates the file entry based on record id

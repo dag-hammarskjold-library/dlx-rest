@@ -19,7 +19,6 @@ def create_user(email):
     try:
         user = User(email=email)
         user.set_password(my_password)
-        user.add_role_by_name('user')
         user.save()
         print(f"User {email} has been created. Password: {my_password}")
         print("Copy the password from here, because this is the only time it will be displayed.")
@@ -33,8 +32,6 @@ def make_admin(email):
         user = User.objects.get(email=email)
 
         user.roles = []
-        # All users should start with this role.
-        user.add_role_by_name('user')
         # But only admins should have this one.
         user.add_role_by_name('admin')
         user.save()
@@ -43,6 +40,7 @@ def make_admin(email):
 
 @app.cli.command('init-roles')
 def init_roles():
+    pass
     print("Collecting existing user roles.")
     user_roles = []
     for user in User.objects():
@@ -50,42 +48,80 @@ def init_roles():
         user_role = {'email': user.email, 'roles': []}
         if len(user.roles) > 0:
             for role in user.roles:
-                user_role['roles'].append(role.name)
-        else:
-            user_role['roles'].append('user')
-        if 'user' not in user_role['roles']:
-            user_role['roles'].append('user')
+                user_role['roles'].append(role)
         user_roles.append(user_role)
 
 
     print("Dropping Role and Permission collections.")
     Permission.drop_collection()
     Role.drop_collection()
-    print("Setting up admin role.")
-    r = Role(name='admin')
-    for p in ['readAdmin', 'createUser', 'readUser', 'updateUser', 'deleteUser']:
-        this_p = Permission(action=p)
-        this_p.save()
-    for p in Permission.objects:
-        r.permissions.append(p)
-    r.save()
 
-    print("Setting up user role.")
-    r = Role(name='user')
-    r.permissions = []
-    r.save()
+    # basic admin permissions
+    admin_permissions = []
+    for action in ["create", "read", "update", "delete"]:
+        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User", "View"]:
+            this_permission = Permission(action=f'{action}{comp}')
+            this_permission.save()
+            admin_permissions.append(this_permission)
+    
+    admin_role = Role(name="admin")
+    admin_role.permissions = admin_permissions
+    admin_role.save()
 
-    print("Resetting roles for existing users.")
-    for user_role in user_roles:
-        user = User.objects.get(email=user_role['email'])
-        user.roles = []
-        user.save()
-        user.reload()
-        for role in user_role['roles']:
-            user.add_role_by_name(role)
-        user.save()
+    # Collection admins
+    for coll in ["bibs", "auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
+            this_permission.save()
+            coll_perms.append(this_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
 
-    print('''
-Done. If none of the original users were admin users, you should use the make-admin 
-command to associate at least one user with an admin account.
-    ''')
+    # Location based collection admins
+    # NY
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ny_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|NNUN'])
+            ny_permission.save()
+            coll_perms.append(ny_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-NY-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    # GE
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ge_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|SzGeBNU'])
+            ge_permission.save()
+            coll_perms.append(ge_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-GE-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()    
+
+    # Local Indexer - Not admin
+    # NY
+    coll_perms = []
+    for action in ["create", "read", "update", "delete"]:
+        ny_permission = Permission(
+            action=f'{action}Record', 
+            constraint_must=[f'bibs|040|a|NNUN'], 
+            constraint_must_not=[f'biba|999|c|t'])
+        ny_permission.save()
+        coll_perms.append(ny_permission)
+    # collection role
+    coll_admin = Role(name=f'bibs-NY-indexer')
+    coll_admin.permissions = coll_perms
+    coll_admin.save()
+
+    # Resetting previously existing roles
+    for r in user_roles:
+        this_u = User.objects.get(email=r["email"])
+        this_u.roles = r["roles"]
+        this_u.save()
