@@ -17,10 +17,22 @@
 
     <!-- Font awesome link -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
-
+    
     <!-- Vue JS CDN -->
+    <!--
     <script src="https://unpkg.com/vue@^2"></script>
-    <script src="https://unpkg.com/vuex"></script>
+    <script src="https://unpkg.com/vuex"></script>  
+    -->
+
+    <!-- Vue local source -->
+    <script src="{{url_for('static', filename='js/vue/vue2.js')}}"></script>
+    <script src="{{url_for('static', filename='js/vue/vuex.js')}}"></script>
+
+    <!-- jQuery 3 -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+    <!-- Bootstrap local source -->
+    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
 
     <style>
         .bd-placeholder-img {
@@ -38,9 +50,6 @@
             }
         }
     </style>
-
-    <!-- jQuery 3 -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 
 <body class="d-flex flex-column h-100">
@@ -109,7 +118,6 @@
 
 
     </main>
-    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
 </body>
 
 </html>
