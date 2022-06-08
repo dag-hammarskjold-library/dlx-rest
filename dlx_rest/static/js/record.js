@@ -162,14 +162,15 @@ export let multiplemarcrecordcomponent = {
  
         user.getProfile(this.prefix, 'my_profile').then(
             myProfile => {
-                this.user = myProfile.data.email;
-                console.log(this.user)
+                if (myProfile != null) {
+                    this.user = myProfile.data.email;
 
-                this.myDefaultViews = myProfile.data.default_views
-                
-                basket.getBasket(this.prefix).then(
-                    myBasket => this.myBasket = myBasket
-                )                
+                    this.myDefaultViews = myProfile.data.default_views
+                    
+                    basket.getBasket(this.prefix).then(
+                        myBasket => this.myBasket = myBasket
+                    )        
+                }   
             }
         ).then( () => {
             // the "records" param from the URL
