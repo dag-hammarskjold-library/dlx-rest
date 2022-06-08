@@ -122,6 +122,11 @@ def roles(permissions):
             this_permission = Permission(action=f'{action}{comp}')
             this_permission.save()
             admin_permissions.append(this_permission)
+
+    # Special case that doesn't fit the above
+    merge_auth = Permission(action="mergeAuthority")
+    merge_auth.save()
+    admin_permissions.append(merge_auth)
     
     admin_role = Role(name="admin")
     admin_role.permissions = admin_permissions
@@ -134,6 +139,10 @@ def roles(permissions):
             this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
             this_permission.save()
             coll_perms.append(this_permission)
+        if coll == "auths":
+            merge_auth = Permission(action="mergeAuthority", constraint_must=["auths"])
+            merge_auth.save()
+            coll_perms.append(merge_auth)
         # collection role
         coll_admin = Role(name=f'{coll}-admin')
         coll_admin.permissions = coll_perms
