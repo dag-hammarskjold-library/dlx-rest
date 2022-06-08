@@ -1,4 +1,5 @@
 import os
+
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
@@ -10,6 +11,8 @@ from dlx.file import File, Identifier, S3
 from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
+
+print(Config.connect_string)
 
 assert Config.TESTING == True
 assert Config.connect_string == 'mongomock://localhost'
@@ -24,8 +27,7 @@ def default_users():
         },
         'non-admin': {
             'email':'user@un.org',
-            'password': 'password',
-            'role': 'user'
+            'password': 'password'
         },
         'invalid': {
             'email':'invalid@un.org',
@@ -33,11 +35,62 @@ def default_users():
         },
         'new': {
             'email': 'new_test_user@un.org',
+            'password': 'password'
+        },
+        'bib-admin': {
+            'email': 'bib_admin@un.org',
             'password': 'password',
-            'role': 'user'
-        }
-    }
+            'role': 'bibs-admin'
+        },
+        'auth-admin': {
+            'email': 'auth_admin@un.org',
+            'password': 'password',
+            'role': 'auths-admin'
+        },
+        'file-admin': {
+            'email': 'file_admin@un.org',
+            'password': 'password',
+            'role': 'files-admin'
+        },
+        'bib-NY-admin': {
+            'email': 'bib_ny_admin@un.org',
+            'password': 'password',
+            'role': 'bibs-NY-admin'
+        },
+        'auth-NY-admin': {
+            'email': 'auth_ny_admin@un.org',
+            'password': 'password',
+            'role': 'auths-NY-admin'
+        },
+        'bib-GE-admin': {
+            'email': 'bib_ge_admin@un.org',
+            'password': 'password',
+            'role': 'bibs-GE-admin'
+        },
+        'auth-GE-admin': {
+            'email': 'auth_ge_admin@un.org',
+            'password': 'password',
+            'role': 'auths-GE-admin'
+        },
+        'bib-NY-indexer': {
+            'email': 'bib_ny_indexer@un.org',
+            'password': 'password',
+            'role': 'bibs-NY-indexer'
+        },
 
+        # Once we have file tests and location data ready, we can enable these users
+        #'file-NY-admin': {
+        #    'email': 'file_ny_admin@un.org',
+        #    'password': 'password',
+        #    'role': 'file-NY-admin'
+        #},
+        #'file-GE-admin': {
+        #    'email': 'file_ge_admin@un.org',
+        #    'password': 'password',
+        #    'role': 'file-GE-admin'
+        #},
+
+    }
 
 @pytest.fixture(scope='module')
 def client():
@@ -52,53 +105,131 @@ def client():
 def db():
     from dlx import DB
     # ?
-
 @pytest.fixture(scope='module')
 def permissions():
     from dlx_rest.models import Permission
-    for perm in ['readAdmin','readUser','createUser','updateUser','deleteUser']:
-        p = Permission(action=perm)
-        p.save()
-    
+
     return Permission
 
 @pytest.fixture(scope='module')
 def roles(permissions):
-    from dlx_rest.models import Role
+    from dlx_rest.models import Role, Permission
 
-    r = Role(name='admin')
-    r.permissions = permissions.objects()
-    r.save()
+    # basic admin permissions
+    admin_permissions = []
+    for action in ["create", "read", "update", "delete"]:
+        for comp in ["Record", "File", "Workform", "Admin", "Role", "Permission", "User", "View"]:
+            this_permission = Permission(action=f'{action}{comp}')
+            this_permission.save()
+            admin_permissions.append(this_permission)
+    
+    admin_role = Role(name="admin")
+    admin_role.permissions = admin_permissions
+    admin_role.save()
 
-    r = Role(name='user')
-    r.permissions = []
-    r.save()
+    # Collection admins
+    for coll in ["bibs", "auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
+            this_permission.save()
+            coll_perms.append(this_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
 
+    # Location based collection admins
+    # NY
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ny_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|NNUN'])
+            ny_permission.save()
+            coll_perms.append(ny_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-NY-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    # GE
+    for coll in ["bibs","auths", "files"]:
+        coll_perms = []
+        for action in ["create", "read", "update", "delete"]:
+            ge_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}|040|a|SzGeBNU'])
+            ge_permission.save()
+            coll_perms.append(ge_permission)
+        # collection role
+        coll_admin = Role(name=f'{coll}-GE-admin')
+        coll_admin.permissions = coll_perms
+        coll_admin.save()
+
+    # TO DO: Add these to commands.py under init-roles
+    # Local Indexer - Not admin
+    # NY
+    coll_perms = []
+    for action in ["create", "read", "update", "delete"]:
+        ny_permission = Permission(
+            action=f'{action}Record', 
+            constraint_must=[f'bibs|040|a|NNUN'], 
+            constraint_must_not=[f'biba|999|c|t'])
+        ny_permission.save()
+        coll_perms.append(ny_permission)
+    # collection role
+    coll_admin = Role(name=f'bibs-NY-indexer')
+    coll_admin.permissions = coll_perms
+    coll_admin.save()
+
+    # Local Indexing Assistant
+    
+        
     return Role
     
 @pytest.fixture(scope='module')
 def users(roles, default_users):
     from dlx_rest.models import User
     
-    for utype in ['admin','non-admin']:
-        u = default_users[utype]
-        user = User(email = u['email'], created=datetime.now())
-        user.set_password(u['password'])
-        user.add_role_by_name(u['role'])
-        user.save()
+    for utype in default_users:
+        if utype not in ["invalid","new"]:
+            u = default_users[utype]
+            user = User(email = u['email'], created=datetime.now())
+            user.set_password(u['password'])
+            try:
+                user.add_role_by_name(u['role'])
+            except KeyError:
+                pass
+            user.save()
 
     return User
 
 @pytest.fixture
 def marc():
+    '''
+    To do: Create default templates with location data for location-based permissions testing.
+    '''
     auths = []
-    
     for i in range(1, 3):
         auth = Auth()
         auth.id = i
         auth.set('100', 'a', f'Heading {i}')
         auth.commit()
         auths.append(auth)
+
+    nyAuth = Auth()
+    nyAuth.id = 4
+    nyAuth.set('100', 'a', 'New York Auth Record')
+    nyAuth.set('040', 'a', 'NNUN')
+    nyAuth.commit()
+
+    auths.append(nyAuth)
+
+    geAuth = Auth()
+    geAuth.id = 5
+    geAuth.set('100', 'a', 'Geneva Auth Record')
+    geAuth.set('040', 'a', 'SzGeBNU')
+    geAuth.commit()
+
+    auths.append(geAuth)
     
     bibs = []
     
@@ -108,7 +239,23 @@ def marc():
         bib.set('245', 'a', 'Title {i}').set('700', 'a', f'Heading {i}')
         bib.commit()
         bibs.append(bib)
-    
+
+    nyBib = Bib()
+    nyBib.id = 4
+    nyBib.set('245', 'a', 'New York Bib Record')
+    nyBib.set('040', 'a', 'NNUN')
+    nyBib.commit()
+
+    bibs.append(nyBib)
+
+    geBib = Bib()
+    geBib.id = 5
+    geBib.set('245', 'a', 'Geneva Bib Record')
+    geBib.set('040', 'a', 'SzGeBNU')
+    geBib.commit()
+
+    bibs.append(geBib)
+
     # templates
     for col in ('bibs', 'auths'):
         template = Bib() if col == 'bibs' else Auth()

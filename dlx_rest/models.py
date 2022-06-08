@@ -151,6 +151,15 @@ class User(UserMixin, Document):
                 return True
         return False
 
+    def permissions_list(self):
+        return_data = []
+        for role in self.roles:
+            for perm in role.permissions:
+                return_data.append(
+                    {'action': perm.action, 'constraints': {'must': perm.constraint_must, 'must_not': perm.constraint_must_not}}
+                )
+        return return_data
+
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(Config.JWT_SECRET_KEY)
@@ -179,7 +188,8 @@ class SyncLog(Document):
 
 
 
-
+# This still should work for unconstrained permissions, but if we need additional
+# constraints, this will have to change
 def requires_permission(action):
     def wrapper(func):
         @wraps(func)

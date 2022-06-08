@@ -230,3 +230,72 @@ def item_locked(collection, record_id):
             pass
 
     return {"locked": False}
+
+'''
+This is a first draft of a granular permission adjudication system. 
+It needs REVIEW and probably refactoring, in part because it probably 
+doesn't account for all of the possible interactions between collection 
+and field/subfield/value permission sets.
+'''
+def has_permission(user, action, record, collection):
+    bool_list = []
+    if hasattr(user, 'roles'):
+        for user_role in user.roles:
+            if user_role.has_permission(action):
+                bool_list.append("T")
+                for perm in user_role.permissions:
+                    for cm in perm.constraint_must:
+                        constraint = parse_constraint(cm)
+                        if "collection" in constraint:
+                            if constraint["collection"] == collection:
+                                bool_list.append("T")
+                            else:
+                                bool_list.append("F")
+                            if "field" in constraint:
+                                these_values = record.get_values(constraint["field"], constraint["subfield"])
+                                if constraint["value"] in these_values:
+                                    bool_list.append("T")
+                                else:
+                                    bool_list.append("F")
+                    for cmn in perm.constraint_must_not:
+                        constraint = parse_constraint(cmn)
+                        if "field" in constraint:
+                            these_values = record.get_values(constraint["field"], constraint["subfield"])
+                            # should we also be comparing the collection?
+                            if constraint["value"] in these_values:
+                                # We can't modify records that have this data in them
+                                bool_list.append("F")
+            else:
+                bool_list.append("F")
+    else:
+        bool_list.append("F")
+    print("boolean list:",bool_list)
+    if "F" in bool_list:
+        return False
+    else:
+        return True
+
+def parse_constraint(constraint):
+
+    return_data = {}
+
+    constraint_list = constraint.split("|")
+
+    return_data["collection"] = constraint_list[0]
+
+    try:
+        return_data["field"] = constraint_list[1]
+    except IndexError:
+        pass
+
+    try:
+        return_data["subfield"] = constraint_list[2]
+    except IndexError:
+        pass
+
+    try:
+        return_data["value"] = constraint_list[3]
+    except IndexError:
+        pass
+
+    return return_data
