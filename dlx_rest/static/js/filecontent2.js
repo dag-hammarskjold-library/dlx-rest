@@ -2,31 +2,33 @@
  ** Class for files
  */
 
- class FileContent {
+class FileContent {
     constructor(
-      // Parameters
-      id,
-      name,
-      docSymbol,
-      language
-    ) {
-      // Properties
-      this.id = id;
-      this.name = name;
-      this.docSymbol = docSymbol;
-      this.language = language;
-    }
-    // Methods
+            // Parameters
+            id,
+            name,
+            docSymbol,
+            language,
+            uri
+        ) {
+            // Properties
+            this.id = id;
+            this.name = name;
+            this.docSymbol = docSymbol;
+            this.language = language;
+            this.uri = uri;
+        }
+        // Methods
     updateSymbol(symbol) {
-      this.docSymbol = symbol;
+        this.docSymbol = symbol;
     }
     addLanguage(l) {
-      this.language.push(l);
+        this.language.push(l);
     }
     removeLanguage(l) {
-      let pos = this.language.indexOf(l);
-      this.language.splice(pos, 1);
+        let pos = this.language.indexOf(l);
+        this.language.splice(pos, 1);
     }
-  }
-  
-  export default FileContent;
+}
+
+export default FileContent;
