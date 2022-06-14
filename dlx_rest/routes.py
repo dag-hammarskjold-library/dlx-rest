@@ -446,7 +446,11 @@ def browse_list(coll, index):
 def facet_record(coll):
     return {"Facets..."}
 
-
+@app.route('/records/auths/review')
+@login_required
+@requires_permission("reviewAuths")
+def review_auth():
+    return {"Review auths"}
 
 
 def search_records_old(coll):

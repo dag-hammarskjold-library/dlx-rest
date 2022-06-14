@@ -56,6 +56,11 @@ def init_roles():
     Permission.drop_collection()
     Role.drop_collection()
 
+    auth_review = Permission(action="reviewAuths", constraint_must=['auths'])
+    auth_review.save()
+    merge_auth = Permission(action="mergeAuthority", constraint_must=["auths"])
+    merge_auth.save()
+
     # basic admin permissions
     admin_permissions = []
     for action in ["create", "read", "update", "delete"]:
@@ -64,6 +69,8 @@ def init_roles():
             this_permission.save()
             admin_permissions.append(this_permission)
     
+    admin_permissions.append(auth_review)
+    admin_permissions.append(merge_auth)
     admin_role = Role(name="admin")
     admin_role.permissions = admin_permissions
     admin_role.save()
@@ -75,6 +82,9 @@ def init_roles():
             this_permission = Permission(action=f'{action}Record', constraint_must=[f'{coll}'])
             this_permission.save()
             coll_perms.append(this_permission)
+        if coll == "auths":
+            coll_perms.append(auth_review)
+            coll_perms.append(merge_auth)
         # collection role
         coll_admin = Role(name=f'{coll}-admin')
         coll_admin.permissions = coll_perms
