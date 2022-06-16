@@ -1,0 +1,15 @@
+{% extends 'base.html' %} {% block content %}    
+
+    <div id="auth_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
+        <headercomponent></headercomponent>
+        <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
+        <div class="row">
+            <sidebarcomponent sbtype="facet"></sidebarcomponent>
+            <authreviewcomponent api_prefix="{{api_prefix}}" search_url="{{search_url}}" logged_in="{{'1' if current_user.is_authenticated else ''}}"></authreviewcomponent>
+            <sidebarcomponent sbtype="other"></sidebarcomponent>
+        </div>
+    </div>
+
+<script type="module" src="{{url_for('static', filename='js/auth_review_vm.js')}}" ></script>
+
+{% endblock %}

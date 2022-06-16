@@ -450,7 +450,22 @@ def facet_record(coll):
 @login_required
 @requires_permission("reviewAuths")
 def review_auth():
-    return {"Review auths"}
+    api_prefix = url_for('doc', _external=True)
+    limit = request.args.get('limit', 25)
+    start = request.args.get('start', 1)
+    q = request.args.get('q', '')
+    sort =  request.args.get('sort')
+    direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+                
+    if not sort:
+        sort = 'updated'
+        direction = 'desc'
+    elif sort != 'relevance' and not direction:
+        direction = 'asc'
+
+    search_url = url_for('api_records_list', collection="auths", start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+
+    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url)
 
 
 def search_records_old(coll):
