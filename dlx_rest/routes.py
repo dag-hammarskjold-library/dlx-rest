@@ -639,7 +639,8 @@ def process_text(text, option):
             '_id': 1, 
             'docsymbol': {'$arrayElemAt': ['$identifiers.value', 0]}, 
             'languages': 1, 
-            'filename': 1
+            'filename': 1,
+            'uri':1
         }
     }
 
