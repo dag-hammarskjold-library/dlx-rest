@@ -27,7 +27,7 @@ export let authreviewcomponent = {
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div class="col text-center">
             <h1>Authorities Review</h1>
-            Authorities creaded/updated since 
+            Authorities creaded/updated since {{since}}
             <br>
         </div>
         <div id="filters" class="col text-center">
@@ -113,6 +113,11 @@ export let authreviewcomponent = {
                 myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
             }
         }
+        console.log(myProps["search"])
+
+        // Get the date string we want to display
+        let updated = myProps["search"].split(/updated(>|<|=)/)[2].split(" ")[0]
+        
         let myUIBase = this.api_prefix.replace('/api/','');
         //console.log(this.links)
         return {
@@ -135,7 +140,8 @@ export let authreviewcomponent = {
             searchTime: 0,
             maxTime: 15000, //milliseconds
             abortController: new AbortController(),
-            headFilters: ['110','111','150','190']
+            headFilters: ['110','111','150','190'],
+            since: updated
         }
     },
     created: async function() {
@@ -355,9 +361,22 @@ export let authreviewcomponent = {
     },
     methods: {
         rebuildUrl(param, value) {
-            //let myUrl = `${this.uibase}/records/${this.collection}/search`;
             let myParams = Object.assign({},this.params);
-            myParams[param] = value;
+            let searchParam = myParams["search"]
+            let newSearchParam = ""
+            for (let hf of this.headFilters) {
+                newSearchParam = searchParam.replace(hf, "nnn")
+                if (newSearchParam.includes("nnn")) {
+                    break
+                }
+            }
+            
+            if (newSearchParam.includes("nnn")) {
+                myParams["search"] = newSearchParam.replace("nnn",value)
+            } else {
+                myParams["search"] = `${newSearchParam} AND ${value}:*`
+            }
+
             const qs = Object.keys(myParams)
                 .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
                 .join('&');
