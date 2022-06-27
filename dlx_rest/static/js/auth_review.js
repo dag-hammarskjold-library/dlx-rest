@@ -4,6 +4,7 @@ import basket from "./api/basket.js";
 import user from "./api/user.js";
 
 export let authreviewcomponent = {
+    // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
     props: {
         api_prefix: {
             type: String,
@@ -13,37 +14,28 @@ export let authreviewcomponent = {
             type: String,
             required: true
         },
-        logged_in: {
-            type: String,
-            required: true
-        },
         collection: {
             type: String,
             required: true
         },
-        since: {
+        logged_in: {
             type: String,
             required: true
-        },
-        auth_type: {
-            type: String
         }
     },
-    template: `
-    <div class="col-sm-8 pt-2">
+    template: ` 
+    <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div class="col text-center">
             <h1>Authorities Review</h1>
-            Authorities creaded/updated since {{since}}
+            Authorities creaded/updated since 
             <br>
         </div>
         <div id="filters" class="col text-center">
             Filter: 
-            <a class="badge badge-primary mx-1" href="#">110</a>
-            <a class="badge badge-primary mx-1" href="#">111</a>
-            <a class="badge badge-primary mx-1" href="#">150</a>
-            <a class="badge badge-primary mx-1" href="#">190</a>
+            <a v-for="headFilter in headFilters" class="badge badge-primary mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
-        <nav class="mt-2">
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
                     <span class="page-link">
@@ -89,7 +81,7 @@ export let authreviewcomponent = {
                 </div>
             </div>
         </div>
-        <br>
+        </br>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
@@ -109,8 +101,7 @@ export let authreviewcomponent = {
                 <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
             </ul>
         </nav>
-    </div>
-    `,
+    </div>`,
     data: function () {
         let myParams = this.search_url.split("?")[1];
         let myProps = {}
@@ -128,7 +119,7 @@ export let authreviewcomponent = {
             visible: true,
             results: [],
             links: {},
-            action: `${myUIBase}/records/auths/review`,
+            action: `${myUIBase}/records/${this.collection}/review`,
             params: myProps,
             uibase: myUIBase,
             count: null,
@@ -139,9 +130,12 @@ export let authreviewcomponent = {
             end: 0,
             basketcontents: ['foo'],
             lookup_maps: {},
+            expressions: [],
+            vcoll: null,
             searchTime: 0,
             maxTime: 15000, //milliseconds
-            abortController: new AbortController()
+            abortController: new AbortController(),
+            headFilters: ['110','111','150','190']
         }
     },
     created: async function() {
@@ -231,20 +225,10 @@ export let authreviewcomponent = {
                     component.count = component.links.related.count;
                 }
                 if (component.links._prev) {
-                    console.log(component.links._prev)
-                    component.prev = component.links._prev
-                        .replace('&search','&q')
-                        .replace('/records','/review')
-                        .replace('/api/marc','/records')
-                        .replace('updated>','since=')
+                    component.prev = component.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
                 }
                 if (component.links._next) {
-                    console.log(component.links._next)
-                    component.next = component.links._next
-                        .replace('&search','&q')
-                        .replace('/records','/review')
-                        .replace('/api/marc','/records')
-                        .replace('updated>','since=')
+                    component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
                 }
                 for (let result of jsonData["data"]) {
                     let myResult = { "_id": result["_id"]}
@@ -364,8 +348,21 @@ export let authreviewcomponent = {
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
+
+        for (let el of document.getElementsByClassName('head-filter')) {
+            el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
+        }
     },
     methods: {
+        rebuildUrl(param, value) {
+            //let myUrl = `${this.uibase}/records/${this.collection}/search`;
+            let myParams = Object.assign({},this.params);
+            myParams[param] = value;
+            const qs = Object.keys(myParams)
+                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .join('&');
+            return `${this.action}?${qs}`;
+        },
         async getMyBasket(url) {
             let response = await fetch(url);
             if (response.ok) {
@@ -402,6 +399,149 @@ export let authreviewcomponent = {
                     el.classList.add("fa-folder-plus");
                 })
             }
+        },
+        toggleAdvancedSearch() {
+            let el = document.getElementById("advanced-search")
+            let ss = document.getElementById("simple-search")
+            let toggleASLink = document.getElementById("toggleASLink")
+            let toggleSSLink = document.getElementById("toggleSSLink")
+            if (el.style.display == "none"){
+                el.style.display = "block"
+                ss.style.display = "none"
+                toggleASLink.classList.add("active")
+                toggleSSLink.classList.remove("active")
+                //toggleLink.textContent = "Simple Search"
+            } else {
+                el.style.display = "none"
+                ss.style.display = "block"
+                toggleSSLink.classList.add("active")
+                toggleASLink.classList.remove("active")
+                //toggleLink.textContent = "Advanced Search"
+            }
+        },
+        setParameter(which, what) {
+            this.advancedParams[which] = what
+            let el = document.getElementById(which)
+            if (typeof what === "object") {
+                el.innerText = what.name
+                this.advancedParams[which] = what.value
+            } else {
+                el.innerText = what
+            }
+        },
+        submitAdvancedSearch() {
+            // Build the URL
+            var expressions = []
+            var anycount = 0
+            for (let i of ["1","2","3"]) {
+                let term  = this.advancedParams[`searchTerm${i}`]
+                let termList = []
+                // First figure out if there IS a search term here, then split it by space
+                if (term !== null) {
+                    termList = term.split(/\s+/)
+                }
+                // Next figure out if we're searching in a field or not
+                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                    if (term) {
+                        console.log(term)
+                        anycount++
+                    }
+                    // What kind of search are we doing?
+                    switch (this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            // expressions.push(termList.join(" "))
+                            // break
+                            this.reportError('"Any of the words" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(termList.join(" "))
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // This can't be done like this on MDB, so we should disable the option
+                            //break
+                            this.reportError('"Regular expression" "in any field" is not currently supported');
+                            throw new Error("Search cancelled");
+                        default:
+                            expressions.push(termList.join(" "))
+                    }                    
+                } else {
+                    let myField = this.advancedParams[`searchField${i}`]
+                    let myExpr = []
+                    // To do: add a flag for case insensitive search
+                    switch(this.advancedParams[`searchType${i}`]) {
+                        case "any":
+                            // Any of the words in any field
+                            for (let term of termList) {
+                                myExpr.push(`${myField}:${term}`)
+                            }
+                            expressions.push(myExpr.join(" OR "))
+                            break
+                        case "all":
+                            // All of the words in any field
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        case "exact":
+                            // Exact phrase in any field
+                            expressions.push(`${myField}:'${termList.join(" ")}'`)
+                            break
+                        case "partial":
+                            // Partial phrase in any field
+                            expressions.push(`${myField}:"${termList.join(" ")}"`)
+                            break
+                        case "regex":
+                            // Regular expression; this probably needs additional validation to make sure it IS a regex
+                            // Also it doesn't work quite right...
+                            expressions.push(`${myField}:${termList.join(" ")}`)
+                            break
+                        default:
+                            expressions.push(termList.join(" "))
+                    }
+                }
+            }
+            if (anycount > 1) {                  
+                this.reportError("Can't have more than one \"in any field\" term")
+                throw new Error("Search cancelled");
+            }
+            this.expressions = expressions
+            let compiledExpr = []
+            if (this.vcoll) {
+                compiledExpr.push(`${this.vcoll} AND`)
+            }
+            for (let i in expressions) {
+                let j = parseInt(i)+1
+                let accessor = `searchConnector${j.toString()}`
+                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
+                if (expressions[i] !== "") {
+                    compiledExpr.push(expressions[i])
+                }
+                if (this.advancedParams[accessor]) {
+                    compiledExpr.push(this.advancedParams[accessor])
+                }
+            }
+            // Get rid of any trailing boolean connectors if they don't connect to another expression
+            while (compiledExpr[compiledExpr.length - 1] === 'AND') {
+                compiledExpr.pop()
+            }
+            while (compiledExpr[compiledExpr.length - 1] === 'OR') {
+                compiledExpr.pop()
+            }
+
+            // Catch and warn of invalid searches
+            // ...
+
+            let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
+            
+            window.location = url
         },
         reportError(message) {
             let display = document.getElementById("results-spinner");
