@@ -71,20 +71,25 @@ export let multiplemarcrecordcomponent = {
                     <div class="modal-container" id="modalchild">
 
                     <div class="modal-header" id="title">
+                    
                         <slot name="header">
-                            <h1> List of values </h1>
+                            <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                    @click="closeModal()"> Close the window
+                            </button>
                         </slot>
+                        
                     </div>
   
-                    <div id="contenthistory" class="modal-body" >
+                    <div id="contenthistory" class="modal-body mt-0" >
                     </div>
-                    <div class="modal-footer">
+                    <!-- <div class="modal-footer">
                         <slot name="footer">
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
                             @click="closeModal()"> Close the window
                         </button>
                         </slot>
-                    </div>
+                    </div> -->
                     </div>
                 </div>
                 </div>
@@ -910,6 +915,10 @@ export let multiplemarcrecordcomponent = {
                 {
                 this.showModal=true;
                 
+                // change the title of the modal
+                let myTitleModal=document.getElementById("titlemodal")
+                myTitleModal.innerText="Choose record wiew"
+
                 // insert the parent div inside the content history    
                 let recup=document.getElementById("contenthistory")
                 recup.innerHTML=""
@@ -955,14 +964,14 @@ export let multiplemarcrecordcomponent = {
 
                                 // creation of the first div
                                 let firstDiv=document.createElement("div")
-                                firstDiv.classList.add("card-body");
-                                firstDiv.classList.add("mt-2");
+                                //firstDiv.classList.add("card-body");
+                                //firstDiv.classList.add("mt-2");
                                 firstDiv.style.border = "none"
                                 firstDiv.style.width= "auto"
 
                                 // adding the contents to the div
-                                firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
-                                firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
+                                firstDiv.innerHTML= `<strong> ${element.name} </strong>` 
+                                //firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
                                 // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
 
                                 // adding some events on mouverover / mouseout to change background color
@@ -1032,6 +1041,10 @@ export let multiplemarcrecordcomponent = {
         displayHistoryModal(jmarc){
             this.showModal=true;
             
+            // change the title of the modal
+            let myTitleModal=document.getElementById("titlemodal")
+            myTitleModal.innerText="Choose history record"
+
             // insert the parent div inside the content history    
             let recup=document.getElementById("contenthistory")
             recup.innerHTML=""
@@ -1076,8 +1089,8 @@ export let multiplemarcrecordcomponent = {
 
                         // creation of the first div
                         let firstDiv=document.createElement("div")
-                        firstDiv.classList.add("card");
-                        firstDiv.classList.add("mt-2");
+                        //firstDiv.classList.add("card");
+                        //firstDiv.classList.add("mt-2");
                         firstDiv.style.border = "none"
                         firstDiv.style.width= "auto"
 
@@ -1493,7 +1506,7 @@ export let multiplemarcrecordcomponent = {
             if (this.historyMode){
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                    {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert",  "click": "revert"},
+                    {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert to this revision",  "click": "revert"},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
                 ]
             }
