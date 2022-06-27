@@ -32,9 +32,9 @@ export let authreviewcomponent = {
         </div>
         <div id="filters" class="col text-center">
             Filter: 
-            <a v-for="headFilter in headFilters" class="badge badge-primary mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
+            <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
-        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>    
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
