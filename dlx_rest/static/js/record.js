@@ -581,7 +581,6 @@ export let multiplemarcrecordcomponent = {
         },
         selectRecord(jmarc) {
             this.clearSelectedRecord()
-            //this.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
