@@ -360,14 +360,24 @@ export let multiplemarcrecordcomponent = {
         moveUndoredoIndexUndo(jmarc){
             jmarc.moveUndoredoIndexUndo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)           
+            this.displayMarcRecord(jmarc,false,true)  
+                
+            if (jmarc.undoredoIndex!==0) {
+                // jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "unsaved changes";
+            }
         },
 
         // redo feature
         moveUndoredoIndexRedo(jmarc){
             jmarc.moveUndoredoIndexRedo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)      
+            this.displayMarcRecord(jmarc,false,true)   
+            if (jmarc.undoredoIndex !== 0) {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "unsaved changes";
+            }   
         },
 
         pasteField(jmarc){
@@ -483,8 +493,6 @@ export let multiplemarcrecordcomponent = {
             jmarc.saveButton.classList.remove("text-primary");
             jmarc.saveButton.title = "Save Record";
 
-            // undoredo snapshot
-            //jmarc.addUndoredoEntry("ADD FIELD") 
         },
         deleteField(jmarc){
             // delete the field
@@ -508,9 +516,6 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.title = "Save Record";
             }
-
-            // undoredo snapshot
-            //jmarc.addUndoredoEntry("DELETE FIELD") 
 
         },
         deleteRecord(jmarc) {
@@ -1372,9 +1377,9 @@ export let multiplemarcrecordcomponent = {
                 // replace record?
             }
 
-            if (reload==false){
-                jmarc.addUndoredoEntry()
-            }
+            // if (reload==false){
+            //     jmarc.addUndoredoEntry()
+            // }
            
             jmarc.div = document.getElementById(myDivId);
             let table = this.buildRecordTable(jmarc,readOnly);
