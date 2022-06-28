@@ -455,7 +455,7 @@ def review_auth():
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
-    q = request.args.get('q', f'updated>{min_date} AND NOT 999__c:t')
+    q = request.args.get('q', f'updated>{min_date} AND NOT 999__c:\'t\'')
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
                 

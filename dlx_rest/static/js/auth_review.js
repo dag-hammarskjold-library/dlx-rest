@@ -27,8 +27,15 @@ export let authreviewcomponent = {
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div class="col text-center">
             <h1>Authorities Review</h1>
-            Authorities creaded/updated since {{since}}
-            <br>
+            <form :action="action">  
+                <label for="dateSelector">Authorities creaded/updated since</label>              
+                <div class="input-group mb-3">
+                    <input id="dateSelector" type="date" class="form-control" aria-label="Date" :value="since">
+                    <div class="input-group-append">
+                        <a class="btn btn-outline-secondary" type="button" @click="changeDateAndSearch">Submit</a>
+                    </div>
+                </div>
+            </form>
         </div>
         <div id="filters" class="col text-center">
             Filter: 
@@ -140,7 +147,7 @@ export let authreviewcomponent = {
             searchTime: 0,
             maxTime: 15000, //milliseconds
             abortController: new AbortController(),
-            headFilters: ['110','111','150','190'],
+            headFilters: ['100','110','111','150','190'],
             since: updated
         }
     },
@@ -356,7 +363,7 @@ export let authreviewcomponent = {
         setTimeout(() => this.abortController.abort(), this.maxTime);
 
         for (let el of document.getElementsByClassName('head-filter')) {
-            el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
+            el.href = this.rebuildUrl("search", el.getAttribute("data-searchString"));
         }
     },
     methods: {
@@ -573,6 +580,31 @@ export let authreviewcomponent = {
         cancelSearch() {
             this.abortController.abort();
             this.start = this.end = 0;
+        },
+        changeDateAndSearch() {
+            // this.action is where we start
+            let myParams = Object.assign({},this.params);
+            let newDate = document.getElementById("dateSelector").value
+            //el.href = this.rebuildUrl("updated", el.getAttribute("data-searchString"));
+            let searchParam = myParams["search"]
+            let newSearchParams = []
+            //let newSearchParam = searchParam.replace("updated", newDate)
+            for (let p of searchParam.split(" ")) {
+                let newP = p
+                if (p.includes("updated")) {
+                    let v = p.split(/(<|=|>)/)
+                    newP = p.replace(v[2],newDate)
+                }
+                newSearchParams.push(newP)
+            }
+                
+            myParams["search"] = newSearchParams.join(" ")
+            console.log(myParams)
+        
+            const qs = Object.keys(myParams)
+                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .join('&');
+            window.location = `${this.action}?${qs}`;
         }
     },
     components: {
