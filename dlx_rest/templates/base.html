@@ -56,13 +56,12 @@
     <header>
         <!-- Fixed navbar -->
         <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
-            <a class="navbar-brand" href="{{url_for('index')}}">
+            <a class="navbar-brand" href="{{url_for('get_records_list', coll='bibs')}}">
                 <img src="{{ url_for('static', filename='img/dhl.png') }}" style="width:60px;height:60px;"> MARC Editor
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
             <div class="collapse navbar-collapse" id="navbarToggler">
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('index')}}">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Speeches")}}">Speeches</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Voting Data")}}">Votes</a></li>
