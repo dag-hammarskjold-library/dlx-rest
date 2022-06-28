@@ -602,7 +602,7 @@ export let multiplemarcrecordcomponent = {
         },
 
         ///////////////////////////////////////////////////
-        ///// definition of the listeners for the shortcuts
+        //  definition of the listeners for the shortcuts
         ///////////////////////////////////////////////////
 
         addHelpListener(event) {
