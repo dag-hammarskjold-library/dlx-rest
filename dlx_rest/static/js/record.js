@@ -591,6 +591,21 @@ export let multiplemarcrecordcomponent = {
                 })
             }
         },
+        approveAuth(jmarc) {
+            this.selectedFields.push
+            let newField = jmarc.createField("999")
+            let newSubfield = newField.createSubfield("c")
+            newSubfield.value = "t"
+            newField = this.buildFieldRow(newField);
+            newField.tagSpan.focus();
+            document.execCommand("selectall");
+            newField.subfields[0].valueCell.classList.add("unsaved");
+
+            // Manage visual indicators
+            jmarc.saveButton.classList.add("text-danger");
+            jmarc.saveButton.classList.remove("text-primary");
+            jmarc.saveButton.title = "Save Record";
+        },
 
         //////////////////////////////////////////////////////// 
         ///// definition of the listeners for the shortcuts
@@ -1496,6 +1511,12 @@ export let multiplemarcrecordcomponent = {
                     {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert",  "click": "revert"},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
                 ]
+            }
+
+            if (jmarc.collection =="auths") {
+                controls.push(
+                    {"name": "approveAuthButton", "element": "i", "class": "fas fa-check-circle", "title": "Approve Record", "click": "approveAuth"}
+                )
             }
 
             if (this.readonly && this.user !== null) {
