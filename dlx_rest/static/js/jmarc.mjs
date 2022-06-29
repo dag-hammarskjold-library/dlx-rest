@@ -244,12 +244,13 @@ export class Jmarc {
 	// redo : left from right
 	
 	moveUndoredoIndexUndo(){
-
-		if (this.undoredoVector.length>0) {		
-				if (this.undoredoIndex>0){
-					if (this.undoredoIndex==1){
-						//alert("this is the first entry!!!!")
+		
+		if (this.undoredoVector.length>0) {	
+				if (this.undoredoIndex===0){
+						alert("this is the first entry!!!!")
 					}
+				if (this.undoredoIndex>0){
+					
 					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
 					}
@@ -257,22 +258,29 @@ export class Jmarc {
 					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 				}
 			}
+		if (this.undoredoVector.length===0) {
+			alert("No changes detected!!!!")
+		}
 	}
 
 	moveUndoredoIndexRedo(){
-
-	if (this.undoredoVector.length>0) {		
+	
+	if (this.undoredoVector.length>0) {	
+			if (this.undoredoIndex==this.undoredoVector.length-1){
+					alert("this is the last entry!!!!")
+				}		
 			if (this.undoredoIndex<this.undoredoVector.length){
 
-				if (this.undoredoIndex==this.undoredoVector.length-2){
-					//alert("this is the last entry!!!!")
-				}	
+				
 				if (this.undoredoIndex<this.undoredoVector.length-1){
 						this.undoredoIndex=this.undoredoIndex+1
 				}	
 				this.fields=[]
 				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 			}
+		}
+		if (this.undoredoVector.length===0)  {
+			alert("No changes detected!!!!")
 		}
 	}  
 	

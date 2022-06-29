@@ -71,20 +71,25 @@ export let multiplemarcrecordcomponent = {
                     <div class="modal-container" id="modalchild">
 
                     <div class="modal-header" id="title">
+                    
                         <slot name="header">
-                            <h1> List of values </h1>
+                            <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                    @click="closeModal()"> Close the window
+                            </button>
                         </slot>
+                        
                     </div>
   
-                    <div id="contenthistory" class="modal-body" >
+                    <div id="contenthistory" class="modal-body mt-0" >
                     </div>
-                    <div class="modal-footer">
+                    <!-- <div class="modal-footer">
                         <slot name="footer">
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
                             @click="closeModal()"> Close the window
                         </button>
                         </slot>
-                    </div>
+                    </div> -->
                     </div>
                 </div>
                 </div>
@@ -192,6 +197,10 @@ export let multiplemarcrecordcomponent = {
                         } else if (this.user === null) {
                             this.displayMarcRecord(jmarc, true);
                         } else {
+                            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
+                                this.$root.$refs.basketcomponent.rebuildBasket()
+                            })
+                            
                             this.displayMarcRecord(jmarc);
                         }
                     })
@@ -355,14 +364,24 @@ export let multiplemarcrecordcomponent = {
         moveUndoredoIndexUndo(jmarc){
             jmarc.moveUndoredoIndexUndo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)           
+            this.displayMarcRecord(jmarc,false,true)  
+                
+            if (jmarc.undoredoIndex!==0) {
+                // jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "unsaved changes";
+            }
         },
 
         // redo feature
         moveUndoredoIndexRedo(jmarc){
             jmarc.moveUndoredoIndexRedo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)      
+            this.displayMarcRecord(jmarc,false,true)   
+            if (jmarc.undoredoIndex !== 0) {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "unsaved changes";
+            }   
         },
 
         pasteField(jmarc){
@@ -478,8 +497,6 @@ export let multiplemarcrecordcomponent = {
             jmarc.saveButton.classList.remove("text-primary");
             jmarc.saveButton.title = "Save Record";
 
-            // undoredo snapshot
-            //jmarc.addUndoredoEntry("ADD FIELD") 
         },
         deleteField(jmarc){
             // delete the field
@@ -503,9 +520,6 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.title = "Save Record";
             }
-
-            // undoredo snapshot
-            //jmarc.addUndoredoEntry("DELETE FIELD") 
 
         },
         deleteRecord(jmarc) {
@@ -571,7 +585,6 @@ export let multiplemarcrecordcomponent = {
         },
         selectRecord(jmarc) {
             this.clearSelectedRecord()
-            //this.callChangeStyling("Record " + jmarc.recordId + " has been selected", "row alert alert-success")
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
@@ -607,9 +620,9 @@ export let multiplemarcrecordcomponent = {
             jmarc.saveButton.title = "Save Record";
         },
 
-        //////////////////////////////////////////////////////// 
-        ///// definition of the listeners for the shortcuts
-        ////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////
+        //  definition of the listeners for the shortcuts
+        ///////////////////////////////////////////////////
 
         addHelpListener(event) {
             // check if one record is selected
@@ -925,6 +938,10 @@ export let multiplemarcrecordcomponent = {
                 {
                 this.showModal=true;
                 
+                // change the title of the modal
+                let myTitleModal=document.getElementById("titlemodal")
+                myTitleModal.innerText="Choose record wiew"
+
                 // insert the parent div inside the content history    
                 let recup=document.getElementById("contenthistory")
                 recup.innerHTML=""
@@ -970,14 +987,14 @@ export let multiplemarcrecordcomponent = {
 
                                 // creation of the first div
                                 let firstDiv=document.createElement("div")
-                                firstDiv.classList.add("card-body");
-                                firstDiv.classList.add("mt-2");
+                                //firstDiv.classList.add("card-body");
+                                //firstDiv.classList.add("mt-2");
                                 firstDiv.style.border = "none"
                                 firstDiv.style.width= "auto"
 
                                 // adding the contents to the div
-                                firstDiv.innerHTML= `Name : <strong> ${element.name} </strong>` 
-                                firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
+                                firstDiv.innerHTML= `<strong> ${element.name} </strong>` 
+                                //firstDiv.innerHTML+= `Collection:<strong> ${element.collection} </strong><br>` 
                                 // firstDiv.innerHTML+= `Url:<strong> ${element.url} </strong>` 
 
                                 // adding some events on mouverover / mouseout to change background color
@@ -1047,6 +1064,10 @@ export let multiplemarcrecordcomponent = {
         displayHistoryModal(jmarc){
             this.showModal=true;
             
+            // change the title of the modal
+            let myTitleModal=document.getElementById("titlemodal")
+            myTitleModal.innerText="Choose history record"
+
             // insert the parent div inside the content history    
             let recup=document.getElementById("contenthistory")
             recup.innerHTML=""
@@ -1091,8 +1112,8 @@ export let multiplemarcrecordcomponent = {
 
                         // creation of the first div
                         let firstDiv=document.createElement("div")
-                        firstDiv.classList.add("card");
-                        firstDiv.classList.add("mt-2");
+                        //firstDiv.classList.add("card");
+                        //firstDiv.classList.add("mt-2");
                         firstDiv.style.border = "none"
                         firstDiv.style.width= "auto"
 
@@ -1374,9 +1395,9 @@ export let multiplemarcrecordcomponent = {
                 // replace record?
             }
 
-            if (reload==false){
-                jmarc.addUndoredoEntry()
-            }
+            // if (reload==false){
+            //     jmarc.addUndoredoEntry()
+            // }
            
             jmarc.div = document.getElementById(myDivId);
             let table = this.buildRecordTable(jmarc,readOnly);
@@ -1508,7 +1529,7 @@ export let multiplemarcrecordcomponent = {
             if (this.historyMode){
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
-                    {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert",  "click": "revert"},
+                    {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert to this revision",  "click": "revert"},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
                 ]
             }

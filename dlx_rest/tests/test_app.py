@@ -15,7 +15,7 @@ def test_testing():
 # Index page
 def test_index(client):
     response = client.get('/')
-    assert response.status_code == 200
+    assert response.status_code == 302
 
 # User session management
 def login(client, username, password):

@@ -23,7 +23,8 @@ from dlx_rest.utils import is_safe_url
 # Main app routes
 @app.route('/')
 def index():
-    return render_template('index.html', title="Home")
+    #return render_template('index.html', title="Home")
+    return redirect(url_for('get_records_list', coll="bibs"))
 
 @app.route('/newui')
 def newui():
@@ -529,13 +530,7 @@ def upload_files():
 def process_files():
 
     DB.connect(Config.connect_string)
-    creds = json.loads(Config.client.get_parameter(Name='default-aws-credentials')['Parameter']['Value'])
-
-
-    # Connects to the undl files bucket
-    S3.connect(
-        access_key_id=creds['aws_access_key_id'], access_key=creds['aws_secret_access_key'], bucket=Config.bucket
-    )
+    S3.connect(bucket=Config.bucket)
 
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
@@ -660,7 +655,8 @@ def process_text(text, option):
             '_id': 1, 
             'docsymbol': {'$arrayElemAt': ['$identifiers.value', 0]}, 
             'languages': 1, 
-            'filename': 1
+            'filename': 1,
+            'uri':1
         }
     }
 

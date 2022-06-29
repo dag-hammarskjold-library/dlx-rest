@@ -49,9 +49,11 @@ export let basketcomponent = {
         this.$root.$refs.basketcomponent = this;
         this.buildBasket();
     },
+    /* // Removed
     mounted: async function() {
         this.timer = setInterval(this.rebuildBasket, 20000)
     },
+    */
     methods: {
         removeRecordFromRecordDisplayed(recordToDelete){
             const index = this.recordDisplayed.indexOf(recordToDelete);
