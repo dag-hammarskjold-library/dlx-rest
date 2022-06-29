@@ -197,6 +197,10 @@ export let multiplemarcrecordcomponent = {
                         } else if (this.user === null) {
                             this.displayMarcRecord(jmarc, true);
                         } else {
+                            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
+                                this.$root.$refs.basketcomponent.rebuildBasket()
+                            })
+                            
                             this.displayMarcRecord(jmarc);
                         }
                     })
