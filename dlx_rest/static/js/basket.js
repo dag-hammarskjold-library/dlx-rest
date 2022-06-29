@@ -10,16 +10,16 @@ export let basketcomponent = {
     template: ` 
     <div class="container col-sm-2" id="app0" style="background-color:white;">
         <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-            <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div>
-            <div v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 " >
-                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id">
-                    <div class="d-flex w-100 justify-content-between">
+            <!-- <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div> -->
+            <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
+            
+                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"  :style="{background:'black'}">
+                <div class="d-flex w-100 justify-content-between" >
                         <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
                         <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
                     </div>
                     <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
                         <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
-                        <span v-else :title=record.title>{{record.title}}</span>
                         <span v-else :title=record.title>{{record.title}}</span>
                     </p>
                     <p v-if="record.symbol" class="mb-1">
@@ -75,6 +75,7 @@ export let basketcomponent = {
                 this.recordDisplayed.push(jmarc.recordId)
                 // this.forceUpdate()
                 this.callChangeStyling("Record added to the editor", "row alert alert-success")
+
             }
 
         },
@@ -143,8 +144,11 @@ export let basketcomponent = {
         },
         rebuildBasket() {
             //const myBasket = await basket.getBasket(this.api_prefix);
-            this.basketItems = [];
-            this.buildBasket();
+            // this.basketItems = [];
+            // this.buildBasket();
+           
+           
+            
         }
     }
 }
