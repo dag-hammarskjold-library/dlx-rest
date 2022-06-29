@@ -509,13 +509,7 @@ def upload_files():
 def process_files():
 
     DB.connect(Config.connect_string)
-    creds = json.loads(Config.client.get_parameter(Name='default-aws-credentials')['Parameter']['Value'])
-
-
-    # Connects to the undl files bucket
-    S3.connect(
-        access_key_id=creds['aws_access_key_id'], access_key=creds['aws_secret_access_key'], bucket=Config.bucket
-    )
+    S3.connect(bucket=Config.bucket)
 
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
