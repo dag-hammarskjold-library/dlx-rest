@@ -22,7 +22,8 @@ from dlx_rest.utils import is_safe_url
 # Main app routes
 @app.route('/')
 def index():
-    return render_template('index.html', title="Home")
+    #return render_template('index.html', title="Home")
+    return redirect(url_for('get_records_list', coll="bibs"))
 
 @app.route('/newui')
 def newui():
