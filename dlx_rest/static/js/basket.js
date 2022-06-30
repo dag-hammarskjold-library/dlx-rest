@@ -13,7 +13,7 @@ export let basketcomponent = {
             <!-- <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div> -->
             <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
             
-                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"  :style="{background:'black'}">
+                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
                 <div class="d-flex w-100 justify-content-between" >
                         <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
                         <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
