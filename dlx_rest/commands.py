@@ -56,9 +56,10 @@ def init_roles():
     Permission.drop_collection()
     Role.drop_collection()
 
-    auth_review = Permission(action="reviewAuths", constraint_must=['auths'])
+    # These are only for use by the admin, which has no constraints
+    auth_review = Permission(action="reviewAuths")
     auth_review.save()
-    merge_auth = Permission(action="mergeAuthority", constraint_must=["auths"])
+    merge_auth = Permission(action="mergeAuthority")
     merge_auth.save()
 
     # basic admin permissions
@@ -83,6 +84,11 @@ def init_roles():
             this_permission.save()
             coll_perms.append(this_permission)
         if coll == "auths":
+            # These are the correct, constrained permissions for auth admins
+            auth_review = Permission(action="reviewAuths", constraint_must=['auths'])
+            auth_review.save()
+            merge_auth = Permission(action="mergeAuthority", constraint_must=["auths"])
+            merge_auth.save()
             coll_perms.append(auth_review)
             coll_perms.append(merge_auth)
         # collection role
