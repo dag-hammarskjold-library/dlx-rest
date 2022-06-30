@@ -611,13 +611,15 @@ export let multiplemarcrecordcomponent = {
             newSubfield.value = "t"
             newField = this.buildFieldRow(newField);
             newField.tagSpan.focus();
-            document.execCommand("selectall");
+            //document.execCommand("selectall");
             newField.subfields[0].valueCell.classList.add("unsaved");
 
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
             jmarc.saveButton.classList.remove("text-primary");
             jmarc.saveButton.title = "Save Record";
+
+            jmarc.addUndoredoEntry("from Approve Auth")
         },
 
         ///////////////////////////////////////////////////
