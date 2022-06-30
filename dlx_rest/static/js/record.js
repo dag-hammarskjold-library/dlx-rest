@@ -386,8 +386,8 @@ export let multiplemarcrecordcomponent = {
 
         pasteField(jmarc){
             // paste field   
-            this.selectedFields.forEach(field =>
-                {
+            //this.selectedFields.forEach(field =>
+            //    {
                     for (let field of this.copiedFields || []) {
                         // recreate the field
                         let newField = jmarc.createField(field.tag);
@@ -422,7 +422,7 @@ export let multiplemarcrecordcomponent = {
                     
                     jmarc.saveButton.classList.add("text-danger");
                     jmarc.saveButton.title = "Save Record";
-                })
+                //})
                                
         },
         deleteSubFieldFromShort(jmarc){
