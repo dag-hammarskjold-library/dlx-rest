@@ -619,6 +619,7 @@ export let multiplemarcrecordcomponent = {
             jmarc.saveButton.classList.remove("text-primary");
             jmarc.saveButton.title = "Save Record";
 
+            // Is this the way this works?
             jmarc.addUndoredoEntry("from Approve Auth")
         },
 
