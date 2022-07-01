@@ -1146,13 +1146,16 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
-        user = 'testing' if current_user.is_anonymous else current_user.email
+        #user = 'testing' if current_user.is_anonymous else current_user.email
+        user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
         losing_id = request.args.get('target') or abort(400, '"target" param required')
         losing_id = int(losing_id)
         losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
 
         # To do: add a permssion for mergeRecord?
+        if not(has_permission(user, "mergeAuthority", losing, "auths")):
+            abort(403, "User does not have permission to merge authorities.")
         
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(403, "Auth records not of the same type")
@@ -1188,7 +1191,7 @@ class RecordMerge(Resource):
                                     del record.fields[i] # duplicate field
                         
                 if record.to_bson() != state:    
-                    record.commit(user=user)
+                    record.commit(user=user.email)
                     changed += 1
                     
             return changed
@@ -1198,7 +1201,7 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
-        losing.delete(user=user)
+        losing.delete(user=user.email)
         
         return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
 

@@ -65,7 +65,16 @@
                     <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Speeches")}}">Speeches</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="989:Voting Data")}}">Votes</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
+                    <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Auths
+                          </a>
+                          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="{{url_for('get_records_list', coll='auths')}}">Auths</a>
+                            <a class="dropdown-item" href="{{url_for('review_auth')}}">Review Auths</a>
+                          </div>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           Browse
