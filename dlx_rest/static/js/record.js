@@ -1413,9 +1413,9 @@ export let multiplemarcrecordcomponent = {
                 // replace record?
             }
 
-            // if (reload==false){
-            //     jmarc.addUndoredoEntry()
-            // }
+            if (reload==false){
+                jmarc.addUndoredoEntry()
+            }
            
             jmarc.div = document.getElementById(myDivId);
             let table = this.buildRecordTable(jmarc,readOnly);
@@ -1810,6 +1810,7 @@ export let multiplemarcrecordcomponent = {
             // menu item delete field
             let deleteField = document.createElement("i");
             tagMenu.append(deleteField);
+
             deleteField.className = "dropdown-item";
             deleteField.innerText = "Delete field";
 
