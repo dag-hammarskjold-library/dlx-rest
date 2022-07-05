@@ -943,7 +943,7 @@ export let multiplemarcrecordcomponent = {
                 
                 // change the title of the modal
                 let myTitleModal=document.getElementById("titlemodal")
-                myTitleModal.innerText="Choose record wiew"
+                myTitleModal.innerText="Choose record view"
 
                 // insert the parent div inside the content history    
                 let recup=document.getElementById("contenthistory")
