@@ -1394,7 +1394,9 @@ export let multiplemarcrecordcomponent = {
             // change the color of the background of the item in the basket
             const myId=jmarc.collection + '--' + jmarc.recordId
             const selectedItem=document.getElementById(myId)
-            selectedItem.setAttribute("style", "background-color: #d5e1f5;");
+
+            // set the styling only if the Div exists
+            if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
 
            
             if (this.isRecordOneDisplayed == false) {
