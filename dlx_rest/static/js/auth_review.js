@@ -147,7 +147,7 @@ export let authreviewcomponent = {
             searchTime: 0,
             maxTime: 15000, //milliseconds
             abortController: new AbortController(),
-            headFilters: ['100','110','111', '130', '150','190'],
+            headFilters: ['100','110','111', '130', '150','190','191'],
             since: updated
         }
     },
