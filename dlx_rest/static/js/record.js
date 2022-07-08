@@ -2077,7 +2077,7 @@ export let multiplemarcrecordcomponent = {
             function indUpdate(ind) {
                 let cell = ind === 1 ? ind1Cell : ind2Cell;
                 let span = ind === 1 ? ind1Span : ind2Span;
-                field.indicators = updated;
+
                 // undoredo snapshot
                 jmarc.addUndoredoEntry("INDICATORS") 
 
@@ -2211,6 +2211,7 @@ export let multiplemarcrecordcomponent = {
             valCell.className = "subfield-value";
             valCell.setAttribute("data-taggle", "tooltip");
             //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
+            valCell.innerText = " "; // space for padding
    
             let valSpan = document.createElement("span");
             valCell.appendChild(valSpan);
@@ -2370,11 +2371,10 @@ export let multiplemarcrecordcomponent = {
                 let j = jmarc.fields.indexOf(field);
                 let checkField = savedState.fields[j];
                 let checkSubfield = checkField ? checkField.subfields[i] : null;
-       
+
                 if (! checkSubfield || subfield.value !== checkSubfield.value) {
                     valCell.classList.add("unsaved");
-                }
-                else {
+                } else {
                     valCell.classList.remove("unsaved");
                 }
 
@@ -2542,7 +2542,7 @@ function keyupAuthLookup(event) {
     dropdown && dropdown.remove();
  
     clearTimeout(subfield.timer);
-    subfield.value = subfield.valueCell.innerText;
+    subfield.value = subfield.valueSpan.innerText;
     delete subfield.xref;
  
     if (subfield.value) {

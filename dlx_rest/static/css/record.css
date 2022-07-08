@@ -127,12 +127,12 @@ div.tag-input-popout {
     position: absolute; 
     padding: 1px; 
     top: -50%; 
-    left: 0%;
+    left: -33%;
 }
 
 input.tag-input {
     font-size: 24px; 
-    width: 125%; 
+    width: 115%; 
     text-align: center
 }
 
@@ -155,7 +155,7 @@ div.ind-input-popout {
     position: absolute; 
     padding: 1px; 
     top: -50%; 
-    left: 0%;
+    left: -50%;
 }
 
 input.ind-input {
@@ -170,6 +170,7 @@ button.subfield-menu {
 }
 
 td.subfield-code {
+    width: 100px;
     font-weight: bold;
     font-size: 13px;
     background-color: gainsboro;
@@ -190,7 +191,7 @@ div.subfield-code-input-popout {
     position: absolute; 
     padding: 1px; 
     top: -50%; 
-    left: 0%;
+    left: -50%;
 }
 
 input.subfield-code-input {
@@ -204,6 +205,7 @@ td.subfield-value {
     width: 10000px;
     font-size: 14px;
     border-left: 3px groove black;
+    white-space: pre-wrap;
 }
 
 td.unsaved {
@@ -211,6 +213,9 @@ td.unsaved {
 }
 
 span.subfield-value-selected {
+    outline: double;
+    padding: 3px;
+    font-weight: default;
     background-color: white;
 }
 
