@@ -261,11 +261,13 @@ export let searchcomponent = {
         } 
         if (this.params.search.includes("989:Voting Data")) {
             this.searchFields = this.voteSearchFields
-            this.vcoll = "989:Voting Data"
+            //this.vcoll = "989:Voting Data";
+            this.vcoll = "089:'B22'"
         } 
-        if (this.params.search.includes("989:Speeches")) {
+        if (this.params.search.includes("089:Speeches")) {
             this.searchFields = this.speechSearchFields
-            this.vcoll = "989:Speeches"
+            //this.vcoll = "989:Speeches";
+            this.vcoll = "089:'B23'"
         }
 
         let myEnd = component.params.start + component.params.limit -1;
