@@ -10,7 +10,7 @@ export let basketcomponent = {
     template: ` 
     <div class="container col-sm-2" id="app0" style="background-color:white;">
         <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-            <!-- <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div> -->
+         <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div>
             <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
             
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
@@ -144,13 +144,10 @@ export let basketcomponent = {
             }
             return true
         },
-        rebuildBasket() {
-            //const myBasket = await basket.getBasket(this.api_prefix);
-            // this.basketItems = [];
-            // this.buildBasket();
-           
-           
-            
+        async rebuildBasket() {
+            const myBasket = await basket.getBasket(this.api_prefix);
+            this.basketItems = [];
+            this.buildBasket();
         }
     }
 }
