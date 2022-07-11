@@ -54,6 +54,8 @@ export let searchcomponent = {
                     <div class="dropdown-menu">
                         <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
                         <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
                     </div>
                 </div>
             </div>
@@ -77,6 +79,8 @@ export let searchcomponent = {
                     <div class="dropdown-menu">
                         <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
                         <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
                     </div>
                 </div>
             </div>
