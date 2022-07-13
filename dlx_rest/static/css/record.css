@@ -242,3 +242,7 @@ span.lookup-choice-code {
 li.lookup-choice:hover {
     background-color: gray;
 }
+
+i.create-authority {
+    color: blue
+}

@@ -196,6 +196,7 @@ export class Jmarc {
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
+		this.authMap = this.collection === 'bibs' ? authMap['bibs'] : authMap['auths'];
 		this.fields = [];
 		this._history = [];
 		this.undoredoIndex=0;
