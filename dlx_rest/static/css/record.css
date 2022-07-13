@@ -213,7 +213,7 @@ td.unsaved {
 }
 
 span.subfield-value-selected {
-    outline: double;
+    outline: 1px solid blue;
     padding: 3px;
     font-weight: default;
     background-color: white;
@@ -241,4 +241,8 @@ span.lookup-choice-code {
 
 li.lookup-choice:hover {
     background-color: gray;
+}
+
+i.create-authority {
+    color: blue
 }

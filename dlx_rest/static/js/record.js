@@ -2487,14 +2487,22 @@ export let multiplemarcrecordcomponent = {
             }
  
             if (subfield.xrefCell.children.length === 0) {
-                let xrefLink = document.createElement("a");
-                subfield.xrefCell.appendChild(xrefLink);
-                xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
-                xrefLink.target="_blank";
+                if (subfield.xref) {
+                    // exisiting field
+                    let xrefLink = document.createElement("a");
+                    subfield.xrefCell.appendChild(xrefLink);
+                    xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
+                    xrefLink.target="_blank";
      
-                let xrefIcon = document.createElement("i");
-                xrefIcon.className = "fas fa-link float-left mr-2";
-                xrefLink.appendChild(xrefIcon);
+                    let xrefIcon = document.createElement("i");
+                    xrefIcon.className = "fas fa-link float-left mr-2";
+                    xrefLink.appendChild(xrefIcon);
+                } else {
+                    let addButton = document.createElement("i");
+                    addButton.title = "Create new authority from this value";
+                    addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
+                    subfield.xrefCell.append(addButton);
+                }
             }
      
             // lookup
@@ -2529,6 +2537,7 @@ function keyupAuthLookup(event) {
     let component = event.currentTarget.eventParams[0];
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
+    let jmarc = field.parentRecord;
    
     if (event.keyCode < 45 && event.keyCode !== 8) {
         // non ascii or delete keys
@@ -2536,7 +2545,39 @@ function keyupAuthLookup(event) {
     }
  
     subfield.valueSpan.classList.add("authority-controlled-unmatched");
+    
+    // authority creation button
     subfield.xrefCell.innerHTML = null;
+    let addButton = document.createElement("i");
+    subfield.xrefCell.append(addButton);
+    addButton.title = "Create new authority from this value";
+    addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
+
+    addButton.addEventListener("click", function() {
+        // create and save the new authority record
+        let tag = jmarc.authMap[field.tag][subfield.code];
+        let auth = new Jmarc("auths");
+        auth.createField(tag).createSubfield(subfield.code).value = subfield.value;
+        
+        auth.post().then(
+            auth => {
+                subfield.valueSpan.classList.remove("authority-controlled-unmatched");
+                subfield.xrefCell.innerHTML = null;
+
+                // create the xerf link
+                let xrefLink = document.createElement("a");
+                subfield.xrefCell.appendChild(xrefLink);
+                xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                xrefLink.target="_blank";
+     
+                let xrefIcon = document.createElement("i");
+                xrefIcon.className = "fas fa-link float-left mr-2";
+                xrefLink.appendChild(xrefIcon);
+
+                component.callChangeStyling(`New authority record #${auth.recordId} created`, "row alert alert-success");
+            }
+        )
+    });
  
     let dropdown = document.getElementById("typeahead-dropdown");
     dropdown && dropdown.remove();
