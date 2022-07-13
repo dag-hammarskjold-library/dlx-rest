@@ -2639,7 +2639,7 @@ function keyupAuthLookup(event) {
                                     let newSubfield = field.createSubfield(choiceSubfield.code, place);
                                     newSubfield.value = choiceSubfield.value;
                                     currentSubfield = newSubfield;
-                                    buildSubfieldRow(component, newSubfield, place);
+                                    component.buildSubfieldRow(newSubfield, place);
                                 }
                
                                 currentSubfield.value = choiceSubfield.value;
