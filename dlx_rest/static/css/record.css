@@ -213,7 +213,7 @@ td.unsaved {
 }
 
 span.subfield-value-selected {
-    outline: double;
+    outline: 1px solid blue;
     padding: 3px;
     font-weight: default;
     background-color: white;
