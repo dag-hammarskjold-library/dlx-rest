@@ -411,6 +411,11 @@ class RecordsListBrowse(Resource):
         help='Number of results to return. Max is 100',
         default=10,
     )
+    args.add_argument(
+        'type',
+        type=str, 
+        choices=['speech', 'vote']
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
     @ns.expect(args)

@@ -62,7 +62,7 @@
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
             <div class="collapse navbar-collapse" id="navbarToggler">
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="NOT 089:'B22' AND NOT 089:'B23'")}}">Bibs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
                     <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
@@ -81,6 +81,8 @@
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                           <a class="dropdown-item" href="{{url_for('browse', coll='bibs')}}">Bibs</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='speech')}}">Speeches</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='vote')}}">Votes</a>
                           <a class="dropdown-item" href="{{url_for('browse', coll='auths')}}">Auths</a>
                         </div>
                     </li>
