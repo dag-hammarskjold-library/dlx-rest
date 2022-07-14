@@ -2554,6 +2554,11 @@ function keyupAuthLookup(event) {
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
     addButton.addEventListener("click", function() {
+        subfield.xrefCell.innerHTML = null;
+        let spinner = document.createElement("i");
+        spinner.className = "fa fa-spinner";
+        subfield.xrefCell.append(spinner);
+
         // create and save the new authority record
         let tag = jmarc.authMap[field.tag][subfield.code];
         let auth = new Jmarc("auths");
