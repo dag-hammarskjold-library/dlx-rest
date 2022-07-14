@@ -2561,10 +2561,11 @@ function keyupAuthLookup(event) {
         
         auth.post().then(
             auth => {
+                subfield.xref = auth.recordId;
                 subfield.valueSpan.classList.remove("authority-controlled-unmatched");
                 subfield.xrefCell.innerHTML = null;
 
-                // create the xerf link
+                // create the xref link
                 let xrefLink = document.createElement("a");
                 subfield.xrefCell.appendChild(xrefLink);
                 xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
