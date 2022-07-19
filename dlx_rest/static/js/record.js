@@ -1313,7 +1313,7 @@ export let multiplemarcrecordcomponent = {
             if (!this.historyMode){
                 const myId=jmarc.collection + '--' + jmarc.recordId
                 const selectedItem=document.getElementById(myId)
-                selectedItem.setAttribute("style", "background-color:;");
+                if (selectedItem) selectedItem.setAttribute("style", "background-color:white;");
             }
             
 

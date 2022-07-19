@@ -32,6 +32,7 @@ export default {
                 myItemTitle = myTitle.join(" ");
             }
             let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
+            //console.log(url)
             await fetch(url, {
                 method: 'POST',
                 body: data
