@@ -36,7 +36,7 @@ def editor():
     records = request.args.get('records', None)
     workform = request.args.get('workform', None)
     fromWorkform = request.args.get('fromWorkform', None)
-    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform)
+    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
 
 @app.route('/workform')
@@ -429,20 +429,26 @@ def search_records(coll):
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll)
+    vcoll = coll
+    if "B22" in q:
+        vcoll = "speeches"
+    if "B23" in q:
+        vcoll = "votes"
+
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll)
 
 @app.route('/records/<coll>/browse')
 def browse(coll):
     api_prefix = url_for('doc', _external=True)
     logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
     index_list = json.dumps(list(logical_fields.keys()))
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list)
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse")
 
 @app.route('/records/<coll>/browse/<index>')
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q)
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse")
 
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
@@ -468,7 +474,7 @@ def review_auth():
 
     search_url = url_for('api_records_list', collection="auths", start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
-    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths")
+    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths")
 
 
 def search_records_old(coll):
@@ -521,7 +527,7 @@ def create_record(coll):
 @login_required
 @requires_permission('readFile')
 def upload_files():
-    return render_template('process_files.html')
+    return render_template('process_files.html', vcoll="files")
 
 
 @app.route('/files/process', methods=["POST"])
@@ -600,7 +606,7 @@ def process_files():
 
     #print(fileResults)    
 
-    return render_template('file_results.html', submitted=fileResults)
+    return render_template('file_results.html', submitted=fileResults, vcoll="files")
 
 @app.route('/files/search')
 @login_required
@@ -609,7 +615,7 @@ def search_files():
     baseURL = url_for('doc', _external=True)
     #this_prefix = baseURL.replace("/api/", url_for('files_results'))
     this_prefix = url_for('files_results')
-    return render_template('file_update.html', prefix=this_prefix)
+    return render_template('file_update.html', prefix=this_prefix, vcoll="files")
 
 
 @app.route('/files/update/results', methods=['GET', 'POST'])
