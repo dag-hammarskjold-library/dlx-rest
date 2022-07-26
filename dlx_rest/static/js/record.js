@@ -2562,23 +2562,32 @@ function keyupAuthLookup(event) {
         // create and save the new authority record
         let tag = jmarc.authMap[field.tag][subfield.code];
         let auth = new Jmarc("auths");
-        auth.createField(tag).createSubfield(subfield.code).value = subfield.value;
         
+        // add all auth-controlled subfields from the field
+        let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
+        
+        for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+            newField.createSubfield(s.code).value = s.value
+        }
+
         auth.post().then(
             auth => {
-                subfield.xref = auth.recordId;
-                subfield.valueSpan.classList.remove("authority-controlled-unmatched");
-                subfield.xrefCell.innerHTML = null;
+                // update all auth-ctrled subfields
+                for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+                    s.xref = auth.recordId;
+                    s.valueSpan.classList.remove("authority-controlled-unmatched");
+                    s.xrefCell.innerHTML = null;
 
-                // create the xref link
-                let xrefLink = document.createElement("a");
-                subfield.xrefCell.appendChild(xrefLink);
-                xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
-                xrefLink.target="_blank";
+                    // create the xref link
+                    let xrefLink = document.createElement("a");
+                    s.xrefCell.appendChild(xrefLink);
+                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                    xrefLink.target="_blank";
      
-                let xrefIcon = document.createElement("i");
-                xrefIcon.className = "fas fa-link float-left mr-2";
-                xrefLink.appendChild(xrefIcon);
+                    let xrefIcon = document.createElement("i");
+                    xrefIcon.className = "fas fa-link float-left mr-2";
+                    xrefLink.appendChild(xrefIcon);
+                }
 
                 component.callChangeStyling(`New authority record #${auth.recordId} created`, "row alert alert-success");
             }
