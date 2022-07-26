@@ -40,36 +40,7 @@ class Role(Document):
             self.permissions.append(this_p)
             self.save()
 
-class Basket(Document):
-    owner = GenericReferenceField(required=True)
-    name = StringField(max_length=200, required=True)
-    items = ListField(DictField())
 
-    def get_item_by_id(self, item_id):
-        this_item = list(filter(lambda x: x['id'] == item_id, self.items))
-        return this_item
-
-    def get_item_by_coll_and_rid(self, collection, record_id):
-        return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
-
-    def add_item(self, item):
-        existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
-        if len(existing_item) == 0:
-            ulid = ULID()
-            item['id'] = str(ulid.to_uuid())
-            self.items.append(item)
-            self.save()
-
-    def remove_item(self, item_id):
-        #self.items = list(filter(lambda x: x['collection'] != item['collection'] and x['record_id'] != item['record_id'], self.items))
-        this_item = self.get_item_by_id(item_id)
-        if this_item is not None:
-            self.items = list(filter(lambda x: x['id'] != item_id, self.items))
-            self.save()
-
-    def clear(self):
-        self.items = []
-        self.save()
 
 class MarcFieldSet(EmbeddedDocument):
     field = StringField(max_length=3, min_length=3, required=True)
@@ -171,6 +142,38 @@ class User(UserMixin, Document):
             return None    # invalid token
         user = User.objects.get(id=data['id'])
         return user
+
+
+class Basket(Document):
+    owner = ReferenceField(User)
+    name = StringField(max_length=200, required=True)
+    items = ListField(DictField())
+
+    def get_item_by_id(self, item_id):
+        this_item = list(filter(lambda x: x['id'] == item_id, self.items))
+        return this_item
+
+    def get_item_by_coll_and_rid(self, collection, record_id):
+        return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
+
+    def add_item(self, item):
+        existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
+        if len(existing_item) == 0:
+            ulid = ULID()
+            item['id'] = str(ulid.to_uuid())
+            self.items.append(item)
+            self.save()
+
+    def remove_item(self, item_id):
+        #self.items = list(filter(lambda x: x['collection'] != item['collection'] and x['record_id'] != item['record_id'], self.items))
+        this_item = self.get_item_by_id(item_id)
+        if this_item is not None:
+            self.items = list(filter(lambda x: x['id'] != item_id, self.items))
+            self.save()
+
+    def clear(self):
+        self.items = []
+        self.save()
 
 
 class SyncLog(Document):
