@@ -442,13 +442,13 @@ def browse(coll):
     api_prefix = url_for('doc', _external=True)
     logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
     index_list = json.dumps(list(logical_fields.keys()))
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse")
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'))
 
 @app.route('/records/<coll>/browse/<index>')
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse")
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
 
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
