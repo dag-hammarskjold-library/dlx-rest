@@ -408,10 +408,13 @@ export let multiplemarcrecordcomponent = {
                     for (let checkbox of document.getElementsByClassName("field-checkbox")) {
                         checkbox.checked = false;
                     }
+
+                    // adding the snapshot 
+                    jmarc.addUndoredoEntry("from Paste feature")
                    
-                    // refresh   
-                    this.removeRecordFromEditor(jmarc);
-                    this.displayMarcRecord(jmarc);
+                    // refresh
+                    this.removeRecordFromEditor(jmarc,true)
+                    this.displayMarcRecord(jmarc,false,true)  
                    
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields.filter(x => x.copied)) {
