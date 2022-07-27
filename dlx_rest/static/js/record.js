@@ -1313,7 +1313,7 @@ export let multiplemarcrecordcomponent = {
             if (!this.historyMode){
                 const myId=jmarc.collection + '--' + jmarc.recordId
                 const selectedItem=document.getElementById(myId)
-                selectedItem.setAttribute("style", "background-color:;");
+                if (selectedItem) selectedItem.setAttribute("style", "background-color:white;");
             }
             
 
@@ -2554,25 +2554,40 @@ function keyupAuthLookup(event) {
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
     addButton.addEventListener("click", function() {
+        subfield.xrefCell.innerHTML = null;
+        let spinner = document.createElement("i");
+        spinner.className = "fa fa-spinner";
+        subfield.xrefCell.append(spinner);
+
         // create and save the new authority record
         let tag = jmarc.authMap[field.tag][subfield.code];
         let auth = new Jmarc("auths");
-        auth.createField(tag).createSubfield(subfield.code).value = subfield.value;
         
+        // add all auth-controlled subfields from the field
+        let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
+        
+        for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+            newField.createSubfield(s.code).value = s.value
+        }
+
         auth.post().then(
             auth => {
-                subfield.valueSpan.classList.remove("authority-controlled-unmatched");
-                subfield.xrefCell.innerHTML = null;
+                // update all auth-ctrled subfields
+                for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+                    s.xref = auth.recordId;
+                    s.valueSpan.classList.remove("authority-controlled-unmatched");
+                    s.xrefCell.innerHTML = null;
 
-                // create the xerf link
-                let xrefLink = document.createElement("a");
-                subfield.xrefCell.appendChild(xrefLink);
-                xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
-                xrefLink.target="_blank";
+                    // create the xref link
+                    let xrefLink = document.createElement("a");
+                    s.xrefCell.appendChild(xrefLink);
+                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                    xrefLink.target="_blank";
      
-                let xrefIcon = document.createElement("i");
-                xrefIcon.className = "fas fa-link float-left mr-2";
-                xrefLink.appendChild(xrefIcon);
+                    let xrefIcon = document.createElement("i");
+                    xrefIcon.className = "fas fa-link float-left mr-2";
+                    xrefLink.appendChild(xrefIcon);
+                }
 
                 component.callChangeStyling(`New authority record #${auth.recordId} created`, "row alert alert-success");
             }

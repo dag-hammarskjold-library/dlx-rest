@@ -62,11 +62,27 @@
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
             <div class="collapse navbar-collapse" id="navbarToggler">
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="NOT 089:'B22' AND NOT 089:'B23'")}}">Bibs</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
+                    {% if vcoll=="bibs" %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    {% endif %}
+                    {% if vcoll=="speeches" %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
+                    {% endif %}
+                    {% if vcoll == "votes" %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
+                    {% endif %}
                     <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
+                    {% if vcoll=="auths" %}
+                    <li class="nav-item active dropdown">
+                    {% else %}
                     <li class="nav-item dropdown">
+                    {% endif %}
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Auths
                           </a>
@@ -75,7 +91,11 @@
                             <a class="dropdown-item" href="{{url_for('review_auth')}}">Review Auths</a>
                           </div>
                     </li>
+                    {% if vcoll=="browse" %}
+                    <li class="nav-item active dropdown">
+                    {% else %}
                     <li class="nav-item dropdown">
+                    {% endif %}
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           Browse
                         </a>
@@ -86,7 +106,12 @@
                           <a class="dropdown-item" href="{{url_for('browse', coll='auths')}}">Auths</a>
                         </div>
                     </li>
+
+                    {% if vcoll=="files" %}
+                    <li class="nav-item active dropdown">
+                    {% else %}
                     <li class="nav-item dropdown">
+                    {% endif %}
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           Files
                         </a>
@@ -97,7 +122,11 @@
                     </li>
                     {% if current_user.is_authenticated %}
                         {% if current_user.has_permission('updateRecord') %}
-                        <li class="nav-item"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>
+                            {% if vcoll=="editor" %}
+                                <li class="nav-item active"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>
+                            {% else %}
+                                <li class="nav-item"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>
+                            {% endif %}
                         {% endif %}
                     {% endif %}
                 </ul>
