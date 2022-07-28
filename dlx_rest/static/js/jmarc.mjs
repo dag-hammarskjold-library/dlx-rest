@@ -661,6 +661,8 @@ export class Jmarc {
 		cloned.deleteField("005");
 		cloned.deleteField("008");
         cloned.deleteField("035");
+		cloned.deleteField("981");
+		cloned.deleteField("989");
         cloned.deleteField("998");
         cloned.deleteField("999");
         cloned.createField("999").createSubfield("a").value = "";
