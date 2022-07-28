@@ -28,7 +28,7 @@ export let authreviewcomponent = {
         <div class="col text-center">
             <h1>Authorities Review</h1>
             <form :action="action">  
-                <label for="dateSelector">Authorities creaded/updated since</label>              
+                <label for="dateSelector">Authorities created/updated since</label>              
                 <div class="input-group mb-3">
                     <input id="dateSelector" type="date" class="form-control" aria-label="Date" :value="since">
                     <div class="input-group-append">
