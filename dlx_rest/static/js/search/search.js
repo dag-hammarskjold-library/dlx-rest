@@ -222,8 +222,8 @@ export let searchcomponent = {
             searchTypes: [
                 {'name': 'All of the words:', 'value': 'all'},
                 {'name': 'Any of the words:', 'value': 'any'},
-                {'name': 'Exact prhase:', 'value': 'exact'},
-                {'name': 'Partial prhase:', 'value': 'partial'},
+                {'name': 'Exact phrase:', 'value': 'exact'},
+                {'name': 'Partial phrase:', 'value': 'partial'},
                 {'name': 'Regular expression:', 'value': 'regex'},
             ],
             uibase: myUIBase,
