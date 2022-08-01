@@ -52,7 +52,8 @@ export let sortcomponent = {
                 {"displayName": "10", "searchString": 10},
                 {"displayName": "25", "searchString": 25},
                 {"displayName": "50", "searchString": 50},
-                {"displayName": "100", "searchString": 100}
+                {"displayName": "100", "searchString": 100},
+                {"displayName": "1000", "searchString": 1000}
             ],
             sortFields: mySortFields,
             sortDirections: [
