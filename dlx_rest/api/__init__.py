@@ -423,7 +423,6 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        #print(querystring)
         match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
@@ -440,18 +439,21 @@ class RecordsListBrowse(Resource):
         if args.compare == 'less':
             values = list(reversed(list(values)))
 
+        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
+
         data = [
             {
                 'value': x['_id'],
                 'search': URL(
                     'api_records_list', 
-                    collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\''
+                    collection=collection,
+                    # todo: make record type serachable by query string instead of useing type codes
+                    search=f'{field}:\'{x.get("_id")}\'' + criteria
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\''
+                    search=f'{field}:\'{x.get("_id")}\'' + criteria
                 ).to_str()
             } for x in values
         ]
