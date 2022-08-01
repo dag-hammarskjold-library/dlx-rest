@@ -440,8 +440,20 @@ def search_records(coll):
 @app.route('/records/<coll>/browse')
 def browse(coll):
     api_prefix = url_for('doc', _external=True)
-    logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
-    index_list = json.dumps(list(logical_fields.keys()))
+
+    # todo: get all from dlx config
+    if request.args.get('type') == 'speech':
+        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+    elif request.args.get('type') == 'vote':
+        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creation'])
+    else:
+        logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
+        fields = list(logical_fields.keys())
+        fields.remove('notes')
+        fields.remove('speaker')
+        fields.remove('country_org')
+        index_list = json.dumps(fields)
+
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'))
 
 @app.route('/records/<coll>/browse/<index>')
