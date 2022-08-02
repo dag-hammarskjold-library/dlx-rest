@@ -26,8 +26,8 @@ jobs:
       # From: https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ secrets.PRIMARY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.PRIMARY_AWS_SECRET_ACCESS_KEY }}
         # aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} # if you have/need it
         aws-region: us-east-1
       
