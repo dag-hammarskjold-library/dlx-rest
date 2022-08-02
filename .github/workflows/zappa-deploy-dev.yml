@@ -33,11 +33,11 @@ jobs:
       
     - name: Install dependencies
       run: |
-        python -m venv venv
-        source venv/bin/activate
+        python -m venv env
+        python -m venv activate env
         python -m pip install --upgrade pip
-        pip install wheel pytest zappa
-        pip install -r requirements.txt
+        python -m pip install wheel pytest zappa
+        python -m pip install -r requirements.txt
         
     - name: Test
       run: |
