@@ -221,12 +221,17 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
 
 def test_api_records_list_browse(client, marc):
-    return # to be updated in a different branch
+    #return # to be updated in a different branch
 
-    res = client.get(f'{API}/marc/bibs/records/browse?search=\'title\':Title&compare=greater')
+    res = client.get(f'{API}/marc/bibs/records/browse?search=title:\'Title\'&compare=greater')
     data = check_response(res)
+
+    res = client.get(f'{API}/marc/bibs/records/browse?search=title:\'Title\'&compare=greater&type=bib')
+    data = check_response(res)
+
+    print(json.loads(res.data)['data'])
     
-    res = client.get(f'{API}/marc/auths/records/browse?search=heading:Heading&compare=less')
+    res = client.get(f'{API}/marc/auths/records/browse?search=subject:\'Heading\'&compare=less')
     data = check_response(res)
 
 def test_api_records_list_count(client, marc):
@@ -839,7 +844,7 @@ def test_api_userbasket(client, default_users, users, marc):
 def check_response(response):
     client = app.test_client()
     data = json.loads(response.data)
-    
+
     assert response.status_code == 200
     
     for _ in ('_links', '_meta', 'data'):

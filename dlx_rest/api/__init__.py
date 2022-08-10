@@ -411,6 +411,11 @@ class RecordsListBrowse(Resource):
         help='Number of results to return. Max is 100',
         default=10,
     )
+    args.add_argument(
+        'type',
+        type=str, 
+        choices=['bib', 'speech', 'vote', 'auth']
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
     @ns.expect(args)
@@ -425,24 +430,33 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = {'_id': {operator: value}}
+        query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         collation = Collation(locale='en', strength=2, numericOrdering=True if field == 'symbol' else False)
         start, limit = int(args.start), int(args.limit)
 
         values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
-            values = list(reversed(list(values)))    
-        
+            values = list(reversed(list(values)))
+
+        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
+
         data = [
             {
                 'value': x['_id'],
-                'search': URL('api_records_list', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=f'{field}:\'{x.get("_id")}\'').to_str()
+                'search': URL(
+                    'api_records_list', 
+                    collection=collection,
+                    # todo: make record type serachable by query string instead of useing type codes
+                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                ).to_str(),
+                'count': URL(
+                    'api_records_list_count', 
+                    collection=collection, 
+                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                ).to_str()
             } for x in values
         ]
-
-        print(data)
         
         links = {
             '_self': URL('api_records_list_browse', collection=collection, start=start, limit=limit, search=args.search, compare=args.compare).to_str(),

@@ -247,6 +247,8 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
+
+        //let searchstr = document.getElementById('q').value;
         
         // [what is this used for?]
         if (component.collection == "auths") {
@@ -262,13 +264,15 @@ export let searchcomponent = {
             component.lookup_maps['bibs'] = bibMapData.data;
         } else if (component.collection == "bibs") {
             this.searchFields = this.bibSearchFields
-        } 
-        if (this.params.search.includes("989:Voting Data")) {
+        }
+        // todo: remove the type cretieria from the search input; update criteria
+        if (this.params.search.includes("089:'B22'")) {
             this.searchFields = this.voteSearchFields
             //this.vcoll = "989:Voting Data";
             this.vcoll = "089:'B22'"
-        } 
-        if (this.params.search.includes("089:Speeches")) {
+        }
+        // todo: remove the type cretieria from the search input, update criteria
+        if (this.params.search.includes("089:'B23'")) {
             this.searchFields = this.speechSearchFields
             //this.vcoll = "989:Speeches";
             this.vcoll = "089:'B23'"

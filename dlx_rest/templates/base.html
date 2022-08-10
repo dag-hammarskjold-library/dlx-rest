@@ -100,8 +100,10 @@
                           Browse
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs')}}">Bibs</a>
-                          <a class="dropdown-item" href="{{url_for('browse', coll='auths')}}">Auths</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='bib')}}">Bibs</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='speech')}}">Speeches</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='vote')}}">Votes</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='auths', type='auth')}}">Auths</a>
                         </div>
                     </li>
 
