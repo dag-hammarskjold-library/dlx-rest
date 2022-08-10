@@ -449,9 +449,10 @@ def browse(coll):
     else:
         logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
         fields = list(logical_fields.keys())
-        fields.remove('notes')
-        fields.remove('speaker')
-        fields.remove('country_org')
+        
+        for f in filter(lambda x: x in fields, ('notes', 'speaker', 'country_org')):
+            fields.remove(f)
+
         index_list = json.dumps(fields)
 
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'))
