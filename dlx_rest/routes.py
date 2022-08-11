@@ -445,7 +445,7 @@ def browse(coll):
     if request.args.get('type') == 'speech':
         index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
     elif request.args.get('type') == 'vote':
-        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creation'])
+        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
     else:
         logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
         fields = list(logical_fields.keys())
