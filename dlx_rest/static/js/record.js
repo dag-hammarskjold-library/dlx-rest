@@ -478,6 +478,24 @@ export let multiplemarcrecordcomponent = {
             })
         },
         addField(jmarc){
+            for (let field of jmarc.fields) {
+                if (field.selected) {
+                    let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+                    newField.indicators = ["_", "_"];
+                    let newSubfield = newField.createSubfield();
+                    newSubfield.code = "_";
+                    newSubfield.value = "";
+
+                    this.buildFieldRow(newField, field.row.rowIndex - 1);
+                    //newField.tagSpan.focus();
+                    newField.tagCell.classList.add("unsaved");
+                    newField.subfields[0].codeCell.classList.add("unsaved");
+                    newField.subfields[0].valueCell.classList.add("unsaved");
+                }
+            }
+
+            return
+
             // Add blank field
             this.selectedFields.forEach(field=>
                 {
@@ -591,6 +609,8 @@ export let multiplemarcrecordcomponent = {
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
+            //this.record1.selected = this.record2.selected = false
+            //jmarc.selected = true
             let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
             //idRow.style.backgroundColor = "#009edb"
@@ -1739,10 +1759,8 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
-
             let component = this;
             let jmarc = field.parentRecord;
-
 
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
@@ -1835,6 +1853,7 @@ export let multiplemarcrecordcomponent = {
 
             // Indicators
             let ind1Cell = tagRow.insertCell();
+            field.ind1Cell = ind1Cell;
             ind1Cell.classList.add("indicators");
             let ind1Div = document.createElement("div");
             ind1Cell.append(ind1Div);
@@ -1845,6 +1864,7 @@ export let multiplemarcrecordcomponent = {
             ind1Span.tabIndex = 0;
             
             let ind2Cell = tagRow.insertCell();
+            field.ind2Cell = ind2Cell;
             ind2Cell.classList.add("indicators");
             let ind2Div = document.createElement("div");
             ind2Cell.append(ind2Div);
@@ -1898,6 +1918,10 @@ export let multiplemarcrecordcomponent = {
        
                 newField = component.buildFieldRow(newField, field.row.rowIndex - 1);
                 newField.tagSpan.focus();
+                newField.tagSpan.classList.add("invalid");
+                newField.ind1Cell.classList.add("unsaved");
+                newField.ind2Cell.classList.add("unsaved");
+                newField.subfields[0].codeSpan.classList.add("invalid");
                 newField.subfields[0].valueCell.classList.add("unsaved");
  
                 // Manage visual indicators
@@ -1994,8 +2018,10 @@ export let multiplemarcrecordcomponent = {
 
                 let j = jmarc.fields.indexOf(field);
                 let checkField = savedState.fields[j] ? savedState.fields[j] : null;
- 
-                if (! checkField || field.tag !== checkField.tag) {
+                
+                if (! field.tagSpan.innerText.match(/[0-9A-Z]/)) {
+                    field.tagSpan.classList.add("invalid");
+                } else if (! checkField || field.tag !== checkField.tag) {
                     field.tagSpan.classList.add("unsaved");
                 }
  
