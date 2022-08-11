@@ -458,66 +458,53 @@ export let multiplemarcrecordcomponent = {
                 })
                               
         },
-        addSubField(){
+        addSubField(jmarc) {
             // add blank subfield
-            this.selectedFields.forEach(field=>
-                {
-                    let place = field.subfields.length;
-                    let newSubfield = field.createSubfield("_", place);
-                    newSubfield.value = "";
-                    newSubfield = this.buildSubfieldRow(newSubfield, place);
-           
-                    newSubfield.codeSpan.focus();
-                    document.execCommand("selectall");
-           
-                    newSubfield.valueCell.classList.add("unsaved");
-                    saveButton.classList.add("text-danger");
-                    saveButton.classList.remove("text-primary");
-                    saveButton.title = "unsaved changes";
- 
-            })
+            for (let field of jmarc.getDataFields()) {
+                for (let subfield of field.subfields) {
+                    if (subfield.selected) {
+                        let place = field.subfields.indexOf(subfield) + 1;
+                        let newSubfield = field.createSubfield("_", place);
+                        newSubfield.value = "";
+                        newSubfield = this.buildSubfieldRow(newSubfield, place);
+                        newSubfield.codeSpan.focus();
+
+                        newSubfield.valueCell.classList.add("unsaved");
+                        saveButton.classList.add("text-danger");
+                        saveButton.classList.remove("text-primary");
+                        saveButton.title = "unsaved changes";
+
+                        return newSubfield
+                    }
+                }
+            }
         },
         addField(jmarc){
+            // add a field below the active field
             for (let field of jmarc.fields) {
                 if (field.selected) {
                     let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
                     newField.indicators = ["_", "_"];
+                    
                     let newSubfield = newField.createSubfield();
                     newSubfield.code = "_";
                     newSubfield.value = "";
-
-                    this.buildFieldRow(newField, field.row.rowIndex - 1);
-                    //newField.tagSpan.focus();
-                    newField.tagCell.classList.add("unsaved");
-                    newField.subfields[0].codeCell.classList.add("unsaved");
+                    
+                    newField = this.buildFieldRow(newField, field.row.rowIndex - 1);
+                    newField.tagSpan.focus();
+                    newField.tagSpan.classList.add("invalid");
+                    newField.ind1Cell.classList.add("unsaved");
+                    newField.ind2Cell.classList.add("unsaved");
+                    newField.subfields[0].codeSpan.classList.add("invalid");
                     newField.subfields[0].valueCell.classList.add("unsaved");
+                    
+                    // Manage visual indicators
+                    jmarc.saveButton.classList.add("text-danger");
+                    jmarc.saveButton.title = "Save Record";
+                    
+                    return newField
                 }
             }
-
-            return
-
-            // Add blank field
-            this.selectedFields.forEach(field=>
-                {
-                let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-                newField.indicators = ["_", "_"];
-       
-                let newSubfield = newField.createSubfield();
-                newSubfield.code = "_";
-                newSubfield.value = "";
-       
-                newField = this.buildFieldRow(newField, field.row.rowIndex - 1);
-                newField.tagSpan.focus();
-                document.execCommand("selectall");
-                newField.subfields[0].valueCell.classList.add("unsaved");
-
-            })
- 
-            // Manage visual indicators
-            jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "Save Record";
-
         },
         deleteField(jmarc){
             // delete the field
@@ -1909,26 +1896,7 @@ export let multiplemarcrecordcomponent = {
 
             // Menu add field
             addField.addEventListener("click", function() {
-                let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-                newField.indicators = ["_", "_"];
-       
-                let newSubfield = newField.createSubfield();
-                newSubfield.code = "_";
-                newSubfield.value = "";
-       
-                newField = component.buildFieldRow(newField, field.row.rowIndex - 1);
-                newField.tagSpan.focus();
-                newField.tagSpan.classList.add("invalid");
-                newField.ind1Cell.classList.add("unsaved");
-                newField.ind2Cell.classList.add("unsaved");
-                newField.subfields[0].codeSpan.classList.add("invalid");
-                newField.subfields[0].valueCell.classList.add("unsaved");
- 
-                // Manage visual indicators
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.title = "Save Record";
- 
-                return
+                component.addField(jmarc)
             });
 
             // Menu delete field
@@ -2262,20 +2230,14 @@ export let multiplemarcrecordcomponent = {
             // Events
 
             // Menu actions
+            menuButton.addEventListener("focus", function() {
+                component.clearSelectedSubfield(jmarc);
+                subfield.selected = true;
+            });
+
             // Add subfiueld
             addSubfield.addEventListener("click", function() {
-                let place = field.subfields.indexOf(subfield) + 1;
-                let newSubfield = field.createSubfield("_", place);
-                newSubfield.value = "";
-                newSubfield = component.buildSubfieldRow(newSubfield, place);
-                newSubfield.codeSpan.focus();
-
-                newSubfield.valueCell.classList.add("unsaved");
-                saveButton.classList.add("text-danger");
-                saveButton.classList.remove("text-primary");
-                saveButton.title = "unsaved changes";
-                
-                return
+                component.addSubField(jmarc)
             });
             
             // Delete subfield
@@ -2306,6 +2268,8 @@ export let multiplemarcrecordcomponent = {
 
             // Subfield code actions
             function subfieldCodeActivate() {
+                component.clearSelectedSubfield(jmarc);
+                subfield.selected = true;
                 codeCell.classList.add("subfield-code-selected");
 
                 let popout = document.createElement("div");
@@ -2556,6 +2520,13 @@ export let multiplemarcrecordcomponent = {
 
             field.row.classList.add("field-row-selected");
             field.selected = true;
+        },
+        clearSelectedSubfield(jmarc) {
+            for (let field of jmarc.getDataFields()) {
+                for (let subfield of field.subfields) {
+                    subfield.selected = false
+                }
+            }
         }
     }
 }
