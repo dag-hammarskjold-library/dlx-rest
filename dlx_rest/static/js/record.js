@@ -147,17 +147,18 @@ export let multiplemarcrecordcomponent = {
     // Management of the keyboard shortcuts
     //////////////////////////////////////////////////////////////////////////
     
-    window.addEventListener("keydown", this.removeRecordListener)    // ctrl + f4 => close the record selected
-    window.addEventListener("keydown", this.saveRecordListener)      // ctrl + s => save the record selected
-    window.addEventListener("keydown", this.addFieldListener)        // ctrl + ENTER => add a new field to the record selected
-    window.addEventListener("keydown", this.addHelpListener)         // ctrl + h => show the help window about the shortcuts
-    window.addEventListener("keydown", this.deleteFieldListener)     // ctrl + k => remove a field from the record selected
-    window.addEventListener("keydown", this.addSubFieldListener)     // ctrl + / => add a subfield to the selected record
-    window.addEventListener("keydown", this.deleteSubFieldListener)  // ctrl + m => remove a subfield from the selected record
-    window.addEventListener("keydown", this.pasteFieldListener)      // ctrl + p => past the selected field
+    window.addEventListener("keydown", this.removeRecordListener)          // ctrl + x => close the record selected
+    window.addEventListener("keydown", this.saveRecordListener)            // ctrl + s => save the record selected
+    window.addEventListener("keydown", this.addFieldListener)              // ctrl + ENTER => add a new field to the record selected
+    window.addEventListener("keydown", this.addHelpListener)               // ctrl + h => show the help window about the shortcuts
+    window.addEventListener("keydown", this.deleteFieldListener)           // ctrl + k => remove a field from the record selected
+    window.addEventListener("keydown", this.addSubFieldListener)           // ctrl + / => add a subfield to the selected record
+    window.addEventListener("keydown", this.deleteSubFieldListener)        // ctrl + m => remove a subfield from the selected record
+    window.addEventListener("keydown", this.pasteFieldListener)            // ctrl + p => past the selected field
     window.addEventListener("keydown", this.changeSelectedRecordListener)  // ctrl + q => change the selected record
+    window.addEventListener("keydown", this.refreshPageListener)           // ctrl + r => refresh the page
     
-    //////////////////////////////////////////////////////////////////////////
+
         let component = this;
         Jmarc.apiUrl = this.prefix;
         this.baseUrl = this.prefix.replace("/api", "");
@@ -386,8 +387,8 @@ export let multiplemarcrecordcomponent = {
 
         pasteField(jmarc){
             // paste field   
-            //this.selectedFields.forEach(field =>
-            //    {
+            this.copiedFields.forEach(field =>
+               {
                     for (let field of this.copiedFields || []) {
                         // recreate the field
                         let newField = jmarc.createField(field.tag);
@@ -425,100 +426,129 @@ export let multiplemarcrecordcomponent = {
                     
                     jmarc.saveButton.classList.add("text-danger");
                     jmarc.saveButton.title = "Save Record";
-                //})
+                })
                                
         },
         deleteSubFieldFromShort(jmarc){
             // delete subfield   
-            this.selectedFields.forEach(field =>
-                {
-                    if (field.subfields.length == 1) {
-                        this.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
-                        return
-                    }
-                    // the subfield will be the last of the subfields array
-                    let subfield=field.subfields[field.subfields.length-1]
+            let field = jmarc.getDataFields().filter(x => x.selected)[0];
+
+            if (! field) {
+                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                return 
+            }
+
+            if (field.subfields.length == 1) {
+                this.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
+                return
+            }
+
+            let subfield = field.subfields.filter(x => x.selected)[0];
+            
+            if (! subfield) {
+                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                return 
+            }
                    
-                    // Remove the subfield from the field
-                    field.deleteSubfield(subfield);
-                    // Remove the subfield row from the table
-                    field.table.deleteRow(subfield.row.rowIndex);
+            // Remove the subfield from the field
+            field.deleteSubfield(subfield);
+            // Remove the subfield row from the table
+
+            field.subfieldTable.deleteRow(subfield.row.rowIndex);
    
-                    // Manage visual indicators
-                    if (jmarc.saved) {
-                        jmarc.saveButton.classList.remove("text-danger");
-                        jmarc.saveButton.classList.add("text-primary");
-                        jmarc.saveButton.title = "no new changes";
-                    } else {
-                        jmarc.saveButton.classList.add("text-danger");
-                        jmarc.saveButton.classList.remove("text-primary");
-                        jmarc.saveButton.title = "save";
-                    }
- 
-                })
-                              
+            // Manage visual indicators
+            if (jmarc.saved) {
+                jmarc.saveButton.classList.remove("text-danger");
+                jmarc.saveButton.classList.add("text-primary");
+                jmarc.saveButton.title = "no new changes";
+            } else {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "save";
+            }
+            
+            jmarc.addUndoredoEntry("from Delete SubField");
+            this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "row alert alert-success")
         },
         addSubField(jmarc) {
             // add blank subfield
-            for (let field of jmarc.getDataFields()) {
-                for (let subfield of field.subfields) {
-                    if (subfield.selected) {
-                        let place = field.subfields.indexOf(subfield) + 1;
-                        let newSubfield = field.createSubfield("_", place);
-                        newSubfield.value = "";
-                        newSubfield = this.buildSubfieldRow(newSubfield, place);
-                        newSubfield.codeSpan.focus();
+            let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
-                        newSubfield.valueCell.classList.add("unsaved");
-                        saveButton.classList.add("text-danger");
-                        saveButton.classList.remove("text-primary");
-                        saveButton.title = "unsaved changes";
+            if (! field) {
+                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                return 
+            }
 
-                        return newSubfield
-                    }
-                }
+            let subfield = field.subfields.filter(x => x.selected)[0];
+            
+            if (! subfield) {
+                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                return 
+            }
+
+            if (subfield.selected) {
+                let place = field.subfields.indexOf(subfield) + 1;
+                let newSubfield = field.createSubfield("_", place);
+                newSubfield.value = "";
+                newSubfield = this.buildSubfieldRow(newSubfield, place);
+                newSubfield.codeSpan.focus();
+
+                newSubfield.valueCell.classList.add("unsaved");
+                saveButton.classList.add("text-danger");
+                saveButton.classList.remove("text-primary");
+                saveButton.title = "unsaved changes";
+
+                return newSubfield
             }
         },
         addField(jmarc){
             // add a field below the active field
-            for (let field of jmarc.fields) {
-                if (field.selected) {
-                    let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-                    newField.indicators = ["_", "_"];
-                    
-                    let newSubfield = newField.createSubfield();
-                    newSubfield.code = "_";
-                    newSubfield.value = "";
-                    
-                    newField = this.buildFieldRow(newField, field.row.rowIndex - 1);
-                    newField.tagSpan.focus();
-                    newField.tagSpan.classList.add("invalid");
-                    newField.ind1Cell.classList.add("unsaved");
-                    newField.ind2Cell.classList.add("unsaved");
-                    newField.subfields[0].codeSpan.classList.add("invalid");
-                    newField.subfields[0].valueCell.classList.add("unsaved");
-                    
-                    // Manage visual indicators
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                    
-                    return newField
-                }
+            let field = jmarc.getDataFields().filter(x => x.selected)[0];
+
+            if (! field) {
+                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                return 
             }
+
+            let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
+            newField.indicators = ["_", "_"];
+            
+            let newSubfield = newField.createSubfield();
+            newSubfield.code = "_";
+            newSubfield.value = "";
+            
+            newField = this.buildFieldRow(newField, field.row.rowIndex - 1);
+            newField.tagSpan.focus();
+            newField.tagSpan.classList.add("invalid");
+            newField.ind1Cell.classList.add("unsaved");
+            newField.ind2Cell.classList.add("unsaved");
+            newField.subfields[0].codeSpan.classList.add("invalid");
+            newField.subfields[0].valueCell.classList.add("unsaved");
+            
+            // Manage visual indicators
+            jmarc.saveButton.classList.add("text-danger");
+            jmarc.saveButton.title = "Save Record";
+            
+            return newField
         },
         deleteField(jmarc){
             // delete the field
-            this.selectedFields.forEach(field=>
-                {
-                    if (jmarc.fields.length === 1) {
-                        // this is the record's only field
-                        this.callChangeStyling("Can't delete record's only field", "row alert alert-danger")                       
-                        return
-                    }                   
-                    jmarc.deleteField(field);
-                    let myTable=document.getElementById(this.selectedDiv).firstChild 
-                    myTable.deleteRow(field.row.rowIndex);           
-            })
+            let field = jmarc.fields.filter(x => x.selected)[0];
+
+            if (! field) {
+                this.callChangeStyling("No field selected", "row alert alert-danger")
+                return
+            }
+            
+            if (jmarc.fields.length === 1) {
+                // this is the record's only field
+                this.callChangeStyling("Can't delete record's only field", "row alert alert-danger")                       
+                return
+            }                   
+            
+            jmarc.deleteField(field);
+            let myTable=document.getElementById(this.selectedDiv).firstChild 
+            myTable.deleteRow(field.row.rowIndex);
  
             // Manage virtual indicators
             if (jmarc.saved) {
@@ -529,6 +559,8 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.title = "Save Record";
             }
 
+            jmarc.addUndoredoEntry("from Delete Field");
+            this.callChangeStyling(`${field.tag} has been deleted`, "row alert alert-success")
         },
         deleteRecord(jmarc) {
             if (jmarc.workformName) {
@@ -600,7 +632,6 @@ export let multiplemarcrecordcomponent = {
             //jmarc.selected = true
             let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
-            //idRow.style.backgroundColor = "#009edb"
             let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
             if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
            
@@ -642,7 +673,7 @@ export let multiplemarcrecordcomponent = {
             if (event.ctrlKey && event.key === "h"){
                 event.preventDefault();
                 alert("Shortcuts implemented: "+ "\n" +"-----------------------------------------------------------------"+
-                 "\n" +"ctrl + F4 => Close the window of the record selected"+
+                 "\n" +"ctrl + x => Close the window of the record selected"+
                  "\n"+"ctrl + s => Save the record selected"+
                  "\n"+"ctrl + ENTER => Add a new field to the record selected"+
                  "\n"+"ctrl + k => remove the field from the record selected" +
@@ -650,7 +681,8 @@ export let multiplemarcrecordcomponent = {
                  "\n"+"ctrl + m => remove the last subField selected from the record selected"+
                  "\n"+"ctrl + p => paste/duplicate previously selected/copied fields"+
                  "\n"+"ctrl + h => Display help menu" +
-                 "\n"+"ctrl + q => Change the selected record"
+                 "\n"+"ctrl + q => Change the selected record" +
+                 "\n"+"ctrl + r => Refresh the page"
                  );
             }    
         },
@@ -660,12 +692,9 @@ export let multiplemarcrecordcomponent = {
                     if (event.ctrlKey && event.key === "q"){
                         if (this.selectedJmarc.recordId===this.displayedJmarcObject[0].recordId){
                             this.selectRecord(this.displayedJmarcObject[1])
-                            this.callChangeStyling("Crtl + q has been pressed in order to select a new record", "row alert alert-warning");
                         }
-                        // 
                         else{
                             this.selectRecord(this.displayedJmarcObject[0])
-                            this.callChangeStyling("Crtl + q has been pressed in order to select a new record", "row alert alert-warning");
                         }
                     }
         }, 
@@ -674,18 +703,26 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "p"){
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + p has been pressed in order to paste selected field(s)", "row alert alert-warning");
                     this.pasteField(this.selectedJmarc)
                 }
             }
            
         },  
+        refreshPageListener(event) {
+            if (this.selectedRecord!=="" && !this.historyMode)
+            {
+                if (event.ctrlKey && event.key === "r"){
+                    event.preventDefault();
+                    window.location.reload();
+                }
+            }
+           
+        },
         addSubFieldListener(event) {
             if (this.selectedRecord!=="" && !this.historyMode)
             {
                 if (event.ctrlKey && event.key === "/"){
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + / has been pressed in order to add a new subfield", "row alert alert-warning");
                     this.addSubField(this.selectedJmarc)
                 }
             }
@@ -696,7 +733,6 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "m"){
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + m has been pressed in order to remove a new subfield", "row alert alert-warning");
                     this.deleteSubFieldFromShort(this.selectedJmarc)
                 }
             }
@@ -707,7 +743,6 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "Enter"){
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + Enter has been pressed in order to add a new field", "row alert alert-warning");
                     this.addField(this.selectedJmarc)
                 }
             }
@@ -718,7 +753,6 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + k has been pressed in order to delete the field selected", "row alert alert-warning");
                     this.deleteField(this.selectedJmarc)
                 }
             }
@@ -729,7 +763,6 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "s") {
                     event.preventDefault();
-                    //this.callChangeStyling("Crtl + s has been pressed in order to remove the selected record from the stage", "row alert alert-warning");
                     this.saveRecord(this.selectedJmarc)
  
                 }
@@ -739,7 +772,7 @@ export let multiplemarcrecordcomponent = {
         removeRecordListener(event) {
             if (this.selectedRecord!=="" && !this.historyMode)
             {
-                if (event.ctrlKey && event.code === "F4")   {
+                if (event.ctrlKey && event.key === "x")   {
                     event.preventDefault();
                    
                     if (this.selectedDiv==="record1"){
@@ -1901,26 +1934,7 @@ export let multiplemarcrecordcomponent = {
 
             // Menu delete field
             deleteField.addEventListener("click", function() {
-                if (jmarc.fields.length === 1) {
-                    // this is the record's only field
-                    component.callChangeStyling("Can't delete record's only field", "row alert alert-danger")
-                   
-                    return
-                }
-               
-                jmarc.deleteField(field);
-                table.deleteRow(field.row.rowIndex);
- 
-                if (jmarc.saved) {
-                    jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.title = "No Unsaved Changes";
-                } else {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
-
-                // adding the snapshot 
-                jmarc.addUndoredoEntry("from Delete Field")
+                component.deleteField(jmarc)
             });
 
             tagDiv.addEventListener("click", tagActivate);
@@ -2242,27 +2256,7 @@ export let multiplemarcrecordcomponent = {
             
             // Delete subfield
             deleteSubfield.addEventListener("click", function() {
-                if (field.subfields.length == 1) {
-                    component.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
-                    return
-                }
-       
-                // Remove the subfield from the field
-                field.deleteSubfield(subfield);
-                // Remove the subfield row from the table
-                table.deleteRow(subfield.row.rowIndex);
- 
-                // Manage visual indicators
-                if (jmarc.saved) {
-                    jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.title = "No Unsaved Changes";
-                } else {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
-
-                // adding the snapshot 
-                jmarc.addUndoredoEntry("from Delete SubField")
+                component.deleteSubFieldFromShort(jmarc)
  
             });
 
@@ -2383,16 +2377,19 @@ export let multiplemarcrecordcomponent = {
             valSpan.addEventListener("focus", function() {
                 component.fieldSelected(field);
                 valSpan.classList.add("subfield-value-selected");
+                component.clearSelectedSubfield(jmarc);
                 subfield.selected = true;
             });
 
             valCell.addEventListener("click", function() {
                 valSpan.classList.add("subfield-value-selected");
+                component.clearSelectedSubfield(jmarc);
                 subfield.selected = true;
             });
 
             valSpan.addEventListener("blur", function() {
                 valSpan.classList.remove("subfield-value-selected");
+                component.clearSelectedSubfield(jmarc);
                 subfield.selected = false;
             });
 
