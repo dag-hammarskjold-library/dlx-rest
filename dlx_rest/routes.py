@@ -435,7 +435,22 @@ def search_records(coll):
     if "B23" in q:
         vcoll = "votes"
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll)
+    # todo: get all from dlx config
+    # Sets the list of logical field indexes that should appear in advanced search
+    if vcoll == 'speeches':
+        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+    elif vcoll == 'votes':
+        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
+    else:
+        logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
+        fields = list(logical_fields.keys())
+        
+        for f in filter(lambda x: x in fields, ('notes', 'speaker', 'country_org')):
+            fields.remove(f)
+
+        index_list = json.dumps(fields)
+
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
 
 @app.route('/records/<coll>/browse')
 def browse(coll):
