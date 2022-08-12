@@ -583,14 +583,13 @@ export let multiplemarcrecordcomponent = {
                     let deletedRid = jmarc.recordId;
                     let deletedColl = jmarc.collection;
  
-                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId).then( () => {
-                        jmarc.delete().then( () => {
-                            this.removeRecordFromEditor(jmarc);
-                            this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
-                        }).catch( error => {
-                            this.callChangeStyling(error.message,"row alert alert-danger");
-                        });
-                    })
+                    jmarc.delete().then( () => {
+                        this.removeRecordFromEditor(jmarc);
+                        this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
+                        this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
+                    }).catch( error => {
+                        this.callChangeStyling(error.message,"row alert alert-danger");
+                    });
                 }
             }
  
