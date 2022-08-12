@@ -1352,6 +1352,14 @@ export let multiplemarcrecordcomponent = {
 
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
+            //Issue #555
+            if(!jmarc.saved) {
+                let val = confirm("Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record.")
+                if (val == false) {
+                    return
+                }
+            }
+
             // change the color of the background of the item in the basket
             if (!this.historyMode){
                 const myId=jmarc.collection + '--' + jmarc.recordId
