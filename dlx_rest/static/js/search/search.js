@@ -22,6 +22,10 @@ export let searchcomponent = {
             type: String,
             required: true
         },
+        index_list: {
+            type: String,
+            required: true
+        }
     },
     template: ` 
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
@@ -71,7 +75,7 @@ export let searchcomponent = {
                 <div class="input-group-prepend">
                     <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField2',field)">{{field}}</option>
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField2',field)">{{field}}</option>
                     </div>
                 </div>
                 <div class="input-group-append">
@@ -96,7 +100,7 @@ export let searchcomponent = {
                 <div class="input-group-append">
                     <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
                     <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in bibSearchFields" @click="setParameter('searchField3',field)">{{field}}</option>
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField3',field)">{{field}}</option>
                     </div>
                 </div>
             </div>
@@ -214,10 +218,12 @@ export let searchcomponent = {
                 'searchField3': 'any'
             },
             // To do: Get these logical fields from the configuration
+            /*
             bibSearchFields: ['author','title','symbol','notes','subject'],
             authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
             voteSearchFields: ['symbol','title','agenda','year'],
             speechSearchFields: ['symbol'],
+            */
             searchFields: [],
             searchTypes: [
                 {'name': 'All of the words:', 'value': 'all'},
@@ -249,10 +255,13 @@ export let searchcomponent = {
         let component = this;
 
         //let searchstr = document.getElementById('q').value;
+
+        console.log(this.index_list)
+        this.searchFields = JSON.parse(this.index_list)
         
         // [what is this used for?]
         if (component.collection == "auths") {
-            this.searchFields = this.authSearchFields
+            
             let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
@@ -263,17 +272,17 @@ export let searchcomponent = {
             let bibMapData = await bibMapResponse.json();
             component.lookup_maps['bibs'] = bibMapData.data;
         } else if (component.collection == "bibs") {
-            this.searchFields = this.bibSearchFields
+            //this.searchFields = this.bibSearchFields
         }
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
-            this.searchFields = this.voteSearchFields
+            //this.searchFields = this.voteSearchFields
             //this.vcoll = "989:Voting Data";
             this.vcoll = "089:'B22'"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
-            this.searchFields = this.speechSearchFields
+            //this.searchFields = this.speechSearchFields
             //this.vcoll = "989:Speeches";
             this.vcoll = "089:'B23'"
         }
