@@ -549,6 +549,13 @@ export let multiplemarcrecordcomponent = {
             jmarc.deleteField(field);
             let myTable=document.getElementById(this.selectedDiv).firstChild 
             myTable.deleteRow(field.row.rowIndex);
+
+            // remove the field from the copied fields stack
+            let i = this.copiedFields.indexOf(field);
+            
+            if (typeof i !== 'undefined') {
+                this.copiedFields.splice(i);
+            }
  
             // Manage virtual indicators
             if (jmarc.saved) {
