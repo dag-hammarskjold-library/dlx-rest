@@ -777,27 +777,13 @@ export let multiplemarcrecordcomponent = {
            
         },
         removeRecordListener(event) {
-            if (this.selectedRecord!=="" && !this.historyMode)
-            {
-                if (event.ctrlKey && event.key === "x")   {
+            if (this.selectedRecord !== "" && ! this.historyMode) {
+                if (event.ctrlKey && event.key === "x") {
                     event.preventDefault();
-                   
-                    if (this.selectedDiv==="record1"){
-                        let recup=document.getElementById("record1")
-                        recup.innerHTML=""
-                    }
-                    if (this.selectedDiv==="record2") {
-                        let recup=document.getElementById("record2")
-                        recup.innerHTML=""
-                    }                   
-                    this.removeRecordFromEditor(this.selectedJmarc)
- 
- 
+                    this.userClose(this.selectedJmarc)
                 }
             }
-           
         },
- 
         optimizeEditorDisplay(table){
  
             // // only record1 displayed
@@ -1361,6 +1347,7 @@ export let multiplemarcrecordcomponent = {
             //Issue #555
             if(! jmarc.saved) {
                 let val = confirm("Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record.")
+                
                 if (val == false) {
                     return
                 }
