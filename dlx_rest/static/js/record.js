@@ -1257,7 +1257,7 @@ export let multiplemarcrecordcomponent = {
                             
                             if (!myFields.includes(field.tag)){
                                 // hide the field from the record
-                                field.row.style="display:none;"
+                                field.row.classList.add("hidden-field")
                             }
                             else { // tag include in myFields
                                 myFieldsets.forEach(myFieldset=>{
@@ -1267,11 +1267,11 @@ export let multiplemarcrecordcomponent = {
                                                 
                                                     if (!myFieldset.subfields.includes(sfield.code)){
                                                         // hide the field from the record
-                                                        sfield.row.style="display:none;"
+                                                        sfield.row.classList.add("hidden-field")
                                                     }
                                                     if (myFieldset.subfields.length===0){
                                                         // show all the fields from the record
-                                                        sfield.row.style="display:block;"
+                                                        sfield.row.classList.remove("hidden-field")
                                                     }
                                             })
                                     }
@@ -2420,8 +2420,14 @@ export let multiplemarcrecordcomponent = {
                     // up
                     if (field.subfields.indexOf(subfield) === 0) {
                         // first subfield
-                        let i = jmarc.fields.indexOf(field) - 1;
+                        let i = jmarc.fields.indexOf(field) - 1; 
                         let f = jmarc.fields[i];
+
+                        while(f.row.classList.contains("hidden-field")) {
+                            i--;
+                            f = jmarc.fields[i]
+                        }
+
                         f.subfields[f.subfields.length-1].valueSpan.focus();
                         component.fieldSelected(f);
                     } else {
@@ -2437,6 +2443,12 @@ export let multiplemarcrecordcomponent = {
                         // last subfield
                         let i = jmarc.fields.indexOf(field) + 1;
                         let f = jmarc.fields[i];
+
+                        while(f.row.classList.contains("hidden-field")) {
+                            i++;
+                            f = jmarc.fields[i]
+                        }
+
                         f.subfields[0].valueSpan.focus();
                         component.fieldSelected(f);  
                     } else {
