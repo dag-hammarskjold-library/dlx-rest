@@ -96,52 +96,48 @@ export let basketcomponent = {
         },
         async buildBasket() {
             const myBasket = await basket.getBasket(this.api_prefix);
-            for (let item of myBasket) {
-                basket.getItem(this.api, item.collection, item.record_id).then(myItem => {
-                    myItem['collection'] = item.collection;
-                    let myItemTitle = "";
-                    if (item.collection == "bibs") {
-                        let myTitleField = myItem.getField(245,0);
-                        let myTitle = [];
-                        if (myTitleField) {
-                            for (let s in myTitleField.subfields) {
-                                myTitle.push(myTitleField.subfields[s].value);
-                            }
+
+            for (let element of myBasket) {
+                let data = {};
+
+                basket.getItem(this.api, element.collection, element.record_id).then(
+                    item => {
+                        data["collection"] = element.collection;
+                        data["_id"] = element.record_id;
+                        data["basket_item_id"] = element.url.split('/').pop();
+
+                        let titleField = item.getField("245") || item.getField("700");
+
+                        if (titleField) {
+                            data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
                         } else {
-                            myTitle.push("[No Title]")
+                            data["title"] = "[No Title]"
                         }
-                        myItemTitle = myTitle.join(" ");
-                        let mySymbolField = myItem.getField(191,0);
-                        let mySymbol = [];
-                        if (mySymbolField) {
-                            for (let s in mySymbolField.subfields) {
-                                if (mySymbolField.subfields[s].code === "a") {
-                                    mySymbol.push(mySymbolField.subfields[s].value);
-                                }
-                            }
-                        }
-                        myItem["symbol"] = mySymbol.join(" ")
-                    } else if (item.collection == "auths") {
-                        let myTitleField = myItem.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-                        let myTitle = [];
-                        if (myTitleField) {
-                            for (let s in myTitleField.subfields) {
-                                myTitle.push(myTitleField.subfields[s].value);
-                            }
-                        } else {
-                            myTitle.push("[No Title]")
-                        }
-                        myItemTitle = myTitle.join(" ");
+
+                        let symbolFields = item.getFields("191").length > 0 ? item.getFields("191") 
+                            : item.getFields("791").length > 0 ? item.getFields("791")
+                            : []
+
+                        data["symbol"] = symbolFields.map(x => {return x.getSubfield("a") ? x.getSubfield("a").value : null}).filter(x => !!x).join("; ");
+
+                        this.basketItems.push(data);
                     }
-                    myItem["title"] = myItemTitle;
-                    myItem["_id"] = item.record_id;
-                    myItem["basket_item_id"] = item.url.split('/').pop()
-                    this.basketItems.push(myItem);
-                }).catch(error => {
-                    console.log(error)
-                    basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, item.collection, item.record_id);
-                })
+                ).catch(
+                    error => {
+                        console.log(error)
+                        /* 
+                        this is likely why items are disappearing from the basket. we probably don't want to 
+                        delete the item from the basket for any old error that might occur.
+
+                        //basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, element.collection, element.record_id);
+                        */
+
+                        // alert that debugging is needed
+                        callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "row alert alert-danger")
+                    }
+                )
             }
+
             return true
         },
         async rebuildBasket() {
