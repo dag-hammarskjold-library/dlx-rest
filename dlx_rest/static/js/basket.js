@@ -106,19 +106,39 @@ export let basketcomponent = {
                         data["_id"] = element.record_id;
                         data["basket_item_id"] = element.url.split('/').pop();
 
-                        let titleField = item.getField("245") || item.getField("700");
+                        if (element.collection == "bibs") {
+                            let titleField = item.getField("245") || item.getField("700");
 
-                        if (titleField) {
-                            data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
-                        } else {
-                            data["title"] = "[No Title]"
+                            if (titleField) {
+                                data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
+                            } else {
+                                data["title"] = "[No Title]"
+                            }
+
+                            let symbolFields = item.getFields("191").length > 0 ? item.getFields("191") 
+                                : item.getFields("791").length > 0 ? item.getFields("791")
+                                : []
+
+                            data["symbol"] = symbolFields.map(x => {return x.getSubfield("a") ? x.getSubfield("a").value : null}).filter(x => !!x).join("; ");
+                        } else if (element.collection == "auths") {
+                            let headingField;
+
+                            for (let _ of ["100", "110", "111", "130", "150", "190", "191"]) {
+                                if (item.getField(_)) {
+                                    headingField = item.getField(_)
+                                }
+                            }
+                            
+                            if (headingField) {
+                                let text = [];
+
+                                for (let _ of ["a", "b", "c", "d"]) {
+                                    text.push(headingField.getSubfield(_) ? headingField.getSubfield(_).value : "")
+                                }
+
+                                data["title"] = text.join(" ")
+                            }
                         }
-
-                        let symbolFields = item.getFields("191").length > 0 ? item.getFields("191") 
-                            : item.getFields("791").length > 0 ? item.getFields("791")
-                            : []
-
-                        data["symbol"] = symbolFields.map(x => {return x.getSubfield("a") ? x.getSubfield("a").value : null}).filter(x => !!x).join("; ");
 
                         this.basketItems.push(data);
                     }
