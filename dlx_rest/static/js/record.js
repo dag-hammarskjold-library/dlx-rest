@@ -170,7 +170,8 @@ export let multiplemarcrecordcomponent = {
             shiftPressed: false,
             controlPressed: false,
             commandPressed: false,
-            isFiltered:false
+            isFiltered:false,
+            currentRecordObjects: []
         }
     },
 
@@ -588,7 +589,7 @@ export let multiplemarcrecordcomponent = {
             let i = this.copiedFields.indexOf(field);
             
             if (typeof i !== 'undefined') {
-                this.copiedFields.splice(i);
+                this.copiedFields.splice(i, 1);
             }
  
             // Manage virtual indicators
@@ -1387,6 +1388,15 @@ export let multiplemarcrecordcomponent = {
             }
 
             this.removeRecordFromEditor(jmarc)
+            let otherRecord = this.currentRecordObjects[0];
+
+            if (otherRecord) {
+                // reset the div
+                this.removeRecordFromEditor(otherRecord);
+                this.displayMarcRecord(otherRecord);
+            }
+
+            return true
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
@@ -1417,7 +1427,7 @@ export let multiplemarcrecordcomponent = {
                 if (keepDataInVector==false) { 
                     this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
-               
+                
             }
             else if (divID === "record2") {
                 this.removeJmarcTodisplayedJmarcObject(this.record2)
@@ -1431,6 +1441,9 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
             }
+
+            this.currentRecordObjects.splice(this.currentRecordObjects.indexOf(jmarc), 1);
+
             // optimize the display
             this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
@@ -1467,19 +1480,13 @@ export let multiplemarcrecordcomponent = {
  
             //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
             // needed?
-            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
+
+            return true
         },
         displayMarcRecord(jmarc, readOnly,reload=false) {
             let myDivId;
 
-            // change the color of the background of the item in the basket
-            const myId=jmarc.collection + '--' + jmarc.recordId
-            const selectedItem=document.getElementById(myId)
-
-            // set the styling only if the Div exists
-            if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
-
-           
             if (this.isRecordOneDisplayed == false) {
                 myDivId = "record1";
                 this.isRecordOneDisplayed = true;
@@ -1492,19 +1499,42 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = jmarc.recordId;
                 this.collectionRecord2 = jmarc.collection; // used for auth merge
             }
-            else {
-                // replace record?
-            }
-
+            
             if (reload==false){
                 jmarc.addUndoredoEntry()
             }
            
             jmarc.div = document.getElementById(myDivId);
+
+            // the display may have been aborted
+            if (! jmarc.div) return
+
+            // change the color of the background of the item in the basket
+            const myId=jmarc.collection + '--' + jmarc.recordId
+            const selectedItem=document.getElementById(myId)
+
+            // set the styling only if the Div exists
+            if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
+
+            // build the record display
+
             let table = this.buildRecordTable(jmarc,readOnly);
- 
             jmarc.div.appendChild(table); 
-            this.selectRecord(jmarc) 
+            this.selectRecord(jmarc);
+            this.currentRecordObjects.push(jmarc);
+
+            // trigger unsaved changes detection
+            for (let field of jmarc.getDataFields()) {
+                field.tagSpan.focus();
+                field.ind1Span.focus();
+                field.ind2Span.focus();
+
+                for (let subfield of field.subfields) {
+                    subfield.codeSpan.focus();
+                    subfield.valueSpan.focus();
+                    subfield.valueSpan.blur();
+                }
+            }
  
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
@@ -1534,6 +1564,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 })
 
+            return true
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
@@ -1917,6 +1948,7 @@ export let multiplemarcrecordcomponent = {
             ind1Cell.append(ind1Div);
             ind1Div.className = "indicators";
             let ind1Span = document.createElement("span");
+            field.ind1Span = ind1Span;
             ind1Div.append(ind1Span);
             ind1Span.className = "mx-1";
             ind1Span.tabIndex = 0;
@@ -1928,6 +1960,7 @@ export let multiplemarcrecordcomponent = {
             ind2Cell.append(ind2Div);
             ind2Div.className = "indicators";
             let ind2Span = document.createElement("span");
+            field.ind2Span = ind2Span;
             ind2Div.append(ind2Span);
             ind2Span.className = "mx-1";
             ind2Span.tabIndex = 0;
@@ -2409,6 +2442,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
 
+            valSpan.addEventListener("focus", checkState); // allows triggering arbitrarily
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 

@@ -49,11 +49,11 @@ export let basketcomponent = {
         this.$root.$refs.basketcomponent = this;
         this.buildBasket();
     },
-    /* // Removed
     mounted: async function() {
-        this.timer = setInterval(this.rebuildBasket, 20000)
+        //this.timer = setInterval(this.rebuildBasket, 20000) // Removed
+
+        this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
     },
-    */
     methods: {
         removeRecordFromRecordDisplayed(recordToDelete){
             const index = this.recordDisplayed.indexOf(recordToDelete);
@@ -65,21 +65,34 @@ export let basketcomponent = {
             // Check if the record is already displayed
             const len = this.recordDisplayed.length;
 
-            if (len===2) {
-                this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
+            if (this.editor.currentRecordObjects.filter(x => x.collection == myCollection && x.recordId == myRecord).length > 0) {
+                // the record is already open
+                //this.callChangeStyling("Record already open", "row alert alert-danger")
+                return
+            }
+
+            if (this.editor.currentRecordObjects.length === 2) {
+                //this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
+
+                // close the second record 
+                let toRemove = this.editor.currentRecordObjects[1];
+                this.callChangeStyling(`Removing ${toRemove.collection}/${toRemove.recordId}`, "row alert alert-warning");
+                await new Promise(r => setTimeout(r, 750));
+                if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
             }   
-            else
-            {
-                this.$root.$refs.multiplemarcrecordcomponent.recordlist.push(`${myCollection}/${myRecord}`);
-                let jmarc = await Jmarc.get(myCollection, myRecord);
-                this.$root.$refs.multiplemarcrecordcomponent.displayMarcRecord(jmarc)
+            
+            this.editor.recordlist.push(`${myCollection}/${myRecord}`);
+            let jmarc = await Jmarc.get(myCollection, myRecord);
+            
+            if (this.editor.displayMarcRecord(jmarc)) {
                 // add record displayed
                 this.recordDisplayed.push(jmarc.recordId)
                 // this.forceUpdate()
                 this.callChangeStyling("Record added to the editor", "row alert alert-success")
-
+            } else {
+                // the record did not display for some reason
+                this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
             }
-
         },
         callChangeStyling(myText, myStyle) {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
