@@ -96,6 +96,40 @@ export let multiplemarcrecordcomponent = {
             </transition>
         </div>
 
+        <!-- Modal displaying Merge Feature -->
+        <div id="mergeModal" v-show="this.showModal">
+            <transition name="modal">
+                <div class="modal-mask">
+                <div class="modal-wrapper" >
+                    <div class="modal-container" id="modalchild1">
+
+                    <div class="modal-header" id="title1">
+                    
+                        <slot name="header1">
+                            <h5><span id="titlemodal1" class="mt-2"> Choose the receivib  </span></h5>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                    @click="closeModal()"> Close the window
+                            </button>
+                        </slot>
+                        
+                    </div>
+  
+                    <div id="contenthistory" class="modal-body mt-0" >
+                    </div>
+                    <!-- <div class="modal-footer">
+                        <slot name="footer">
+                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                            @click="closeModal()"> Close the window
+                        </button>
+                        </slot>
+                    </div> -->
+                    </div>
+                </div>
+                </div>
+            </transition>
+        </div>
+
+
 
 
         </div>
