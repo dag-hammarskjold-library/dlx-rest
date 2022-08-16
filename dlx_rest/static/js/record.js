@@ -1488,6 +1488,19 @@ export let multiplemarcrecordcomponent = {
             jmarc.div.appendChild(table); 
             this.selectRecord(jmarc);
             this.currentRecordObjects.push(jmarc);
+
+            // trigger unsaved changes detection
+            for (let field of jmarc.getDataFields()) {
+                field.tagSpan.focus();
+                field.ind1Span.focus();
+                field.ind2Span.focus();
+
+                for (let subfield of field.subfields) {
+                    subfield.codeSpan.focus();
+                    subfield.valueSpan.focus();
+                    subfield.valueSpan.blur();
+                }
+            }
  
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
@@ -1901,6 +1914,7 @@ export let multiplemarcrecordcomponent = {
             ind1Cell.append(ind1Div);
             ind1Div.className = "indicators";
             let ind1Span = document.createElement("span");
+            field.ind1Span = ind1Span;
             ind1Div.append(ind1Span);
             ind1Span.className = "mx-1";
             ind1Span.tabIndex = 0;
@@ -1912,6 +1926,7 @@ export let multiplemarcrecordcomponent = {
             ind2Cell.append(ind2Div);
             ind2Div.className = "indicators";
             let ind2Span = document.createElement("span");
+            field.ind2Span = ind2Span;
             ind2Div.append(ind2Span);
             ind2Span.className = "mx-1";
             ind2Span.tabIndex = 0;
@@ -2393,6 +2408,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
 
+            valSpan.addEventListener("focus", checkState); // allows triggering arbitrarily
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
