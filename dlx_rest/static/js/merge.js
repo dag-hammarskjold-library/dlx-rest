@@ -22,8 +22,7 @@ export let modalmergecomponent = {
                     <h1>Authorities merge feature</h1>
                     <hr>
                     <p>Please select the gaining record</p>
-                    <select class="form-select" name="pets" id="selectElementId" v-on:click="loadRecordId()">
-                      <option value="">--Please choose the gaining record--</option>
+                    <select class="form-select" name="mergerecord" id="selectElementId">
                     </select>
                     <hr>
                     <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
@@ -104,6 +103,7 @@ export let modalmergecomponent = {
    ,
    toggleModal(){
      if (multiplemarcrecordcomponent.methods.canDisplay()) {
+      if (!this.vm) this.loadRecordId() 
      return vm.modal=!vm.modal
      } 
    },
