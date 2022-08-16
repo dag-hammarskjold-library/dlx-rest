@@ -1353,7 +1353,16 @@ export let multiplemarcrecordcomponent = {
                 }
             }
 
-            return this.removeRecordFromEditor(jmarc)
+            this.removeRecordFromEditor(jmarc)
+            let otherRecord = this.currentRecordObjects[0];
+
+            if (otherRecord) {
+                // reset the div
+                this.removeRecordFromEditor(otherRecord);
+                this.displayMarcRecord(otherRecord);
+            }
+
+            return true
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
