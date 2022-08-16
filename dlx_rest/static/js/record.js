@@ -136,7 +136,8 @@ export let multiplemarcrecordcomponent = {
             shiftPressed: false,
             controlPressed: false,
             commandPressed: false,
-            isFiltered:false
+            isFiltered:false,
+            currentRecordObjects: []
         }
     },
 
@@ -1352,7 +1353,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
 
-            this.removeRecordFromEditor(jmarc)
+            return this.removeRecordFromEditor(jmarc)
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
@@ -1383,7 +1384,7 @@ export let multiplemarcrecordcomponent = {
                 if (keepDataInVector==false) { 
                     this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
-               
+                
             }
             else if (divID === "record2") {
                 this.removeJmarcTodisplayedJmarcObject(this.record2)
@@ -1397,6 +1398,9 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
             }
+
+            this.currentRecordObjects.splice(this.currentRecordObjects.indexOf(jmarc), 1);
+
             // optimize the display
             this.selectedRecord=""
             this.optimizeEditorDisplay(this.targetedTable)
@@ -1434,18 +1438,12 @@ export let multiplemarcrecordcomponent = {
             //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
             // needed?
             this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+
+            return true
         },
         displayMarcRecord(jmarc, readOnly,reload=false) {
             let myDivId;
 
-            // change the color of the background of the item in the basket
-            const myId=jmarc.collection + '--' + jmarc.recordId
-            const selectedItem=document.getElementById(myId)
-
-            // set the styling only if the Div exists
-            if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
-
-           
             if (this.isRecordOneDisplayed == false) {
                 myDivId = "record1";
                 this.isRecordOneDisplayed = true;
@@ -1458,19 +1456,29 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = jmarc.recordId;
                 this.collectionRecord2 = jmarc.collection; // used for auth merge
             }
-            else {
-                // replace record?
-            }
-
+            
             if (reload==false){
                 jmarc.addUndoredoEntry()
             }
            
             jmarc.div = document.getElementById(myDivId);
+
+            // the display may have been aborted
+            if (! jmarc.div) return
+
+            // change the color of the background of the item in the basket
+            const myId=jmarc.collection + '--' + jmarc.recordId
+            const selectedItem=document.getElementById(myId)
+
+            // set the styling only if the Div exists
+            if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
+
+            // build the record display
+
             let table = this.buildRecordTable(jmarc,readOnly);
- 
             jmarc.div.appendChild(table); 
-            this.selectRecord(jmarc) 
+            this.selectRecord(jmarc);
+            this.currentRecordObjects.push(jmarc);
  
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
@@ -1500,6 +1508,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 })
 
+            return true
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
