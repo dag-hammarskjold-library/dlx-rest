@@ -555,7 +555,7 @@ export let multiplemarcrecordcomponent = {
             let i = this.copiedFields.indexOf(field);
             
             if (typeof i !== 'undefined') {
-                this.copiedFields.splice(i);
+                this.copiedFields.splice(i, 1);
             }
  
             // Manage virtual indicators
@@ -1437,7 +1437,7 @@ export let multiplemarcrecordcomponent = {
  
             //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
             // needed?
-            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
+            this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
 
             return true
         },
