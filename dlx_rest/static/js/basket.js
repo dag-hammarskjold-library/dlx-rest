@@ -74,10 +74,8 @@ export let basketcomponent = {
             if (this.editor.currentRecordObjects.length === 2) {
                 //this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
 
-                // close the second record 
+                // attempt to close the second record 
                 let toRemove = this.editor.currentRecordObjects[1];
-                this.callChangeStyling(`Removing ${toRemove.collection}/${toRemove.recordId}`, "row alert alert-warning");
-                await new Promise(r => setTimeout(r, 750));
                 if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
             }   
             

@@ -235,9 +235,11 @@ export let multiplemarcrecordcomponent = {
                         } else {
                             basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
                                 this.$root.$refs.basketcomponent.rebuildBasket()
+                                
+                                // wait for basket to display record so the display method can update the basket styling 
+                                this.displayMarcRecord(jmarc);
                             })
-                            
-                            this.displayMarcRecord(jmarc);
+
                         }
                     })
                 }
