@@ -2613,7 +2613,7 @@ export let multiplemarcrecordcomponent = {
         }
     }
 }
- 
+
 // auth-controlled field keyup event function
 function keyupAuthLookup(event) {
     //target: subfield value cell
@@ -2651,6 +2651,32 @@ function keyupAuthLookup(event) {
         
         for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
             newField.createSubfield(s.code).value = s.value
+        }
+
+        newField = auth.createField("040", "a");
+        let newSubfield = newField.createSubfield("a");
+
+        if (jmarc.getField("040")) {
+            if (jmarc.getField("040").getSubfield("a")) {
+                newSubfield.value = jmarc.getField("040").getSubfield("a").value
+            }
+        } else {
+            newSubfield.value = ""
+        }
+
+        newField.createSubfield("b").value = "eng";
+        newField.createSubfield("f").value = "unbisn";
+        
+        if (jmarc.getField("191")) {
+            if (jmarc.getField("191").getSubfield("a")) {
+                newSubfield = auth.createField("670").createSubfield("a");
+                newSubfield.value = jmarc.getField("191").getSubfield("a").value
+            }
+        } else if (jmarc.getField("791")) {
+            if (jmarc.getField("791").getSubfield("a")) {
+                newSubfield = auth.createField("670").createSubfield("a");
+                newSubfield.value = jmarc.getField("791").getSubfield("a").value;
+            }
         }
 
         auth.post().then(
