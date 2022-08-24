@@ -2511,6 +2511,9 @@ export let multiplemarcrecordcomponent = {
             valSpan.addEventListener("input", function () {
                 // select the record receiving the click
                 component.selectRecord(jmarc)
+
+                return // disable automatic checkbox click and copy field on input
+
                 let myCheckBox=field.row.firstChild.firstChild
                 // check the box of the record receiving the click
                 // check if the box is checked
