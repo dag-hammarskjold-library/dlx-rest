@@ -91,6 +91,7 @@ export let browsecomponent = {
                         <tr>
                             <th>Logical Field Name</th>
                             <th>Starts with</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -98,10 +99,11 @@ export let browsecomponent = {
                             <td>{{item}}</td>
                             <td>
                                 <form @submit.prevent="submitBrowse(index)">
-                                    <input autofocus autocomplete="off" :id="indexListJson[index]" placeholder="starts with..." type="text">
-                                    <button type="button mx-2" class="btn btn-primary" value="Search">Submit</button>
+                                    <input autofocus autocomplete="off" :id="indexListJson[index]" placeholder="starts with..." type="text" class="form-control input">
+                                    
                                 </form>
                             </td>
+                            <td><button type="button mx-2" class="btn btn-primary" value="Search">Submit</button></td>
                         </tr>
                     </tbody>
                 </table>
