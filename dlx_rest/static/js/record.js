@@ -1223,7 +1223,7 @@ export let multiplemarcrecordcomponent = {
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
         filterRecordView(record,filter)
         {
-
+            console.log(typeof(record))
             try {
                     // check the size of the filter
                     if (filter && filter[0].collection===record.collection){ // we should filter on the same collection
@@ -1237,35 +1237,48 @@ export let multiplemarcrecordcomponent = {
                         myFieldsets.forEach(element=> {
                             myFields.push(element.field)
                         })
-                
-                        // filter the record according the array of fields (first iteration)
-                        record.fields.forEach(field=>{
+
+                        if (filter[0].fieldsets.length>0){
                             
-                            if (!myFields.includes(field.tag)){
-                                // hide the field from the record
-                                field.row.classList.add("hidden-field")
-                            }
-                            else { // tag include in myFields
-                                myFieldsets.forEach(myFieldset=>{
-                                    if (myFieldset.field===field.tag) {
+                                    // filter the record according the array of fields (first iteration)
+                                    record.fields.forEach(field=>{
+                                        
+                                        if (!myFields.includes(field.tag)){
+                                            // hide the field from the record
+                                            field.row.classList.add("hidden-field")
+                                        }
+                                        else { // tag include in myFields
+                                            myFieldsets.forEach(myFieldset=>{
+                                                if (myFieldset.field===field.tag) {
 
-                                            field.subfields.forEach(sfield=>{
-                                                
-                                                    if (!myFieldset.subfields.includes(sfield.code)){
-                                                        // hide the field from the record
-                                                        sfield.row.classList.add("hidden-field")
-                                                    }
-                                                    if (myFieldset.subfields.length===0){
-                                                        // show all the fields from the record
-                                                        sfield.row.classList.remove("hidden-field")
-                                                    }
+                                                        field.subfields.forEach(sfield=>{
+                                                            
+                                                                if (!myFieldset.subfields.includes(sfield.code)){
+                                                                    // hide the field from the record
+                                                                    sfield.row.classList.add("hidden-field")
+                                                                }
+                                                                if (myFieldset.subfields.length===0){
+                                                                    // show all the fields from the record
+                                                                    sfield.row.classList.remove("hidden-field")
+                                                                }
+                                                        })
+                                                }
+
                                             })
+                                        }
+                                    })
+                                    this.callChangeStyling(`Record view ${myName} loaded!!!!`, "row alert alert-success")
+                                } else { // the fieldset is empty
+                                    for (let field of record.fields) {
+                                        if (field.row.classList.contains("hidden-field")) {
+                                            field.row.classList.remove("hidden-field")
+                                            field.wasHidden = true;
+                                        }
+                                        else if (field.wasHidden) {
+                                            field.row.classList.add("hidden-field")
+                                        }
                                     }
-
-                                })
-                            }
-                        })
-                        this.callChangeStyling(`Record view ${myName} loaded!!!!`, "row alert alert-success")
+                        }
                     }
                 }
             catch(err){
