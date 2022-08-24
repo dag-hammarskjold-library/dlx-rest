@@ -541,20 +541,15 @@ export class Jmarc {
 				return response.json()
 			}
 		)
-        /*
         .then(
 			check => {
-                console.log(check)
-				if (check.constructor.name == "Jmarc") {
+				if (check instanceof Jmarc) {
 					return check
 				}
 				
-				throw new Error(check['message'])
+				throw new Error(`Something went wrong: ${check}`)
 			}
-		)
-        */
-        .catch(
-			// error => console.error(error)
+		).catch(
 			error => { throw new Error(error) }
 		)
 	}
