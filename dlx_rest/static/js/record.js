@@ -384,32 +384,30 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.title = "unsaved changes";
             }   
         },
-
         pasteField(jmarc){
+            if (this.copiedFields.length === 0) {
+                this.callChangeStyling("No fields are selected to paste", "row alert alert-danger")
+                return
+            }
+
             // paste fields 
             for (let field of this.copiedFields || []) {
-                // get the place in the field order
-                let rowIndex;
-
-                if (jmarc.getFields(field.tag).length > 0) {
-                    rowIndex = jmarc.fields.length - jmarc.fields.map(x => x.tag).reverse().indexOf(field.tag);
-                } else {
-                    rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(field.tag) > parseInt(x)).length
-                }
+                // get index of row of next highest tag
+                let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(field.tag) >= parseInt(x)).length;
 
                 // recreate the field
-                let newField = jmarc.createField(); // last field in the jmarc object
-                newField.tag = field.tag;
+                let newField = jmarc.createField(field.tag);
                 newField.indicators = field.indicators || ["_", "_"];
                
                 for (let subfield of field.subfields) {
                     let newSubfield = newField.createSubfield(subfield.code);
                     newSubfield.value = subfield.value;
                     newSubfield.xref = subfield.xref;
-                    newSubfield.copied = true;
                 }
 
-                this.addField(jmarc, newField, rowIndex); // add the field to display without refreshing record
+                // refresh
+                this.removeRecordFromEditor(jmarc);
+                this.displayMarcRecord(jmarc);
             }
             
             // clear the list of copied items
@@ -421,18 +419,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             // adding the snapshot 
-            jmarc.addUndoredoEntry("from Paste feature")
-            
-            // refresh
-            //this.removeRecordFromEditor(jmarc,true)
-            //this.displayMarcRecord(jmarc,false,true)  
-            
-            //for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-            //    for (let subfield of field.subfields.filter(x => x.copied)) {
-            //        // subfield acquires valueCell after refresh
-            //        subfield.valueCell.classList.add("unsaved")
-            //    }
-            //}
+            jmarc.addUndoredoEntry("from Paste feature");
             
             jmarc.saveButton.classList.add("text-danger");
             jmarc.saveButton.title = "Save Record";
@@ -523,7 +510,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             if (newField === null) {
-                newField = jmarc.createField("___", (rowIndex - 1 /*account for 2 header rows*/) + 1);
+                newField = jmarc.createField("___") //, (rowIndex - 1 /*account for 2 header rows*/) + 1);
                 newField.indicators = ["_", "_"];
             
                 let newSubfield = newField.createSubfield();
@@ -2511,6 +2498,9 @@ export let multiplemarcrecordcomponent = {
             valSpan.addEventListener("input", function () {
                 // select the record receiving the click
                 component.selectRecord(jmarc)
+
+                return // disable automatic checkbox click and copy field on input
+
                 let myCheckBox=field.row.firstChild.firstChild
                 // check the box of the record receiving the click
                 // check if the box is checked
