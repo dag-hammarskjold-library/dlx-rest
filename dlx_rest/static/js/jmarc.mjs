@@ -543,15 +543,14 @@ export class Jmarc {
 		)
         .then(
 			check => {
-				if (! check instanceof Jmarc) {
-					throw new Error(`Something went wrong: ${check}`)
+				if (check instanceof Jmarc) {
+					return check
 				}
 				
-				return check
+				throw new Error(`Something went wrong: ${check}`)
 			}
-		)
-        .catch(
-			error => {throw error}
+		).catch(
+			error => { throw new Error(error) }
 		)
 	}
 
