@@ -386,48 +386,57 @@ export let multiplemarcrecordcomponent = {
         },
 
         pasteField(jmarc){
-            // paste field   
-            this.copiedFields.forEach(field =>
-               {
-                    for (let field of this.copiedFields || []) {
-                        // recreate the field
-                        let newField = jmarc.createField(field.tag);
-                        newField.indicators = field.indicators || ["_", "_"];
-                       
-                        for (let subfield of field.subfields) {
-                            let newSubfield = newField.createSubfield(subfield.code);
-                            newSubfield.value = subfield.value;
-                            newSubfield.xref = subfield.xref;
-                            newSubfield.copied = true;
-                        }
-                    }
-                   
-                    // clear the list of copied items
-                    this.copiedFields = [];
-                   
-                    // clear all checkboxes
-                    for (let checkbox of document.getElementsByClassName("field-checkbox")) {
-                        checkbox.checked = false;
-                    }
+            // paste fields 
+            for (let field of this.copiedFields || []) {
+                // get the place in the field order
+                let rowIndex;
 
-                    // adding the snapshot 
-                    jmarc.addUndoredoEntry("from Paste feature")
-                   
-                    // refresh
-                    this.removeRecordFromEditor(jmarc,true)
-                    this.displayMarcRecord(jmarc,false,true)  
-                   
-                    for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-                        for (let subfield of field.subfields.filter(x => x.copied)) {
-                            // subfield acquires valueCell after refresh
-                            subfield.valueCell.classList.add("unsaved")
-                        }
-                    }
-                    
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                })
-                               
+                if (jmarc.getFields(field.tag).length > 0) {
+                    rowIndex = jmarc.fields.length - jmarc.fields.map(x => x.tag).reverse().indexOf(field.tag);
+                } else {
+                    rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(field.tag) > parseInt(x)).length
+                }
+
+                // recreate the field
+                let newField = jmarc.createField(); // last field in the jmarc object
+                newField.tag = field.tag;
+                newField.indicators = field.indicators || ["_", "_"];
+               
+                for (let subfield of field.subfields) {
+                    let newSubfield = newField.createSubfield(subfield.code);
+                    newSubfield.value = subfield.value;
+                    newSubfield.xref = subfield.xref;
+                    newSubfield.copied = true;
+                }
+
+                this.addField(jmarc, newField, rowIndex); // add the field to display without refreshing record
+            }
+            
+            // clear the list of copied items
+            this.copiedFields = [];
+            
+            // clear all checkboxes
+            for (let checkbox of document.getElementsByClassName("field-checkbox")) {
+                checkbox.checked = false;
+            }
+
+            // adding the snapshot 
+            jmarc.addUndoredoEntry("from Paste feature")
+            
+            // refresh
+            //this.removeRecordFromEditor(jmarc,true)
+            //this.displayMarcRecord(jmarc,false,true)  
+            
+            //for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+            //    for (let subfield of field.subfields.filter(x => x.copied)) {
+            //        // subfield acquires valueCell after refresh
+            //        subfield.valueCell.classList.add("unsaved")
+            //    }
+            //}
+            
+            jmarc.saveButton.classList.add("text-danger");
+            jmarc.saveButton.title = "Save Record";
+                          
         },
         deleteSubFieldFromShort(jmarc){
             // delete subfield   
@@ -501,29 +510,34 @@ export let multiplemarcrecordcomponent = {
                 return newSubfield
             }
         },
-        addField(jmarc){
-            // add a field below the active field
-            let field = jmarc.getDataFields().filter(x => x.selected)[0];
+        addField(jmarc, newField=null, rowIndex=null) {
+            if (rowIndex === null) {
+                // add a field below the active field
+                let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
+                rowIndex = currentField.row.rowIndex - 1;
 
-            if (! field) {
-                this.callChangeStyling("No subfield selected", "row alert alert-danger")
-                return 
+                if (! currentField) {
+                    this.callChangeStyling("No field selected", "row alert alert-danger")
+                    return 
+                }
             }
 
-            let newField = jmarc.createField("___", (field.row.rowIndex - 2 /*2 header rows*/) + 1);
-            newField.indicators = ["_", "_"];
+            if (newField === null) {
+                newField = jmarc.createField("___", (rowIndex - 1 /*account for 2 header rows*/) + 1);
+                newField.indicators = ["_", "_"];
             
-            let newSubfield = newField.createSubfield();
-            newSubfield.code = "_";
-            newSubfield.value = "";
+                let newSubfield = newField.createSubfield();
+                newSubfield.code = "_";
+                newSubfield.value = "";
+            }
             
-            newField = this.buildFieldRow(newField, field.row.rowIndex - 1);
+            newField = this.buildFieldRow(newField, rowIndex);
             newField.tagSpan.focus();
             newField.tagSpan.classList.add("invalid");
             newField.ind1Cell.classList.add("unsaved");
             newField.ind2Cell.classList.add("unsaved");
             newField.subfields[0].codeSpan.classList.add("invalid");
-            newField.subfields[0].valueCell.classList.add("unsaved");
+            newField.subfields[0].valueCell.classList.add("unsaved");           
             
             // Manage visual indicators
             jmarc.saveButton.classList.add("text-danger");
