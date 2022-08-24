@@ -540,17 +540,18 @@ export class Jmarc {
 				
 				return response.json()
 			}
-		).then(
+		)
+        .then(
 			check => {
-				if (check.constructor.name == "Jmarc") {
-					return check
+				if (! check instanceof Jmarc) {
+					throw new Error(`Something went wrong: ${check}`)
 				}
 				
-				throw new Error(check['message'])
+				return check
 			}
-		).catch(
-			// error => console.error(error)
-			error => { throw new Error(error) }
+		)
+        .catch(
+			error => {throw error}
 		)
 	}
 
