@@ -2424,6 +2424,18 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
+            // Paste
+            valCell.addEventListener("paste", function (event) {
+                // strip the content of HTML tags
+                // https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
+                event.preventDefault();
+                let paste = event.clipboardData.getData("text/plain");
+                let selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                selection.deleteFromDocument();
+                selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+            });
+
             valSpan.addEventListener("focus", function() {
                 component.fieldSelected(field);
                 valSpan.classList.add("subfield-value-selected");
