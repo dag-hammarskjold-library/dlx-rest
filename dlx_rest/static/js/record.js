@@ -2661,7 +2661,7 @@ function keyupAuthLookup(event) {
                 newSubfield.value = jmarc.getField("040").getSubfield("a").value
             }
         } else {
-            newSubfield.value = ""
+            newSubfield.value = "." // record can't be saved with blank value
         }
 
         newField.createSubfield("b").value = "eng";
