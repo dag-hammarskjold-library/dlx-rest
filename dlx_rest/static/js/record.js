@@ -2424,6 +2424,13 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
+            // strip the content of HTML tags
+            valCell.addEventListener("input", function () {
+                var temp = document.createElement("div");
+                temp.innerHTML = valSpan.innerText;
+                valSpan.innerText = temp.innerText;
+            });
+
             valSpan.addEventListener("focus", function() {
                 component.fieldSelected(field);
                 valSpan.classList.add("subfield-value-selected");
