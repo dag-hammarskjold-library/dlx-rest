@@ -33,6 +33,10 @@ export class Subfield {
 		this.value = value;
 		this.xref = xref;	
 	}
+
+	compile() {
+		return {'code': this.code, 'value': this.value, 'xref': this.xref}
+	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -122,6 +126,16 @@ export class DataField {
                 this.subfields = this.subfields.filter(x => x.code !== code)
             }
 	    }
+	}
+
+	compile() {
+		let data = {};
+		
+		data['tag'] = this.tag;
+		data['indicators'] = this.indicators;
+		data['subfields'] = this.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
+		
+		return data
 	}
     
     toStr() {
@@ -295,6 +309,15 @@ export class Jmarc {
 		
 		return false
 	}
+
+	updateSavedState() {
+		this.savedState = this.compile();
+				
+		this.getDataFields().forEach(x => {
+			x.savedState = x.compile();
+			x.subfields.forEach(y => {y.savedState = y.compile()});
+		});
+	}
 	
 	static get(collection, recordId) {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
@@ -322,7 +345,7 @@ export class Jmarc {
 				}
 				
 				jmarc.parse(json['data']);  
-				jmarc.savedState = jmarc.compile();
+				jmarc.updateSavedState();
 
 				jmarc.files = json['data']['files']
 				
@@ -469,7 +492,7 @@ export class Jmarc {
 				
 				this.url = json['result'];
 				this.recordId = parseInt(this.url.split('/').slice(-1));
-				this.savedState = this.compile()
+				this.updateSavedState();
 				
 				return this;
 			}
@@ -510,7 +533,7 @@ export class Jmarc {
 					throw new Error(json['message'])
 				}
 				
-				this.savedState = this.compile();
+				this.updateSavedState();
 
 				return this;
 			} 
@@ -598,12 +621,7 @@ export class Jmarc {
 				if (field.constructor.name == 'ControlField') {
 					recordData[tag].push(field.value);
 				} else {
-					let fieldData = {};
-					
-					fieldData['indicators'] = field.indicators;
-					fieldData['subfields'] = field.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
-					
-					recordData[tag].push(fieldData);
+					recordData[tag].push(field.compile());
 				}
 			}
 		}
