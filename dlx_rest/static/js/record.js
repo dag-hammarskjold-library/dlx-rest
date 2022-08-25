@@ -2426,19 +2426,14 @@ export let multiplemarcrecordcomponent = {
 
             // Paste
             valCell.addEventListener("paste", function (event) {
-                //strip the content of HTML tags
+                // strip the content of HTML tags
+                // https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
                 event.preventDefault();
-                let text = event.clipboardData.getData("text/plain");
-                valSpan.innerText = text;
-
-                // Needed to move cursor to end of text
-                // https://stackoverflow.com/a/3866442/4709524
-                let range = document.createRange(); // Create a range (a range is a like the selection but invisible)
-                range.selectNodeContents(valSpan); // Select the entire contents of the element with the range
-                range.collapse(false); // collapse the range to the end point. false means collapse to end rather than the start
-                let selection = window.getSelection(); // get the selection object (allows you to change selection)
-                selection.removeAllRanges(); // remove any selections already made
-                selection.addRange(range); // make the range you have just created the visible selection
+                let paste = event.clipboardData.getData("text/plain");
+                let selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                selection.deleteFromDocument();
+                selection.getRangeAt(0).insertNode(document.createTextNode(paste));
             });
 
             valSpan.addEventListener("focus", function() {
