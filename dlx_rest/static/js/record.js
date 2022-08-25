@@ -2425,10 +2425,19 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
             // strip the content of HTML tags
-            valCell.addEventListener("input", function () {
+            valCell.addEventListener("input", function (event) {
                 var temp = document.createElement("div");
                 temp.innerHTML = valSpan.innerText;
                 valSpan.innerText = temp.innerText;
+
+                // Needed to move cursor to end of text
+                // https://stackoverflow.com/a/3866442/4709524
+                let range = document.createRange(); // Create a range (a range is a like the selection but invisible)
+                range.selectNodeContents(valSpan); // Select the entire contents of the element with the range
+                range.collapse(false); // collapse the range to the end point. false means collapse to end rather than the start
+                let selection = window.getSelection(); // get the selection object (allows you to change selection)
+                selection.removeAllRanges(); // remove any selections already made
+                selection.addRange(range); // make the range you have just created the visible selection
             });
 
             valSpan.addEventListener("focus", function() {
