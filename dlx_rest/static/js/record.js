@@ -2424,11 +2424,12 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
-            // strip the content of HTML tags
-            valCell.addEventListener("input", function (event) {
-                var temp = document.createElement("div");
-                temp.innerHTML = valSpan.innerText;
-                valSpan.innerText = temp.innerText;
+            // Paste
+            valCell.addEventListener("paste", function (event) {
+                //strip the content of HTML tags
+                event.preventDefault();
+                let text = event.clipboardData.getData("text/plain");
+                valSpan.innerText = text;
 
                 // Needed to move cursor to end of text
                 // https://stackoverflow.com/a/3866442/4709524
