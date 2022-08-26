@@ -104,7 +104,7 @@ export let browsecomponent = {
                                     
                                 </form>
                             </td>
-                            <td><button type="button mx-2" class="btn btn-primary" value="Search">Submit</button></td>
+                            <td><button type="button mx-2" class="btn btn-primary" value="Search" @click="submitBrowse(index)">Submit</button></td>
                         </tr>
                     </tbody>
                 </table>
