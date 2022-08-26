@@ -28,7 +28,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
-            <div class="row"><h3>Browsing {{index}} at {{q}}<h3></div>
+            <div class="row"><h3>Browsing {{collection}}/{{index}} at {{q}}<h3></div>
             <nav>
                 <ul class="pagination pagination-md justify-content-left">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
