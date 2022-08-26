@@ -16,7 +16,7 @@ export let basketcomponent = {
                 <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
                 <div class="d-flex w-100 justify-content-between" >
                         <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
-                        <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
+                        <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="fas fa-times" title="Remove record from basket"></i></small>
                     </div>
                     <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
                         <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
