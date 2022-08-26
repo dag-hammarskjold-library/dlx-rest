@@ -145,7 +145,7 @@ export let multiplemarcrecordcomponent = {
     // Management of the keyboard shortcuts
     //////////////////////////////////////////////////////////////////////////
     
-    window.addEventListener("keydown", this.removeRecordListener)          // ctrl + x => close the record selected
+    window.addEventListener("keydown", this.removeRecordListener)          // ESC => close the record selected
     window.addEventListener("keydown", this.saveRecordListener)            // ctrl + s => save the record selected
     window.addEventListener("keydown", this.addFieldListener)              // ctrl + ENTER => add a new field to the record selected
     window.addEventListener("keydown", this.addHelpListener)               // ctrl + h => show the help window about the shortcuts
@@ -681,7 +681,7 @@ export let multiplemarcrecordcomponent = {
             if (event.ctrlKey && event.key === "h"){
                 event.preventDefault();
                 alert("Shortcuts implemented: "+ "\n" +"-----------------------------------------------------------------"+
-                 "\n" +"ctrl + x => Close the window of the record selected"+
+                 "\n" +"Esc => Close the window of the record selected"+
                  "\n"+"ctrl + s => Save the record selected"+
                  "\n"+"ctrl + ENTER => Add a new field to the record selected"+
                  "\n"+"ctrl + k => remove the field from the record selected" +
@@ -779,7 +779,7 @@ export let multiplemarcrecordcomponent = {
         },
         removeRecordListener(event) {
             if (this.selectedRecord !== "" && ! this.historyMode) {
-                if (event.ctrlKey && event.key === "x") {
+                if (event.key == "Escape") {
                     event.preventDefault();
                     this.userClose(this.selectedJmarc)
                 }
