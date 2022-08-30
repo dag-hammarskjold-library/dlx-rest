@@ -682,8 +682,8 @@ export class Jmarc {
 		cloned.deleteField("981");
 		cloned.deleteField("989");
         cloned.deleteField("998");
-        cloned.deleteField("999");
-        cloned.createField("999").createSubfield("a").value = "";
+        //cloned.deleteField("999");
+        //cloned.createField("999").createSubfield("a").value = "";
         
         if (this.recordClass === Auth) {
             return cloned
