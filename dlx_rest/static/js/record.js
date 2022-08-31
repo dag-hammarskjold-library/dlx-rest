@@ -445,6 +445,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             let subfield = field.subfields.filter(x => x.selected)[0];
+            let subfieldIndex = field.subfields.indexOf(subfield);
             
             if (! subfield) {
                 this.callChangeStyling("No subfield selected", "row alert alert-danger")
@@ -454,18 +455,24 @@ export let multiplemarcrecordcomponent = {
             // Remove the subfield from the field
             field.deleteSubfield(subfield);
             // Remove the subfield row from the table
-
             field.subfieldTable.deleteRow(subfield.row.rowIndex);
+
+            // auto select the next subfield, or else the field before it
+            if (field.subfields[subfieldIndex]) {
+                field.subfields[subfieldIndex].valueSpan.focus();
+            } else {
+                field.subfields[field.subfields.length - 1].valueSpan.focus()
+            }
    
             // Manage visual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
                 jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
             
             jmarc.addUndoredoEntry("from Delete SubField");
