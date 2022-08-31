@@ -540,13 +540,14 @@ export let multiplemarcrecordcomponent = {
         deleteField(jmarc){
             // delete the field
             let field = jmarc.fields.filter(x => x.selected)[0];
+            let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
                 this.callChangeStyling("No field selected", "row alert alert-danger")
                 return
             }
             
-            if (jmarc.fields.length === 1) {
+            if (jmarc.getDataFields().length === 1) {
                 // this is the record's only field
                 this.callChangeStyling("Can't delete record's only field", "row alert alert-danger")                       
                 return
@@ -555,6 +556,13 @@ export let multiplemarcrecordcomponent = {
             jmarc.deleteField(field);
             let myTable=document.getElementById(this.selectedDiv).firstChild 
             myTable.deleteRow(field.row.rowIndex);
+
+            // auto select the next field, or else the field before it
+            if (jmarc.fields[fieldIndex]) {
+                jmarc.fields[fieldIndex].subfields[0].valueSpan.focus();
+            } else {
+                jmarc.fields[fieldIndex - 1].subfields[0].valueSpan.focus();
+            }
 
             // remove the field from the copied fields stack
             let i = this.copiedFields.indexOf(field);
