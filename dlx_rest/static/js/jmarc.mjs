@@ -782,7 +782,7 @@ export class Jmarc {
 	
 
 	getFields(tag) {
-		return this.fields.filter(x => x.tag == tag);
+		return this.fields.filter(x => x.tag == tag)
 	}
 	
 	getField(tag, place) {
