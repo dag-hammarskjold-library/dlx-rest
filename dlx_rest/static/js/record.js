@@ -1378,6 +1378,7 @@ export let multiplemarcrecordcomponent = {
                 // reset the div
                 this.removeRecordFromEditor(otherRecord);
                 this.displayMarcRecord(otherRecord);
+                this.selectRecord(otherRecord);
             }
 
             this.callChangeStyling("Record removed from the editor", "row alert alert-success")
