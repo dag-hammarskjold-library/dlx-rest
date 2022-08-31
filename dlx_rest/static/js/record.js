@@ -1511,7 +1511,12 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.title = "Save Record";
             }
 
-            // trigger unsaved changes detection
+            // trigger field level unsaved changes detection
+            // preserve scroll location
+            let scrollX = window.scrollX;
+            let scrollY = window.scrollY;
+            let scroll = jmarc.tableBody.scrollTop;
+
             for (let field of jmarc.getDataFields()) {
                 field.tagSpan.focus();
                 field.ind1Span.focus();
@@ -1523,7 +1528,13 @@ export let multiplemarcrecordcomponent = {
                     subfield.valueSpan.blur();
                 }
             }
- 
+
+            jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
+            jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
+
+            jmarc.tableBody.scrollTop = scroll;
+            window.scrollTo(scrollX, scrollY);
+            
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
  
