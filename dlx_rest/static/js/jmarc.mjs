@@ -269,7 +269,7 @@ export class Jmarc {
 					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
 					}
-					this.fields=[]
+					//this.fields=[]
 					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 				}
 			}
@@ -290,7 +290,7 @@ export class Jmarc {
 				if (this.undoredoIndex<this.undoredoVector.length-1){
 						this.undoredoIndex=this.undoredoIndex+1
 				}	
-				this.fields=[]
+				//this.fields=[]
 				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 			}
 		}
@@ -584,26 +584,49 @@ export class Jmarc {
 	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
-		this.fields = [];
+		//this.fields = [];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
 		
+		// update the existing objects if the new data exists in this record in order to preserve saved state
 		for (let tag of tags) {
-			for (let field of data[tag]) {
-                let newField = this.createField(tag);
-                
+			for (let [i, field] of data[tag].entries()) {
+				let newField = this.getField(tag, i) || this.createField(tag);
+				newField._seen = true;
+				
 				if (tag.match(/^00/)) {
                     newField.value = field;
                 } else {
                     newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
 					
-					for (let subfield of field.subfields) {
-						let newSub = newField.createSubfield(subfield.code);
-                        newSub.value = subfield.value;
-                        newSub.xref = subfield.xref;
+					for (let code of new Set(field.subfields.map(x => x.code))) {
+						for (let [i, subfield] of field.subfields.filter(x => x.code == code).entries()) {
+							let newSub = newField.getSubfield(code, i) || newField.createSubfield(subfield.code);
+							newSub._seen = true; // temp flag
+							newSub.value = subfield.value;
+                        	newSub.xref = subfield.xref;
+						}    
 					}
 				}
+			}
+		}
+
+		// remove existing data not in new data
+		for (let field of this.getDataFields()) {
+			if (! field._seen) {
+				this.deleteField(field);
+				continue
+			}
+
+			delete field._seen;
+
+			for (let subfield of field.subfields) {
+				if (! subfield._seen) {
+					field.deleteSubfield(subfield);
+				}
+
+				delete subfield._seen;
 			}
 		}
 		
@@ -759,7 +782,7 @@ export class Jmarc {
 	
 
 	getFields(tag) {
-		return this.fields.filter(x => x.tag == tag)
+		return this.fields.filter(x => x.tag == tag);
 	}
 	
 	getField(tag, place) {
