@@ -390,6 +390,8 @@ export let multiplemarcrecordcomponent = {
                 return
             }
 
+            let seen = [];
+
             // paste fields 
             for (let field of this.copiedFields || []) {
                 // get index of row of next highest tag
@@ -403,13 +405,16 @@ export let multiplemarcrecordcomponent = {
                     let newSubfield = newField.createSubfield(subfield.code);
                     newSubfield.value = subfield.value;
                     newSubfield.xref = subfield.xref;
+                    seen.push(newSubfield)
                 }
-
-                // refresh
-                this.removeRecordFromEditor(jmarc);
-                this.displayMarcRecord(jmarc);
             }
-            
+
+            // refresh
+            this.removeRecordFromEditor(jmarc);
+            this.displayMarcRecord(jmarc);
+            seen[0].valueSpan.focus();
+            seen[0].valueSpan.blur();
+
             // clear the list of copied items
             this.copiedFields = [];
             
