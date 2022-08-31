@@ -1375,6 +1375,8 @@ export let multiplemarcrecordcomponent = {
                 this.displayMarcRecord(otherRecord);
             }
 
+            this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+
             return true
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
@@ -1404,7 +1406,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
                 if (keepDataInVector==false) { 
-                    this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
                 
             }
@@ -1417,7 +1419,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record2")
                 recup.innerHTML=""
                 if (keepDataInVector==false) {
-                this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
             }
 
