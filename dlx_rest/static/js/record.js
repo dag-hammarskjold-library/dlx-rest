@@ -2450,16 +2450,21 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("input", checkState);
             valCell.addEventListener("mousedown", checkState); // auth control selection
 
-            // Paste
+            // System paste
             valCell.addEventListener("paste", function (event) {
                 // strip the content of HTML tags
                 // https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
                 event.preventDefault();
                 let paste = event.clipboardData.getData("text/plain");
+                // do the paste
                 let selection = window.getSelection();
                 if (!selection.rangeCount) return;
                 selection.deleteFromDocument();
                 selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+
+                // strip newlines and multispaces
+                valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
+                valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
             });
 
             valSpan.addEventListener("focus", function() {
