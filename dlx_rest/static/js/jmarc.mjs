@@ -80,7 +80,12 @@ export class DataField {
             }
             
             if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                throw new Error("Subfield value required")
+                //throw new Error("Subfield value required")
+				this.deleteSubfield(subfield);
+				
+				if (this.subfields.length === 0) {
+					this.parentRecord.deleteField(this);
+				}
             }
             
             if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
