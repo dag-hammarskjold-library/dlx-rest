@@ -220,6 +220,7 @@ span.subfield-value-selected {
 }
 
 span.authority-controlled {
+    color: #0000EE;
     text-decoration: underline;
 }
 

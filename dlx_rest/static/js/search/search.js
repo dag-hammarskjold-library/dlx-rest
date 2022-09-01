@@ -151,8 +151,8 @@ export let searchcomponent = {
             <div class="row pt-2 border-bottom">
                 <div class="col-sm-11 px-4 shadow bg-light rounded">
                     <div class="row">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
+                        <a v-else class="lead result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div class="row">
