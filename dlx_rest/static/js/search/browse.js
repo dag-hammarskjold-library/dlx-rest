@@ -28,6 +28,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
+            <div class="row"><h3>Browsing {{recordType}}/{{index}} at {{q}}</h3></div>
             <nav>
                 <ul class="pagination pagination-md justify-content-left">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -103,7 +104,7 @@ export let browsecomponent = {
                                     
                                 </form>
                             </td>
-                            <td><button type="button mx-2" class="btn btn-primary" value="Search">Submit</button></td>
+                            <td><button type="button mx-2" class="btn btn-primary" value="Search" @click="submitBrowse(index)">Submit</button></td>
                         </tr>
                     </tbody>
                 </table>

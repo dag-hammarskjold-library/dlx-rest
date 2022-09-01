@@ -116,6 +116,10 @@ export let searchcomponent = {
                 </button>
             </form>    
         </div>
+        <div v-if="collection == 'auths'" id="filters" class="col text-center">
+            Filter: 
+            <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
+        </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
@@ -245,6 +249,7 @@ export let searchcomponent = {
             vcoll: null,
             searchTime: 0,
             maxTime: 15000, //milliseconds
+            headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController()
         }
     },
@@ -467,8 +472,39 @@ export let searchcomponent = {
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
+
+        for (let el of document.getElementsByClassName('head-filter')) {
+            el.href = this.rebuildUrl("search", el.getAttribute("data-searchString"));
+        }
     },
     methods: {
+        rebuildUrl(param, value) {
+            let myParams = Object.assign({},this.params);
+            let searchParam = myParams["search"]
+            let newSearchParam = ""
+            for (let hf of this.headFilters) {
+                newSearchParam = searchParam.replace(hf, "nnn")
+                if (newSearchParam.includes("nnn")) {
+                    break
+                }
+            }
+            
+            if (newSearchParam.includes("nnn")) {
+                myParams["search"] = newSearchParam.replace("nnn",value)
+            } else {
+                if (newSearchParam.length > 0) {
+                    myParams["search"] = `${newSearchParam} AND ${value}:*`
+                } else {
+                    myParams["search"] = `${value}:*`
+                }
+                
+            }
+
+            const qs = Object.keys(myParams)
+                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .join('&');
+            return `${this.action}?${qs}`;
+        },
         async getMyBasket(url) {
             let response = await fetch(url);
             if (response.ok) {
