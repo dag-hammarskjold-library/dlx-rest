@@ -390,6 +390,8 @@ export let multiplemarcrecordcomponent = {
                 return
             }
 
+            let seen = [];
+
             // paste fields 
             for (let field of this.copiedFields || []) {
                 // get index of row of next highest tag
@@ -403,13 +405,16 @@ export let multiplemarcrecordcomponent = {
                     let newSubfield = newField.createSubfield(subfield.code);
                     newSubfield.value = subfield.value;
                     newSubfield.xref = subfield.xref;
+                    seen.push(newSubfield)
                 }
-
-                // refresh
-                this.removeRecordFromEditor(jmarc);
-                this.displayMarcRecord(jmarc);
             }
-            
+
+            // refresh
+            this.removeRecordFromEditor(jmarc);
+            this.displayMarcRecord(jmarc);
+            seen[0].valueSpan.focus();
+            seen[0].valueSpan.blur();
+
             // clear the list of copied items
             this.copiedFields = [];
             
@@ -440,6 +445,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             let subfield = field.subfields.filter(x => x.selected)[0];
+            let subfieldIndex = field.subfields.indexOf(subfield);
             
             if (! subfield) {
                 this.callChangeStyling("No subfield selected", "row alert alert-danger")
@@ -449,18 +455,24 @@ export let multiplemarcrecordcomponent = {
             // Remove the subfield from the field
             field.deleteSubfield(subfield);
             // Remove the subfield row from the table
-
             field.subfieldTable.deleteRow(subfield.row.rowIndex);
+
+            // auto select the next subfield, or else the field before it
+            if (field.subfields[subfieldIndex]) {
+                field.subfields[subfieldIndex].valueSpan.focus();
+            } else {
+                field.subfields[field.subfields.length - 1].valueSpan.focus()
+            }
    
             // Manage visual indicators
             if (jmarc.saved) {
                 jmarc.saveButton.classList.remove("text-danger");
                 jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "no new changes";
+                jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "save";
+                jmarc.saveButton.title = "Save Record";
             }
             
             jmarc.addUndoredoEntry("from Delete SubField");
@@ -535,13 +547,14 @@ export let multiplemarcrecordcomponent = {
         deleteField(jmarc){
             // delete the field
             let field = jmarc.fields.filter(x => x.selected)[0];
+            let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
                 this.callChangeStyling("No field selected", "row alert alert-danger")
                 return
             }
             
-            if (jmarc.fields.length === 1) {
+            if (jmarc.getDataFields().length === 1) {
                 // this is the record's only field
                 this.callChangeStyling("Can't delete record's only field", "row alert alert-danger")                       
                 return
@@ -550,6 +563,13 @@ export let multiplemarcrecordcomponent = {
             jmarc.deleteField(field);
             let myTable=document.getElementById(this.selectedDiv).firstChild 
             myTable.deleteRow(field.row.rowIndex);
+
+            // auto select the next field, or else the field before it
+            if (jmarc.fields[fieldIndex]) {
+                jmarc.fields[fieldIndex].subfields[0].valueSpan.focus();
+            } else {
+                jmarc.fields[fieldIndex - 1].subfields[0].valueSpan.focus();
+            }
 
             // remove the field from the copied fields stack
             let i = this.copiedFields.indexOf(field);
@@ -1373,7 +1393,10 @@ export let multiplemarcrecordcomponent = {
                 // reset the div
                 this.removeRecordFromEditor(otherRecord);
                 this.displayMarcRecord(otherRecord);
+                this.selectRecord(otherRecord);
             }
+
+            this.callChangeStyling("Record removed from the editor", "row alert alert-success")
 
             return true
         },
@@ -1404,7 +1427,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
                 if (keepDataInVector==false) { 
-                    this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
                 
             }
@@ -1417,7 +1440,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record2")
                 recup.innerHTML=""
                 if (keepDataInVector==false) {
-                this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
                 }
             }
 
@@ -1511,7 +1534,12 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.title = "Save Record";
             }
 
-            // trigger unsaved changes detection
+            // trigger field level unsaved changes detection
+            // preserve scroll location
+            let scrollX = window.scrollX;
+            let scrollY = window.scrollY;
+            let scroll = jmarc.tableBody.scrollTop;
+
             for (let field of jmarc.getDataFields()) {
                 field.tagSpan.focus();
                 field.ind1Span.focus();
@@ -1523,7 +1551,13 @@ export let multiplemarcrecordcomponent = {
                     subfield.valueSpan.blur();
                 }
             }
- 
+
+            jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
+            jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
+
+            jmarc.tableBody.scrollTop = scroll;
+            window.scrollTo(scrollX, scrollY);
+            
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
  
