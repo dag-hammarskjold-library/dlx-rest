@@ -8,9 +8,9 @@ ENV FLASK_ENV=development
 
 WORKDIR /usr/src/app
 
-COPY ../requirements.txt /usr/src/app/requirements.txt
+COPY requirements.txt /usr/src/app/requirements.txt
 RUN apt-get update && apt-get install -y git
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-COPY ../ /usr/src/app
+COPY . /usr/src/app
