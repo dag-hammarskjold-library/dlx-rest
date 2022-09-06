@@ -1756,7 +1756,25 @@ export let multiplemarcrecordcomponent = {
                 }
                 
             }
-           
+
+            if (this.user != null) {
+                let auditRow = tableHeader.insertRow()
+                let auditCell = auditRow.insertCell()
+                auditCell.colSpan = 6
+                auditCell.className = "text-wrap"
+                let auditSpan = document.createElement("span")
+                auditSpan.className = "small mx-2"
+                
+                auditCell.appendChild(auditSpan)
+                jmarc.history().then( (history) => {
+                    if (history.length > 0) {
+                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[0].user}`
+                    }
+                    else {
+                        auditSpan.innerText = `Last updated ${jmarc.updated} by system import.`
+                    }
+                })
+            }
  
             // Files
             let filesRow = tableHeader.insertRow();
