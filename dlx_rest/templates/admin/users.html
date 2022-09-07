@@ -4,16 +4,24 @@
     <table class="table">
         <thead>
             <th>Email</th>
+            <th>Display Name</th>
             <th>Roles</th>
+            <th>Default Views</th>
             <th>Actions</th>
         </thead>
         <tbody>
             {% for user in users %}
             <tr>
                 <td>{{user.email}}</td>
+                <td>{{user.display}}</td>
                 <td>
                     {% for role in user.roles %}
                         {{role.name}}{{ ", " if not loop.last else "" }}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for v in user.default_views %}
+                        {{v.collection}}/{{v.name}}
                     {% endfor %}
                 </td>
                 <td>
@@ -22,6 +30,8 @@
             </tr>
             {% endfor %}
             <tr>
+                <td></td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td><a href="{{url_for('create_user')}}">Create New User</a></td>

@@ -67,11 +67,18 @@ class RecordView(Document):
 
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
+    display = StringField(max_length=10, required=True)
     password_hash = StringField(max_length=200)
     roles = ListField(ReferenceField(Role))
     default_views = ListField(ReferenceField(RecordView))
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+
+    def __str__(self):
+        return {
+            "email": self.email,
+            "display": self.display
+        }
 
 
     def set_password(self, password):

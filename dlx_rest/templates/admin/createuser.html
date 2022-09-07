@@ -18,6 +18,11 @@
         </div>
         <div class="form-group">
             <p>
+                {{ form.display_name.label }}<br> {{ form.display(size=32,class="form-control", value=user.display_name) }}
+            </p>
+        </div>
+        <div class="form-group">
+            <p>
                 {{ form.password.label }}<br> {{ form.password(class="form-control") }}
             </p>
         </div>
