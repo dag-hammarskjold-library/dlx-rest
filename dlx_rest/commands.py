@@ -12,13 +12,12 @@ def generate_password():
 
 @app.cli.command('create-user')
 @click.argument('email')
-@click.argument('display')
 #@click.argument('password', required=False, default=None)
 #@click.argument('role', required=False, default='user')
 def create_user(email, display):
     my_password = generate_password()
     try:
-        user = User(email=email, display=display)
+        user = User(email=email)
         user.set_password(my_password)
         user.save()
         print(f"User {email} has been created. Password: {my_password}")
