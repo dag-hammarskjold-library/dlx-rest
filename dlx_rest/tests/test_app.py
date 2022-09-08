@@ -126,7 +126,7 @@ def test_create_user(client, default_users):
 
     new_user = default_users['new']
     response = client.post('/admin/users/new', data={
-        'email': new_user['email'], 'display': new_user['display'], 'password': new_user['password']
+        'email': new_user['email'], 'password': new_user['password']
     })
     assert response.status_code == 302
 
