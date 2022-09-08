@@ -75,8 +75,7 @@ class User(UserMixin, Document):
 
     def __str__(self):
         return {
-            "email": self.email,
-            "display": self.display
+            "email": self.email
         }
 
 
