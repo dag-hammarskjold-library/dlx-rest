@@ -38,6 +38,9 @@ def editor():
     fromWorkform = request.args.get('fromWorkform', None)
     return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
+@app.route('/help')
+def help():
+    return render_template('help.html', vcoll="help")
 
 @app.route('/workform')
 def workform():
