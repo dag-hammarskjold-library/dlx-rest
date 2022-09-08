@@ -358,7 +358,11 @@ export let searchcomponent = {
                     let myResult = { "_id": result["_id"]}
                     if (component.collection == "bibs") {
                         myResult["first_line"] = result["title"]
-                        myResult["second_line"] = [result["symbol"], result["date"], result["types"]].filter(Boolean).join(" | ")
+                        //.split("::")[result["types"].split("::").length-1]]
+
+                        let rtype = result["types"].split("::")
+
+                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
