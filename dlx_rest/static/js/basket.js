@@ -8,30 +8,31 @@ import basket from "./api/basket.js";
 export let basketcomponent = {
     props: ["api_prefix", "basket_id"],
     template: ` 
-    <div class="container col-sm-2" id="app0" style="background-color:white;">
-        <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-         <div class="row">
-            <div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i>
-            <i class="fas fa-cut text-primary mx-2" title="Clear Basket Contents" v-on:click="clearBasket()"></i></div>
-        </div>
-            <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
-            
-                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
-                <div class="d-flex w-100 justify-content-between" >
-                        <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
-                        <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="fas fa-times" title="Remove record from basket"></i></small>
-                    </div>
-                    <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
-                        <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
-                        <span v-else :title=record.title>{{record.title}}</span>
-                    </p>
-                    <p v-if="record.symbol" class="mb-1">
-                        <small>
-                            <span v-if="record.symbol.length > 45" :title=record.symbol>{{record.symbol.substring(0,45)}}....</span>
-                            <span v-else :title=record.symbol>{{record.symbol}}</span>
-                        </small>
-                    </p>
-                </a>
+    <div class="col-sm-2" id="app0" style="background-color:white;">
+        <div class="mt-1" style="overflow-y: scroll; min-height:650px;">
+            <div class="col">
+                <div class="col">
+                    <i class="fas fa-sync p-1 record-control" title="Reload Basket Now" v-on:click="rebuildBasket()"></i>
+                    <i class="fas fa-cut p-1 record-control" title="Clear Basket Contents" v-on:click="clearBasket()"></i>
+                </div>
+                <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
+                
+                    <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
+                        <div class="d-flex w-100 justify-content-between" >
+                            <small><span style="overflow-x:hidden">{{record.collection}}/{{record._id}}</span></small>
+                            <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="fas fa-times" title="Remove record from basket"></i></small>
+                        </div>
+                        <div v-on:click="displayRecord(record._id, record.collection)"  style="overflow-x:hidden">
+                            <span style="white-space:nowrap" :title=record.title>{{record.title}}</span>
+                        </div>
+                        <div v-if="record.symbol" style="overflow-x:hidden">
+                            <small>
+                                <span v-if="record.symbol.length > 45" :title=record.symbol>{{record.symbol.substring(0,45)}}....</span>
+                                <span v-else :title=record.symbol>{{record.symbol}}</span>
+                            </small>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -70,12 +71,12 @@ export let basketcomponent = {
 
             if (this.editor.currentRecordObjects.filter(x => x.collection == myCollection && x.recordId == myRecord).length > 0) {
                 // the record is already open
-                //this.callChangeStyling("Record already open", "row alert alert-danger")
+                //this.callChangeStyling("Record already open", "d-flex w-100 alert-danger")
                 return
             }
 
             if (this.editor.currentRecordObjects.length === 2) {
-                //this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
+                //this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
 
                 // attempt to close the second record 
                 let toRemove = this.editor.currentRecordObjects[1];
@@ -89,7 +90,7 @@ export let basketcomponent = {
                 // add record displayed
                 this.recordDisplayed.push(jmarc.recordId)
                 // this.forceUpdate()
-                this.callChangeStyling("Record added to the editor", "row alert alert-success")
+                this.callChangeStyling("Record added to the editor", "d-flex w-100 alert-success")
             } else {
                 // the record did not display for some reason
                 this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
@@ -104,7 +105,7 @@ export let basketcomponent = {
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
                 el.parentElement.remove();
-                this.callChangeStyling("Record removed from basket", "row alert alert-success");
+                this.callChangeStyling("Record removed from basket", "d-flex w-100 alert-success");
                 return true;
             }
         },
@@ -172,7 +173,7 @@ export let basketcomponent = {
                         */
 
                         // alert that debugging is needed
-                        callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "row alert alert-danger")
+                        callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
                     }
                 )
             }
