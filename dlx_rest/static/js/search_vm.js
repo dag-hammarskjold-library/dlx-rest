@@ -13,7 +13,7 @@ import { basketcomponent } from "./basket.js";
 /////////////////////////////////////////////////////////////////
 export let vm_search_component = new Vue({
     el: '#search_vm',
-    components: { sidebarcomponent, searchcomponent, basketcomponent },
+    components: { messagecomponent, sidebarcomponent, searchcomponent, basketcomponent },
     data: {
       visible: false,
     },
