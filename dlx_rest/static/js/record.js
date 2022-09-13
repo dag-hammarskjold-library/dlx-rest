@@ -7,6 +7,7 @@ import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
+import { countcomponent } from "./search/count.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -1652,7 +1653,8 @@ export let multiplemarcrecordcomponent = {
             // This could be offloaded to config
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
-                {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
+                {"name": "idField", "element": "span", "class": "mx-1", "title": "", "load": "getId" },
+                {"name": "countField", "element": "span", "class": "mx-1", "title": "", "load": "getId"},
                 {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
@@ -1747,7 +1749,15 @@ export let multiplemarcrecordcomponent = {
                         controlButton.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
                     } else if (this.historyMode==true){
                         controlButton.innerText = `${jmarc.collection}/${jmarc.recordId} (history record)`;
-                    } else {
+                    } else if (control["name"] == "countField" && jmarc.recordId && jmarc.collection == "auths") {
+                        let url = `${this.prefix}marc/auths/records/${jmarc.recordId}/use_count?use_type=bibs`;
+                        let uiBase = this.prefix.replace("/api", "")
+                        fetch(url).then(
+                            response => response.json()
+                        ).then( json => {
+                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`
+                        })
+                    } else if (control["name"] == "idField") {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
                         controlButton.innerText = `${jmarc.collection}/${recordId}`;
                     }
@@ -2667,6 +2677,9 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         }
+    },
+    components: {
+        'countcomponent': countcomponent
     }
 }
 
