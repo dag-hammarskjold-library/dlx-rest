@@ -86,6 +86,7 @@ export let browsecomponent = {
             </nav>
         </div>
         <div v-else>
+        <div class="row"><h3>Browsing {{recordType}}</h3></div>
             <div class="col pt-2 m-auto" style="background-color:white;">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -204,6 +205,8 @@ export let browsecomponent = {
             ).catch(
                 error => {
                     console.log(error)
+                    let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
+                    spinner.remove()
                 }
             );
         }
