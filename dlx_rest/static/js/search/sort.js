@@ -26,18 +26,7 @@ export let sortcomponent = {
     </nav>
     `,
     data: function() {
-        let mySortFields = [{'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'}];
-        /* Once we have more fields to use for sorting, we can add them here */
-        if (this.collection == "bibs") {
-            mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
-            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
-            mySortFields.push({'displayName':'title', 'searchString': 'title', 'sortDir': 'asc'});
-            // sort by relevance only works for free text search
-            // TODO disable relevance sort link for non free text searches
-            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
-        } else if (this.collection == "auths") {
-            mySortFields.push({'displayName':'heading', 'searchString': 'heading', 'sortDir': 'asc'})
-        }
+        let vcoll = "bibs"
         if (this.params.search) {
             /* TODO get query "type" from backend [not implemented yet] */
             for (let term of this.params.search.split(/ +/)) {
@@ -46,7 +35,36 @@ export let sortcomponent = {
                     this.isFreeText = true
                 }
             }
+            if (this.params.search.includes("089:'B22'")) {
+                vcoll = "speeches"
+            }
+            // todo: remove the type cretieria from the search input, update criteria
+            if (this.params.search.includes("089:'B23'")) {
+                vcoll = "votes"
+            }
         }
+        let mySortFields = [{'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'}];
+        /* Once we have more fields to use for sorting, we can add them here */
+        if (this.collection == "bibs") {
+            console.log(vcoll)
+            if (vcoll == "bibs") {
+                mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
+                mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'title', 'searchString': 'title', 'sortDir': 'asc'});    
+            } else if (vcoll == "votes") {
+                mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'body', 'searchString': 'body', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'agenda', 'searchString': 'agenda', 'sortDir': 'asc'});
+            } else if (vcoll == "speeches") {
+                mySortFields.push({'displayName':'meeting date', 'searchString': 'date', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'speaker', 'searchString': 'speaker', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'country/org', 'searchString': 'country_org', 'sortDir': 'asc'});
+            }
+            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
+        } else if (this.collection == "auths") {
+            mySortFields.push({'displayName':'heading', 'searchString': 'heading', 'sortDir': 'asc'})
+        }
+        
         return {
             rpp: [
                 {"displayName": "10", "searchString": 10},
@@ -67,7 +85,6 @@ export let sortcomponent = {
         for (let el of document.getElementsByClassName('sortcomponent')) {
             if (el.id == "sort") {
                 let el_href1 = this.rebuildUrl(el.id, el.getAttribute("data-searchString"))
-                console.log(el_href1)
                 let el_href2 = el_href1.replace("direction=desc", `direction=${el.getAttribute("data-defaultSortDir")}`).replace("direction=asc", `direction=${el.getAttribute("data-defaultSortDir")}`)
                 el.href = el_href2
             } else {

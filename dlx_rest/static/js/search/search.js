@@ -260,8 +260,6 @@ export let searchcomponent = {
         let component = this;
 
         //let searchstr = document.getElementById('q').value;
-
-        console.log(this.index_list)
         this.searchFields = JSON.parse(this.index_list)
         
         // [what is this used for?]
