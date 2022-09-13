@@ -12,8 +12,8 @@ export let sortcomponent = {
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Sort:</a></li>
                 <li v-for="o in sortFields" class="nav-item">
-                    <a id="sort" :data-searchString="o.searchString" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
-                    <a id="sort" :data-searchString="o.searchString" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
+                    <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
+                    <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-else class="nav-link sortcomponent">{{o.displayName}}</a>
                 </li>
                 <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Direction:</a></li>
@@ -26,17 +26,17 @@ export let sortcomponent = {
     </nav>
     `,
     data: function() {
-        let mySortFields = [{'displayName':'updated', 'searchString': 'updated'}];
+        let mySortFields = [{'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'}];
         /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
-            mySortFields.push({'displayName':'publication date', 'searchString': 'date'});
-            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol'});
-            mySortFields.push({'displayName':'title', 'searchString': 'title'});
+            mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
+            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'title', 'searchString': 'title', 'sortDir': 'asc'});
             // sort by relevance only works for free text search
             // TODO disable relevance sort link for non free text searches
-            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance'});
+            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
         } else if (this.collection == "auths") {
-            mySortFields.push({'displayName':'heading', 'searchString': 'heading'})
+            mySortFields.push({'displayName':'heading', 'searchString': 'heading', 'sortDir': 'asc'})
         }
         if (this.params.search) {
             /* TODO get query "type" from backend [not implemented yet] */
@@ -65,7 +65,14 @@ export let sortcomponent = {
     },
     mounted: function() {
         for (let el of document.getElementsByClassName('sortcomponent')) {
-            el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
+            if (el.id == "sort") {
+                let el_href1 = this.rebuildUrl(el.id, el.getAttribute("data-searchString"))
+                console.log(el_href1)
+                let el_href2 = el_href1.replace("direction=desc", `direction=${el.getAttribute("data-defaultSortDir")}`).replace("direction=asc", `direction=${el.getAttribute("data-defaultSortDir")}`)
+                el.href = el_href2
+            } else {
+                el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
+            }
         }
     },
     methods: {
