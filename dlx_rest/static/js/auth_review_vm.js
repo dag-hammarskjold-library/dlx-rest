@@ -14,7 +14,7 @@ import { authreviewcomponent } from "./auth_review.js";
 /////////////////////////////////////////////////////////////////
 export let auth_review_vm = new Vue({
     el: '#auth_review_vm',
-    components: { messagecomponent, sidebarcomponent, authreviewcomponent },//, browsecomponent },
+    components: { sidebarcomponent, authreviewcomponent },//, browsecomponent },
     data: {
       visible: false,
     },

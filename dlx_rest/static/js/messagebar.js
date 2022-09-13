@@ -3,33 +3,29 @@
 /////////////////////////////////////////////////////////////////
 let vm=""
 export let messagecomponent = {
-    template: `
-            <div v-bind:class="styleToDisplay" role="alert">
-              <span id="messageText" class="ml-3">{{textToDisplay}}</span>
-            </div>
-             `
-    ,
+    template: `<div id="messageBar"></div>`,
     created() {
-      this.$root.$refs.messagecomponent = this;
-      vm=this;
+        this.$root.$refs.messagecomponent = this;
+        vm=this;
     },
-    data: function () {
-      return {
-        visible: true,
-        textToDisplay: "Messaging bar", // just insert the string to display
-        styleToDisplay: "row alert alert-primary",
-        // list of values : // alert alert-primary // alert alert-secondary // alert alert-success // alert alert-danger // alert alert-warning // alert alert-info // alert alert-light // alert alert-dark
-      }
-    }
-    ,
     methods: {
       changeStyling(myText, myStyle) {
-        vm.textToDisplay = myText
-        vm.styleToDisplay = myStyle
-        let timeoutID= setTimeout(
+        let classList = myStyle.split(" ")
+        let bar = document.getElementById("messageBar")
+        let msgDiv = document.createElement("div")
+        for (let c of classList) {
+            msgDiv.classList.add(c)
+        }
+        bar.appendChild(msgDiv)
+        let msgSpan = document.createElement("span")
+        msgSpan.id = "messageText"
+        msgSpan.classList.add("ml-3")
+        msgSpan.innerText = myText
+        msgDiv.appendChild(msgSpan)
+
+        let timeoutID = setTimeout(
           function(){
-          vm.textToDisplay="Messaging bar", // just insert the string to display
-          vm.styleToDisplay="row alert alert-primary" 
+            msgDiv.remove()
           }
           ,10000
         )
