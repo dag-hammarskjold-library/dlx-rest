@@ -17,12 +17,12 @@ export let basketcomponent = {
                 </div>
                 <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
                 
-                    <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
+                    <a href="#" v-on:click="handleClick($event, record._id, record.collection)" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
                         <div class="d-flex w-100 justify-content-between" >
                             <small><span style="overflow-x:hidden">{{record.collection}}/{{record._id}}</span></small>
-                            <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="fas fa-times" title="Remove record from basket"></i></small>
+                            <small><i id="closeRecord" v-on:click="handleClick($event, record._id, record.collection)" class="fas fa-times p-1 record-control" title="Remove record from basket"></i></small>
                         </div>
-                        <div v-on:click="displayRecord(record._id, record.collection)"  style="overflow-x:hidden">
+                        <div style="overflow-x:hidden">
                             <span style="white-space:nowrap" :title=record.title>{{record.title}}</span>
                         </div>
                         <div v-if="record.symbol" style="overflow-x:hidden">
@@ -59,6 +59,14 @@ export let basketcomponent = {
         this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
     },
     methods: {
+        handleClick(e, record_id, collection) {
+            if (e.srcElement.id == "closeRecord") {
+                e.stopPropagation()
+                this.removeRecordFromList(collection, record_id)
+            } else {
+                this.displayRecord(record_id, collection)
+            }
+        },
         removeRecordFromRecordDisplayed(recordToDelete){
             const index = this.recordDisplayed.indexOf(recordToDelete);
             if (index > -1) {
@@ -100,7 +108,7 @@ export let basketcomponent = {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
         },
         async removeRecordFromList(collection, record_id) {
-            let el = document.getElementById(`${collection}--${record_id}`);
+            let el = document.getElementById(`${collection}--${record_id}`)
             const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
