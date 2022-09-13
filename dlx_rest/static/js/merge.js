@@ -78,26 +78,26 @@ export let modalmergecomponent = {
      })
        .then(response => {
          if (response.ok) {
-            vm.callChangeStyling("Authorities merged","row alert alert-success")
+            vm.callChangeStyling("Authorities merged","d-flex w-100 alert-success")
             //reload the basket 
             try
             {
               location.reload();
             }
             catch (error){
-              vm.callChangeStyling(error.message,"row alert alert-danger")
+              vm.callChangeStyling(error.message,"d-flex w-100 alert-danger")
             }
              }
           if (!response.ok) {
           response.json()
               .then(json => {
-                vm.callChangeStyling(json.message,"row alert alert-danger")
+                vm.callChangeStyling(json.message,"d-flex w-100 alert-danger")
               });
           }
            }
        )
        .catch(error => {
-          vm.callChangeStyling(error.message,"row alert alert-danger")
+          vm.callChangeStyling(error.message,"d-flex w-100 alert-danger")
        })
    }
    ,
