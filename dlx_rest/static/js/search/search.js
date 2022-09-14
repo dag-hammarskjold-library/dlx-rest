@@ -134,10 +134,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
         <div id="results-spinner" class="col d-flex justify-content-center">
@@ -148,15 +148,15 @@ export let searchcomponent = {
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row pt-2 border-bottom">
-                <div class="col-sm-11 px-4 shadow bg-light rounded">
-                    <div class="row">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
+            <div class="row mt-1 bg-light border-bottom">
+                <div class="col-sm-11 px-4 ">
+                    <div class="row" style="overflow-x:hidden">
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <a v-else class="lead result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
-                    <div class="row">
-                        <p>{{result.second_line}}</p>
+                    <div class="row" style="white-space:nowrap">
+                        {{result.second_line}}
                     </div>
                 </div>
                 <div class="col-sm-1">
@@ -181,10 +181,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
     </div>`,
