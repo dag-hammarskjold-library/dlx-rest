@@ -21,7 +21,7 @@ export default {
                     myTitle.push("[No Title]")
                 }
                 
-                myItemTitle = myTitle.join(" ");
+                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
             } else if (collection == "auths") {
                 //console.log("Trying to create an auth basket item...")
                 let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
@@ -29,7 +29,7 @@ export default {
                 for (let s in myTitleField.subfields) {
                     myTitle.push(myTitleField.subfields[s].value);
                 }
-                myItemTitle = myTitle.join(" ");
+                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
             }
             let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
             //console.log(url)
