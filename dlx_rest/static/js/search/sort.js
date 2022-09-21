@@ -86,6 +86,10 @@ export let sortcomponent = {
             if (el.id == "sort") {
                 let el_href1 = this.rebuildUrl(el.id, el.getAttribute("data-searchString"))
                 let el_href2 = el_href1.replace("direction=desc", `direction=${el.getAttribute("data-defaultSortDir")}`).replace("direction=asc", `direction=${el.getAttribute("data-defaultSortDir")}`)
+                if (!el_href2.includes("direction")) {
+                    el_href2 += `direction=${el.getAttribute("data-defaultSortDir")}`
+                }
+                console.log("hrefs", el_href1, el_href2)
                 el.href = el_href2
             } else {
                 el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));
