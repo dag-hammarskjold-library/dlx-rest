@@ -57,6 +57,7 @@ export let sortcomponent = {
                 mySortFields.push({'displayName':'agenda', 'searchString': 'agenda', 'sortDir': 'asc'});
             } else if (vcoll == "speeches") {
                 mySortFields.push({'displayName':'meeting date', 'searchString': 'date', 'sortDir': 'asc'});
+                mySortFields.push({'displayName':'meeting record', 'searchString': 'symbol', 'sortDir': 'desc'});
                 mySortFields.push({'displayName':'speaker', 'searchString': 'speaker', 'sortDir': 'asc'});
                 mySortFields.push({'displayName':'country/org', 'searchString': 'country_org', 'sortDir': 'asc'});
             }
