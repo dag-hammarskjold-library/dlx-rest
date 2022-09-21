@@ -8,7 +8,7 @@ cfn-flip==1.3.0
 charset-normalizer==2.0.12
 click==8.1.2
 cryptography==36.0.2
-dlx @ git+https://github.com/dag-hammarskjold-library/dlx@61c31540c473f20c6c6eb085fe8858e3c7673bfc
+dlx @ git+https://github.com/dag-hammarskjold-library/dlx@7344ff09a403115a876e911ef29ffbc2d3e9fc62
 dnspython==2.2.1
 email-validator==1.1.3
 Flask==2.1.1
