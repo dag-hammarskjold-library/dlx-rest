@@ -2509,6 +2509,9 @@ export let multiplemarcrecordcomponent = {
                 // strip newlines and multispaces
                 valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
                 valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
+
+                // do the update and checks
+                checkState();
             });
 
             valSpan.addEventListener("focus", function() {
