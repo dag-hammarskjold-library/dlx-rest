@@ -2528,6 +2528,11 @@ export let multiplemarcrecordcomponent = {
             });
 
             valSpan.addEventListener("blur", function() {
+                // remove extraneous whitespace
+                valSpan.innerText = valSpan.innerText.trim();
+                valSpan.innerText = valSpan.innerText.replace(/ {2,}/, ' ');
+                checkState();
+
                 valSpan.classList.remove("subfield-value-selected");
                 component.clearSelectedSubfield(jmarc);
                 subfield.selected = false;
