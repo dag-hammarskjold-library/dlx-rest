@@ -325,7 +325,7 @@ class RecordsList(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:    
-                record.commit(user=user)
+                record.commit(user=user.username)
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -344,7 +344,7 @@ class RecordsList(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
 
-            result = record.commit(user=user.email)
+            result = record.commit(user=user.username)
             #except Exception as e:
             #    abort(400, str(e))
         
@@ -572,7 +572,7 @@ class Record(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:
-                result = record.commit(user=user)
+                result = record.commit(user=user.username)
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -583,7 +583,7 @@ class Record(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:
-                result = record.commit(user=user.email)
+                result = record.commit(user=user.username)
             except Exception as e:
                 abort(400, str(e))
         
@@ -608,7 +608,7 @@ class Record(Resource):
             abort(403, f'The current user is not authorized to perform this action.')
 
         try:
-            result = record.delete(user=user.email)
+            result = record.delete(user=user.username)
         except AuthInUse as e:
             abort(403, 'Authority record in use')
         
@@ -755,7 +755,7 @@ class RecordFieldPlaceList(Resource):
         if not has_permission(user, "updateRecord", record, collection):
             abort(403, f'The current user is not authorized to perform this action.')
 
-        result = record.commit(user=user.email)
+        result = record.commit(user=user.username)
         
         if result:
             url = URL(
@@ -831,7 +831,7 @@ class RecordFieldPlace(Resource):
             if not has_permission(user, "updateRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
-            result = cls(record_data, auth_control=True).commit(user=user.email)
+            result = cls(record_data, auth_control=True).commit(user=user.username)
         except Exception as e:
             abort(400, str(e))
 
@@ -864,7 +864,7 @@ class RecordFieldPlace(Resource):
         
         record.delete_field(field_tag, place=field_place)
         
-        if record.commit(user=user.email):
+        if record.commit(user=user.username):
             return Response(status=204)
         else:
             abort(500, 'DELETE request failed for unknown reasons')
@@ -1211,7 +1211,7 @@ class RecordMerge(Resource):
                                     del record.fields[i] # duplicate field
                         
                 if record.to_bson() != state:    
-                    record.commit(user=user.email)
+                    record.commit(user=user.username)
                     changed += 1
                     
             return changed
@@ -1221,7 +1221,7 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
-        losing.delete(user=user.email)
+        losing.delete(user=user.username)
         
         return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
 
