@@ -1778,7 +1778,7 @@ export let multiplemarcrecordcomponent = {
                 auditCell.appendChild(auditSpan)
                 jmarc.history().then( (history) => {
                     if (history.length > 0) {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[0].user}`
+                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[history.length-1].user}`
                     }
                     else {
                         auditSpan.innerText = `Last updated ${jmarc.updated} by system import.`
