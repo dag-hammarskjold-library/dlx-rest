@@ -140,7 +140,7 @@ def create_user():
     form.views.choices = [(v.id, f'{v.collection}/{v.name}') for v in RecordView.objects()]
     if request.method == 'POST':
         email = request.form.get('email')
-        display = request.form.get('display')
+        username = request.form.get('username')
         roles = form.roles.data
         default_views = form.views.data
         password = request.form.get('password')
@@ -148,7 +148,7 @@ def create_user():
 
         user = User(email=email, created=created)
         user.set_password(password)
-        user.display = display
+        user.username = username
         for role in roles:
             print(role)
             try:
@@ -192,13 +192,13 @@ def update_user(id):
         print(request.form)
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
-        display = request.form.get('display', user.display)
+        username = request.form.get('username', user.username)
         roles = request.form.getlist('roles')
         default_views = request.form.getlist('views')
         password = request.form.get('password', user.password_hash)
 
         user.email = email  #unsure if this is a good idea
-        user.display = display
+        user.username = username
         if password:
             user.set_password(password)
         user.roles = []
