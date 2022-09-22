@@ -7,6 +7,7 @@ import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
+import { countcomponent } from "./search/count.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -36,24 +37,24 @@ export let multiplemarcrecordcomponent = {
         }
     },
     template: `
-        <div class="container col-sm-10" id="app1" style="background-color:white;">
-            <div class='mt-3 shadow'>
+        <div class="col-sm-10" id="app1" style="background-color:white;">
+            <div>
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
-                    <div class="ml-3 mr-3 mt-3 jumbotron jumbotron-fluid">
+                    <div class="jumbotron jumbotron-fluid">
                         <div class="container">
                             <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner"></p>
                             <p v-else class="text-center">No record selected</p>
                         </div>
                     </div>                               
                 </div>
-                <div id="records" class="row ml-3">
-                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px; position: relative">
+                <div id="records" class="row">
+                    <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 pb-2 div_editor" style="overflow-y: scroll; min-height:650px; position: relative">
                         <!-- <div>
                             <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                             <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
                         </div> -->
                     </div>
-                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 div_editor" style="overflow-y: scroll; height:650px;">
+                    <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 pb-2 div_editor" style="overflow-y: scroll; min-height:650px;">
                         <!-- <div>
                             <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
                             <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
@@ -304,7 +305,7 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
 
@@ -318,7 +319,7 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "row alert alert-success")
+                    this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
@@ -330,7 +331,7 @@ export let multiplemarcrecordcomponent = {
                 }).catch(error => {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.style = "pointer-events: auto";
-                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                    this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
                 });
             }
         },
@@ -340,9 +341,9 @@ export let multiplemarcrecordcomponent = {
                 this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
             }
             if (jmarc.workformName) {
-                this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
+                this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
             } else {
-                this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "row alert alert-success")
+                this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
             }
            
             this.displayMarcRecord(recup, false);
@@ -386,7 +387,7 @@ export let multiplemarcrecordcomponent = {
         },
         pasteField(jmarc){
             if (this.copiedFields.length === 0) {
-                this.callChangeStyling("No fields are selected to paste", "row alert alert-danger")
+                this.callChangeStyling("No fields are selected to paste", "d-flex w-100 alert-danger")
                 return
             }
 
@@ -435,12 +436,12 @@ export let multiplemarcrecordcomponent = {
             let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
             if (! field) {
-                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
 
             if (field.subfields.length == 1) {
-                this.callChangeStyling("Can't delete the field's only subfield", "row alert alert-danger");
+                this.callChangeStyling("Can't delete the field's only subfield", "d-flex w-100 alert-danger");
                 return
             }
 
@@ -448,7 +449,7 @@ export let multiplemarcrecordcomponent = {
             let subfieldIndex = field.subfields.indexOf(subfield);
             
             if (! subfield) {
-                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
                    
@@ -476,21 +477,21 @@ export let multiplemarcrecordcomponent = {
             }
             
             jmarc.addUndoredoEntry("from Delete SubField");
-            this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "row alert alert-success")
+            this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "d-flex w-100 alert-success")
         },
         addSubField(jmarc) {
             // add blank subfield
             let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
             if (! field) {
-                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
 
             let subfield = field.subfields.filter(x => x.selected)[0];
             
             if (! subfield) {
-                this.callChangeStyling("No subfield selected", "row alert alert-danger")
+                this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
 
@@ -516,7 +517,7 @@ export let multiplemarcrecordcomponent = {
                 rowIndex = currentField.row.rowIndex - 1;
 
                 if (! currentField) {
-                    this.callChangeStyling("No field selected", "row alert alert-danger")
+                    this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
                     return 
                 }
             }
@@ -550,13 +551,13 @@ export let multiplemarcrecordcomponent = {
             let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
-                this.callChangeStyling("No field selected", "row alert alert-danger")
+                this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
                 return
             }
             
             if (jmarc.getDataFields().length === 1) {
                 // this is the record's only field
-                this.callChangeStyling("Can't delete record's only field", "row alert alert-danger")                       
+                this.callChangeStyling("Can't delete record's only field", "d-flex w-100 alert-danger")                       
                 return
             }                   
             
@@ -588,14 +589,14 @@ export let multiplemarcrecordcomponent = {
             }
 
             jmarc.addUndoredoEntry("from Delete Field");
-            this.callChangeStyling(`${field.tag} has been deleted`, "row alert alert-success")
+            this.callChangeStyling(`${field.tag} has been deleted`, "d-flex w-100 alert-success")
         },
         deleteRecord(jmarc) {
             if (jmarc.workformName) {
                 if (confirm("Are you sure you want to delete Workform ?") == true) {
                     Jmarc.deleteWorkform(jmarc.collection, jmarc.workformName).then( () => {
                         this.removeRecordFromEditor(jmarc);
-                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "row alert alert-success")
+                        this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} has been deleted`, "d-flex w-100 alert-success")
                         //this.removeFromBasket(jmarc.recordId, jmarc.collection)                 
                     })
                 }
@@ -606,11 +607,11 @@ export let multiplemarcrecordcomponent = {
  
                     jmarc.delete().then( () => {
                         this.removeRecordFromEditor(jmarc);
-                        this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "row alert alert-success");
+                        this.callChangeStyling(`Record ${deletedColl}/${deletedRid} has been deleted`, "d-flex w-100 alert-success");
                         //this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
                         this.$root.$refs.basketcomponent.rebuildBasket()
                     }).catch( error => {
-                        this.callChangeStyling(error.message,"row alert alert-danger");
+                        this.callChangeStyling(error.message,"d-flex w-100 alert-danger");
                     });
                 }
             }
@@ -622,12 +623,12 @@ export let multiplemarcrecordcomponent = {
             jmarc.newWorkForm = true;
             this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
             this.displayMarcRecord(jmarc, false);
-            this.callChangeStyling("Name your new workform, then click the Save button", "row alert alert-warning")
+            this.callChangeStyling("Name your new workform, then click the Save button", "d-flex w-100 alert-warning")
             jmarc.saveButton.onclick = () => {
                 jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
-                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "row alert alert-success")
+                    this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 })
             }
         },
@@ -819,7 +820,7 @@ export let multiplemarcrecordcomponent = {
                 let myRecord1=document.getElementById("record1")
  
                 // change the class
-                myRecord1.className="col-sm-12 mt-1"
+                myRecord1.className="col-sm-12 mt-1 pb-2"
             }
  
             // // only record2 displayed
@@ -833,7 +834,7 @@ export let multiplemarcrecordcomponent = {
                 let myRecord2=document.getElementById("record2")
  
                 // change the class
-                myRecord2.className="col-sm-12 mt-1"
+                myRecord2.className="col-sm-12 mt-1 pb-2"
             }
  
             // restore the default values
@@ -847,13 +848,13 @@ export let multiplemarcrecordcomponent = {
                 let myRecord1=document.getElementById("record1")
  
                 // change the class
-                myRecord1.className="col-sm-6 mt-1"
+                myRecord1.className="col-sm-6 mt-1 pb-2"
  
                 // get the record2 div and change the style
                 let myRecord2=document.getElementById("record2")
  
                 // change the class
-                myRecord2.className="col-sm-6 mt-1"   
+                myRecord2.className="col-sm-6 mt-1 pb-2"   
             }
         },
         // definition of the different shortcuts
@@ -986,7 +987,7 @@ export let multiplemarcrecordcomponent = {
                 })
             }
             catch(error){
-                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+                this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");    
             }
             
             return recordCollection 
@@ -1083,7 +1084,7 @@ export let multiplemarcrecordcomponent = {
                                         
                                     }
                                     catch(error){
-                                        this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");    
+                                        this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");    
                                     }
                                 })
                                 recup.appendChild(firstDiv)
@@ -1107,7 +1108,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
                 catch (error) {
-                    this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                    this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
                 }
             } else {
                 // change the value of isfiltered
@@ -1208,7 +1209,7 @@ export let multiplemarcrecordcomponent = {
                     });
             }
             catch (error) {
-                this.callChangeStyling(error.message.substring(0, 100), "row alert alert-danger");
+                this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
             }
         },
 
@@ -1288,7 +1289,7 @@ export let multiplemarcrecordcomponent = {
                                             })
                                         }
                                     })
-                                    this.callChangeStyling(`Record view ${myName} loaded!!!!`, "row alert alert-success")
+                                    this.callChangeStyling(`Record view ${myName} loaded!!!!`, "d-flex w-100 alert-success")
                                 } else { // the fieldset is empty
                                     for (let field of record.fields) {
                                         if (field.row.classList.contains("hidden-field")) {
@@ -1303,7 +1304,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             catch(err){
-                this.callChangeStyling(`There is an error ${err}!!!!`, "row alert alert-danger")
+                this.callChangeStyling(`There is an error ${err}!!!!`, "d-flex w-100 alert-danger")
             }
 
         },
@@ -1327,8 +1328,8 @@ export let multiplemarcrecordcomponent = {
                     elementHistory.row.bgColor=color
                 }
             })
-            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
-            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "d-flex w-100 alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
 
         },
 
@@ -1350,8 +1351,8 @@ export let multiplemarcrecordcomponent = {
                     elementHistory.row.bgColor=color
                 }
             })
-            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "row alert alert-success")
-            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "row alert alert-success")
+            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "d-flex w-100 alert-success")
+            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
 
         },
 
@@ -1373,7 +1374,7 @@ export let multiplemarcrecordcomponent = {
             this.historyJmarcOriginal=""
             this.removeRecordFromEditor(recup)
 
-            this.callChangeStyling("Record reverted!!!", "row alert alert-success")
+            this.callChangeStyling("Record reverted!!!", "d-flex w-100 alert-success")
             
         },
         userClose(jmarc) {
@@ -1396,7 +1397,7 @@ export let multiplemarcrecordcomponent = {
                 this.selectRecord(otherRecord);
             }
 
-            this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+            this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
 
             return true
         },
@@ -1427,7 +1428,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
                 if (keepDataInVector==false) { 
-                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
                 }
                 
             }
@@ -1440,7 +1441,7 @@ export let multiplemarcrecordcomponent = {
                 let recup=document.getElementById("record2")
                 recup.innerHTML=""
                 if (keepDataInVector==false) {
-                    //this.callChangeStyling("Record removed from the editor", "row alert alert-success")
+                    //this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
                 }
             }
 
@@ -1652,7 +1653,8 @@ export let multiplemarcrecordcomponent = {
             // This could be offloaded to config
             let controls = [
                 {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
-                {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
+                {"name": "idField", "element": "span", "class": "mx-1", "title": "", "load": "getId" },
+                {"name": "countField", "element": "span", "class": "mx-1", "title": "", "load": "getId"},
                 {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
@@ -1747,7 +1749,15 @@ export let multiplemarcrecordcomponent = {
                         controlButton.innerText = `${jmarc.collection}/workforms/${jmarc.workformName}`;
                     } else if (this.historyMode==true){
                         controlButton.innerText = `${jmarc.collection}/${jmarc.recordId} (history record)`;
-                    } else {
+                    } else if (control["name"] == "countField" && jmarc.recordId && jmarc.collection == "auths") {
+                        let url = `${this.prefix}marc/auths/records/${jmarc.recordId}/use_count?use_type=bibs`;
+                        let uiBase = this.prefix.replace("/api", "")
+                        fetch(url).then(
+                            response => response.json()
+                        ).then( json => {
+                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`
+                        })
+                    } else if (control["name"] == "idField") {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
                         controlButton.innerText = `${jmarc.collection}/${recordId}`;
                     }
@@ -2517,6 +2527,9 @@ export let multiplemarcrecordcomponent = {
                 // strip newlines and multispaces
                 valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
                 valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
+
+                // do the update and checks
+                checkState();
             });
 
             valSpan.addEventListener("focus", function() {
@@ -2533,6 +2546,11 @@ export let multiplemarcrecordcomponent = {
             });
 
             valSpan.addEventListener("blur", function() {
+                // remove extraneous whitespace
+                valSpan.innerText = valSpan.innerText.trim();
+                valSpan.innerText = valSpan.innerText.replace(/ {2,}/, ' ');
+                checkState();
+
                 valSpan.classList.remove("subfield-value-selected");
                 component.clearSelectedSubfield(jmarc);
                 subfield.selected = false;
@@ -2685,6 +2703,9 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         }
+    },
+    components: {
+        'countcomponent': countcomponent
     }
 }
 
@@ -2772,7 +2793,7 @@ function keyupAuthLookup(event) {
                     xrefLink.appendChild(xrefIcon);
                 }
 
-                component.callChangeStyling(`New authority record #${auth.recordId} created`, "row alert alert-success");
+                component.callChangeStyling(`New authority record #${auth.recordId} created`, "d-flex w-100 alert-success");
             }
         )
     });
