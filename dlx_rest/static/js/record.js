@@ -1527,13 +1527,7 @@ export let multiplemarcrecordcomponent = {
             this.currentRecordObjects.push(jmarc);
 
             // check save state
-            jmarc.saveButton.classList.remove("text-danger");
-            jmarc.saveButton.title = "No Unsaved Changes";
-            
-            if (! jmarc.saved) {
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.title = "Save Record";
-            }
+            this.checkSavedState(jmarc);
 
             // trigger field level unsaved changes detection
             // preserve scroll location
@@ -1755,7 +1749,8 @@ export let multiplemarcrecordcomponent = {
                         fetch(url).then(
                             response => response.json()
                         ).then( json => {
-                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`
+                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`;
+                            controlButton.title = "Use Count"
                         })
                     } else if (control["name"] == "idField") {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
@@ -2131,13 +2126,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-                
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             }
 
             // Indicator actions
@@ -2231,13 +2220,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             }
         
             for (let span of [ind1Span, ind2Span]) {
@@ -2416,13 +2399,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
 
                 // auth control
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
@@ -2481,6 +2458,8 @@ export let multiplemarcrecordcomponent = {
                 if (! subfield.savedState || subfield.savedState.value !== subfield.value) {
                     valCell.classList.add("unsaved");
                 }
+
+                component.checkSavedState(jmarc);
 
                 // adding the snapshot 
                 if (valCell.innerText.length > 0) {
@@ -2701,6 +2680,15 @@ export let multiplemarcrecordcomponent = {
                 for (let subfield of field.subfields) {
                     subfield.selected = false
                 }
+            }
+        },
+        checkSavedState(jmarc) { 
+            jmarc.saveButton.classList.remove("text-danger");
+            jmarc.saveButton.title = "No Unsaved Changes";
+
+            if (! jmarc.saved) {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "Save Record";
             }
         }
     },
