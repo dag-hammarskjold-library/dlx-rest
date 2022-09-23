@@ -2682,7 +2682,9 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         },
-        checkSavedState(jmarc) { 
+        checkSavedState(jmarc) {
+            if (! jmarc.saveButton) return
+            
             jmarc.saveButton.classList.remove("text-danger");
             jmarc.saveButton.title = "No Unsaved Changes";
 
