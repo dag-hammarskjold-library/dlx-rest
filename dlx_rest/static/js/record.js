@@ -514,7 +514,7 @@ export let multiplemarcrecordcomponent = {
             if (rowIndex === null) {
                 // add a field below the active field
                 let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
-                rowIndex = currentField.row.rowIndex - 1;
+                rowIndex = currentField.row.rowIndex - 2;
 
                 if (! currentField) {
                     this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
