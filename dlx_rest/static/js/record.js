@@ -1605,6 +1605,35 @@ export let multiplemarcrecordcomponent = {
            
             // Table body: record data
             let tableBody = this.buildTableBody(jmarc);
+
+            // read-only
+            if (readOnly) {
+                // turn off inputs. possible temporary solution
+                // cloning nodes removes all event listeners
+                function cloneAndReplace(element) {
+                    var cloned = element.cloneNode();
+                    cloned.innerText = element.innerText;
+                    element.parentNode.replaceChild(cloned, element);
+                }
+
+                jmarc.getDataFields().forEach(field => {
+                    field.menuCell.parentNode.removeChild(field.menuCell);
+                    cloneAndReplace(field.tagDiv);
+    
+                    for (let ind of [field.ind1Div, field.ind2Div]) {
+                        cloneAndReplace(ind)
+                    }
+
+                    field.subfields.forEach(subfield => {
+                        subfield.menuCell.parentNode.removeChild(subfield.menuCell);
+                        cloneAndReplace(subfield.codeDiv);
+                        subfield.valueSpan.contentEditable = false;
+                        cloneAndReplace(subfield.valueSpan);
+                    })
+                })
+
+                return table 
+            }
             
             // check the save status on any input
             table.addEventListener("input", function() {
@@ -1946,7 +1975,7 @@ export let multiplemarcrecordcomponent = {
 
             let tagRow = fieldTable.insertRow();
             // menu
-            let menuCell = tagRow.insertCell();
+            let menuCell = field.menuCell = tagRow.insertCell();
             let tagMenu = document.createElement("div");
             menuCell.append(tagMenu);
             //tagMenu.tabIndex = 0;
@@ -1975,7 +2004,7 @@ export let multiplemarcrecordcomponent = {
             let tagCell = tagRow.insertCell();
             field.tagCell = tagCell;
             tagCell.className = "field-tag";
-            let tagDiv = document.createElement("div");
+            let tagDiv = field.tagDiv = document.createElement("div");
             tagCell.append(tagDiv);
             tagDiv.className = "field-tag";
             let tagSpan = document.createElement("span");
@@ -1989,7 +2018,7 @@ export let multiplemarcrecordcomponent = {
             let ind1Cell = tagRow.insertCell();
             field.ind1Cell = ind1Cell;
             ind1Cell.classList.add("indicators");
-            let ind1Div = document.createElement("div");
+            let ind1Div = field.ind1Div = document.createElement("div");
             ind1Cell.append(ind1Div);
             ind1Div.className = "indicators";
             let ind1Span = document.createElement("span");
@@ -2001,7 +2030,7 @@ export let multiplemarcrecordcomponent = {
             let ind2Cell = tagRow.insertCell();
             field.ind2Cell = ind2Cell;
             ind2Cell.classList.add("indicators");
-            let ind2Div = document.createElement("div");
+            let ind2Div = field.ind2Div = document.createElement("div");
             ind2Cell.append(ind2Div);
             ind2Div.className = "indicators";
             let ind2Span = document.createElement("span");
@@ -2260,7 +2289,7 @@ export let multiplemarcrecordcomponent = {
             subfield.row.classList.add("subfield-row");
 
             // menu
-            let menuCell = subfield.row.insertCell();
+            let menuCell = subfield.menuCell = subfield.row.insertCell();
             let codeMenu = document.createElement("div");
             menuCell.append(codeMenu);
             codeMenu.className = "dropdown-menu subfield-menu";
@@ -2275,7 +2304,7 @@ export let multiplemarcrecordcomponent = {
             let codeCell = subfield.row.insertCell();
             subfield.codeCell = codeCell;
             codeCell.className = "subfield-code";
-            let codeDiv = document.createElement("div");
+            let codeDiv = subfield.codeDiv = document.createElement("div");
             codeCell.append(codeDiv);
             codeDiv.classList.add("subfield-code");
             let codeSpan = document.createElement("span");
@@ -2311,7 +2340,6 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell = valCell;
             subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
             valSpan.innerText = subfield.value;
-            valSpan.contentEditable = true;
 
             // create the last cell
             subfield.xrefCell = subfield.row.insertCell()
@@ -2684,7 +2712,7 @@ export let multiplemarcrecordcomponent = {
         },
         checkSavedState(jmarc) {
             if (! jmarc.saveButton) return
-            
+
             jmarc.saveButton.classList.remove("text-danger");
             jmarc.saveButton.title = "No Unsaved Changes";
 
