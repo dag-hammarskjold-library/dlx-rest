@@ -427,6 +427,7 @@ export let multiplemarcrecordcomponent = {
             // adding the snapshot 
             jmarc.addUndoredoEntry("from Paste feature");
             
+            // Manage visual indicators
             this.checkSavedState(jmarc);
                           
         },
@@ -523,14 +524,17 @@ export let multiplemarcrecordcomponent = {
             }
             
             newField = this.buildFieldRow(newField, rowIndex);
+            // trigger field check state events
+            newField.ind1Span.focus();
+            newField.ind2Span.focus();
+            newField.subfields[0].codeSpan.focus();
+            newField.subfields[0].valueSpan.focus();
             newField.tagSpan.focus();
-            newField.tagSpan.classList.add("invalid");
-            newField.ind1Cell.classList.add("unsaved");
-            newField.ind2Cell.classList.add("unsaved");
-            newField.subfields[0].codeSpan.classList.add("invalid");
-            newField.subfields[0].valueCell.classList.add("unsaved");           
             
-            // Manage visual indicators
+            // select new field
+            this.fieldSelected(newField);
+            
+            // record state
             this.checkSavedState(jmarc);
 
             return newField
@@ -569,7 +573,7 @@ export let multiplemarcrecordcomponent = {
                 this.copiedFields.splice(i, 1);
             }
  
-            // Manage virtual indicators
+            // Manage visual indicators
             this.checkSavedState(jmarc);
 
             jmarc.addUndoredoEntry("from Delete Field");
@@ -1590,6 +1594,10 @@ export let multiplemarcrecordcomponent = {
             
             // check the save status on any input
             table.addEventListener("input", function() {
+                component.checkSavedState(jmarc);
+            });
+
+            table.addEventListener("paste", function() {
                 component.checkSavedState(jmarc);
             });
 
@@ -2660,7 +2668,6 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.title = "No Unsaved Changes";
             } else {
                 jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
                 jmarc.saveButton.title = "Save Record";
             }
         }
