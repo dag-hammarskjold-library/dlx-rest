@@ -427,8 +427,7 @@ export let multiplemarcrecordcomponent = {
             // adding the snapshot 
             jmarc.addUndoredoEntry("from Paste feature");
             
-            jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.title = "Save Record";
+            this.checkSavedState(jmarc);
                           
         },
         deleteSubFieldFromShort(jmarc){
@@ -466,15 +465,7 @@ export let multiplemarcrecordcomponent = {
             }
    
             // Manage visual indicators
-            if (jmarc.saved) {
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.classList.add("text-primary");
-                jmarc.saveButton.title = "No Unsaved Changes";
-            } else {
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.classList.remove("text-primary");
-                jmarc.saveButton.title = "Save Record";
-            }
+            this.checkSavedState(jmarc);
             
             jmarc.addUndoredoEntry("from Delete SubField");
             this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "d-flex w-100 alert-success")
@@ -540,9 +531,8 @@ export let multiplemarcrecordcomponent = {
             newField.subfields[0].valueCell.classList.add("unsaved");           
             
             // Manage visual indicators
-            jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.title = "Save Record";
-            
+            this.checkSavedState(jmarc);
+
             return newField
         },
         deleteField(jmarc){
@@ -580,13 +570,7 @@ export let multiplemarcrecordcomponent = {
             }
  
             // Manage virtual indicators
-            if (jmarc.saved) {
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-            } else {
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.title = "Save Record";
-            }
+            this.checkSavedState(jmarc);
 
             jmarc.addUndoredoEntry("from Delete Field");
             this.callChangeStyling(`${field.tag} has been deleted`, "d-flex w-100 alert-success")
@@ -685,9 +669,7 @@ export let multiplemarcrecordcomponent = {
             newField.subfields[0].valueCell.classList.add("unsaved");
 
             // Manage visual indicators
-            jmarc.saveButton.classList.add("text-danger");
-            jmarc.saveButton.classList.remove("text-primary");
-            jmarc.saveButton.title = "Save Record";
+            this.checkSavedState(jmarc);
 
             // Is this the way this works?
             jmarc.addUndoredoEntry("from Approve Auth")
@@ -1527,13 +1509,7 @@ export let multiplemarcrecordcomponent = {
             this.currentRecordObjects.push(jmarc);
 
             // check save state
-            jmarc.saveButton.classList.remove("text-danger");
-            jmarc.saveButton.title = "No Unsaved Changes";
-            
-            if (! jmarc.saved) {
-                jmarc.saveButton.classList.add("text-danger");
-                jmarc.saveButton.title = "Save Record";
-            }
+            this.checkSavedState(jmarc);
 
             // trigger field level unsaved changes detection
             // preserve scroll location
@@ -1614,24 +1590,12 @@ export let multiplemarcrecordcomponent = {
             
             // check the save status on any input
             table.addEventListener("input", function() {
-                if (jmarc.saved) {
-                    jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.title = "No Unsaved Changes";
-                } else {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             });
 
             // check the save status on mousedown (auth conrrol select)
             table.addEventListener("mousedown", function() {
-                if (jmarc.saved) {
-                    jmarc.saveButton.classList.remove("text-danger");
-                    jmarc.saveButton.title = "No Unsaved Changes";
-                } else {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             });
            
             return table      
@@ -2131,13 +2095,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-                
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             }
 
             // Indicator actions
@@ -2231,13 +2189,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
             }
         
             for (let span of [ind1Span, ind2Span]) {
@@ -2416,13 +2368,7 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 // record state
-                jmarc.saveButton.classList.remove("text-danger");
-                jmarc.saveButton.title = "No Unsaved Changes";
-
-                if (! jmarc.saved) {
-                    jmarc.saveButton.classList.add("text-danger");
-                    jmarc.saveButton.title = "Save Record";
-                }
+                component.checkSavedState(jmarc);
 
                 // auth control
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
@@ -2701,6 +2647,21 @@ export let multiplemarcrecordcomponent = {
                 for (let subfield of field.subfields) {
                     subfield.selected = false
                 }
+            }
+        },
+        checkSavedState(jmarc) {
+            if (! jmarc.saveButton) {
+                // jmarc is probably read-only
+                return
+            }
+
+            if (jmarc.saved) {
+                jmarc.saveButton.classList.remove("text-danger");
+                jmarc.saveButton.title = "No Unsaved Changes";
+            } else {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.classList.remove("text-primary");
+                jmarc.saveButton.title = "Save Record";
             }
         }
     },
