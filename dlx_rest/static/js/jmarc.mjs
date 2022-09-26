@@ -733,8 +733,7 @@ export class Jmarc {
 		
 		if (tag && tag.match(/^00/)) {
 			field = new ControlField(tag)
-		} 
-        else {
+		} else {
 			if (this.collection === "bibs") {
 				field = new BibDataField(tag)
 			} else if (this.collection === "auths") {
@@ -747,7 +746,7 @@ export class Jmarc {
         if (field.tag && place) {
             // field place
             let i = 0;
-            let found = false
+            let found = false;
             
             for (let [c, f] of Object.entries(this.fields)) {
                 if (f.tag === field.tag) {
@@ -761,14 +760,19 @@ export class Jmarc {
             }
             
             if (! found) {
-                this.fields.push(field);
+				// put at end of tag group
+                this.fields.splice(
+					this.fields.indexOf(this.getField(field.tag)) + this.getFields(field.tag).length, 
+					0, 
+					field
+				);
+
+				console.log(this.fields.map(x => x.tag))
             }
-        } 
-        else if (place) {
+        } else if (place) {
             // record place
             this.fields.splice(place, 0, field);
-        }
-        else {
+        } else {
             this.fields.push(field);
         }
         

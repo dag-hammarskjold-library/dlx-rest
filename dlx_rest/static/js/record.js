@@ -503,9 +503,15 @@ export let multiplemarcrecordcomponent = {
             }
         },
         addField(jmarc, newField=null, rowIndex=null) {
+            let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
+
+            if (currentField.tag === "___") {
+                this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
+                return
+            }
+
             if (rowIndex === null) {
                 // add a field below the active field
-                let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
                 rowIndex = currentField.row.rowIndex - 2;
 
                 if (! currentField) {
@@ -515,7 +521,9 @@ export let multiplemarcrecordcomponent = {
             }
 
             if (newField === null) {
-                newField = jmarc.createField("___") //, (rowIndex - 1 /*account for 2 header rows*/) + 1);
+                let place = jmarc.getFields(currentField.tag).indexOf(currentField) + 1;
+                newField = jmarc.createField(currentField.tag, place) //, (rowIndex - 1 /*account for 2 header rows*/) + 1);
+                newField.tag = "___";
                 newField.indicators = ["_", "_"];
             
                 let newSubfield = newField.createSubfield();
