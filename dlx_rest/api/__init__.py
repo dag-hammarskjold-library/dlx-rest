@@ -6,7 +6,7 @@ DLX REST API
 from http.client import HTTPResponse
 import this
 from dlx_rest.routes import login
-import os, json, re, boto3, mimetypes, jsonschema
+import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -1211,9 +1211,14 @@ class RecordMerge(Resource):
                         
                 if record.to_bson() != state:
                     # we can skip the auth validation for now because it's done in the front end
-                    record.commit(user=user.username, auth_check=False)
-                    changed += 1
-                    
+                    def do_commit():
+                        record.commit(user=user.username if user else 'admin', auth_check=False)
+                        changed += 1
+
+                    t = threading.Thread(target=do_commit, args=[])
+                    t.setDaemon(False) # stop the thread after complete
+                    t.start()
+
             return changed
         
         changed = 0
@@ -1221,6 +1226,17 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
+        i = 0
+
+        while losing.in_use():
+            # wait for all the links to be updated, otherwise the delete fails
+            i += 1
+            
+            if i > 1200:
+                raise Exception("The merge is taking too long (> 1200 seconds)")
+            
+            time.sleep(1)
+
         try:
             losing.delete(user=user.username)
         except:
