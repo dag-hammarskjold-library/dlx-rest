@@ -15,7 +15,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from pymongo import ReplaceOne, ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
 from bson import Regex
 from dlx import DB, Config as DlxConfig
@@ -1166,6 +1166,8 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
+        stime = time.time()
+
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1197,6 +1199,8 @@ class RecordMerge(Resource):
             query = Query(Or(*conditions))
             changed = 0
 
+            updates = []
+
             for record in cls.from_query(query):
                 state = record.to_bson()
                 
@@ -1208,16 +1212,22 @@ class RecordMerge(Resource):
                         
                                 if field in record.fields[0:i] + record.fields[i+1:]:
                                     del record.fields[i] # duplicate field
-                        
+
                 if record.to_bson() != state:
+                    # cheat
+                    updates.append(ReplaceOne({'_id': record.id}, record.to_bson()))
+
                     # we can skip the auth validation for now because it's done in the front end
                     def do_commit():
                         record.commit(user=user.username if user else 'admin', auth_check=False)
-                        changed += 1
+                        #changed += 1
 
                     t = threading.Thread(target=do_commit, args=[])
                     t.setDaemon(False) # stop the thread after complete
                     t.start()
+
+            if updates:
+                cls().handle.bulk_write(updates)
 
             return changed
         
@@ -1226,22 +1236,26 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
-        i = 0
+        def delete_losing():
+            i = 0
 
-        while losing.in_use():
-            # wait for all the links to be updated, otherwise the delete fails
-            i += 1
-            
-            if i > 1200:
-                raise Exception("The merge is taking too long (> 1200 seconds)")
-            
-            time.sleep(1)
+            while losing.in_use(usage_type='bib') or losing.in_use(usage_type='auth'):
+                # wait for all the links to be updated, otherwise the delete fails
+                i += 1
 
-        try:
-            losing.delete(user=user.username)
-        except:
-            return jsonify({'message': f'Updated {changed} records but could not delete auth# {losing_id}. There may have been a tag mismatch'})
-        
+                if i > 1200:
+                    raise Exception("The merge is taking too long (> 1200 seconds)")
+
+                time.sleep(1)
+
+            print(int(time.time()) - int(stime))
+
+            losing.delete(user=user.username if user else 'admin')
+            
+        thread = threading.Thread(target=delete_losing)
+        thread.setDaemon(False)
+        thread.start()
+
         return jsonify({'message': f'Updated {changed} records and deleted auth# {losing_id}'}) 
 
 # Auth usage count
