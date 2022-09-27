@@ -1182,6 +1182,10 @@ class RecordMerge(Resource):
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(403, "Auth records not of the same type")
 
+        def do_commit(record):
+            # we can skip the auth validation for now because it's done in the front end
+            record.commit(user=user.username if user else 'admin', auth_check=False)
+
         def update_records(record_type, gaining, losing):
             authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
             
@@ -1217,12 +1221,7 @@ class RecordMerge(Resource):
                     # cheat
                     updates.append(ReplaceOne({'_id': record.id}, record.to_bson()))
 
-                    # we can skip the auth validation for now because it's done in the front end
-                    def do_commit():
-                        record.commit(user=user.username if user else 'admin', auth_check=False)
-                        #changed += 1
-
-                    t = threading.Thread(target=do_commit, args=[])
+                    t = threading.Thread(target=do_commit, args=[record])
                     t.setDaemon(False) # stop the thread after complete
                     t.start()
 
@@ -1272,8 +1271,10 @@ class AuthUseCount(Resource):
         args = AuthUseCount.args.parse_args()
         auth = Auth.from_id(record_id) or abort(404)
         args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
-        count = auth.in_use(usage_type=args.use_type[:-1])
-        
+        #count = auth.in_use(usage_type=args.use_type[:-1]) # returns the number of fields using the auth
+        cls = Bib if args.use_type == 'bibs' else Auth
+        count = cls.count_documents(Query.from_string(f'xref:{auth.id}').compile()) # the number of records using the auth
+
         links = {
             '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
             'related': {
