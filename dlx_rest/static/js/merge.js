@@ -19,14 +19,14 @@ export let modalmergecomponent = {
   
                 <div v-show="modal" class="container mb-2 bg-white text-dark" style="width:40%;" >
                     <div class="jumbotron mt-3 mb-3">
-                    <h1>Authorities merge feature</h1>
-                    <hr>
-                    <p>Please select the gaining record</p>
-                    <select class="form-select" name="mergerecord" id="selectElementId">
-                    </select>
-                    <hr>
-                    <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
-                    <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
+                      <h1>Authorities merge feature</h1>
+                      <hr>
+                        <p>Please select the gaining record</p>
+                        <select class="form-select" name="mergerecord" id="selectElementId"></select>
+                      <hr>
+                      <button v-on:click="modal=false" type="button" class="btn btn-secondary">Close</button>
+                      <button type="button" class="btn btn-success" v-on:click="mergeAuthorities" >Merge</button>
+                      <i id="status"></i>
                     </div>
                 </div>
 
@@ -45,6 +45,7 @@ export let modalmergecomponent = {
       this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
     },
    mergeAuthorities(){
+     document.getElementById("status").className = "fas fa-lg fa-spinner fa-pulse";
 
     // define the gaining
     let myVal=[] 

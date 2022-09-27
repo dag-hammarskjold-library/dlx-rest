@@ -1188,11 +1188,10 @@ class RecordMerge(Resource):
             for ref_tag, d in authmap.items():
                 for subfield_code, auth_tag in d.items():
                     if auth_tag == losing.heading_field.tag:
-                        val = losing.heading_field.get_value(subfield_code)
-                        
-                        if val:
-                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
-            
+                        conditions.append(Raw({f'{ref_tag}.subfields.xref': losing.id}, record_type=record_type))
+
+            if len(conditions) == 0:
+                return 0
             
             cls = BibSet if record_type == 'bib' else AuthSet
             query = Query(Or(*conditions))
@@ -1210,8 +1209,9 @@ class RecordMerge(Resource):
                                 if field in record.fields[0:i] + record.fields[i+1:]:
                                     del record.fields[i] # duplicate field
                         
-                if record.to_bson() != state:    
-                    record.commit(user=user.username)
+                if record.to_bson() != state:
+                    # we can skip the auth validation for now because it's done in the front end
+                    record.commit(user=user.username, auth_check=False)
                     changed += 1
                     
             return changed
@@ -1221,9 +1221,12 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
-        losing.delete(user=user.username)
+        try:
+            losing.delete(user=user.username)
+        except:
+            return jsonify({'message': f'Updated {changed} records but could not delete auth# {losing_id}. There may have been a tag mismatch'})
         
-        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+        return jsonify({'message': f'Updated {changed} records and deleted auth# {losing_id}'}) 
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
