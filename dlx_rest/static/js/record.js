@@ -42,7 +42,7 @@ export let multiplemarcrecordcomponent = {
                 <div v-show="this.isRecordOneDisplayed==false && this.isRecordTwoDisplayed==false" mt-5>
                     <div class="jumbotron jumbotron-fluid">
                         <div class="container">
-                            <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner"></p>
+                            <p v-if="recordlist.length > 0" class="fa fa-5x fa-spinner fa-pulse"></p>
                             <p v-else class="text-center">No record selected</p>
                         </div>
                     </div>                               
@@ -312,10 +312,12 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
                 
                 jmarc.saveButton.classList.add("fa-spinner");
+                jmarc.saveButton.classList.add("fa-pulse");
                 jmarc.saveButton.style = "pointer-events: none";
  
                 promise.then(returnedJmarc => {
                     jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.classList.remove("fa-pulse");
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
@@ -330,6 +332,7 @@ export let multiplemarcrecordcomponent = {
                     //this.selectRecord(jmarc)
                 }).catch(error => {
                     jmarc.saveButton.classList.remove("fa-spinner");
+                    jmarc.saveButton.classList.remove("fa-pulse");
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
                 });
@@ -1736,6 +1739,7 @@ export let multiplemarcrecordcomponent = {
                             response => response.json()
                         ).then( json => {
                             controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`
+                            controlButton.title = "Authority use count (bibs)"
                         })
                     } else if (control["name"] == "idField") {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"

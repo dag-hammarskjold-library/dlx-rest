@@ -6,7 +6,7 @@ DLX REST API
 from http.client import HTTPResponse
 import this
 from dlx_rest.routes import login
-import os, json, re, boto3, mimetypes, jsonschema
+import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -15,7 +15,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from pymongo import ReplaceOne, ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
 from bson import Regex
 from dlx import DB, Config as DlxConfig
@@ -262,7 +262,7 @@ class RecordsList(Resource):
         # exec query
         collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-        
+
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
@@ -1166,6 +1166,7 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
+        start_time = time.time()
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1188,15 +1189,15 @@ class RecordMerge(Resource):
             for ref_tag, d in authmap.items():
                 for subfield_code, auth_tag in d.items():
                     if auth_tag == losing.heading_field.tag:
-                        val = losing.heading_field.get_value(subfield_code)
-                        
-                        if val:
-                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
-            
+                        conditions.append(Raw({f'{ref_tag}.subfields.xref': losing.id}, record_type=record_type))
+
+            if len(conditions) == 0:
+                return 0
             
             cls = BibSet if record_type == 'bib' else AuthSet
             query = Query(Or(*conditions))
             changed = 0
+            updates = []
 
             for record in cls.from_query(query):
                 state = record.to_bson()
@@ -1209,11 +1210,32 @@ class RecordMerge(Resource):
                         
                                 if field in record.fields[0:i] + record.fields[i+1:]:
                                     del record.fields[i] # duplicate field
-                        
-                if record.to_bson() != state:    
-                    record.commit(user=user.username)
-                    changed += 1
-                    
+
+                if record.to_bson() != state:
+                    # cheat
+                    #data = record.to_bson()
+                    #data.setdefault('user', user.username if user else 'admin')
+                    #data.setdefault('updated', datetime.utcnow())
+                    #data.setdefault('_record_type', record.logical_fields('_record_type'))
+                    #updates.append(ReplaceOne({'_id': record.id}, data))
+
+                    def do_commit():
+                        # we can skip the auth validation for now because it's done in the front end
+                        record.commit(user=user.username if user else 'admin', auth_check=False)
+
+                    if Config.TESTING:
+                        # the threading doesn't work here in pytest
+                        record.commit(user=user.username if user else 'admin', auth_check=False)
+                    else:
+                        t = threading.Thread(target=do_commit, args=[])
+                        t.setDaemon(False) # stop the thread after complete
+                        t.start()
+                
+                changed += 1
+
+            #if updates:
+            #    cls().handle.bulk_write(updates)
+
             return changed
         
         changed = 0
@@ -1221,9 +1243,25 @@ class RecordMerge(Resource):
         for record_type in ('bib', 'auth'):
             changed += update_records(record_type, gaining, losing)    
         
-        losing.delete(user=user.username)
-        
-        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+        def delete_losing():
+            i = 0
+
+            while losing.in_use(usage_type='bib') or losing.in_use(usage_type='auth'):
+                # wait for all the links to be updated, otherwise the delete fails
+                i += 1
+
+                if i > 1200:
+                    raise Exception("The merge is taking too long (> 1200 seconds)")
+
+                time.sleep(1)
+
+            losing.delete(user=user.username if user else 'admin')
+            
+        thread = threading.Thread(target=delete_losing)
+        thread.setDaemon(False)
+        thread.start()
+
+        return jsonify({'message': f'Updated {changed} records and deleted auth# {losing_id}'}) 
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
@@ -1239,8 +1277,10 @@ class AuthUseCount(Resource):
         args = AuthUseCount.args.parse_args()
         auth = Auth.from_id(record_id) or abort(404)
         args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
-        count = auth.in_use(usage_type=args.use_type[:-1])
-        
+        #count = auth.in_use(usage_type=args.use_type[:-1]) # returns the number of fields using the auth
+        cls = Bib if args.use_type == 'bibs' else Auth
+        count = cls.count_documents(Query.from_string(f'xref:{auth.id}').compile()) # the number of records using the auth
+
         links = {
             '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
             'related': {
