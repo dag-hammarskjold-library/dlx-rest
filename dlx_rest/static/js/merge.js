@@ -98,7 +98,7 @@ export let modalmergecomponent = {
      
      // wait one second then reload the editor with the auth records
      setTimeout(() => {
-      let updatedUrl = location.href.replace(/\/editor\?.*/, `/editor?records=auths/${losing},auths/${gaining}`);
+      let updatedUrl = location.href.replace(/\/editor.*/, `/editor?records=auths/${losing},auths/${gaining}`);
       location.replace(updatedUrl);
      }, 1000);
    }
