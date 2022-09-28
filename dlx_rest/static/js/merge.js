@@ -95,10 +95,12 @@ export let modalmergecomponent = {
      this.toggleModal();
      window.alert("The authorities merge is in process in the background");
      vm.callChangeStyling(`Authorities merge ${losing} into ${gaining} in process`,"d-flex w-100 alert-success");
+
+     window.alert("reloading")
      
      // wait one second then reload the editor with the auth records
      setTimeout(() => {
-      let updatedUrl = location.href.replace(/\/editor\?.*/, `/editor?records=auths/${losing},auths/${gaining}`);
+      let updatedUrl = location.href.replace(/\/editor.*/, `/editor?records=auths/${losing},auths/${gaining}`);
       location.replace(updatedUrl);
      }, 1000);
    }
