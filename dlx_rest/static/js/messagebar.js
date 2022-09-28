@@ -3,7 +3,11 @@
 /////////////////////////////////////////////////////////////////
 let vm=""
 export let messagecomponent = {
-    template: `<div id="messageBar"></div>`,
+    template: `
+      <div id="messageBar" style="background-color: lightgrey; height: 25px; overflow: scroll">
+        
+      </div>
+    `,
     created() {
         this.$root.$refs.messagecomponent = this;
         vm=this;
@@ -16,18 +20,19 @@ export let messagecomponent = {
         for (let c of classList) {
             msgDiv.classList.add(c)
         }
-        bar.appendChild(msgDiv)
+        bar.prepend(msgDiv)
         let msgSpan = document.createElement("span")
         msgSpan.id = "messageText"
         msgSpan.classList.add("ml-3")
         msgSpan.innerText = myText
         msgDiv.appendChild(msgSpan)
+        bar.scrollTop = 0;
 
         let timeoutID = setTimeout(
-          function(){
-            msgDiv.remove()
-          }
-          ,10000
+          function() {
+            msgDiv.style = "background-color: lightgrey";
+          },
+          5000
         )
       }
     }
