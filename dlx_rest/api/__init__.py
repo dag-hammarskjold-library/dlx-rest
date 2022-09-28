@@ -1223,11 +1223,13 @@ class RecordMerge(Resource):
                         # we can skip the auth validation for now because it's done in the front end
                         record.commit(user=user.username if user else 'admin', auth_check=False)
 
-                    t = threading.Thread(target=do_commit, args=[])
-                    t.setDaemon(False) # stop the thread after complete
-                    t.start()
-
-                    #record.commit(user=user.username if user else 'admin', auth_check=False)
+                    if Config.TESTING:
+                        # the threading doesn't work here in pytest
+                        record.commit(user=user.username if user else 'admin', auth_check=False)
+                    else:
+                        t = threading.Thread(target=do_commit, args=[])
+                        t.setDaemon(False) # stop the thread after complete
+                        t.start()
                 
                 changed += 1
 
