@@ -1555,11 +1555,16 @@ export let multiplemarcrecordcomponent = {
  
             this.addJmarcTodisplayedJmarcObject(jmarc);
 
+            // keep list of records
             let recordString = `${jmarc.collection}/${jmarc.recordId}`;
 
             if (! this.recordlist.includes(recordString)) {
                 this.recordlist.push(recordString)
             }
+
+            // update URL with current open records
+            let updatedUrl = location.href.replace(/\/editor.*/, `/editor?records=${this.recordlist.join(",")}`);
+            window.history.replaceState({}, null, updatedUrl);
 
             //////////////////////////////////////////////////////////////////////////////
             // optimize the display just when you have one record displayed
