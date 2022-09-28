@@ -78,17 +78,6 @@ export let modalmergecomponent = {
        method: 'GET'
      })
        .then(response => {
-         if (response.ok) {
-            vm.callChangeStyling("Authorities merged","d-flex w-100 alert-success")
-            //reload the basket 
-            try
-            {
-              location.reload();
-            }
-            catch (error){
-              vm.callChangeStyling(error.message,"d-flex w-100 alert-danger")
-            }
-             }
           if (!response.ok) {
           response.json()
               .then(json => {
@@ -99,7 +88,19 @@ export let modalmergecomponent = {
        )
        .catch(error => {
           vm.callChangeStyling(error.message,"d-flex w-100 alert-danger")
+          throw error
        })
+
+     // don't wait for the response
+     this.toggleModal();
+     window.alert("The authorities merge is in process in the background");
+     vm.callChangeStyling(`Authorities merge ${losing} into ${gaining} in process`,"d-flex w-100 alert-success");
+     
+     // wait one second then reload the editor with the auth records
+     setTimeout(() => {
+      let updatedUrl = location.href.replace(/\/editor\?.*/, `/editor?records=auths/${losing},auths/${gaining}`);
+      location.replace(updatedUrl);
+     }, 1000);
    }
    ,
    toggleModal(){

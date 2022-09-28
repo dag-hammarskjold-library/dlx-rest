@@ -262,7 +262,7 @@ class RecordsList(Resource):
         # exec query
         collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-        
+
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
@@ -1166,8 +1166,7 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
-        stime = time.time()
-
+        start_time = time.time()
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1181,10 +1180,6 @@ class RecordMerge(Resource):
         
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(403, "Auth records not of the same type")
-
-        def do_commit(record):
-            # we can skip the auth validation for now because it's done in the front end
-            record.commit(user=user.username if user else 'admin', auth_check=False)
 
         def update_records(record_type, gaining, losing):
             authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
@@ -1202,7 +1197,6 @@ class RecordMerge(Resource):
             cls = BibSet if record_type == 'bib' else AuthSet
             query = Query(Or(*conditions))
             changed = 0
-
             updates = []
 
             for record in cls.from_query(query):
@@ -1219,14 +1213,26 @@ class RecordMerge(Resource):
 
                 if record.to_bson() != state:
                     # cheat
-                    updates.append(ReplaceOne({'_id': record.id}, record.to_bson()))
+                    #data = record.to_bson()
+                    #data.setdefault('user', user.username if user else 'admin')
+                    #data.setdefault('updated', datetime.utcnow())
+                    #data.setdefault('_record_type', record.logical_fields('_record_type'))
+                    #updates.append(ReplaceOne({'_id': record.id}, data))
 
-                    t = threading.Thread(target=do_commit, args=[record])
+                    def do_commit():
+                        # we can skip the auth validation for now because it's done in the front end
+                        record.commit(user=user.username if user else 'admin', auth_check=False)
+
+                    t = threading.Thread(target=do_commit, args=[])
                     t.setDaemon(False) # stop the thread after complete
                     t.start()
 
-            if updates:
-                cls().handle.bulk_write(updates)
+                    #record.commit(user=user.username if user else 'admin', auth_check=False)
+                
+                changed += 1
+
+            #if updates:
+            #    cls().handle.bulk_write(updates)
 
             return changed
         
@@ -1246,8 +1252,6 @@ class RecordMerge(Resource):
                     raise Exception("The merge is taking too long (> 1200 seconds)")
 
                 time.sleep(1)
-
-            print(int(time.time()) - int(stime))
 
             losing.delete(user=user.username if user else 'admin')
             
