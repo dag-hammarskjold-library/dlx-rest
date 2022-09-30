@@ -1179,89 +1179,13 @@ class RecordMerge(Resource):
             abort(403, "User does not have permission to merge authorities.")
         
         if losing.heading_field.tag != gaining.heading_field.tag:
-            abort(403, "Auth records not of the same type")
+            abort(409, "Auth records not of the same type")
 
-        def update_records(record_type, gaining, losing):
-            authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
-            
-            conditions = []
-                 
-            for ref_tag, d in authmap.items():
-                for subfield_code, auth_tag in d.items():
-                    if auth_tag == losing.heading_field.tag:
-                        conditions.append(Raw({f'{ref_tag}.subfields.xref': losing.id}, record_type=record_type))
+        # todo: excute this in a Lambda function
+        gaining.merge(user=user.username if user else 'admin', losing_record=losing)
 
-            if len(conditions) == 0:
-                return 0
-            
-            cls = BibSet if record_type == 'bib' else AuthSet
-            query = Query(Or(*conditions))
-            changed = 0
-            updates = []
-
-            for record in cls.from_query(query):
-                state = record.to_bson()
-                
-                for i, field in enumerate(record.fields):
-                    if isinstance(field, Datafield):
-                        for subfield in field.subfields:
-                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                                subfield.xref = gaining.id
-                        
-                                if field in record.fields[0:i] + record.fields[i+1:]:
-                                    del record.fields[i] # duplicate field
-
-                if record.to_bson() != state:
-                    # cheat
-                    #data = record.to_bson()
-                    #data.setdefault('user', user.username if user else 'admin')
-                    #data.setdefault('updated', datetime.utcnow())
-                    #data.setdefault('_record_type', record.logical_fields('_record_type'))
-                    #updates.append(ReplaceOne({'_id': record.id}, data))
-
-                    def do_commit():
-                        # we can skip the auth validation for now because it's done in the front end
-                        record.commit(user=user.username if user else 'admin', auth_check=False)
-
-                    if 1: #Config.TESTING:
-                        # the threading doesn't work here in pytest
-                        record.commit(user=user.username if user else 'admin', auth_check=False)
-                    else:
-                        t = threading.Thread(target=do_commit, args=[])
-                        t.setDaemon(False) # stop the thread after complete
-                        t.start()
-                
-                changed += 1
-
-            #if updates:
-            #    cls().handle.bulk_write(updates)
-
-            return changed
-        
-        changed = 0
-        
-        for record_type in ('bib', 'auth'):
-            changed += update_records(record_type, gaining, losing)    
-        
-        def delete_losing():
-            i = 0
-
-            while losing.in_use(usage_type='bib') or losing.in_use(usage_type='auth'):
-                # wait for all the links to be updated, otherwise the delete fails
-                i += 1
-
-                if i > 1200:
-                    raise Exception("The merge is taking too long (> 1200 seconds)")
-
-                time.sleep(1)
-
-            losing.delete(user=user.username if user else 'admin')
-            
-        thread = threading.Thread(target=delete_losing)
-        thread.setDaemon(False)
-        thread.start()
-
-        return jsonify({'message': f'Updated {changed} records and deleted auth# {losing_id}'}) 
+        # todo: update response message when merge is async
+        return jsonify({'message': f'Merge complete'})
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
