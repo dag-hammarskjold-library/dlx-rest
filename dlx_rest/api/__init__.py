@@ -185,7 +185,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -247,18 +247,16 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort')
+        sort_by = 'subject' if sort_by == 'heading' else sort_by
         
         if sort_by == 'relevance':
             project['score'] = {'$meta': 'textScore'}
             sort = [('score', {'$meta': 'textScore'})]
         elif sort_by:
-            this_sort_by = sort_by
-            if search and "190:" in search:
-                this_sort_by = "body"
-            sort = [(this_sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(this_sort_by, ASC)]
+            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
             # only include results with the sorted field. otherwise, records with the field missing will be the first results
             # TODO review
-            query.add_condition(Raw({this_sort_by: {'$exists': True}}))
+            query.add_condition(Raw({sort_by: {'$exists': True}}))
         else:
             sort = None
 
