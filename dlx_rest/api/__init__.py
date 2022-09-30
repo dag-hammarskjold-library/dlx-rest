@@ -5,7 +5,7 @@ DLX REST API
 # external
 from http.client import HTTPResponse
 import this
-from dlx_rest.routes import login
+from dlx_rest.routes import login, search_files
 import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
@@ -252,10 +252,13 @@ class RecordsList(Resource):
             project['score'] = {'$meta': 'textScore'}
             sort = [('score', {'$meta': 'textScore'})]
         elif sort_by:
-            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
+            this_sort_by = sort_by
+            if search and "190:" in search:
+                this_sort_by = "body"
+            sort = [(this_sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(this_sort_by, ASC)]
             # only include results with the sorted field. otherwise, records with the field missing will be the first results
             # TODO review
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
+            query.add_condition(Raw({this_sort_by: {'$exists': True}}))
         else:
             sort = None
 
