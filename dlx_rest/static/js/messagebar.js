@@ -4,7 +4,7 @@
 let vm=""
 export let messagecomponent = {
     template: `
-      <div id="messageBar" style="background-color: lightgrey; height: 25px; overflow: scroll">
+      <div id="messageBar" style="background-color: lightgrey; height: 25px; overflow-y: scroll">
         
       </div>
     `,
