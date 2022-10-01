@@ -92,17 +92,20 @@ export let basketcomponent = {
             }   
             
             this.editor.recordlist.push(`${myCollection}/${myRecord}`);
-            let jmarc = await Jmarc.get(myCollection, myRecord);
             
-            if (this.editor.displayMarcRecord(jmarc)) {
-                // add record displayed
-                this.recordDisplayed.push(jmarc.recordId)
-                // this.forceUpdate()
-                this.callChangeStyling("Record added to the editor", "d-flex w-100 alert-success")
-            } else {
-                // the record did not display for some reason
-                this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
-            }
+            Jmarc.get(myCollection, myRecord).then(
+                jmarc => {
+                    if (this.editor.displayMarcRecord(jmarc)) {
+                        // add record displayed
+                        this.recordDisplayed.push(jmarc.recordId)
+                        // this.forceUpdate()
+                        this.callChangeStyling("Record added to the editor", "d-flex w-100 alert-success")
+                    } else {
+                        // the record did not display for some reason
+                        this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
+                    }
+                }
+            )
         },
         callChangeStyling(myText, myStyle) {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
