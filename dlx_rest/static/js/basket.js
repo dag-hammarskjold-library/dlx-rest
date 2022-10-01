@@ -130,6 +130,12 @@ export let basketcomponent = {
 
                 basket.getItem(this.api, element.collection, element.record_id).then(
                     item => {
+                        if (typeof item === "undefined") {
+                            //const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
+                            basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, element.collection, element.record_id);
+                            return
+                        }
+
                         data["collection"] = element.collection;
                         data["_id"] = element.record_id;
                         data["basket_item_id"] = element.url.split('/').pop();
@@ -181,7 +187,7 @@ export let basketcomponent = {
                         */
 
                         // alert that debugging is needed
-                        callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
+                        this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
                     }
                 )
             }

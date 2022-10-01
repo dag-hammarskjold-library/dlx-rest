@@ -345,7 +345,10 @@ export class Jmarc {
 			}
 		).then(
 			json => {
-				if (savedResponse.status != 200) {
+				if (savedResponse.status === 404) {
+					// record not found
+					return 
+				} else if (savedResponse.status != 200) {
 					throw new Error(json['message'])
 				}
 				
@@ -357,7 +360,7 @@ export class Jmarc {
 				return jmarc
 			}
 		).catch(
-			error => console.error(error)
+			error => {throw error}
 		)
 	}
 	

@@ -173,70 +173,73 @@ export let multiplemarcrecordcomponent = {
                     this.myDefaultViews = myProfile.data.default_views
                     
                     basket.getBasket(this.prefix).then(
-                        myBasket => this.myBasket = myBasket
-                    )        
-                }   
-            }
-        ).then( () => {
-            // the "records" param from the URL
-            if (this.records !== "None") {
-                // "<col>/<id>"
-                this.recordlist = this.records.split(","); 
-
-                for (let record of this.recordlist) {
-                    let collection = record.split("/")[0]
-                    let recordId = record.split("/")[1]
-                
-                    Jmarc.get(collection, recordId).then(async jmarc => {
-                        if (this.readonly && this.user !== null) {
-                            //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                            basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
-                                this.displayMarcRecord(jmarc, true)
-                            })
+                        myBasket => {
+                            this.myBasket = myBasket;
+                      
+                            // the "records" param from the URL
+                            if (this.records !== "None") {
+                                // "<col>/<id>"
+                                this.recordlist = this.records.split(","); 
                             
-                        } else if (this.user === null) {
-                            this.displayMarcRecord(jmarc, true);
-                        } else {
-                            if (basket.contains(jmarc.collection, jmarc.recordId, this.myBasket)) {
-                                this.displayMarcRecord(jmarc);
-                            } else {
-                                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
-                                    this.$root.$refs.basketcomponent.rebuildBasket()
-                                    
-                                    // wait for basket to display record so the display method can update the basket styling 
-                                    this.displayMarcRecord(jmarc);
+                                for (let record of this.recordlist) {
+                                    let collection = record.split("/")[0]
+                                    let recordId = record.split("/")[1]
+                                
+                                    Jmarc.get(collection, recordId).then(async jmarc => {
+                                        if (this.readonly && this.user !== null) {
+                                            //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
+                                            basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
+                                                this.displayMarcRecord(jmarc, true)
+                                            })
+
+                                        } else if (this.user === null) {
+                                            this.displayMarcRecord(jmarc, true);
+                                        } else {
+                                            if (basket.contains(jmarc.collection, jmarc.recordId, myBasket)) {
+                                                this.displayMarcRecord(jmarc);
+                                            } else {
+                                                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
+                                                    this.$root.$refs.basketcomponent.rebuildBasket()
+
+                                                    // wait for basket to display record so the display method can update the basket styling 
+                                                    this.displayMarcRecord(jmarc);
+                                                })
+                                            
+                                            }
+                                        }
+                                    })
+                                }
+                            } else if (this.workform !== 'None') {
+                                let wfCollection = this.workform.split('/')[0];
+                                let wfRecordId = this.workform.split('/')[1]
+
+                                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                                    this.displayMarcRecord(jmarc, false);
+                                })
+
+                            } else if (this.fromworkform !== 'None') {
+                                // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
+                                let wfCollection = this.fromworkform.split('/')[0];
+                                let wfRecordId = this.fromworkform.split('/')[1]
+                                //console.log(wfCollection, wfRecordId)
+
+                                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
+                                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
+                                    jmarc.workformName = this.fromworkform
+                                    //this.displayMarcRecord(jmarc, false);
+                                    this.cloneRecord(jmarc)
                                 })
 
                             }
                         }
-                    })
-                }
-            } else if (this.workform !== 'None') {
-                let wfCollection = this.workform.split('/')[0];
-                let wfRecordId = this.workform.split('/')[1]
-                
-                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
-                    this.displayMarcRecord(jmarc, false);
-                })
-                
-            } else if (this.fromworkform !== 'None') {
-                // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
-                let wfCollection = this.fromworkform.split('/')[0];
-                let wfRecordId = this.fromworkform.split('/')[1]
-                //console.log(wfCollection, wfRecordId)
-                
-                //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
-                Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
-                    jmarc.workformName = this.fromworkform
-                    //this.displayMarcRecord(jmarc, false);
-                    this.cloneRecord(jmarc)
-                })
-                
+                    )
+                }        
             }
-            recup=this
-        })
+        )
         
+        recup=this
+    
         // Top level events
         window.addEventListener("keydown", function(event) {
             // shift
