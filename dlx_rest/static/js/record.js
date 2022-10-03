@@ -317,11 +317,13 @@ export let multiplemarcrecordcomponent = {
             if (recordSelectBox.className.includes("fa-square")) {
                 recordSelectBox.classList.replace("fa-square","fa-check-square")
                 for (let checkbox of fieldCheckBoxes) {
+                    checkbox.checked = false
                     checkbox.click()
                 }
             } else {
                 recordSelectBox.classList.replace("fa-check-square","fa-square")
                 for (let checkbox of fieldCheckBoxes) {
+                    checkbox.checked = true
                     checkbox.click()
                 }
             }
@@ -329,10 +331,12 @@ export let multiplemarcrecordcomponent = {
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
             if (e.target.checked) {
-                if (jmarc.recordId == this.selectedJmarc.recordId) {
-                    this.selectedFields.push(field);
+                if (!field.row.className.includes("hidden-field")) {
+                    if (jmarc.recordId == this.selectedJmarc.recordId) {
+                        this.selectedFields.push(field);
+                    }
+                    this.copiedFields.push(field);                        
                 }
-                this.copiedFields.push(field);
             } else {
                 if (this.copiedFields) {
                     // remove from the list of copied fields
@@ -450,7 +454,7 @@ export let multiplemarcrecordcomponent = {
                 // recreate the field
                 let newField = jmarc.createField(field.tag);
                 newField.indicators = field.indicators || ["_", "_"];
-               
+                
                 for (let subfield of field.subfields) {
                     let newSubfield = newField.createSubfield(subfield.code);
                     newSubfield.value = subfield.value;
