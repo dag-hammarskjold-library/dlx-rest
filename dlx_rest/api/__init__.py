@@ -5,7 +5,7 @@ DLX REST API
 # external
 from http.client import HTTPResponse
 import this
-from dlx_rest.routes import login
+from dlx_rest.routes import login, search_files
 import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
@@ -185,7 +185,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -247,6 +247,7 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort')
+        sort_by = 'subject' if sort_by == 'heading' else sort_by
         
         if sort_by == 'relevance':
             project['score'] = {'$meta': 'textScore'}
