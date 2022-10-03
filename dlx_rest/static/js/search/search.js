@@ -327,11 +327,28 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
+
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
+                } else {
+                    return response.text().then(
+                        text => {
+                            if (response.status === 500) {
+                                throw new Error("Invalid search")
+                            }
+                            text = text.replace(/"message":/, "");
+                            text = text.replace(/[\r\n{}:"]/g, "");
+
+                            throw new Error(text)
+                        }
+                    ).catch(
+                        error => {throw error}
+                    )
                 }
             }
+        ).catch(
+            error => {throw error}
         ).then(
             jsonData => {
                 if (! jsonData) {
