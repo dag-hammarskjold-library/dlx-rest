@@ -1491,6 +1491,7 @@ export let multiplemarcrecordcomponent = {
             return true
         },
         displayMarcRecord(jmarc, readOnly,reload=false) {
+            let component = this;
             let myDivId;
 
             if (this.isRecordOneDisplayed == false) {
@@ -1588,6 +1589,15 @@ export let multiplemarcrecordcomponent = {
                         this.filterRecordView(jmarc,myFilter)
                     }
                 })
+
+            // events
+            // check for unsaved changes on leaving page
+            window.addEventListener("beforeunload", function(event) {
+                if (component.currentRecordObjects.indexOf(jmarc) > -1 && ! jmarc.saved) {
+                    // most browsers will display a default dialog message no matter what string is returned
+                    return event.returnValue = "Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record."
+                }
+            });
 
             return true
         },
