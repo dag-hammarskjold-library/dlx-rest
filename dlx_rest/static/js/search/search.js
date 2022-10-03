@@ -110,6 +110,7 @@ export let searchcomponent = {
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
+                <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
                     <span>X</span>
@@ -326,11 +327,28 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
+
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
+                } else {
+                    return response.text().then(
+                        text => {
+                            if (response.status === 500) {
+                                throw new Error("Invalid search")
+                            }
+                            text = text.replace(/"message":/, "");
+                            text = text.replace(/[\r\n{}:"]/g, "");
+
+                            throw new Error(text)
+                        }
+                    ).catch(
+                        error => {throw error}
+                    )
                 }
             }
+        ).catch(
+            error => {throw error}
         ).then(
             jsonData => {
                 if (! jsonData) {

@@ -5,8 +5,8 @@ DLX REST API
 # external
 from http.client import HTTPResponse
 import this
-from dlx_rest.routes import login
-import os, json, re, boto3, mimetypes, jsonschema
+from dlx_rest.routes import login, search_files
+import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -15,7 +15,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
+from pymongo import ReplaceOne, ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
 from bson import Regex
 from dlx import DB, Config as DlxConfig
@@ -185,7 +185,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
+        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -247,6 +247,7 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort')
+        sort_by = 'subject' if sort_by == 'heading' else sort_by
         
         if sort_by == 'relevance':
             project['score'] = {'$meta': 'textScore'}
@@ -259,10 +260,28 @@ class RecordsList(Resource):
         else:
             sort = None
 
+        # temporary solution for symbol numeric sorting
+        #collation = Collation(locale='en', strength=2, numericOrdering=True) if sort_by == 'symbol' else None
+        if sort_by == 'symbol':
+            collation = Collation(locale='en', numericOrdering=True)
+            # convert the query to a query on symbol so that the collation can be used on both search and sort. ugh
+            symbols, i = [], 0
+            
+            for r in cls.from_query(query, projection={'191': 1, 'symbol': 1}):
+                for symbol in r.logical_fields('symbol').values():
+                    symbols.append(symbol)
+                    i += 1
+
+                if i > 5000:
+                    abort(403, "Sorry, can't currently sort this many symbols as search results")
+
+            query = Query(Raw({'symbol': {'$in': symbols}}))
+        else:
+            collation = None
+
         # exec query
-        collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-        
+
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
@@ -432,7 +451,6 @@ class RecordsListBrowse(Resource):
         direction = DESC if args.compare == 'less' else ASC
         query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         lfields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
-        print(lfields)
         collation = Collation(
             locale='en', 
             strength=2, 
@@ -1166,6 +1184,7 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
+        start_time = time.time()
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1178,52 +1197,13 @@ class RecordMerge(Resource):
             abort(403, "User does not have permission to merge authorities.")
         
         if losing.heading_field.tag != gaining.heading_field.tag:
-            abort(403, "Auth records not of the same type")
+            abort(409, "Auth records not of the same type")
 
-        def update_records(record_type, gaining, losing):
-            authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
-            
-            conditions = []
-                 
-            for ref_tag, d in authmap.items():
-                for subfield_code, auth_tag in d.items():
-                    if auth_tag == losing.heading_field.tag:
-                        val = losing.heading_field.get_value(subfield_code)
-                        
-                        if val:
-                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
-            
-            
-            cls = BibSet if record_type == 'bib' else AuthSet
-            query = Query(Or(*conditions))
-            changed = 0
+        # todo: excute this in a Lambda function
+        gaining.merge(user=user.username if user else 'admin', losing_record=losing)
 
-            for record in cls.from_query(query):
-                state = record.to_bson()
-                
-                for i, field in enumerate(record.fields):
-                    if isinstance(field, Datafield):
-                        for subfield in field.subfields:
-                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                                subfield.xref = gaining.id
-                        
-                                if field in record.fields[0:i] + record.fields[i+1:]:
-                                    del record.fields[i] # duplicate field
-                        
-                if record.to_bson() != state:    
-                    record.commit(user=user.username)
-                    changed += 1
-                    
-            return changed
-        
-        changed = 0
-        
-        for record_type in ('bib', 'auth'):
-            changed += update_records(record_type, gaining, losing)    
-        
-        losing.delete(user=user.username)
-        
-        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+        # todo: update response message when merge is async
+        return jsonify({'message': f'Merge complete'})
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
@@ -1239,8 +1219,10 @@ class AuthUseCount(Resource):
         args = AuthUseCount.args.parse_args()
         auth = Auth.from_id(record_id) or abort(404)
         args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
-        count = auth.in_use(usage_type=args.use_type[:-1])
-        
+        #count = auth.in_use(usage_type=args.use_type[:-1]) # returns the number of fields using the auth
+        cls = Bib if args.use_type == 'bibs' else Auth
+        count = cls.count_documents(Query.from_string(f'xref:{auth.id}').compile()) # the number of records using the auth
+
         links = {
             '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
             'related': {
