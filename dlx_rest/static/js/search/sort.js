@@ -1,29 +1,39 @@
 export let sortcomponent = {
     props: ['uibase', 'collection', 'params'],
     template: `
-    <nav class="navbar navbar-expand-lg text-center">
-        <div class="collapse navbar-collapse" id="resultsNavbarToggle">
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item"><a class="nav-link disabled">Results per page:</a></li>
-                <li v-for="o in rpp" class="nav-item">
-                    <a id="limit" :data-searchString="o.searchString" v-if="o.searchString === parseInt(params.limit)" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
-                    <a id="limit" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent">{{o.displayName}}</a>
-                </li>
-                <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
-                <li class="nav-item"><a class="nav-link disabled">Sort:</a></li>
-                <li v-for="o in sortFields" class="nav-item">
-                    <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
-                    <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-else class="nav-link result-link sortcomponent">{{o.displayName}}</a>
-                </li>
-                <li class="nav-item"><a class="nav-link disabled">&nbsp;|&nbsp;</a></li>
-                <li class="nav-item"><a class="nav-link disabled">Direction:</a></li>
-                <li v-for="o in sortDirections" class="nav-item">
-                    <a id="direction" :data-searchString="o.searchString" v-if="o.searchString === params.direction" class="nav-link disabled sortcomponent">{{o.displayName}}</a>
-                    <a id="direction" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent">{{o.displayName}}</a>
-                </li>
-            </ul>
+    <div class="container-fluid pt-1">
+        <div class="row d-flex w-100 justify-content-center">
+            <div class="col">Results per page</div>
+            <div class="col">Sort</div>
+            <div class="col">Direction</div>
         </div>
-    </nav>
+        <div class="row d-flex w-100 justify-content-center">
+            <div class="col">
+                <ul class="list-inline">
+                    <li v-for="o in rpp" class="list-inline-item">
+                        <a id="limit" :data-searchString="o.searchString" v-if="o.searchString === parseInt(params.limit)" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
+                        <a id="limit" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col">
+                <ul class="list-inline">
+                    <li v-for="o in sortFields" class="list-inline-item">
+                        <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
+                        <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col">
+                <ul class="list-inline">
+                    <li v-for="o in sortDirections" class="list-inline-item">
+                        <a id="direction" :data-searchString="o.searchString" v-if="o.searchString === params.direction" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
+                        <a id="direction" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
     `,
     data: function() {
         let vcoll = "bibs"
