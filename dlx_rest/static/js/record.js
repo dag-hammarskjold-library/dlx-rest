@@ -655,7 +655,7 @@ export let multiplemarcrecordcomponent = {
             // remove the field from the copied fields stack
             let i = this.copiedFields.indexOf(field);
             
-            if (typeof i !== 'undefined') {
+            if (i > -1) {
                 this.copiedFields.splice(i, 1);
             }
  
