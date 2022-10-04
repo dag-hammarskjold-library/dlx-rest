@@ -606,42 +606,28 @@ export let multiplemarcrecordcomponent = {
             return newField
         },
         deleteFields(jmarc) {
-            // This is mostly duplicating the function that follows; ideally this function would call the deleteField function multiple times
-            //console.log(this.copiedFields)    
+            // deletes all checked fields (contained in this.copiedFields)
+
             if (this.copiedFields.length === 0) {
                 this.callChangeStyling("No fields selected", "d-flex w-100 alert-danger")
                 return
             }
 
-            for (let field of this.copiedFields) {
-                
-                //console.log(`deleting ${field.row.rowIndex}`)
-                if (jmarc.getDataFields().length === 1) {
-                        // this is the record's only field
-                        this.callChangeStyling("Can't delete record's only field", "d-flex w-100 alert-danger")                       
-                        return
-                }
-                jmarc.deleteField(field)
-                this.removeRecordFromEditor(jmarc);
-                this.displayMarcRecord(jmarc);
-                //let myTable=document.getElementById(this.selectedDiv).firstChild 
-                //myTable.deleteRow(field.row.rowIndex);
+            // clone the array so it is not altered during the loop
+            let toDelete = [...this.copiedFields];
 
-                // remove the field from the copied fields stack
-                this.copiedFields = []
-                // To do: Fix undo/redo, which is covered in #628
-                // This should work, but none of the undo/redo is working
-                jmarc.addUndoredoEntry("from Delete Field");
+            for (let field of [...toDelete]) {
+                this.deleteField(jmarc, field);
             }
 
-            // Manage visual indicators
-            this.checkSavedState(jmarc);
+            //this.removeRecordFromEditor(jmarc);
+            //this.displayMarcRecord(jmarc);
             
             this.callChangeStyling(`Selected fields have been deleted`, "d-flex w-100 alert-success")
         },
-        deleteField(jmarc){
-            // delete the field
-            let field = jmarc.fields.filter(x => x.selected)[0];
+        deleteField(jmarc, field=null){ 
+            // delete the selected field, or the field supplied by the args if it exists
+            field = field || jmarc.fields.filter(x => x.selected)[0];
             let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
@@ -2733,6 +2719,8 @@ export let multiplemarcrecordcomponent = {
 
             field.row.classList.add("field-row-selected");
             field.selected = true;
+
+            return field
         },
         clearSelectedSubfield(jmarc) {
             for (let field of jmarc.getDataFields()) {
