@@ -36,7 +36,7 @@ export let headercomponent = {
             <form class="form-inline" :action="action">
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <button id="searchCollection" class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Collection</button>
+                        <button id="searchCollection" class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Bibs</button>
                         <div class="dropdown-menu">
                             <a class="dropdown-item" href="#" @click="setSearchCollection('bibs')">Bibs</a>
                             <a class="dropdown-item" href="#" @click="setSearchCollection('auths')">Auths</a>
@@ -45,7 +45,7 @@ export let headercomponent = {
                     </div>
                     <input id="q" name="q" class="form-control" type="search" placeholder="Search" aria-label="Search">
                     <div class="input-group-append">
-                        <button class="btn btn-outline-success" type="submit">Search</button>
+                        <a class="btn btn-outline-success" type="submit" @click="submitSearch">Search</a>
                     </div>
                 </div>
             </form>
@@ -75,6 +75,11 @@ export let headercomponent = {
           this.searchCollection = collection;
           this.action = `${this.uibase}/records/${this.searchCollection}/search`;
       },
+      submitSearch() {
+          let searchString = document.getElementById('q').value
+          let searchUrl = `${this.action}?q=${searchString}`
+          window.open(searchUrl, "_blank")
+      }
     },
     components: {
         'modalmergecomponent': modalmergecomponent

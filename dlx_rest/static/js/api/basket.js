@@ -9,7 +9,7 @@ export default {
         let myItemTitle = "";
         let myId = null;
         // Check here to see if the record is already in another basket? Return that fact, along with the user?
-        await Jmarc.get(collection, record_id).then(async jmarc => {
+        Jmarc.get(collection, record_id).then(jmarc => {
             if(collection == "bibs") {
                 let myTitleField = jmarc.getField(245,0);
                 let myTitle = [];
@@ -21,7 +21,7 @@ export default {
                     myTitle.push("[No Title]")
                 }
                 
-                myItemTitle = myTitle.join(" ");
+                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
             } else if (collection == "auths") {
                 //console.log("Trying to create an auth basket item...")
                 let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
@@ -29,11 +29,11 @@ export default {
                 for (let s in myTitleField.subfields) {
                     myTitle.push(myTitleField.subfields[s].value);
                 }
-                myItemTitle = myTitle.join(" ");
+                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
             }
             let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
             //console.log(url)
-            await fetch(url, {
+            fetch(url, {
                 method: 'POST',
                 body: data
             }).then( () => {
@@ -73,7 +73,8 @@ export default {
         let url = `${api_prefix}${basket_id}`
         const response = await fetch(url);
         const jsonData = await response.json();
-        return jsonData.data.item_data.sort((a,b) => a - b);
+        const returnData = new Set(jsonData.data.item_data.sort((a,b) => a - b))
+        return returnData;
     },
     clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
         let url = `${api_prefix}/${basket_id}`

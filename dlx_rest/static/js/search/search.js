@@ -110,11 +110,16 @@ export let searchcomponent = {
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
+                <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
                     <span>X</span>
                 </button>
             </form>    
+        </div>
+        <div v-if="collection == 'auths'" id="filters" class="col text-center">
+            Filter: 
+            <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
         <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
         <nav>
@@ -130,10 +135,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
         <div id="results-spinner" class="col d-flex justify-content-center">
@@ -144,15 +149,15 @@ export let searchcomponent = {
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row pt-2 border-bottom">
-                <div class="col-sm-11 px-4 shadow bg-light rounded">
-                    <div class="row">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
+            <div class="row mt-1 bg-light border-bottom">
+                <div class="col-sm-11 px-4 ">
+                    <div class="row" style="overflow-x:hidden">
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
-                    <div class="row">
-                        <p>{{result.second_line}}</p>
+                    <div class="row" style="white-space:nowrap">
+                        {{result.second_line}}
                     </div>
                 </div>
                 <div class="col-sm-1">
@@ -177,10 +182,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
     </div>`,
@@ -245,6 +250,7 @@ export let searchcomponent = {
             vcoll: null,
             searchTime: 0,
             maxTime: 15000, //milliseconds
+            headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController()
         }
     },
@@ -255,8 +261,6 @@ export let searchcomponent = {
         let component = this;
 
         //let searchstr = document.getElementById('q').value;
-
-        console.log(this.index_list)
         this.searchFields = JSON.parse(this.index_list)
         
         // [what is this used for?]
@@ -323,11 +327,28 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
+
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
+                } else {
+                    return response.text().then(
+                        text => {
+                            if (response.status === 500) {
+                                throw new Error("Invalid search")
+                            }
+                            text = text.replace(/"message":/, "");
+                            text = text.replace(/[\r\n{}:"]/g, "");
+
+                            throw new Error(text)
+                        }
+                    ).catch(
+                        error => {throw error}
+                    )
                 }
             }
+        ).catch(
+            error => {throw error}
         ).then(
             jsonData => {
                 if (! jsonData) {
@@ -353,7 +374,11 @@ export let searchcomponent = {
                     let myResult = { "_id": result["_id"]}
                     if (component.collection == "bibs") {
                         myResult["first_line"] = result["title"]
-                        myResult["second_line"] = [result["symbol"], result["date"], result["types"]].filter(Boolean).join(" | ")
+                        //.split("::")[result["types"].split("::").length-1]]
+
+                        let rtype = result["types"].split("::")
+
+                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
@@ -467,8 +492,39 @@ export let searchcomponent = {
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
+
+        for (let el of document.getElementsByClassName('head-filter')) {
+            el.href = this.rebuildUrl("search", el.getAttribute("data-searchString"));
+        }
     },
     methods: {
+        rebuildUrl(param, value) {
+            let myParams = Object.assign({},this.params);
+            let searchParam = myParams["search"]
+            let newSearchParam = ""
+            for (let hf of this.headFilters) {
+                newSearchParam = searchParam.replace(hf, "nnn")
+                if (newSearchParam.includes("nnn")) {
+                    break
+                }
+            }
+            
+            if (newSearchParam.includes("nnn")) {
+                myParams["search"] = newSearchParam.replace("nnn",value)
+            } else {
+                if (newSearchParam.length > 0) {
+                    myParams["search"] = `${newSearchParam} AND ${value}:*`
+                } else {
+                    myParams["search"] = `${value}:*`
+                }
+                
+            }
+
+            const qs = Object.keys(myParams)
+                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .join('&');
+            return `${this.action}?${qs}`;
+        },
         async getMyBasket(url) {
             let response = await fetch(url);
             if (response.ok) {

@@ -28,6 +28,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
+            <div class="row"><h3>Browsing {{recordType}}/{{index}} at {{q}}</h3></div>
             <nav>
                 <ul class="pagination pagination-md justify-content-left">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -85,12 +86,14 @@ export let browsecomponent = {
             </nav>
         </div>
         <div v-else>
+        <div class="row"><h3>Browsing {{recordType}}</h3></div>
             <div class="col pt-2 m-auto" style="background-color:white;">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Logical Field Name</th>
                             <th>Starts with</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -98,10 +101,11 @@ export let browsecomponent = {
                             <td>{{item}}</td>
                             <td>
                                 <form @submit.prevent="submitBrowse(index)">
-                                    <input autofocus autocomplete="off" :id="indexListJson[index]" placeholder="starts with..." type="text">
-                                    <button type="button mx-2" class="btn btn-primary" value="Search">Submit</button>
+                                    <input autofocus autocomplete="off" :id="indexListJson[index]" placeholder="starts with..." type="text" class="form-control input">
+                                    
                                 </form>
                             </td>
+                            <td><button type="button mx-2" class="btn btn-primary" value="Search" @click="submitBrowse(index)">Submit</button></td>
                         </tr>
                     </tbody>
                 </table>
@@ -201,6 +205,8 @@ export let browsecomponent = {
             ).catch(
                 error => {
                     console.log(error)
+                    let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
+                    spinner.remove()
                 }
             );
         }

@@ -33,6 +33,10 @@ export class Subfield {
 		this.value = value;
 		this.xref = xref;	
 	}
+
+	compile() {
+		return {'code': this.code, 'value': this.value, 'xref': this.xref}
+	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -76,7 +80,12 @@ export class DataField {
             }
             
             if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                throw new Error("Subfield value required")
+                //throw new Error("Subfield value required")
+				this.deleteSubfield(subfield);
+				
+				if (this.subfields.length === 0) {
+					this.parentRecord.deleteField(this);
+				}
             }
             
             if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
@@ -122,6 +131,16 @@ export class DataField {
                 this.subfields = this.subfields.filter(x => x.code !== code)
             }
 	    }
+	}
+
+	compile() {
+		let data = {};
+		
+		data['tag'] = this.tag;
+		data['indicators'] = this.indicators;
+		data['subfields'] = this.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
+		
+		return data
 	}
     
     toStr() {
@@ -255,7 +274,7 @@ export class Jmarc {
 					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
 					}
-					this.fields=[]
+					//this.fields=[]
 					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 				}
 			}
@@ -276,7 +295,7 @@ export class Jmarc {
 				if (this.undoredoIndex<this.undoredoVector.length-1){
 						this.undoredoIndex=this.undoredoIndex+1
 				}	
-				this.fields=[]
+				//this.fields=[]
 				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 			}
 		}
@@ -294,6 +313,15 @@ export class Jmarc {
 		}
 		
 		return false
+	}
+
+	updateSavedState() {
+		this.savedState = this.compile();
+				
+		this.getDataFields().forEach(x => {
+			x.savedState = x.compile();
+			x.subfields.forEach(y => {y.savedState = y.compile()});
+		});
 	}
 	
 	static get(collection, recordId) {
@@ -317,19 +345,22 @@ export class Jmarc {
 			}
 		).then(
 			json => {
-				if (savedResponse.status != 200) {
+				if (savedResponse.status === 404) {
+					// record not found
+					return 
+				} else if (savedResponse.status != 200) {
 					throw new Error(json['message'])
 				}
 				
 				jmarc.parse(json['data']);  
-				jmarc.savedState = jmarc.compile();
+				jmarc.updateSavedState();
 
 				jmarc.files = json['data']['files']
 				
 				return jmarc
 			}
 		).catch(
-			error => console.error(error)
+			error => {throw error}
 		)
 	}
 	
@@ -469,7 +500,7 @@ export class Jmarc {
 				
 				this.url = json['result'];
 				this.recordId = parseInt(this.url.split('/').slice(-1));
-				this.savedState = this.compile()
+				this.updateSavedState();
 				
 				return this;
 			}
@@ -510,7 +541,7 @@ export class Jmarc {
 					throw new Error(json['message'])
 				}
 				
-				this.savedState = this.compile();
+				this.updateSavedState();
 
 				return this;
 			} 
@@ -540,16 +571,16 @@ export class Jmarc {
 				
 				return response.json()
 			}
-		).then(
+		)
+        .then(
 			check => {
-				if (check.constructor.name == "Jmarc") {
+				if (check instanceof Jmarc) {
 					return check
 				}
 				
-				throw new Error(check['message'])
+				throw new Error(`Something went wrong: ${check}`)
 			}
 		).catch(
-			// error => console.error(error)
 			error => { throw new Error(error) }
 		)
 	}
@@ -561,26 +592,49 @@ export class Jmarc {
 	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
-		this.fields = [];
+		//this.fields = [];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
 		
+		// update the existing objects if the new data exists in this record in order to preserve saved state
 		for (let tag of tags) {
-			for (let field of data[tag]) {
-                let newField = this.createField(tag);
-                
+			for (let [i, field] of data[tag].entries()) {
+				let newField = this.getField(tag, i) || this.createField(tag);
+				newField._seen = true;
+				
 				if (tag.match(/^00/)) {
                     newField.value = field;
                 } else {
                     newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
 					
-					for (let subfield of field.subfields) {
-						let newSub = newField.createSubfield(subfield.code);
-                        newSub.value = subfield.value;
-                        newSub.xref = subfield.xref;
+					for (let code of new Set(field.subfields.map(x => x.code))) {
+						for (let [i, subfield] of field.subfields.filter(x => x.code == code).entries()) {
+							let newSub = newField.getSubfield(code, i) || newField.createSubfield(subfield.code);
+							newSub._seen = true; // temp flag
+							newSub.value = subfield.value;
+                        	newSub.xref = subfield.xref;
+						}    
 					}
 				}
+			}
+		}
+
+		// remove existing data not in new data
+		for (let field of this.getDataFields()) {
+			if (! field._seen) {
+				this.deleteField(field);
+				continue
+			}
+
+			delete field._seen;
+
+			for (let subfield of field.subfields) {
+				if (! subfield._seen) {
+					field.deleteSubfield(subfield);
+				}
+
+				delete subfield._seen;
 			}
 		}
 		
@@ -598,12 +652,7 @@ export class Jmarc {
 				if (field.constructor.name == 'ControlField') {
 					recordData[tag].push(field.value);
 				} else {
-					let fieldData = {};
-					
-					fieldData['indicators'] = field.indicators;
-					fieldData['subfields'] = field.subfields.map(x => {return {'code': x.code, 'value': x.value, 'xref': x.xref}});
-					
-					recordData[tag].push(fieldData);
+					recordData[tag].push(field.compile());
 				}
 			}
 		}
@@ -664,8 +713,8 @@ export class Jmarc {
 		cloned.deleteField("981");
 		cloned.deleteField("989");
         cloned.deleteField("998");
-        cloned.deleteField("999");
-        cloned.createField("999").createSubfield("a").value = "";
+        //cloned.deleteField("999");
+        //cloned.createField("999").createSubfield("a").value = "";
         
         if (this.recordClass === Auth) {
             return cloned
@@ -687,8 +736,7 @@ export class Jmarc {
 		
 		if (tag && tag.match(/^00/)) {
 			field = new ControlField(tag)
-		} 
-        else {
+		} else {
 			if (this.collection === "bibs") {
 				field = new BibDataField(tag)
 			} else if (this.collection === "auths") {
@@ -701,7 +749,7 @@ export class Jmarc {
         if (field.tag && place) {
             // field place
             let i = 0;
-            let found = false
+            let found = false;
             
             for (let [c, f] of Object.entries(this.fields)) {
                 if (f.tag === field.tag) {
@@ -715,14 +763,19 @@ export class Jmarc {
             }
             
             if (! found) {
-                this.fields.push(field);
+				// put at end of tag group
+                this.fields.splice(
+					this.fields.indexOf(this.getField(field.tag)) + this.getFields(field.tag).length, 
+					0, 
+					field
+				);
+
+				console.log(this.fields.map(x => x.tag))
             }
-        } 
-        else if (place) {
+        } else if (place) {
             // record place
             this.fields.splice(place, 0, field);
-        }
-        else {
+        } else {
             this.fields.push(field);
         }
         

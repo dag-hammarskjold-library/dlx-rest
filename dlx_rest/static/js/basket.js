@@ -8,27 +8,31 @@ import basket from "./api/basket.js";
 export let basketcomponent = {
     props: ["api_prefix", "basket_id"],
     template: ` 
-    <div class="container col-sm-2" id="app0" style="background-color:white;">
-        <div class='container mt-3 shadow' style="overflow-y: scroll; height:650px;">
-         <div class="row"><div class="col"><i class="fas fa-sync text-primary" title="Reload Basket Now" v-on:click="rebuildBasket()"></i></div></div>
-            <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
-            
-                <a href="#" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
-                <div class="d-flex w-100 justify-content-between" >
-                        <small><span class="mb-1">{{record.collection}}/{{record._id}}</span></small>
-                        <small><i v-on:click="removeRecordFromList(record.collection, record._id)" class="far fa-trash-alt"></i></small>
-                    </div>
-                    <p class="mb-1 text-success" v-on:click="displayRecord(record._id, record.collection)">
-                        <span v-if="record.title.length > 45" :title=record.title>{{record.title.substring(0,45)}}....</span>
-                        <span v-else :title=record.title>{{record.title}}</span>
-                    </p>
-                    <p v-if="record.symbol" class="mb-1">
-                        <small>
-                            <span v-if="record.symbol.length > 45" :title=record.symbol>{{record.symbol.substring(0,45)}}....</span>
-                            <span v-else :title=record.symbol>{{record.symbol}}</span>
-                        </small>
-                    </p>
-                </a>
+    <div class="col-sm-2" id="app0" style="background-color:white;">
+        <div class="mt-1" style="overflow-y: scroll; min-height:650px;">
+            <div class="col">
+                <div class="col">
+                    <i class="fas fa-sync p-1 record-control" title="Reload Basket Now" v-on:click="rebuildBasket()"></i>
+                    <i class="fas fa-cut p-1 record-control" title="Clear Basket Contents" v-on:click="clearBasket()"></i>
+                </div>
+                <div :id=record._id v-for="record in sortedBasket" :key="record._id" class="list-group mt-2 ">
+                
+                    <a href="#" v-on:click="handleClick($event, record._id, record.collection)" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
+                        <div class="d-flex w-100 justify-content-between" >
+                            <small><span style="overflow-x:hidden">{{record.collection}}/{{record._id}}</span></small>
+                            <small><i id="closeRecord" v-on:click="handleClick($event, record._id, record.collection)" class="fas fa-times p-1 record-control" title="Remove record from basket"></i></small>
+                        </div>
+                        <div style="overflow-x:hidden">
+                            <span style="white-space:nowrap" :title=record.title>{{record.title}}</span>
+                        </div>
+                        <div v-if="record.symbol" style="overflow-x:hidden">
+                            <small>
+                                <span v-if="record.symbol.length > 45" :title=record.symbol>{{record.symbol.substring(0,45)}}....</span>
+                                <span v-else :title=record.symbol>{{record.symbol}}</span>
+                            </small>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -55,6 +59,14 @@ export let basketcomponent = {
         this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
     },
     methods: {
+        handleClick(e, record_id, collection) {
+            if (e.srcElement.id == "closeRecord") {
+                e.stopPropagation()
+                this.removeRecordFromList(collection, record_id)
+            } else {
+                this.displayRecord(record_id, collection)
+            }
+        },
         removeRecordFromRecordDisplayed(recordToDelete){
             const index = this.recordDisplayed.indexOf(recordToDelete);
             if (index > -1) {
@@ -67,12 +79,12 @@ export let basketcomponent = {
 
             if (this.editor.currentRecordObjects.filter(x => x.collection == myCollection && x.recordId == myRecord).length > 0) {
                 // the record is already open
-                //this.callChangeStyling("Record already open", "row alert alert-danger")
+                //this.callChangeStyling("Record already open", "d-flex w-100 alert-danger")
                 return
             }
 
             if (this.editor.currentRecordObjects.length === 2) {
-                //this.callChangeStyling("Please remove one record from the editor!!!", "row alert alert-warning")
+                //this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
 
                 // attempt to close the second record 
                 let toRemove = this.editor.currentRecordObjects[1];
@@ -80,29 +92,37 @@ export let basketcomponent = {
             }   
             
             this.editor.recordlist.push(`${myCollection}/${myRecord}`);
-            let jmarc = await Jmarc.get(myCollection, myRecord);
             
-            if (this.editor.displayMarcRecord(jmarc)) {
-                // add record displayed
-                this.recordDisplayed.push(jmarc.recordId)
-                // this.forceUpdate()
-                this.callChangeStyling("Record added to the editor", "row alert alert-success")
-            } else {
-                // the record did not display for some reason
-                this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
-            }
+            Jmarc.get(myCollection, myRecord).then(
+                jmarc => {
+                    if (this.editor.displayMarcRecord(jmarc)) {
+                        // add record displayed
+                        this.recordDisplayed.push(jmarc.recordId)
+                        // this.forceUpdate()
+                        this.callChangeStyling("Record added to the editor", "d-flex w-100 alert-success")
+                    } else {
+                        // the record did not display for some reason
+                        this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
+                    }
+                }
+            )
         },
         callChangeStyling(myText, myStyle) {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
         },
         async removeRecordFromList(collection, record_id) {
-            let el = document.getElementById(`${collection}--${record_id}`);
+            let el = document.getElementById(`${collection}--${record_id}`)
             const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
                 el.parentElement.remove();
-                this.callChangeStyling("Record removed from basket", "row alert alert-success");
+                this.callChangeStyling("Record removed from basket", "d-flex w-100 alert-success");
                 return true;
+            }
+        },
+        async clearBasket() {
+            for (let item of this.basketItems) {
+                this.removeRecordFromList(item.collection, item._id)
             }
         },
         async buildBasket() {
@@ -113,6 +133,12 @@ export let basketcomponent = {
 
                 basket.getItem(this.api, element.collection, element.record_id).then(
                     item => {
+                        if (typeof item === "undefined") {
+                            //const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
+                            basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, element.collection, element.record_id);
+                            return
+                        }
+
                         data["collection"] = element.collection;
                         data["_id"] = element.record_id;
                         data["basket_item_id"] = element.url.split('/').pop();
@@ -164,7 +190,7 @@ export let basketcomponent = {
                         */
 
                         // alert that debugging is needed
-                        callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "row alert alert-danger")
+                        this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
                     }
                 )
             }

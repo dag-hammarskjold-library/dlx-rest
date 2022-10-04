@@ -12,12 +12,13 @@ def generate_password():
 
 @app.cli.command('create-user')
 @click.argument('email')
+@click.argument('username')
 #@click.argument('password', required=False, default=None)
 #@click.argument('role', required=False, default='user')
-def create_user(email):
+def create_user(email, username):
     my_password = generate_password()
     try:
-        user = User(email=email)
+        user = User(email=email, username=username)
         user.set_password(my_password)
         user.save()
         print(f"User {email} has been created. Password: {my_password}")
@@ -37,6 +38,14 @@ def make_admin(email):
         user.save()
     except:
         print("The user doesn't exist or couldn't be saved. You should use the create-user command first.")
+
+@app.cli.command('init-usernames')
+def init_usernames():
+    for user in User.objects():
+        username = user.email.split('@')[0]
+        #print(user.email, username)
+        user.username = username
+        user.save()
 
 @app.cli.command('init-roles')
 def init_roles():
