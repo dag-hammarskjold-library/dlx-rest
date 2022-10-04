@@ -3,6 +3,7 @@
 
 import { Jmarc } from "./jmarc.mjs";
 import basket from "./api/basket.js";
+import { multiplemarcrecordcomponent } from "./record.js";
 
 /////////////////////////////////////////////////////////////////
 export let basketcomponent = {
@@ -70,6 +71,7 @@ export let basketcomponent = {
         removeRecordFromRecordDisplayed(recordToDelete){
             const index = this.recordDisplayed.indexOf(recordToDelete);
             if (index > -1) {
+                // remove from the basket
                 this.recordDisplayed.splice(index, 1);
             }
         },
@@ -115,6 +117,13 @@ export let basketcomponent = {
             const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
             const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
             if (deleted) {
+                // remove the record from the editor stage (if the record is displayed)
+                this.editor.displayedJmarcObject.forEach((item)=>{
+                    if (item.recordId===parseInt(record_id)) { 
+                        this.editor.removeRecordFromEditor(item) }
+                    }
+                )
+
                 el.parentElement.remove();
                 this.callChangeStyling("Record removed from basket", "d-flex w-100 alert-success");
                 return true;
