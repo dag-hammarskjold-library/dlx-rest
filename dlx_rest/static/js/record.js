@@ -327,6 +327,7 @@ export let multiplemarcrecordcomponent = {
                     checkbox.click()
                 }
             }
+            //console.log(this.copiedFields)
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
@@ -442,7 +443,7 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No fields are selected to paste", "d-flex w-100 alert-danger")
                 return
             }
-            console.log(this.copiedFields)
+            //console.log(this.copiedFields)
 
             let seen = [];
 
@@ -603,6 +604,40 @@ export let multiplemarcrecordcomponent = {
             this.checkSavedState(jmarc);
 
             return newField
+        },
+        deleteFields(jmarc) {
+            // This is mostly duplicating the function that follows; ideally this function would call the deleteField function multiple times
+            //console.log(this.copiedFields)    
+            if (this.copiedFields.length === 0) {
+                this.callChangeStyling("No fields selected", "d-flex w-100 alert-danger")
+                return
+            }
+
+            for (let field of this.copiedFields) {
+                
+                //console.log(`deleting ${field.row.rowIndex}`)
+                if (jmarc.getDataFields().length === 1) {
+                        // this is the record's only field
+                        this.callChangeStyling("Can't delete record's only field", "d-flex w-100 alert-danger")                       
+                        return
+                }
+                jmarc.deleteField(field)
+                this.removeRecordFromEditor(jmarc);
+                this.displayMarcRecord(jmarc);
+                //let myTable=document.getElementById(this.selectedDiv).firstChild 
+                //myTable.deleteRow(field.row.rowIndex);
+
+                // remove the field from the copied fields stack
+                this.copiedFields = []
+                // To do: Fix undo/redo, which is covered in #628
+                // This should work, but none of the undo/redo is working
+                jmarc.addUndoredoEntry("from Delete Field");
+            }
+
+            // Manage visual indicators
+            this.checkSavedState(jmarc);
+            
+            this.callChangeStyling(`Selected fields have been deleted`, "d-flex w-100 alert-success")
         },
         deleteField(jmarc){
             // delete the field
@@ -2016,6 +2051,7 @@ export let multiplemarcrecordcomponent = {
 
             deleteMultiField.className = "dropdown-item"
             deleteMultiField.innerText = "Delete Selected Field(s)"
+            deleteMultiField.addEventListener("click", () => this.deleteFields(jmarc))
 
             // Tag
             let tagCell = tagRow.insertCell();
