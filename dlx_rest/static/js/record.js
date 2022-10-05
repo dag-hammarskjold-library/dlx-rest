@@ -1986,6 +1986,7 @@ export let multiplemarcrecordcomponent = {
             checkCell.className = "field-checkbox";
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
+            inputCheckboxCell.tabIndex = -1
             inputCheckboxCell.setAttribute("type","checkbox")
             // adding the checkbox only if we are not in dual mode
             if (!this.historyMode) checkCell.appendChild(inputCheckboxCell)
@@ -2014,6 +2015,7 @@ export let multiplemarcrecordcomponent = {
             let menuButton = document.createElement("button");
             menuCell.appendChild(menuButton);
             menuButton.className = "fa fa-bars field-menu";
+            menuButton.tabIndex = -1
  
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
@@ -2064,7 +2066,7 @@ export let multiplemarcrecordcomponent = {
             field.ind1Span = ind1Span;
             ind1Div.append(ind1Span);
             ind1Span.className = "mx-1";
-            ind1Span.tabIndex = 0;
+            ind1Span.tabIndex = -1;
             
             let ind2Cell = tagRow.insertCell();
             field.ind2Cell = ind2Cell;
@@ -2076,7 +2078,7 @@ export let multiplemarcrecordcomponent = {
             field.ind2Span = ind2Span;
             ind2Div.append(ind2Span);
             ind2Span.className = "mx-1";
-            ind2Span.tabIndex = 0;
+            ind2Span.tabIndex = -1;
 
             // Subfield table
             let fieldCell = field.row.insertCell();
@@ -2090,9 +2092,16 @@ export let multiplemarcrecordcomponent = {
             if (field.constructor.name == "ControlField") {
                 field.row.classList.add("hidden-field");
                 let fieldRow = subfieldTable.insertRow();
-                fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
-                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                //fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
+                let menuCell = fieldRow.insertCell()
+                //menuCell.tabIndex = -1
+                menuCell.className = "subfield-menu"
+                //fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
+                let codeCell = fieldRow.insertCell()
+                //codeCell.tabIndex = 1
+                codeCell.className = "subfield-code"
                 let valCell = fieldRow.insertCell();
+                valCell.tabIndex = 1
                 valCell.innerHTML = field.value;
             } else {
                 // indicators 
@@ -2345,6 +2354,7 @@ export let multiplemarcrecordcomponent = {
             let menuButton = document.createElement("button");
             menuCell.append(menuButton);
             menuButton.classList = "fa fa-bars subfield-menu";
+            menuButton.tabIndex = -1
    
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
@@ -2357,11 +2367,11 @@ export let multiplemarcrecordcomponent = {
             codeCell.append(codeDiv);
             codeDiv.classList.add("subfield-code");
             let codeSpan = document.createElement("span");
+            codeSpan.tabIndex = 0
             subfield.codeSpan = codeSpan;
             codeDiv.append(codeSpan);
             //codeSpan.contentEditable = true;
             codeSpan.innerText = subfield.code;
-            codeSpan.tabIndex = 0;
 
             // add subfield
             let addSubfield = document.createElement("i");
@@ -2381,8 +2391,10 @@ export let multiplemarcrecordcomponent = {
             valCell.setAttribute("data-taggle", "tooltip");
             //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
             valCell.innerText = " "; // space for padding
+            
    
             let valSpan = document.createElement("span");
+            valSpan.tabIndex = 0
             valCell.appendChild(valSpan);
             valSpan.classList.add("subfield-value");
 
