@@ -2150,6 +2150,7 @@ export let multiplemarcrecordcomponent = {
                     if (event.keyCode === 13) {
                         event.preventDefault();
                         input.blur();
+                        field.subfields[0].valueElement.focus();
                     }
 
                     // shift + tab
