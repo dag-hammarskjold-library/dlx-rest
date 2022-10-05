@@ -351,6 +351,50 @@ export let multiplemarcrecordcomponent = {
         ///// definition of the methods used in the listeners
         ////////////////////////////////////////////////////////
 
+
+        selectFields(jmarc) {
+            // 615
+            //let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
+            //if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
+            let recordSelectBox = document.querySelector(`div#${jmarc.div.id} #selectRecordButton`)
+            //let fieldCheckBoxes = document.getElementsByClassName("field-checkbox")
+            let fieldCheckBoxes = document.querySelectorAll(`div#${jmarc.div.id} input.field-checkbox`)
+            if (recordSelectBox.className.includes("fa-square")) {
+                recordSelectBox.classList.replace("fa-square","fa-check-square")
+                for (let checkbox of fieldCheckBoxes) {
+                    checkbox.checked = false
+                    checkbox.click()
+                }
+            } else {
+                recordSelectBox.classList.replace("fa-check-square","fa-square")
+                for (let checkbox of fieldCheckBoxes) {
+                    checkbox.checked = true
+                    checkbox.click()
+                }
+            }
+            //console.log(this.copiedFields)
+        },
+        toggleSelectField(e, jmarc, field) {
+            // We automatically add the contents of a checked field to the copy stack
+            if (e.target.checked) {
+                if (!field.row.className.includes("hidden-field")) {
+                    if (jmarc.recordId == this.selectedJmarc.recordId) {
+                        this.selectedFields.push(field);
+                    }
+                    this.copiedFields.push(field);                        
+                }
+            } else {
+                if (this.copiedFields) {
+                    // remove from the list of copied fields
+                    this.copiedFields.splice(this.copiedFields.indexOf(field, 1))
+                    if (jmarc.recordId==this.selectedJmarc.recordId)
+                    {
+                        this.selectedFields.splice(this.selectedFields.indexOf(field, 1))
+                    }
+                   
+                }
+            }
+        },
         saveRecord(jmarc,display=true){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
@@ -444,6 +488,7 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No fields are selected to paste", "d-flex w-100 alert-danger")
                 return
             }
+            //console.log(this.copiedFields)
 
             let seen = [];
 
@@ -455,7 +500,7 @@ export let multiplemarcrecordcomponent = {
                 // recreate the field
                 let newField = jmarc.createField(field.tag);
                 newField.indicators = field.indicators || ["_", "_"];
-               
+                
                 for (let subfield of field.subfields) {
                     let newSubfield = newField.createSubfield(subfield.code);
                     newSubfield.value = subfield.value;
@@ -476,6 +521,10 @@ export let multiplemarcrecordcomponent = {
             // clear all checkboxes
             for (let checkbox of document.getElementsByClassName("field-checkbox")) {
                 checkbox.checked = false;
+            }
+
+            for (let checkBox of document.getElementsByClassName("fa-check-square")) {
+                checkBox.classList.replace("fa-check-square", "fa-square")
             }
 
             // adding the snapshot 
@@ -601,9 +650,29 @@ export let multiplemarcrecordcomponent = {
 
             return newField
         },
-        deleteField(jmarc){
-            // delete the field
-            let field = jmarc.fields.filter(x => x.selected)[0];
+        deleteFields(jmarc) {
+            // deletes all checked fields (contained in this.copiedFields)
+
+            if (this.copiedFields.length === 0) {
+                this.callChangeStyling("No fields selected", "d-flex w-100 alert-danger")
+                return
+            }
+
+            // clone the array so it is not altered during the loop
+            let toDelete = [...this.copiedFields];
+
+            for (let field of [...toDelete]) {
+                this.deleteField(jmarc, field);
+            }
+
+            //this.removeRecordFromEditor(jmarc);
+            //this.displayMarcRecord(jmarc);
+            
+            this.callChangeStyling(`Selected fields have been deleted`, "d-flex w-100 alert-success")
+        },
+        deleteField(jmarc, field=null){ 
+            // delete the selected field, or the field supplied by the args if it exists
+            field = field || jmarc.fields.filter(x => x.selected)[0];
             let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
@@ -631,7 +700,7 @@ export let multiplemarcrecordcomponent = {
             // remove the field from the copied fields stack
             let i = this.copiedFields.indexOf(field);
             
-            if (typeof i !== 'undefined') {
+            if (i > -1) {
                 this.copiedFields.splice(i, 1);
             }
  
@@ -711,8 +780,8 @@ export let multiplemarcrecordcomponent = {
             //jmarc.selected = true
             let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
-            let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
-            if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
+            //let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
+            //if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
            
         },
         async unlockRecord(jmarc, lockedBy) {
@@ -926,11 +995,11 @@ export let multiplemarcrecordcomponent = {
         clearSelectedRecord(){
            
             // remove checked option
-            let selectedRecords=document.querySelectorAll("i#selectRecordButton")
-            let selectedRecordsArray=Array.from(selectedRecords)
-            selectedRecordsArray.forEach(element => {
-                element.classList.replace("fa-check-square", "fa-square")
-            })
+            //let selectedRecords=document.querySelectorAll("i#selectRecordButton")
+            //let selectedRecordsArray=Array.from(selectedRecords)
+            //selectedRecordsArray.forEach(element => {
+            //    element.classList.replace("fa-check-square", "fa-square")
+            //})
  
             // change color header
             let selectedHeader=document.getElementsByTagName("thead")
@@ -1714,7 +1783,7 @@ export let multiplemarcrecordcomponent = {
            
             // This could be offloaded to config
             let controls = [
-                {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Record", "click": "selectRecord"},
+                {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Fields", "click": "selectFields"},
                 {"name": "idField", "element": "span", "class": "mx-1", "title": "", "load": "getId" },
                 {"name": "countField", "element": "span", "class": "mx-1", "title": "", "load": "getId"},
                 {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
@@ -1731,7 +1800,7 @@ export let multiplemarcrecordcomponent = {
             ];
             if (jmarc.workformName) {
                 controls = [
-                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
+                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Fields", "click": "selectFields"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                     {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Workform", "click": "saveRecord"},
                     {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Record", "click": "cloneRecord" },
@@ -1760,7 +1829,7 @@ export let multiplemarcrecordcomponent = {
 
             if (this.readonly && this.user !== null) {
                 controls = [
-                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
+                    //{"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                 ]
                 if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
@@ -1772,7 +1841,7 @@ export let multiplemarcrecordcomponent = {
                 }
             } else if (this.user == null) {
                 controls = [
-                    {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
+                    //{"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                 ]
             }
@@ -1981,28 +2050,7 @@ export let multiplemarcrecordcomponent = {
             // let that = component;
  
             // define the on click event
-            checkCell.addEventListener('click', (e)=> {
-                // check if the box is checked
-                if (e.target.checked === true){
-                    // add the selected field(s) inside the selectedFields array
-                    // only if the jmarc is the selected one
-                    if (jmarc.recordId==component.selectedJmarc.recordId)
-                        {
-                            component.selectedFields.push(field);
-                        } 
-                    component.copiedFields.push(field);
-                } else {
-                   if (component.copiedFields) {
-                       // remove from the list of copied fields
-                       component.copiedFields.splice(component.copiedFields.indexOf(field, 1))
-                       if (jmarc.recordId==component.selectedJmarc.recordId)
-                       {
-                        component.selectedFields.splice(component.selectedFields.indexOf(field, 1))
-                       }
-                      
-                   }
-                }
-            });
+            checkCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
 
             // tag container cell
             let tagContainerCell = field.row.insertCell();
@@ -2038,6 +2086,14 @@ export let multiplemarcrecordcomponent = {
 
             deleteField.className = "dropdown-item";
             deleteField.innerText = "Delete field";
+
+            // menu item Delete All Checked
+            let deleteMultiField = document.createElement("i")
+            tagMenu.append(deleteMultiField)
+
+            deleteMultiField.className = "dropdown-item"
+            deleteMultiField.innerText = "Delete Selected Field(s)"
+            deleteMultiField.addEventListener("click", () => this.deleteFields(jmarc))
 
             // Tag
             let tagCell = tagRow.insertCell();
@@ -2719,6 +2775,8 @@ export let multiplemarcrecordcomponent = {
 
             field.row.classList.add("field-row-selected");
             field.selected = true;
+
+            return field
         },
         clearSelectedSubfield(jmarc) {
             for (let field of jmarc.getDataFields()) {
