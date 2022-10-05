@@ -2571,9 +2571,16 @@ export let multiplemarcrecordcomponent = {
 
             valSpan.addEventListener("blur", function() {
                 // remove extraneous whitespace
-                valSpan.innerText = valSpan.innerText.trim();
-                valSpan.innerText = valSpan.innerText.replace(/ {2,}/, ' ');
-                updateSubfieldValue();
+                if (valSpan.innerText.match(/([\r\n]|\s{2,})/)) { 
+                    valSpan.innerText = valSpan.innerText.trim();
+                    valSpan.innerText = valSpan.innerText.replace(/ {2,}/, ' ');
+                    updateSubfieldValue();
+                    
+                    component.callChangeStyling(
+                        `Extraneous whitespace removed from ${field.tag}$${subfield.code}`,
+                        "d-flex w-100 alert-success"
+                    )
+                }
 
                 valSpan.classList.remove("subfield-value-selected");
                 component.clearSelectedSubfield(jmarc);
