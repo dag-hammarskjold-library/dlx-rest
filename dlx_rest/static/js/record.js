@@ -2092,16 +2092,10 @@ export let multiplemarcrecordcomponent = {
             if (field.constructor.name == "ControlField") {
                 field.row.classList.add("hidden-field");
                 let fieldRow = subfieldTable.insertRow();
-                //fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
-                let menuCell = fieldRow.insertCell()
-                //menuCell.tabIndex = -1
-                menuCell.className = "subfield-menu"
-                //fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
-                let codeCell = fieldRow.insertCell()
-                //codeCell.tabIndex = 1
-                codeCell.className = "subfield-code"
+                fieldRow.insertCell().className = "subfield-menu" // placeholder for subfield menu column
+                fieldRow.insertCell().className = "subfield-code"; // placeholder for subfield code column
                 let valCell = fieldRow.insertCell();
-                valCell.tabIndex = 1
+                valCell.tabIndex = 0
                 valCell.innerHTML = field.value;
             } else {
                 // indicators 
