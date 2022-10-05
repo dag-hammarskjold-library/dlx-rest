@@ -124,7 +124,7 @@ export let multiplemarcrecordcomponent = {
                             @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and release
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);"> Close and discard
+                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc);"> Close and discard
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
                             @click="closeModalSave()"> Cancel
