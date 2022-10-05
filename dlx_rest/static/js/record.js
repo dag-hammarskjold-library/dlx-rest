@@ -96,6 +96,44 @@ export let multiplemarcrecordcomponent = {
                 </div>
             </transition>
         </div>
+
+        <!-- Modal displaying save options -->
+        <div id="modalSave" v-show="this.showModalSave">
+            <transition name="modalSave">
+                <div class="modal-mask">
+                <div class="modal-wrapper" >
+                    <div class="modal-container" id="modalchildsave">
+
+                    <div class="modal-header" id="titleSave">
+                    
+                        <slot name="header">
+                            <h3><span id="titlemodalSave" class="mt-2 text-danger"> Warning !!!  </span></h3>
+                        </slot>
+                        
+                    </div>
+  
+                    <div id="contentSave" class="modal-body modal-content mt-0" >
+                            <h5> You have unsaved changes </h5>
+                    </div>
+                    <div class="modal-footer">
+                        <slot name="footer">
+                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save
+                        </button>
+                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and release
+                        </button>
+                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                            @click="closeModalSave()"> Cancel
+                        </button>
+                        </slot>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </transition>
+        </div>
+
         </div>
     `,
  
@@ -127,6 +165,7 @@ export let multiplemarcrecordcomponent = {
             selectedFields:[],
             recordLocked: {"locked": false},
             showModal:false,
+            showModalSave:false,
             numberRecordHistory:0,
             historyMode:false,
             historyJmarcOriginal:"",
@@ -282,6 +321,11 @@ export let multiplemarcrecordcomponent = {
         });
     },
     methods: {
+
+        // popup warning modal if we have unsaved changes
+        warningSave(){
+            this.showModalSave=true
+        },
  
         // add a new jmarc object in the array of Marc objects
         addJmarcTodisplayedJmarcObject(jmarcToAdd){
@@ -307,11 +351,11 @@ export let multiplemarcrecordcomponent = {
         ///// definition of the methods used in the listeners
         ////////////////////////////////////////////////////////
 
-        saveRecord(jmarc){
+        saveRecord(jmarc,display=true){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
+                    if (display) this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
@@ -327,7 +371,7 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.remove("fa-pulse");
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
-                    this.displayMarcRecord(jmarc, false);
+                    if (display) this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
@@ -975,6 +1019,10 @@ export let multiplemarcrecordcomponent = {
         closeModal() {
             this.showModal = false;
         },
+
+        closeModalSave() {
+            this.showModalSave = false;
+        },
         
         async getRecordView(collection) {
             let content= `/views/${collection}`
@@ -1384,11 +1432,15 @@ export let multiplemarcrecordcomponent = {
         userClose(jmarc) {
             // called when the user clicks the X button
             //Issue #555
+            // if(! jmarc.saved) {
+            //     let val = confirm("Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record.")
+            //     if (val == false) {
+            //         return
+            //     }
+
             if(! jmarc.saved) {
-                let val = confirm("Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record.")
-                if (val == false) {
-                    return
-                }
+                this.showModalSave=true
+                return
             }
 
             this.removeRecordFromEditor(jmarc)
@@ -1593,11 +1645,14 @@ export let multiplemarcrecordcomponent = {
                     }
                 })
 
+            
+
             // events
             // check for unsaved changes on leaving page
+
             window.addEventListener("beforeunload", function(event) {
                 if (component.currentRecordObjects.indexOf(jmarc) > -1 && ! jmarc.saved) {
-                    // most browsers will display a default dialog message no matter what string is returned
+                    //most browsers will display a default dialog message no matter what string is returned
                     return event.returnValue = "Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record."
                 }
             });
