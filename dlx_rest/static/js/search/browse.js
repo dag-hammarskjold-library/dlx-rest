@@ -157,42 +157,38 @@ export let browsecomponent = {
         for (let url of [beforeBrowse, afterBrowse]) {
             let resultsList = url === beforeBrowse ? this.results_before : this.results_after;
             
-            fetch(url).then(
-                response => {
+            fetch(url)
+                .then(response => {
                     return response.json()
+                })
+            .then(jsondata => {
+                let searchStr = decodeURIComponent(jsondata.data[0].search);
+                searchStr = searchStr.split('search=')[1]; 
+                let field = searchStr.split(":")[0]; // the logical field that is being browsed on
+
+                if (url === beforeBrowse) {
+                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[0].value}`;
+                } else {
+                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[jsondata.data.length-1].value}`;
                 }
-            ).then(
-                jsondata => {
-                    let searchStr = decodeURIComponent(jsondata.data[0].search);
-                    searchStr = searchStr.split('search=')[1]; 
-                    let field = searchStr.split(":")[0]; // the logical field that is being browsed on
 
-                    if (url === beforeBrowse) {
-                        this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[0].value}`;
-                    } else {
-                        this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[jsondata.data.length-1].value}`;
-                    }
-
-                    for (let result of jsondata.data) {
-                        // tanslate api search to app search
-                        let searchStr = result.search.split('search=')[1];
-                        let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
-                        resultsList.push({'value': result.value, 'url': searchUrl});
+                for (let result of jsondata.data) {
+                    // tanslate api search to app search
+                    let searchStr = result.search.split('search=')[1];
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
+                    resultsList.push({'value': result.value, 'url': searchUrl});
+                    
+                    // get the count
+                    fetch(result.count).then(response => response.json())
+                        .then(json => {
+                            let count = json.data;
+                            document.getElementById(`count-${result.value}`).innerHTML = `(${count})`;
                         
-                        // get the count
-                        fetch(result.count).then(
-                            response => response.json()
-                        ).then(
-                            json => {
-                                let count = json.data;
-                                document.getElementById(`count-${result.value}`).innerHTML = `(${count})`;
-                            
-                                if (count === 1) {
-                                    // return direct link to record
-                                    fetch(result.search).then(
-                                        response => response.json()
-                                    ).then(
-                                        json => {
+                            if (count === 1) {
+                                // return direct link to record
+                                fetch(result.search)
+                                    .then(response => response.json())
+                                    .then(json => {
                                             let apiUrl = json.data[0];
                                             let parts = apiUrl.split("/");
                                             let recordId = parts[parts.length-1];
@@ -207,53 +203,46 @@ export let browsecomponent = {
                                             document.getElementById(`link-${result.value}`).href = recordUrl
 
                                             return recordId
-                                        }
-                                    ).then(
-                                        recordId => {
+                                    })
+                                    .then(recordId => {
                                             if (this.collection !== "auths") return
 
-                                            Jmarc.get(this.collection, recordId).then(
-                                                jmarc => {
-                                                    // "see" (the prefLabel)
-                                                    // skip if this value is the record's prefLabel
-                                                    // not great way to get the value. to refactor
-                                                    let textValue = document.getElementById(`link-${result.value}`).innerText;
-                                                    textValue = textValue.replace(/\s+\(\d+\)$/, "");
-                                                    let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0].getSubfield("a").value;
-                                                    let see = heading === textValue ? "" : heading;
+                                            Jmarc.get(this.collection, recordId).then(jmarc => {
+                                                // "see" (the prefLabel)
+                                                // skip if this value is the record's prefLabel
+                                                // not great way to get the value. to refactor
+                                                let textValue = document.getElementById(`link-${result.value}`).innerText;
+                                                textValue = textValue.replace(/\s+\(\d+\)$/, "");
+                                                let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0].getSubfield("a").value;
+                                                let see = heading === textValue ? "" : heading;
 
-                                                    // "see also" (related)
-                                                    let seeAlso = 
-                                                        jmarc.fields.filter(x => x.tag.match(/^5/))
-                                                        .map(x => x.subfields.filter(x => x.code === "a")
-                                                        .map(x => x.value))
-                                                        .flat(2)
-                                                        .join(" | ");
+                                                // "see also" (related)
+                                                let seeAlso = 
+                                                    jmarc.fields.filter(x => x.tag.match(/^5/))
+                                                    .map(x => x.subfields.filter(x => x.code === "a")
+                                                    .map(x => x.value))
+                                                    .flat(2)
+                                                    .join(" | ");
 
-                                                    let el = document.getElementById(`seealso-${result.value}`)
-                                                    el.innerText = see ? `see: ${see}\n` : "";
-                                                    el.innerText += seeAlso ? `see also: ${seeAlso}` : "";
-                                                }
-                                            )
-                                        }
-                                    )
-                                }
+                                                let el = document.getElementById(`seealso-${result.value}`)
+                                                el.innerText = see ? `see: ${see}\n` : "";
+                                                el.innerText += seeAlso ? `see also: ${seeAlso}` : "";
+                                            });
+                                    })
                             }
-                        )
-                    }
+                        }
+                    )
                 }
-            ).then( 
-                () => {
-                    let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
-                    spinner.remove()
-                }
-            ).catch(
-                error => {
-                    console.log(error)
-                    let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
-                    spinner.remove()
-                }
-            );
+            })
+            .then(() => {
+                let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
+                spinner.remove()
+            })
+            .catch(error => {
+                console.log(error)
+                let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
+                spinner.remove()
+            });
         }
     },
     methods: {
