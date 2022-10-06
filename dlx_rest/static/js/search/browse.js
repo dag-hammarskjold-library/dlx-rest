@@ -1,3 +1,5 @@
+import { Jmarc } from "../jmarc.mjs";
+
 export let browsecomponent = {
     props: {
         api_prefix: {
@@ -53,6 +55,12 @@ export let browsecomponent = {
                             <i class="fas fa-spinner"></i>
                         </span>
                     </a>
+                    <br>
+                    <small>
+                        <em>
+                            <span :id="'seealso-' + result.value"></span>
+                        </em>
+                    </small>
                 </div>
             </div>
             <div class="row">
@@ -74,6 +82,12 @@ export let browsecomponent = {
                             <i class="fas fa-spinner"></i>
                         </span>
                     </a>
+                    <br>
+                    <small>
+                        <em>
+                            <span :id="'seealso-' + result.value"></span>
+                        </em>
+                    </small>
                 </div>
             </div>
             <nav>
@@ -113,6 +127,7 @@ export let browsecomponent = {
         </div>
     </div>`,
     data: function () {
+        Jmarc.apiUrl = this.api_prefix;
         let baseUrl = this.api_prefix.replace("/api", "");
         
         return {
@@ -182,7 +197,7 @@ export let browsecomponent = {
                                             let parts = apiUrl.split("/");
                                             let recordId = parts[parts.length-1];
                                             let recordUrl;
-                                            
+
                                             if (this.logged_in) {
                                                 recordUrl = `${this.base_url}/editor?records=${this.collection}/${recordId}`
                                             } else {
@@ -190,6 +205,26 @@ export let browsecomponent = {
                                             }
                                             
                                             document.getElementById(`link-${result.value}`).href = recordUrl
+
+                                            return recordId
+                                        }
+                                    ).then(
+                                        recordId => {
+                                            if (this.collection !== "auths") return
+
+                                            Jmarc.get(this.collection, recordId).then(
+                                                jmarc => {
+                                                    // "see alsos"
+                                                    let fields = jmarc.fields.filter(x => x.tag.match(/^[45]/));
+                                                    let seeAlsos = fields
+                                                        .map(x => x.subfields.filter(x => x.code === "a")
+                                                        .map(x => x.value))
+                                                        .flat(2)
+                                                        .join(" | ");
+
+                                                    document.getElementById(`seealso-${result.value}`).innerText = seeAlsos;
+                                                }
+                                            )
                                         }
                                     )
                                 }
