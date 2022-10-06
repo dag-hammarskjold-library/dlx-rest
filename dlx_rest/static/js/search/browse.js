@@ -214,15 +214,25 @@ export let browsecomponent = {
 
                                             Jmarc.get(this.collection, recordId).then(
                                                 jmarc => {
-                                                    // "see alsos"
-                                                    let fields = jmarc.fields.filter(x => x.tag.match(/^[45]/));
-                                                    let seeAlsos = fields
+                                                    // "see" (the prefLabel)
+                                                    // skip if this value is the record's prefLabel
+                                                    // not great way to get the value. to refactor
+                                                    let textValue = document.getElementById(`link-${result.value}`).innerText;
+                                                    textValue = textValue.replace(/\s+\(\d+\)$/, "");
+                                                    let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0].getSubfield("a").value;
+                                                    let see = heading === textValue ? "" : heading;
+
+                                                    // "see also" (related)
+                                                    let seeAlso = 
+                                                        jmarc.fields.filter(x => x.tag.match(/^5/))
                                                         .map(x => x.subfields.filter(x => x.code === "a")
                                                         .map(x => x.value))
                                                         .flat(2)
                                                         .join(" | ");
 
-                                                    document.getElementById(`seealso-${result.value}`).innerText = seeAlsos;
+                                                    let el = document.getElementById(`seealso-${result.value}`)
+                                                    el.innerText = see ? `see: ${see}\n` : "";
+                                                    el.innerText += seeAlso ? `see also: ${seeAlso}` : "";
                                                 }
                                             )
                                         }
