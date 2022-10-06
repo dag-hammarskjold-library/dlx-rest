@@ -607,14 +607,15 @@ export class Jmarc {
                     newField.value = field;
                 } else {
                     newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
+					let seen = {}; // for keeping the subfield order
 					
-					for (let code of new Set(field.subfields.map(x => x.code))) {
-						for (let [i, subfield] of field.subfields.filter(x => x.code == code).entries()) {
-							let newSub = newField.getSubfield(code, i) || newField.createSubfield(subfield.code);
-							newSub._seen = true; // temp flag
-							newSub.value = subfield.value;
-                        	newSub.xref = subfield.xref;
-						}    
+					for (let subfield of field.subfields) {
+						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
+						newSub._seen = true; // temp flag used for differentiating previous state
+						newSub.value = subfield.value;
+                        newSub.xref = subfield.xref;
+						if (! seen[subfield.code]) seen[subfield.code] = 0;
+						seen[subfield.code]++;
 					}
 				}
 			}
