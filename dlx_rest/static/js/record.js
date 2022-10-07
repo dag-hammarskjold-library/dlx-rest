@@ -601,12 +601,42 @@ export let multiplemarcrecordcomponent = {
                 newSubfield.codeSpan.focus();
 
                 newSubfield.valueCell.classList.add("unsaved");
-                saveButton.classList.add("text-danger");
-                saveButton.classList.remove("text-primary");
-                saveButton.title = "unsaved changes";
+                this.checkSavedState(jmarc);
+            
+                jmarc.addUndoredoEntry("from Delete SubField");
+                this.callChangeStyling(`${field.tag}$${subfield.code} has been added`, "d-flex w-100 alert-success")
 
                 return newSubfield
             }
+        },
+        moveSubfield(jmarc, direction=1) {
+            let field = jmarc.getDataFields().filter(x => x.selected)[0];
+            let dirText = "down"
+            if (direction < 0) {
+                dirText = "up"
+            }
+            let subfield = field.subfields.filter(x => x.selected)[0];
+
+            let fromPlace = field.subfields.indexOf(subfield)
+            let toPlace = fromPlace + direction
+
+            if (toPlace < 0 || toPlace >= field.subfields.length)  {
+                this.callChangeStyling(`Can't move first subfield up or last subfield down.`, "d-flex w-100 alert-warning")
+                return
+            }
+
+            field.subfields.splice(toPlace, 0, field.subfields.splice(fromPlace, 1)[0])
+
+            this.removeRecordFromEditor(jmarc);
+            this.displayMarcRecord(jmarc);
+
+            subfield.valueCell.classList.add("unsaved");
+            
+            this.checkSavedState(jmarc);
+            jmarc.addUndoredoEntry("from Move SubField");
+            this.callChangeStyling(`${field.tag}$${subfield.code} ${subfield.value} has been moved ${dirText}`, "d-flex w-100 alert-success")
+
+            return
         },
         addField(jmarc, newField=null, rowIndex=null) {
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
@@ -2433,6 +2463,16 @@ export let multiplemarcrecordcomponent = {
             codeMenu.append(deleteSubfield);
             deleteSubfield.className = "dropdown-item";
             deleteSubfield.innerText = "Delete subfield";
+
+            let moveSubfieldUp = document.createElement("i")
+            codeMenu.append(moveSubfieldUp)
+            moveSubfieldUp.className = "dropdown-item"
+            moveSubfieldUp.innerText = "Move subfield up"
+
+            let moveSubfieldDown = document.createElement("i")
+            codeMenu.append(moveSubfieldDown)
+            moveSubfieldDown.className = "dropdown-item"
+            moveSubfieldDown.innerText = "Move subfield down"
    
             // Subfield value
             let valCell = subfield.row.insertCell();
@@ -2476,6 +2516,14 @@ export let multiplemarcrecordcomponent = {
                 component.deleteSubFieldFromShort(jmarc)
  
             });
+
+            moveSubfieldUp.addEventListener("click", () => {
+                component.moveSubfield(jmarc, -1)
+            })
+
+            moveSubfieldDown.addEventListener("click", () => {
+                component.moveSubfield(jmarc, 1)
+            })
 
             // Subfield code actions
             function subfieldCodeActivate() {
