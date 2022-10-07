@@ -2630,9 +2630,13 @@ export let multiplemarcrecordcomponent = {
 
             valSpan.addEventListener("blur", function() {
                 // remove extraneous whitespace
-                if (valSpan.innerText.match(/([\r\n]|\s{2,})/)) { 
-                    valSpan.innerText = valSpan.innerText.trim();
-                    valSpan.innerText = valSpan.innerText.replace(/ {2,}/, ' ');
+                if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
+                    valSpan.innerText = 
+                        valSpan.innerText
+                        .replace(/[\r\n]/, ' ')
+                        .trim()
+                        .replace(/ {2,}/, ' ');
+                    
                     updateSubfieldValue();
                     
                     component.callChangeStyling(
