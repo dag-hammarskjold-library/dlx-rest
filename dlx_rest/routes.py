@@ -3,7 +3,7 @@ from cmath import sin
 from email.policy import default
 import re
 import dlx
-from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
+from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
@@ -418,8 +418,26 @@ def search_records(coll):
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+
+    if sort and direction:
+        # Regardless of what's in the session already
+        session["sortCollectionFieldDirection"] = {coll: {"field": sort, "direction": direction}}
+        #print(f"Set {session['sortCollectionFieldDirection']} from URL")
+    else:
+        # See if something is in the session already
+        try:
+            # We have session values, so use those
+            #print(f"Got {session['sortCollectionFieldDirection']} from session")
+            sort = session["sortCollectionFieldDirection"][coll]["field"]
+            direction = session["sortCollectionFieldDirection"][coll]["direction"]
+        except KeyError:
+            # There is nothing in the session, so fallback to defaults
+            #print("Defaults ....")
+            sort = "updated"
+            direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
     terms = re.split(' *(AND|OR|NOT) +', q)
@@ -433,11 +451,7 @@ def search_records(coll):
                 # appears to be free text term
                 sort = 'relevance'
                 
-    if not sort:
-        sort = 'updated'
-        direction = 'desc'
-    elif sort != 'relevance' and not direction:
-        direction = 'asc'
+ 
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
