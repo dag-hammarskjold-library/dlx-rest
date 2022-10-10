@@ -419,23 +419,34 @@ def search_records(coll):
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
+    session.permanent = True
+
+    # Move vcoll variable here so we can use it in the session 
+    vcoll = coll
+    if "B22" in q:
+        vcoll = "speeches"
+    if "B23" in q:
+        vcoll = "votes"
+
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
 
     if sort and direction:
         # Regardless of what's in the session already
-        session["sortCollectionFieldDirection"] = {coll: {"field": sort, "direction": direction}}
-        #print(f"Set {session['sortCollectionFieldDirection']} from URL")
+        session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
+        this_v = session[f"sort_{vcoll}"]
+        print(f"Got {this_v} from URL")
     else:
         # See if something is in the session already
         try:
             # We have session values, so use those
-            #print(f"Got {session['sortCollectionFieldDirection']} from session")
-            sort = session["sortCollectionFieldDirection"][coll]["field"]
-            direction = session["sortCollectionFieldDirection"][coll]["direction"]
+            this_v = session[f"sort_{vcoll}"]
+            print(f"Got {this_v} from session")
+            sort = session[f"sort_{vcoll}"]["field"]
+            direction = session[f"sort_{vcoll}"]["direction"]
         except KeyError:
             # There is nothing in the session, so fallback to defaults
-            #print("Defaults ....")
+            print(f"No sort/dir for {vcoll} found, using defaults.")
             sort = "updated"
             direction = "desc"
     
@@ -454,12 +465,6 @@ def search_records(coll):
  
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-
-    vcoll = coll
-    if "B22" in q:
-        vcoll = "speeches"
-    if "B23" in q:
-        vcoll = "votes"
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
