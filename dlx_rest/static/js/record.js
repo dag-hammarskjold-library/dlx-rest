@@ -2859,6 +2859,51 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
+function selectAuthority(component, subfield, choice) {
+//    let component = event.currentTarget.eventParams[0];
+//    let subfield = event.currentTarget.eventParams[1];
+    let field = subfield.parentField;
+    let jmarc = field.parentRecord;
+
+    //console.log(component, subfield, choice)
+
+    for (let s of field.subfields) {
+        s.valueSpan.classList.remove("authority-controlled-unmatched");
+    }
+
+    for (let choiceSubfield of choice.subfields) {
+        let currentSubfield = field.getSubfield(choiceSubfield.code);
+       
+        if (typeof currentSubfield === "undefined") {
+            let place = choice.subfields.indexOf(choiceSubfield);
+            let newSubfield = field.createSubfield(choiceSubfield.code, place);
+            newSubfield.value = choiceSubfield.value;
+            currentSubfield = newSubfield;
+            component.buildSubfieldRow(newSubfield, place);
+        }
+
+        currentSubfield.value = choiceSubfield.value;
+        currentSubfield.xref = choiceSubfield.xref;
+        currentSubfield.valueSpan.innerText = currentSubfield.value;
+        currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+           
+        let xrefLink = document.createElement("a");
+        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+        xrefLink.target="_blank";
+            
+        let xrefIcon = document.createElement("i");
+        xrefIcon.className = "fas fa-link float-left mr-2";
+        xrefLink.appendChild(xrefIcon);
+            
+        while (currentSubfield.xrefCell.firstChild) {
+            currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+        }
+            
+        currentSubfield.xrefCell.append(xrefLink);
+    }
+    return
+}
+
 // auth-controlled field keyup event function
 function keyupAuthLookup(event) {
     //target: subfield value cell
@@ -2866,9 +2911,19 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
+
+    /*
+    if (event.keyCode === 13) {
+        console.log("Got a key code of 13")
+        console.log(event)
+        event.stopPropagation()
+        selectAuthority(component, subfield, event.target.value)
+    }
+    */
    
-    if (event.keyCode < 45 && event.keyCode !== 8) {
+    if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
         // non ascii or delete keys
+        
         return
     }
  
@@ -2972,15 +3027,34 @@ function keyupAuthLookup(event) {
                     }
                    
                     dropdown.innerHTML = null;
+                    subfield.valueCell.blur()
                
-                    let list = document.createElement("ul");
+                    let list = document.createElement("select");
                     dropdown.appendChild(list);
+                    list.size = 25
                     list.className = "list-group";
+                    list.focus()
+
+                    list.addEventListener("keyup", (event) => {
+                        if (event.keyCode === 13) {
+                            event.stopPropagation()
+                            for (let c of choices) {
+                                if (event.target.value == c.subfields.map(x => x.value)) {
+                                    dropdown.remove()
+                                    list.blur()
+                                    subfield.valueCell.lastChild.focus()
+                                    selectAuthority(component, subfield, c)
+                                    
+                                }
+                            }
+                        }
+                    })
                
                     for (let choice of choices) {
-                        let item = document.createElement("li");
+                        let item = document.createElement("option");
                         list.appendChild(item);
-                        item.className = "list-group-item lookup-choice";
+                        item.className = "list-group-item";
+                        item.value = choice.subfields.map(x => x.value)
                        
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
@@ -2994,43 +3068,13 @@ function keyupAuthLookup(event) {
                         });
                        
                         item.addEventListener("mousedown", function () {
+                            selectAuthority(component, subfield, choice)
                             dropdown.remove();
- 
-                            for (let s of field.subfields) {
-                                s.valueSpan.classList.remove("authority-controlled-unmatched");
-                            }
-               
-                            for (let choiceSubfield of choice.subfields) {
-                                let currentSubfield = field.getSubfield(choiceSubfield.code);
-                               
-                                if (typeof currentSubfield === "undefined") {
-                                    let place = choice.subfields.indexOf(choiceSubfield);
-                                    let newSubfield = field.createSubfield(choiceSubfield.code, place);
-                                    newSubfield.value = choiceSubfield.value;
-                                    currentSubfield = newSubfield;
-                                    component.buildSubfieldRow(newSubfield, place);
-                                }
-               
-                                currentSubfield.value = choiceSubfield.value;
-                                currentSubfield.xref = choiceSubfield.xref;
-                                currentSubfield.valueSpan.innerText = currentSubfield.value;
-                                currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-                                   
-                                let xrefLink = document.createElement("a");
-                                xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
-                                xrefLink.target="_blank";
-                                    
-                                let xrefIcon = document.createElement("i");
-                                xrefIcon.className = "fas fa-link float-left mr-2";
-                                xrefLink.appendChild(xrefIcon);
-                                    
-                                while (currentSubfield.xrefCell.firstChild) {
-                                    currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
-                                }
-                                    
-                                currentSubfield.xrefCell.append(xrefLink);
-                            }
+                            list.blur()
+                            subfield.valueCell.focus()
                         });
+
+                        
                     }
                 });
             },
