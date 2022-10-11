@@ -2888,9 +2888,9 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.value = choiceSubfield.value;
         currentSubfield.xref = choiceSubfield.xref;
         currentSubfield.valueSpan.innerText = currentSubfield.value;
-        console.log(currentSubfield.valueSpan.className)
+        //console.log(currentSubfield.valueSpan.className)
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-        console.log(currentSubfield.valueSpan.className)
+        //console.log(currentSubfield.valueSpan.className)
             
         let xrefLink = document.createElement("a");
         xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
@@ -2907,11 +2907,12 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.xrefCell.append(xrefLink);
     }
 
-    // trigger update events
+    // trigger unsaved changes detection and update events
     field.ind1Span.focus();
     field.ind2Span.focus();
-    //field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
-    subfield.valueCell.lastChild.focus()
+    field.subfields.forEach(x => {x.codeSpan.focus(); x.valueSpan.focus()});
+    subfield.valueSpan.focus();
+    subfield.valueSpan.blur();
 
     return
 }
@@ -3032,33 +3033,33 @@ function keyupAuthLookup(event) {
                    
                     dropdown.innerHTML = null;
                     subfield.valueCell.blur()
-               
-                    let list = document.createElement("select");
-                    dropdown.appendChild(list);
-                    list.size = 25
-                    list.className = "list-group";
-                    list.focus()
+                    
+                    let selectorDiv = document.createElement("div");
+                    dropdown.append(selectorDiv);
+                    selectorDiv.className = "typeahead-select";
 
-                    list.addEventListener("keyup", (event) => {
-                        if (event.keyCode === 13) {
-                            event.stopPropagation()
-                            for (let c of choices) {
-                                if (event.target.value == c.subfields.map(x => x.value)) {
-                                    dropdown.remove()
-                                    list.blur()
-                                    subfield.valueCell.lastChild.focus()
-                                    selectAuthority(component, subfield, c)
-                                    
-                                }
-                            }
+                    let list = document.createElement("select"); // the select value is in target.value
+                    selectorDiv.appendChild(list);
+                    list.size = choices.length; // doesn't build correctly when there is only one choice
+                    list.className = "list-group";
+                    // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
+                    
+                    // navigate into dropdown choices with down arrow key
+                    // should it be with return instead?
+                    subfield.valueSpan.addEventListener("keydown", (event) => {
+                        if (event.keyCode === 40) {
+                            // down arrow key
+                            list.focus(); // list now navigable by default <select> behavior
+                            list.firstChild.selected = true; // jump to to first choice
                         }
-                    })
-               
+                    });
+
+                    // populate the options
                     for (let choice of choices) {
                         let item = document.createElement("option");
                         list.appendChild(item);
                         item.className = "list-group-item";
-                        item.value = choice.subfields.map(x => x.value)
+                        item.value = JSON.stringify(choice.compile()); // option value has to be a string?
                        
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
@@ -3072,14 +3073,25 @@ function keyupAuthLookup(event) {
                         });
                        
                         item.addEventListener("mousedown", function () {
-                            selectAuthority(component, subfield, choice)
+                            selectAuthority(component, subfield, choice);
                             dropdown.remove();
-                            list.blur()
-                            subfield.valueCell.lastChild.focus()
-                        });
-
-                        
+                        });    
                     }
+
+                    // keyboard navigation
+                    list.addEventListener("keyup", (event) => { // only "keyup" works here?
+                        if (event.keyCode === 13) {
+                            // return key 
+                            event.stopPropagation();
+
+                            for (let choice of choices) {
+                                if (event.target.value == JSON.stringify(choice.compile())) {
+                                    selectAuthority(component, subfield, choice);
+                                    dropdown.remove();
+                                }
+                            }
+                        }
+                    });
                 });
             },
             750

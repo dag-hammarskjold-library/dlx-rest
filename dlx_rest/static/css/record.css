@@ -253,3 +253,11 @@ option.lookup-choice:hover {
 i.create-authority {
     color: blue
 }
+
+div.typeahead-dropdown {
+    position: relative;
+}
+
+div.typeahead-select {
+    position: absolute;
+}
