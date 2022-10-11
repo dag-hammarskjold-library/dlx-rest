@@ -450,13 +450,13 @@ class RecordsListBrowse(Resource):
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
         query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
-        lfields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
+        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         collation = Collation(
             locale='en', 
             strength=2,
             alternate='shifted',
-            maxVariable='punct',
-            numericOrdering=True if field in lfields else False
+            maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
+            numericOrdering=True if field in numeric_fields else False
         )
         start, limit = int(args.start), int(args.limit)
 
