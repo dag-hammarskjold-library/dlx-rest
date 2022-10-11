@@ -2866,7 +2866,53 @@ function selectAuthority(component, subfield, choice) {
     let jmarc = field.parentRecord;
 
     //console.log(component, subfield, choice)
+    field.ind1Span.innerText = choice.indicators[0];
+    field.ind2Span.innerText = choice.indicators[1];
+    field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
 
+    for (let s of field.subfields) {
+        s.valueSpan.classList.remove("authority-controlled-unmatched");
+    }
+
+    for (let choiceSubfield of choice.subfields) {
+        let currentSubfield = field.getSubfield(choiceSubfield.code);
+        
+        if (typeof currentSubfield === "undefined") {
+            let place = choice.subfields.indexOf(choiceSubfield);
+            let newSubfield = field.createSubfield(choiceSubfield.code, place);
+            newSubfield.value = choiceSubfield.value;
+            currentSubfield = newSubfield;
+            component.buildSubfieldRow(newSubfield, place);
+        }
+
+        currentSubfield.value = choiceSubfield.value;
+        currentSubfield.xref = choiceSubfield.xref;
+        currentSubfield.valueSpan.innerText = currentSubfield.value;
+        console.log(currentSubfield.valueSpan.className)
+        currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+        console.log(currentSubfield.valueSpan.className)
+            
+        let xrefLink = document.createElement("a");
+        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+        xrefLink.target="_blank";
+            
+        let xrefIcon = document.createElement("i");
+        xrefIcon.className = "fas fa-link float-left mr-2";
+        xrefLink.appendChild(xrefIcon);
+            
+        while (currentSubfield.xrefCell.firstChild) {
+            currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+        }
+            
+        currentSubfield.xrefCell.append(xrefLink);
+    }
+
+    // trigger update events
+    field.ind1Span.focus();
+    field.ind2Span.focus();
+    //field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
+    subfield.valueCell.lastChild.focus()
+/*
     for (let s of field.subfields) {
         s.valueSpan.classList.remove("authority-controlled-unmatched");
     }
@@ -2901,6 +2947,7 @@ function selectAuthority(component, subfield, choice) {
             
         currentSubfield.xrefCell.append(xrefLink);
     }
+*/
     return
 }
 
@@ -3071,7 +3118,7 @@ function keyupAuthLookup(event) {
                             selectAuthority(component, subfield, choice)
                             dropdown.remove();
                             list.blur()
-                            subfield.valueCell.focus()
+                            subfield.valueCell.lastChild.focus()
                         });
 
                         
