@@ -178,6 +178,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
+						field.indicators = auth[tag][0].indicators;
 						
 						for (let sf of auth[tag][0]['subfields']) {
 							field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));

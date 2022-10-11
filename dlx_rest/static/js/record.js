@@ -2784,7 +2784,7 @@ export let multiplemarcrecordcomponent = {
             let component = this;
             subfield.valueSpan.classList.add("authority-controlled");
    
-            if (subfield.valueCell.classList.contains("unsaved")) {
+            if (! "xref" in subfield) {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
  
@@ -2995,7 +2995,10 @@ function keyupAuthLookup(event) {
                        
                         item.addEventListener("mousedown", function () {
                             dropdown.remove();
- 
+                            field.ind1Span.innerText = choice.indicators[0];
+                            field.ind2Span.innerText = choice.indicators[1];
+                            field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+
                             for (let s of field.subfields) {
                                 s.valueSpan.classList.remove("authority-controlled-unmatched");
                             }
@@ -3030,6 +3033,11 @@ function keyupAuthLookup(event) {
                                     
                                 currentSubfield.xrefCell.append(xrefLink);
                             }
+
+                            // trigger update events
+                            field.ind1Span.focus();
+                            field.ind2Span.focus();
+                            field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
                         });
                     }
                 });
