@@ -453,7 +453,9 @@ class RecordsListBrowse(Resource):
         lfields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         collation = Collation(
             locale='en', 
-            strength=2, 
+            strength=2,
+            alternate='shifted',
+            maxVariable='punct',
             numericOrdering=True if field in lfields else False
         )
         start, limit = int(args.start), int(args.limit)
