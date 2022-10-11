@@ -2784,7 +2784,7 @@ export let multiplemarcrecordcomponent = {
             let component = this;
             subfield.valueSpan.classList.add("authority-controlled");
    
-            if (subfield.valueCell.classList.contains("unsaved")) {
+            if (! "xref" in subfield) {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
  
