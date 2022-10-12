@@ -262,6 +262,7 @@ class RecordsList(Resource):
 
         # temporary solution for symbol numeric sorting
         #collation = Collation(locale='en', strength=2, numericOrdering=True) if sort_by == 'symbol' else None
+        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         if sort_by == 'symbol':
             collation = Collation(locale='en', numericOrdering=True)
             # convert the query to a query on symbol so that the collation can be used on both search and sort. ugh
@@ -276,8 +277,16 @@ class RecordsList(Resource):
                     abort(403, "Sorry, can't currently sort this many symbols as search results")
 
             query = Query(Raw({'symbol': {'$in': symbols}}))
-        else:
+        elif sort_by in ['updated', 'date']:
             collation = None
+        else:
+            collation = Collation(
+                locale='en', 
+                strength=2,
+                alternate='shifted',
+                maxVariable='space', #if sort_by in numeric_fields else 'punct', # ignore punct unless sort is numeric
+                numericOrdering=True if sort_by in numeric_fields else False
+        )
 
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
