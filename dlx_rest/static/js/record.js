@@ -793,6 +793,10 @@ export let multiplemarcrecordcomponent = {
                 if (confirm("Are you sure you want to delete this record ?") == true) {
                     let deletedRid = jmarc.recordId;
                     let deletedColl = jmarc.collection;
+
+                    jmarc.deleteButton.classList.add("fa-spinner");
+                    jmarc.deleteButton.classList.add("fa-pulse");
+                    jmarc.deleteButton.style = "pointer-events: none";
  
                     jmarc.delete().then( () => {
                         this.removeRecordFromEditor(jmarc);
