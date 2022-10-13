@@ -849,6 +849,34 @@ export class Jmarc {
             }
         }
     }
+
+	async authHeadingInUse() {
+		if (this.collection !== "auths") return
+
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ");
+
+    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
+
+    	// wait for the result
+    	let inUse = await fetch(url)
+    	    .then(response => {
+    	        return response.json()
+    	    }).then(json => {
+    	        let count = json.data;
+    	        return count ? true : false
+    	    }).catch(error => {
+    	        throw error
+    	    })
+
+		return inUse ? true : false
+	}
 }
 
 export class Bib extends Jmarc {

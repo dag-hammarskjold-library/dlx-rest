@@ -390,7 +390,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         },
-        saveRecord(jmarc,display=true){
+        async saveRecord(jmarc,display=true){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -398,7 +398,31 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
+                // dupe auth check
+                if (jmarc.collection === "auths") {
+                    let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
 
+                    if (headingField) { 
+                        // wait for the result
+                        let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
+                        let headingString = headingField.subfields.map(x => x.value).join(" ");
+                        let isNewVal = JSON.stringify(headingField.savedState) !== JSON.stringify(headingField.compile());
+                        
+                        if (inUse === true && headingField.tag === "100" && isNewVal) {
+                            // new record personal name exception
+                            let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
+
+                            if (! window.confirm(msg)) {
+                                return
+                            }
+                        } else if (headingField.tag !== "100" && inUse === true) {
+                            this.callChangeStyling(`The heading "${headingString}" is already in use. Headings for records with tag ${headingField.tag} cannot be duplicated`, "d-flex w-100 alert-danger")
+                            return
+                        }
+                    }
+                }
+
+                //save
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
                 
                 jmarc.saveButton.classList.add("fa-spinner");
