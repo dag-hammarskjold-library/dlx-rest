@@ -390,7 +390,28 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         },
-        async saveRecord(jmarc,display=true){
+        async saveRecord(jmarc, display=true){
+            // trigger all update actions in case they haven't fired yet
+            // preserve scroll location
+            let scrollX = window.scrollX;
+            let scrollY = window.scrollY;
+            let scroll = jmarc.tableBody.scrollTop;
+
+            jmarc.getDataFields().forEach(x => {
+                x.tagSpan.focus();
+                x.ind1Span.focus();
+                x.ind2Span.focus();
+                
+                x.subfields.forEach(y => {
+                    y.codeSpan.focus();
+                    y.valueSpan.focus();
+                    y.valueSpan.blur();
+                });
+            });
+
+            jmarc.tableBody.scrollTop = scroll;
+            window.scrollTo(scrollX, scrollY);
+
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
