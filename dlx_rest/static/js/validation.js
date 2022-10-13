@@ -1,4 +1,5 @@
-{
+
+export const validationData = {
     "comments": "",
     "bibs": {
         "010": {
