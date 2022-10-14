@@ -719,13 +719,13 @@ export let multiplemarcrecordcomponent = {
                 // At worst this will still default to bibs
                 let vcoll = jmarc.collection
                 let recordType = jmarc.getField("089").getSubfield("b").value
-                console.log(recordType)
+                //console.log(recordType)
                 if (recordType && recordType == "B22") {
                     vcoll = "speeches"
                 } else if (recordType && recordType == "B23") {
                     vcoll = "votes"
                 }
-                console.log(vcoll)
+                //console.log(vcoll)
                 let validatedField = validationData[vcoll][e.target.value]
                 if (!validatedField) {
                     // fallback so we don't have to re-specify fields unnecessarily
