@@ -2930,6 +2930,64 @@ export let multiplemarcrecordcomponent = {
     }
 }
 
+function selectAuthority(component, subfield, choice) {
+//    let component = event.currentTarget.eventParams[0];
+//    let subfield = event.currentTarget.eventParams[1];
+    let field = subfield.parentField;
+    let jmarc = field.parentRecord;
+
+    //console.log(component, subfield, choice)
+    field.ind1Span.innerText = choice.indicators[0];
+    field.ind2Span.innerText = choice.indicators[1];
+    field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+
+    for (let s of field.subfields) {
+        s.valueSpan.classList.remove("authority-controlled-unmatched");
+    }
+
+    for (let choiceSubfield of choice.subfields) {
+        let currentSubfield = field.getSubfield(choiceSubfield.code);
+        
+        if (typeof currentSubfield === "undefined") {
+            let place = choice.subfields.indexOf(choiceSubfield);
+            let newSubfield = field.createSubfield(choiceSubfield.code, place);
+            newSubfield.value = choiceSubfield.value;
+            currentSubfield = newSubfield;
+            component.buildSubfieldRow(newSubfield, place);
+        }
+
+        currentSubfield.value = choiceSubfield.value;
+        currentSubfield.xref = choiceSubfield.xref;
+        currentSubfield.valueSpan.innerText = currentSubfield.value;
+        //console.log(currentSubfield.valueSpan.className)
+        currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+        //console.log(currentSubfield.valueSpan.className)
+            
+        let xrefLink = document.createElement("a");
+        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+        xrefLink.target="_blank";
+            
+        let xrefIcon = document.createElement("i");
+        xrefIcon.className = "fas fa-link float-left mr-2";
+        xrefLink.appendChild(xrefIcon);
+            
+        while (currentSubfield.xrefCell.firstChild) {
+            currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+        }
+            
+        currentSubfield.xrefCell.append(xrefLink);
+    }
+
+    // trigger unsaved changes detection and update events
+    field.ind1Span.focus();
+    field.ind2Span.focus();
+    field.subfields.forEach(x => {x.codeSpan.focus(); x.valueSpan.focus()});
+    subfield.valueSpan.focus();
+    subfield.valueSpan.blur();
+
+    return
+}
+
 // auth-controlled field keyup event function
 function keyupAuthLookup(event) {
     //target: subfield value cell
@@ -2937,9 +2995,11 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
+
    
-    if (event.keyCode < 45 && event.keyCode !== 8) {
+    if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
         // non ascii or delete keys
+        
         return
     }
  
@@ -3052,15 +3112,39 @@ function keyupAuthLookup(event) {
                     }
                    
                     dropdown.innerHTML = null;
-               
-                    let list = document.createElement("ul");
-                    dropdown.appendChild(list);
+                    subfield.valueCell.blur()
+                    
+                    let selectorDiv = document.createElement("div");
+                    dropdown.append(selectorDiv);
+                    selectorDiv.className = "typeahead-select";
+
+                    let list = document.createElement("select"); // the select value is in target.value
+                    selectorDiv.appendChild(list);
+                    if (choices.length === 1) {
+                        list.size = 2
+                    } else {
+                        list.size = choices.length;
+                    }
+                     // doesn't build correctly when there is only one choice
                     list.className = "list-group";
-               
+                    // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
+                    
+                    // navigate into dropdown choices with down arrow key
+                    // should it be with return instead?
+                    subfield.valueSpan.addEventListener("keydown", (event) => {
+                        if (event.keyCode === 40) {
+                            // down arrow key
+                            list.focus(); // list now navigable by default <select> behavior
+                            list.firstChild.selected = true; // jump to to first choice
+                        }
+                    });
+
+                    // populate the options
                     for (let choice of choices) {
-                        let item = document.createElement("li");
+                        let item = document.createElement("option");
                         list.appendChild(item);
-                        item.className = "list-group-item lookup-choice";
+                        item.className = "list-group-item";
+                        item.value = JSON.stringify(choice.compile()); // option value has to be a string?
                        
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
@@ -3074,52 +3158,25 @@ function keyupAuthLookup(event) {
                         });
                        
                         item.addEventListener("mousedown", function () {
+                            selectAuthority(component, subfield, choice);
                             dropdown.remove();
-                            field.ind1Span.innerText = choice.indicators[0];
-                            field.ind2Span.innerText = choice.indicators[1];
-                            field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
-
-                            for (let s of field.subfields) {
-                                s.valueSpan.classList.remove("authority-controlled-unmatched");
-                            }
-               
-                            for (let choiceSubfield of choice.subfields) {
-                                let currentSubfield = field.getSubfield(choiceSubfield.code);
-                               
-                                if (typeof currentSubfield === "undefined") {
-                                    let place = choice.subfields.indexOf(choiceSubfield);
-                                    let newSubfield = field.createSubfield(choiceSubfield.code, place);
-                                    newSubfield.value = choiceSubfield.value;
-                                    currentSubfield = newSubfield;
-                                    component.buildSubfieldRow(newSubfield, place);
-                                }
-               
-                                currentSubfield.value = choiceSubfield.value;
-                                currentSubfield.xref = choiceSubfield.xref;
-                                currentSubfield.valueSpan.innerText = currentSubfield.value;
-                                currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-                                   
-                                let xrefLink = document.createElement("a");
-                                xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
-                                xrefLink.target="_blank";
-                                    
-                                let xrefIcon = document.createElement("i");
-                                xrefIcon.className = "fas fa-link float-left mr-2";
-                                xrefLink.appendChild(xrefIcon);
-                                    
-                                while (currentSubfield.xrefCell.firstChild) {
-                                    currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
-                                }
-                                    
-                                currentSubfield.xrefCell.append(xrefLink);
-                            }
-
-                            // trigger update events
-                            field.ind1Span.focus();
-                            field.ind2Span.focus();
-                            field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
-                        });
+                        });    
                     }
+
+                    // keyboard navigation
+                    list.addEventListener("keyup", (event) => { // only "keyup" works here?
+                        if (event.keyCode === 13) {
+                            // return key 
+                            event.stopPropagation();
+
+                            for (let choice of choices) {
+                                if (event.target.value == JSON.stringify(choice.compile())) {
+                                    selectAuthority(component, subfield, choice);
+                                    dropdown.remove();
+                                }
+                            }
+                        }
+                    });
                 });
             },
             750
