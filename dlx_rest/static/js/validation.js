@@ -2230,6 +2230,118 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         }
     },
-    "speeches": {},
-    "votes": {}
+    "speeches": {
+        "999": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
+        },
+    },
+    "votes": {
+        "089": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["b"] 
+        },
+        "245": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "791": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "793": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["v"] 
+        },
+        "967": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "968": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "969": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "991": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d"] 
+        },
+        "996": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e","f"] 
+        },
+        "999": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+    }
 }

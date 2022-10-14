@@ -727,6 +727,10 @@ export let multiplemarcrecordcomponent = {
                 }
                 console.log(vcoll)
                 let validatedField = validationData[vcoll][e.target.value]
+                if (!validatedField) {
+                    // fallback so we don't have to re-specify fields unnecessarily
+                    validatedField = validationData[jmarc.collection][e.target.value]
+                }
                 if (validatedField) {
                     let blankSubfield = newField.getSubfield("_", 0)
                     newField.deleteSubfield(blankSubfield)
