@@ -3,7 +3,7 @@ from cmath import sin
 from email.policy import default
 import re
 import dlx
-from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
+from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
@@ -418,8 +418,37 @@ def search_records(coll):
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+
+    session.permanent = True
+
+    # Move vcoll variable here so we can use it in the session 
+    vcoll = coll
+    if "B22" in q:
+        vcoll = "speeches"
+    if "B23" in q:
+        vcoll = "votes"
+
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+
+    if sort and direction:
+        # Regardless of what's in the session already
+        session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
+        this_v = session[f"sort_{vcoll}"]
+        print(f"Got {this_v} from URL")
+    else:
+        # See if something is in the session already
+        try:
+            # We have session values, so use those
+            this_v = session[f"sort_{vcoll}"]
+            print(f"Got {this_v} from session")
+            sort = session[f"sort_{vcoll}"]["field"]
+            direction = session[f"sort_{vcoll}"]["direction"]
+        except KeyError:
+            # There is nothing in the session, so fallback to defaults
+            print(f"No sort/dir for {vcoll} found, using defaults.")
+            sort = "updated"
+            direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
     terms = re.split(' *(AND|OR|NOT) +', q)
@@ -433,19 +462,9 @@ def search_records(coll):
                 # appears to be free text term
                 sort = 'relevance'
                 
-    if not sort:
-        sort = 'updated'
-        direction = 'desc'
-    elif sort != 'relevance' and not direction:
-        direction = 'asc'
+ 
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-
-    vcoll = coll
-    if "B22" in q:
-        vcoll = "speeches"
-    if "B23" in q:
-        vcoll = "votes"
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
