@@ -716,9 +716,6 @@ export let multiplemarcrecordcomponent = {
 
             newFieldRow.tagCell.addEventListener("change", function (e) {
                 let validatedField = validationData[jmarc.collection][e.target.value]
-                console.log(jmarc.collection, e.target.value)
-                console.log(validatedField)
-                console.log(component)
                 if (validatedField) {
                     let blankSubfield = newField.getSubfield("_", 0)
                     newField.deleteSubfield(blankSubfield)
