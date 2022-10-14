@@ -3040,7 +3040,12 @@ function keyupAuthLookup(event) {
 
                     let list = document.createElement("select"); // the select value is in target.value
                     selectorDiv.appendChild(list);
-                    list.size = choices.length; // doesn't build correctly when there is only one choice
+                    if (choices.length === 1) {
+                        list.size = 2
+                    } else {
+                        list.size = choices.length;
+                    }
+                     // doesn't build correctly when there is only one choice
                     list.className = "list-group";
                     // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
                     
