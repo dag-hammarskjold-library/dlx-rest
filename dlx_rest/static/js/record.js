@@ -436,7 +436,7 @@ export let multiplemarcrecordcomponent = {
                             if (! window.confirm(msg)) {
                                 return
                             }
-                        } else if (headingField.tag !== "100" && inUse === true) {
+                        } else if (headingField.tag !== "100" && inUse === true && isNewVal) {
                             this.callChangeStyling(`The heading "${headingString}" is already in use. Headings for records with tag ${headingField.tag} cannot be duplicated`, "d-flex w-100 alert-danger")
                             return
                         }
@@ -2930,7 +2930,7 @@ function keyupAuthLookup(event) {
     addButton.title = "Create new authority from this value";
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
-    addButton.addEventListener("click", function() {
+    addButton.addEventListener("click", async function() {
         subfield.xrefCell.innerHTML = null;
         let spinner = document.createElement("i");
         spinner.className = "fa fa-spinner";
@@ -2971,6 +2971,15 @@ function keyupAuthLookup(event) {
                 newSubfield = auth.createField("670").createSubfield("a");
                 newSubfield.value = jmarc.getField("791").getSubfield("a").value;
             }
+        }
+
+        if (await auth.authHeadingInUse()) {
+            let headingField = auth.fields.filter(x => x.tag.match(/^1/))[0];
+            let headingString = headingField.subfields.map(x => x.value).join(" ");
+            component.callChangeStyling(`Auth heading "${headingString}" in field ${field.tag} is already in use`, "d-flex w-100 alert-danger");
+            subfield.xrefCell.removeChild(spinner);
+            subfield.xrefCell.append(addButton);
+            return
         }
 
         auth.post().then(
