@@ -715,7 +715,18 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.tagSpan.focus();
 
             newFieldRow.tagCell.addEventListener("change", function (e) {
-                let validatedField = validationData[jmarc.collection][e.target.value]
+                // Differentiate kinds of bibs based on 089 contents
+                // At worst this will still default to bibs
+                let vcoll = jmarc.collection
+                let recordType = jmarc.getField("089").getSubfield("b").value
+                console.log(recordType)
+                if (recordType && recordType == "B22") {
+                    vcoll = "speeches"
+                } else if (recordType && recordType == "B23") {
+                    vcoll = "votes"
+                }
+                console.log(vcoll)
+                let validatedField = validationData[vcoll][e.target.value]
                 if (validatedField) {
                     let blankSubfield = newField.getSubfield("_", 0)
                     newField.deleteSubfield(blankSubfield)
