@@ -1327,7 +1327,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","f"] 
         },
         "041": {
             "name": "",
@@ -1347,7 +1347,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["s","t"] 
         },
         "049": {
             "name": "",
@@ -1487,7 +1487,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["b","c"] 
         },
         "191": {
             "name": "",
@@ -1497,7 +1497,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c","d"] 
         },
         "245": {
             "name": "",
@@ -1547,7 +1547,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["c","e"] 
         },
         "374": {
             "name": "",
@@ -1647,7 +1647,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["d"] 
         },
         "493": {
             "name": "",
@@ -1887,7 +1887,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["j"] 
         },
         "682": {
             "name": "",
