@@ -2231,6 +2231,36 @@ export const validationData = {
         }
     },
     "speeches": {
+        "089": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["b"] 
+        },
+        "791": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "991": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d"] 
+        },
         "999": {
             "name": "",
             "required": false,
