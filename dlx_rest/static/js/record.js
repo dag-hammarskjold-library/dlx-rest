@@ -678,6 +678,7 @@ export let multiplemarcrecordcomponent = {
         },
         addField(jmarc, newField=null, rowIndex=null) {
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
+            let component = this
 
             if (currentField.tag === "___") {
                 this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
@@ -705,24 +706,28 @@ export let multiplemarcrecordcomponent = {
                 newSubfield.value = "";
             }
             
-            newField = this.buildFieldRow(newField, rowIndex);
+            let newFieldRow = this.buildFieldRow(newField, rowIndex);
             // trigger field check state events
-            newField.ind1Span.focus();
-            newField.ind2Span.focus();
-            newField.subfields[0].codeSpan.focus();
-            newField.subfields[0].valueSpan.focus();
-            newField.tagSpan.focus();
+            newFieldRow.ind1Span.focus();
+            newFieldRow.ind2Span.focus();
+            newFieldRow.subfields[0].codeSpan.focus();
+            newFieldRow.subfields[0].valueSpan.focus();
+            newFieldRow.tagSpan.focus();
 //
-            newField.tagCell.addEventListener("change", function (e) {
+            newFieldRow.tagCell.addEventListener("change", function (e) {
                 let validatedField = validationData[jmarc.collection][e.target.value]
                 console.log(jmarc.collection, e.target.value)
                 console.log(validatedField)
+                console.log(component)
                 if (validatedField) {
-                    //newField.deleteSubfield("_")
+                    let blankSubfield = newField.getSubfield("_", 0)
+                    newField.deleteSubfield(blankSubfield)
+                    // field.subfieldTable.deleteRow(subfield.row.rowIndex)
+                    newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
                     for (let defaultSubfield of validatedField["defaultSubfields"]) {
                         let newSubfield = newField.createSubfield(defaultSubfield)
                         newSubfield.value = ""
-                        return newSubfield
+                        component.buildSubfieldRow(newSubfield);
                     }
                 } else {
                     return
