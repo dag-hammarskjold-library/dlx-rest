@@ -715,7 +715,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","u"] 
         },
         "562": {
             "name": "",
@@ -1015,7 +1015,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["9","o","t","z","x"] 
         },
         "772": {
             "name": "",
@@ -1115,7 +1115,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["3","q","u"] 
         },
         "910": {
             "name": "",
@@ -1215,7 +1215,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c","d"] 
         },
         "992": {
             "name": "",
@@ -1275,7 +1275,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         }
     },
     "auths": {
