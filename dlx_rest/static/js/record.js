@@ -713,7 +713,7 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.subfields[0].codeSpan.focus();
             newFieldRow.subfields[0].valueSpan.focus();
             newFieldRow.tagSpan.focus();
-//
+
             newFieldRow.tagCell.addEventListener("change", function (e) {
                 let validatedField = validationData[jmarc.collection][e.target.value]
                 console.log(jmarc.collection, e.target.value)
@@ -722,15 +722,20 @@ export let multiplemarcrecordcomponent = {
                 if (validatedField) {
                     let blankSubfield = newField.getSubfield("_", 0)
                     newField.deleteSubfield(blankSubfield)
-                    // field.subfieldTable.deleteRow(subfield.row.rowIndex)
                     newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
                     for (let defaultSubfield of validatedField["defaultSubfields"]) {
                         let newSubfield = newField.createSubfield(defaultSubfield)
                         newSubfield.value = ""
                         component.buildSubfieldRow(newSubfield);
                     }
-                } else {
-                    return
+                    // trigger field check state events, needs to be done again if field changes
+                    newFieldRow.ind1Span.focus();
+                    newFieldRow.ind2Span.focus();
+                    for (let subfield of newField.subfields) {
+                        subfield.codeSpan.focus();
+                        subfield.valueSpan.focus();
+                    }
+                    newFieldRow.tagSpan.focus();
                 }
             })
             

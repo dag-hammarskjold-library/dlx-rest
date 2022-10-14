@@ -192,7 +192,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["b"] 
         },
         "091": {
             "name": "",
@@ -222,7 +222,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         },
         "100": {
             "name": "",
@@ -342,7 +342,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a", "b"] 
         },
         "247": {
             "name": "",
@@ -372,7 +372,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "255": {
             "name": "",
@@ -382,7 +382,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "256": {
             "name": "",
@@ -402,7 +402,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         },
         "264": {
             "name": "",
@@ -435,7 +435,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "306": {
             "name": "",
@@ -2229,5 +2229,7 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         }
-    }
+    },
+    "speeches": {},
+    "votes": {}
 }
