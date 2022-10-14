@@ -8,6 +8,7 @@ import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
+import { validationData } from "./validation.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -666,6 +667,22 @@ export let multiplemarcrecordcomponent = {
             newField.subfields[0].codeSpan.focus();
             newField.subfields[0].valueSpan.focus();
             newField.tagSpan.focus();
+//
+            newField.tagCell.addEventListener("change", function (e) {
+                let validatedField = validationData[jmarc.collection][e.target.value]
+                console.log(jmarc.collection, e.target.value)
+                console.log(validatedField)
+                if (validatedField) {
+                    //newField.deleteSubfield("_")
+                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
+                        let newSubfield = newField.createSubfield(defaultSubfield)
+                        newSubfield.value = ""
+                        return newSubfield
+                    }
+                } else {
+                    return
+                }
+            })
             
             // select new field
             this.fieldSelected(newField);
