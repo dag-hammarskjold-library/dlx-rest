@@ -2722,9 +2722,9 @@ export let multiplemarcrecordcomponent = {
                 if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
                     valSpan.innerText = 
                         valSpan.innerText
-                        .replace(/[\r\n]/, ' ')
+                        .replace(/[\r\n]/g, ' ')
                         .trim()
-                        .replace(/ {2,}/, ' ');
+                        .replace(/ {2,}/g, ' ');
                     
                     updateSubfieldValue();
                     
