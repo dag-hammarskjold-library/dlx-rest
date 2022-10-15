@@ -1,5 +1,7 @@
 "use strict";
 
+import { validationData } from "./validation.js";
+
 const authMap = {
 	"bibs": {
 		'191': {'b': '190', 'c': '190'},
@@ -68,6 +70,8 @@ export class DataField {
 	}
 	
 	validate() {
+		// lower level checks
+		// these throw errors
         if (! this.subfields) {
             throw new Error("Subfield required")
         }
@@ -81,7 +85,7 @@ export class DataField {
             
             if (! subfield.value || subfield.value.match(/^\s+$/)) {
                 //throw new Error("Subfield value required")
-				this.deleteSubfield(subfield);
+				this.deleteSubfield(subfield); // this should be done somewhere else
 				
 				if (this.subfields.length === 0) {
 					this.parentRecord.deleteField(this);
@@ -91,7 +95,15 @@ export class DataField {
             if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
                 throw new Error("Invalid authority-controlled value")
             }
-        }   
+        }
+
+		// validation rules
+		let flags = [];
+		let data = validationData[this.parentRecord.collection][this.tag];
+
+		// todo: check for required indicators, subfields, values
+		
+		return flags
 	}
     
     createSubfield(code, place) {
@@ -831,6 +843,7 @@ export class Jmarc {
 	}
 
     validate() {
+		// lower level checks
         for (let field of this.fields) {
             if (! field.tag) {
                 throw new Error("Tag required")
@@ -848,6 +861,14 @@ export class Jmarc {
                 }
             }
         }
+
+		// validation rules
+		let flags = [];
+		let data = validationData[this.collection];
+
+		// todo: check for required fields
+
+		return flags
     }
 
 	async authHeadingInUse() {
