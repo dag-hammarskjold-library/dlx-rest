@@ -973,7 +973,13 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
-                    this.deleteField(this.selectedJmarc)
+
+                    if (this.copiedFields) {
+                        // there are fields checked
+                        this.deleteFields(this.selectedJmarc);
+                    } else {
+                        this.deleteField(this.selectedJmarc);
+                    }
                 }
             }
            
