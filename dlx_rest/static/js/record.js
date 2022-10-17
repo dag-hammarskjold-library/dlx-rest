@@ -2920,10 +2920,12 @@ function selectAuthority(component, subfield, choice) {
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
 
-    //console.log(component, subfield, choice)
-    field.ind1Span.innerText = choice.indicators[0];
-    field.ind2Span.innerText = choice.indicators[1];
-    field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+    if (field.tag === "991") {
+        // only carry over indicators for 991
+        field.ind1Span.innerText = choice.indicators[0];
+        field.ind2Span.innerText = choice.indicators[1];
+        field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+    }
 
     for (let s of field.subfields) {
         s.valueSpan.classList.remove("authority-controlled-unmatched");
@@ -2943,9 +2945,7 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.value = choiceSubfield.value;
         currentSubfield.xref = choiceSubfield.xref;
         currentSubfield.valueSpan.innerText = currentSubfield.value;
-        //console.log(currentSubfield.valueSpan.className)
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-        //console.log(currentSubfield.valueSpan.className)
             
         let xrefLink = document.createElement("a");
         xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
