@@ -2861,6 +2861,13 @@ export let multiplemarcrecordcomponent = {
                     subfield.xrefCell.append(addButton);
                 }
             }
+
+            subfield.valueSpan.addEventListener("dblclick", function() {
+                // open the linked auth
+                if (subfield.xref) {
+                    open(component.baseUrl + `records/auths/${subfield.xref}`);
+                }
+            });
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
