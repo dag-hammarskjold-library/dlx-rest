@@ -973,7 +973,13 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
-                    this.deleteField(this.selectedJmarc)
+
+                    if (this.copiedFields) {
+                        // there are fields checked
+                        this.deleteFields(this.selectedJmarc);
+                    } else {
+                        this.deleteField(this.selectedJmarc);
+                    }
                 }
             }
            
@@ -2722,9 +2728,9 @@ export let multiplemarcrecordcomponent = {
                 if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
                     valSpan.innerText = 
                         valSpan.innerText
-                        .replace(/[\r\n]/, ' ')
+                        .replace(/[\r\n]/g, ' ')
                         .trim()
-                        .replace(/ {2,}/, ' ');
+                        .replace(/ {2,}/g, ' ');
                     
                     updateSubfieldValue();
                     
@@ -2855,6 +2861,13 @@ export let multiplemarcrecordcomponent = {
                     subfield.xrefCell.append(addButton);
                 }
             }
+
+            subfield.valueSpan.addEventListener("dblclick", function() {
+                // open the linked auth
+                if (subfield.xref) {
+                    open(component.baseUrl + `records/auths/${subfield.xref}`);
+                }
+            });
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
@@ -2914,10 +2927,12 @@ function selectAuthority(component, subfield, choice) {
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
 
-    //console.log(component, subfield, choice)
-    field.ind1Span.innerText = choice.indicators[0];
-    field.ind2Span.innerText = choice.indicators[1];
-    field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+    if (field.tag === "991") {
+        // only carry over indicators for 991
+        field.ind1Span.innerText = choice.indicators[0];
+        field.ind2Span.innerText = choice.indicators[1];
+        field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
+    }
 
     for (let s of field.subfields) {
         s.valueSpan.classList.remove("authority-controlled-unmatched");
@@ -2937,9 +2952,7 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.value = choiceSubfield.value;
         currentSubfield.xref = choiceSubfield.xref;
         currentSubfield.valueSpan.innerText = currentSubfield.value;
-        //console.log(currentSubfield.valueSpan.className)
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-        //console.log(currentSubfield.valueSpan.className)
             
         let xrefLink = document.createElement("a");
         xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
