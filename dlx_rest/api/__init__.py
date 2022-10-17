@@ -454,8 +454,8 @@ class RecordsListBrowse(Resource):
         collation = Collation(
             locale='en', 
             strength=2,
-            alternate='shifted',
-            maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
+            #alternate='shifted',
+            #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
             numericOrdering=True if field in numeric_fields else False
         )
         start, limit = int(args.start), int(args.limit)
