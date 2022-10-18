@@ -392,22 +392,23 @@ export let multiplemarcrecordcomponent = {
         },
         async saveRecord(jmarc, display=true){
             // trigger all update actions in case they haven't fired yet
-            // preserve scroll location
-            let scrollX = window.scrollX;
-            let scrollY = window.scrollY;
-            let scroll = jmarc.tableBody.scrollTop;
+            // this is slowing down save on some records. disabled for now.  
 
-            jmarc.getDataFields().forEach(x => {
-                x.tagSpan.focus();
-                x.ind1Span.focus();
-                x.ind2Span.focus();
-                
-                x.subfields.forEach(y => {
-                    y.codeSpan.focus();
-                    y.valueSpan.focus();
-                    y.valueSpan.blur();
-                });
-            });
+            // preserve scroll location
+            //let scrollX = window.scrollX;
+            //let scrollY = window.scrollY;
+            //let scroll = jmarc.tableBody.scrollTop;
+            //jmarc.getDataFields().forEach(x => {
+            //    x.tagSpan.focus();
+            //    x.ind1Span.focus();
+            //    x.ind2Span.focus();
+            //    
+            //    x.subfields.forEach(y => {
+            //        y.codeSpan.focus();
+            //        y.valueSpan.focus();
+            //        y.valueSpan.blur();
+            //    });
+            //});
 
             jmarc.tableBody.scrollTop = scroll;
             window.scrollTo(scrollX, scrollY);
@@ -1607,7 +1608,7 @@ export let multiplemarcrecordcomponent = {
             return true
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false) {
-
+            
             // change the color of the background of the item in the basket
             if (!this.historyMode){
                 const myId=jmarc.collection + '--' + jmarc.recordId
@@ -1622,7 +1623,7 @@ export let multiplemarcrecordcomponent = {
             }    
 
             let divID = jmarc.div.id
- 
+
             if (divID === "record1") {
                 // reset the parameters
                 this.removeJmarcTodisplayedJmarcObject(this.record1)
@@ -1635,7 +1636,6 @@ export let multiplemarcrecordcomponent = {
                 if (keepDataInVector==false) { 
                     //this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
                 }
-                
             }
             else if (divID === "record2") {
                 this.removeJmarcTodisplayedJmarcObject(this.record2)
@@ -1728,7 +1728,6 @@ export let multiplemarcrecordcomponent = {
             if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
 
             // build the record display
-
             let table = this.buildRecordTable(jmarc,readOnly);
             jmarc.div.appendChild(table); 
             this.selectRecord(jmarc);

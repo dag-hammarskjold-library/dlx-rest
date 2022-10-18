@@ -559,7 +559,7 @@ export class Jmarc {
 				return this;
 			} 
 		).catch(
-			 error => { throw new Error(error) }
+			 error => { throw error }
 		)
 	}
 	
