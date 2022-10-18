@@ -29,6 +29,32 @@ const authMap = {
 	}
 };
 
+class ValidationFlag {
+	constructor(message) {
+		this.message = message;
+	}
+}
+
+export class SubfieldCodeValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class SubfieldValueValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class TagValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class Indicator1ValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class Indicator2ValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
 export class Subfield {
 	constructor(code, value, xref) {
 		this.code = code;
@@ -38,6 +64,71 @@ export class Subfield {
 
 	compile() {
 		return {'code': this.code, 'value': this.value, 'xref': this.xref}
+	}
+
+	validationWarnings() {
+		let flags = [];
+		let data = validationData[this.parentField.parentRecord.collection][this.parentField.tag];
+		if (! data) return []
+
+		// valid subfields
+		if (! data.validSubfields.includes("*") && ! data.validSubfields.includes(this.code)) {
+			flags.push(
+				new SubfieldCodeValidationFlag(
+					`Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
+				)
+			)
+		}
+
+		// string match
+		if ("validStrings" in data && this.code in data.validStrings) {
+			let validStrings = data.validStrings[this.code];
+			
+			if  (! validStrings.includes(this.value)) {
+				flags.push(
+					new SubfieldValueValidationFlag(
+						`Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
+					)
+				)
+			}
+		}
+
+		// date match
+		if ("isDate" in data && this.code in data.isDate) {
+			let dateStr = this.value
+				.replace(/^(\d{4})(\d{2})/, "$1-$2").replace(/(\d{2})(\d{2})$/, "$1-$2") // add dashes
+				.replace(/(-\d)$/, "reject"); // JS date object accepts single digit day
+
+			let date = new Date(dateStr);
+
+			if (date.toString() === "Invalid Date") {
+				flags.push(
+					new SubfieldValueValidationFlag(`Invalid date "${this.value}"`)
+				)
+			}
+		}
+
+		// regex match
+		if ("validRegex" in data && this.code in data.validRegex) {
+			let validRegexes = data.validRegex[this.code];
+			let matched = false;
+
+			validRegexes.forEach(x => {
+				if (this.value.match(new RegExp(x))) {
+					matched = true;
+				}
+			});
+
+			if (! matched) {
+				flags.push(
+					new SubfieldValueValidationFlag(
+						`Invalid regex match "${this.value}". Valid regex: ${validRegexes.join(", ")}`
+					)
+				)
+			}
+		}
+
+		return flags
 	}
 }
 
@@ -56,6 +147,10 @@ export class ControlField {
 		this.value = value;
 	}
     
+	toStr() {
+		return self.value
+	}
+
     validate() {}
 }
 
@@ -84,24 +179,53 @@ export class DataField {
             }
             
             if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                //throw new Error("Subfield value required")
-				this.deleteSubfield(subfield); // this should be done somewhere else
-				
-				if (this.subfields.length === 0) {
-					this.parentRecord.deleteField(this);
-				}
+                throw new Error("Subfield value required")
             }
             
             if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
                 throw new Error("Invalid authority-controlled value")
             }
         }
+	}
 
-		// validation rules
+	validationWarnings() {
 		let flags = [];
 		let data = validationData[this.parentRecord.collection][this.tag];
+		if (! data) return []
 
-		// todo: check for required indicators, subfields, values
+		// field level
+		// required
+		// we already know the field exists
+        
+		// repeatable
+		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {
+			if (this !== this.parentRecord.getFields(this.tag)[0]) {
+				// this is not the first instance of the tag
+				flags.push(new TagValidationFlag(this, "Field not repeatable"));
+			}
+		}
+        // valid indicators
+		for (let i of [1, 2]) {
+			let inds = i === 1 ? data.validIndicators1 : data.validIndicators2;
+
+			if (! inds.includes("*") && this.indicators[i - 1] !== "_" && ! inds.includes(this.indicators[i - 1])) {
+				let flag = i === 1 ? Indicator1ValidationFlag : Indicator2ValidationFlag;
+				
+				flags.push(
+					new flag(`Invalid indicator ${i}. Valid indicators: ${inds.join(", ") || "None"}`)
+				)
+			}
+		}
+
+		// required subfields
+		let codes = this.subfields.map(x => x.code);
+		data.requiredSubfields.forEach(x => {
+			if (! codes.includes(x)) {
+				flags.push(
+					new TagValidationFlag(`Required subfield "${x}" is missing`)
+				)
+			}
+		});
 		
 		return flags
 	}
@@ -418,7 +542,7 @@ export class Jmarc {
         )
 	}
     
-    static deleteWorkform(collection, workformName) {
+    static async deleteWorkform(collection, workformName) {
         return fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
             { method: 'DELETE' }
@@ -479,7 +603,7 @@ export class Jmarc {
         return true;
     }
     
-    post() {
+    async post() {
 		if (this.recordId) {
 			return Promise.reject("Can't POST existing record")
 		}
@@ -522,7 +646,7 @@ export class Jmarc {
 		)
 	}
 
-	put() {
+	async put() {
 		if (! this.recordId) {
 			return Promise.reject("Can't PUT new record")
 		}
@@ -563,7 +687,7 @@ export class Jmarc {
 		)
 	}
 	
-	delete() {
+	async delete() {
 		if (! this.recordId) {
 			throw new Error("Can't DELETE new record")
 		}
@@ -861,15 +985,16 @@ export class Jmarc {
                 }
             }
         }
+    }
 
-		// validation rules
+	validationWarnings() {
 		let flags = [];
 		let data = validationData[this.collection];
 
 		// todo: check for required fields
 
 		return flags
-    }
+	}
 
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return

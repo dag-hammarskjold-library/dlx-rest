@@ -26,8 +26,8 @@ export const validationData = {
             "name": "ISBN",
             "required": false,
             "repeatable": true,
-            "validIndicator1": [],
-            "validIndicator2": [],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
@@ -268,8 +268,8 @@ export const validationData = {
             "name": "Document symbol / series symbol",
             "required": true,
             "repeatable": true,
-            "validIndicator1": ["*"],
-            "validIndicator2": ["*"],
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
             "requiredSubfields": ["a", "b"],
             "validSubfields": ["a", "b", "c", "z", "9"],
             "defaultSubfields": ["a", "b", "c"]
@@ -328,9 +328,9 @@ export const validationData = {
             "name": "Title",
             "required": true,
             "repeatable": false,
-            "validIndicator1": ["1"],
-            "validIndicator2": ["X"],
-            "requiredSubfields": [],
+            "validIndicators1": ["1"],
+            "validIndicators2": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a", "b", "c", "h", "n", "p"],
             "defaultSubfields": ["a", "b", "c"]
         },
@@ -423,8 +423,11 @@ export const validationData = {
             "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": [],
-            "validRegex": {
-                "a": "^\\d{4}|{\\d{6}|\\d{8}" 
+            "_validRegex": {
+                "a": ["^(\\d{4}|\\d{4}-?\\d{2}|\\d{4}-?\\d{2}-?\\d{2})$"] 
+            },
+            "isDate": {
+                "a": true
             }
         },
         "300": {
