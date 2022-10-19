@@ -8,6 +8,7 @@ import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
+import { validationData } from "./validation.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -670,6 +671,7 @@ export let multiplemarcrecordcomponent = {
         },
         addField(jmarc, newField=null, rowIndex=null) {
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
+            let component = this
 
             if (currentField.tag === "___") {
                 this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
@@ -697,13 +699,50 @@ export let multiplemarcrecordcomponent = {
                 newSubfield.value = "";
             }
             
-            newField = this.buildFieldRow(newField, rowIndex);
+            let newFieldRow = this.buildFieldRow(newField, rowIndex);
             // trigger field check state events
-            newField.ind1Span.focus();
-            newField.ind2Span.focus();
-            newField.subfields[0].codeSpan.focus();
-            newField.subfields[0].valueSpan.focus();
-            newField.tagSpan.focus();
+            newFieldRow.ind1Span.focus();
+            newFieldRow.ind2Span.focus();
+            newFieldRow.subfields[0].codeSpan.focus();
+            newFieldRow.subfields[0].valueSpan.focus();
+            newFieldRow.tagSpan.focus();
+
+            newFieldRow.tagCell.addEventListener("change", function (e) {
+                // Differentiate kinds of bibs based on 089 contents
+                // At worst this will still default to bibs
+                let vcoll = jmarc.collection
+                let recordType = jmarc.getField("089").getSubfield("b").value
+                //console.log(recordType)
+                if (recordType && recordType == "B22") {
+                    vcoll = "speeches"
+                } else if (recordType && recordType == "B23") {
+                    vcoll = "votes"
+                }
+                //console.log(vcoll)
+                let validatedField = validationData[vcoll][e.target.value]
+                if (!validatedField) {
+                    // fallback so we don't have to re-specify fields unnecessarily
+                    validatedField = validationData[jmarc.collection][e.target.value]
+                }
+                if (validatedField) {
+                    let blankSubfield = newField.getSubfield("_", 0)
+                    newField.deleteSubfield(blankSubfield)
+                    newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
+                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
+                        let newSubfield = newField.createSubfield(defaultSubfield)
+                        newSubfield.value = ""
+                        component.buildSubfieldRow(newSubfield);
+                    }
+                    // trigger field check state events, needs to be done again if field changes
+                    newFieldRow.ind1Span.focus();
+                    newFieldRow.ind2Span.focus();
+                    for (let subfield of newField.subfields) {
+                        subfield.codeSpan.focus();
+                        subfield.valueSpan.focus();
+                    }
+                    newFieldRow.tagSpan.focus();
+                }
+            })
             
             // select new field
             this.fieldSelected(newField);
