@@ -454,7 +454,7 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.classList.remove("fa-pulse");
                     jmarc.saveButton.style = "pointer-events: auto";
-                    this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+                    this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     if (display) this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
@@ -504,7 +504,7 @@ export let multiplemarcrecordcomponent = {
         moveUndoredoIndexUndo(jmarc){
             jmarc.moveUndoredoIndexUndo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)  
+            this.displayMarcRecord(jmarc,false)  
                 
             if (jmarc.undoredoIndex!==0) {
                 // jmarc.saveButton.classList.add("fa-spinner");
@@ -517,7 +517,7 @@ export let multiplemarcrecordcomponent = {
         moveUndoredoIndexRedo(jmarc){
             jmarc.moveUndoredoIndexRedo()
             this.removeRecordFromEditor(jmarc,true)
-            this.displayMarcRecord(jmarc,false,true)   
+            this.displayMarcRecord(jmarc,false)   
             if (jmarc.undoredoIndex !== 0) {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.title = "unsaved changes";
@@ -550,8 +550,8 @@ export let multiplemarcrecordcomponent = {
             }
 
             // refresh
-            this.removeRecordFromEditor(jmarc);
-            this.displayMarcRecord(jmarc);
+            this.removeRecordFromEditor(jmarc,true);
+            this.displayMarcRecord(jmarc,false);
             seen[0].valueSpan.focus();
             seen[0].valueSpan.blur();
 
@@ -566,9 +566,6 @@ export let multiplemarcrecordcomponent = {
             for (let checkBox of document.getElementsByClassName("fa-check-square")) {
                 checkBox.classList.replace("fa-check-square", "fa-square")
             }
-
-            // adding the snapshot 
-            jmarc.addUndoredoEntry("from Paste feature");
             
             // Manage visual indicators
             this.checkSavedState(jmarc);
@@ -610,8 +607,6 @@ export let multiplemarcrecordcomponent = {
    
             // Manage visual indicators
             this.checkSavedState(jmarc);
-            
-            jmarc.addUndoredoEntry("from Delete SubField");
             this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "d-flex w-100 alert-success")
         },
         addSubField(jmarc) {
@@ -639,8 +634,7 @@ export let multiplemarcrecordcomponent = {
 
                 newSubfield.valueCell.classList.add("unsaved");
                 this.checkSavedState(jmarc);
-            
-                jmarc.addUndoredoEntry("from Delete SubField");
+
                 this.callChangeStyling(`${field.tag}$${subfield.code} has been added`, "d-flex w-100 alert-success")
 
                 return newSubfield
@@ -670,7 +664,6 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell.classList.add("unsaved");
             
             this.checkSavedState(jmarc);
-            jmarc.addUndoredoEntry("from Move SubField");
             this.callChangeStyling(`${field.tag}$${subfield.code} ${subfield.value} has been moved ${dirText}`, "d-flex w-100 alert-success")
 
             return
@@ -718,6 +711,9 @@ export let multiplemarcrecordcomponent = {
             // record state
             this.checkSavedState(jmarc);
 
+            // call the snapshot
+            // UndoredoEntry("from adding a field")
+
             return newField
         },
         deleteFields(jmarc) {
@@ -739,6 +735,7 @@ export let multiplemarcrecordcomponent = {
             //this.displayMarcRecord(jmarc);
             
             this.callChangeStyling(`Selected fields have been deleted`, "d-flex w-100 alert-success")
+
         },
         deleteField(jmarc, field=null){ 
             // delete the selected field, or the field supplied by the args if it exists
@@ -777,8 +774,8 @@ export let multiplemarcrecordcomponent = {
             // Manage visual indicators
             this.checkSavedState(jmarc);
 
-            jmarc.addUndoredoEntry("from Delete Field");
             this.callChangeStyling(`${field.tag} has been deleted`, "d-flex w-100 alert-success")
+
         },
         deleteRecord(jmarc) {
             if (jmarc.workformName) {
@@ -814,12 +811,12 @@ export let multiplemarcrecordcomponent = {
             jmarc.workformName = "<new>";
             jmarc.workformDescription = " ";
             jmarc.newWorkForm = true;
-            this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
             this.displayMarcRecord(jmarc, false);
             this.callChangeStyling("Name your new workform, then click the Save button", "d-flex w-100 alert-warning")
             jmarc.saveButton.onclick = () => {
                 jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
-                    this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+                    this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 })
@@ -850,13 +847,8 @@ export let multiplemarcrecordcomponent = {
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
-            //this.record1.selected = this.record2.selected = false
-            //jmarc.selected = true
             let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
-            //let checkBox = document.querySelector(`div#${jmarc.div.id} i#selectRecordButton`)
-            //if (checkBox) {checkBox.classList.replace("fa-square","fa-check-square")}
-           
         },
         async unlockRecord(jmarc, lockedBy) {
             let uibase = this.prefix.replace("/api/","")
@@ -880,8 +872,6 @@ export let multiplemarcrecordcomponent = {
             // Manage visual indicators
             this.checkSavedState(jmarc);
 
-            // Is this the way this works?
-            jmarc.addUndoredoEntry("from Approve Auth")
         },
 
         ///////////////////////////////////////////////////
@@ -1073,14 +1063,7 @@ export let multiplemarcrecordcomponent = {
         },
  
         clearSelectedRecord(){
-           
-            // remove checked option
-            //let selectedRecords=document.querySelectorAll("i#selectRecordButton")
-            //let selectedRecordsArray=Array.from(selectedRecords)
-            //selectedRecordsArray.forEach(element => {
-            //    element.classList.replace("fa-check-square", "fa-square")
-            //})
- 
+
             // change color header
             let selectedHeader=document.getElementsByTagName("thead")
             let selectedHeadersArray=Array.from(selectedHeader)
@@ -1089,7 +1072,6 @@ export let multiplemarcrecordcomponent = {
             })
  
             // clean the variables
-            //this.selectedRecord="" i think we can keep this one in order to keep the focus on the record
             this.selectedRecordsArray=[]
             this.selectedDiv=""
             this.selectedJmarc=""
@@ -1579,13 +1561,6 @@ export let multiplemarcrecordcomponent = {
             
         },
         userClose(jmarc) {
-            // called when the user clicks the X button
-            //Issue #555
-            // if(! jmarc.saved) {
-            //     let val = confirm("Warning! You have unsaved changes. Click OK to close without saving or Cancel to resume editing your record.")
-            //     if (val == false) {
-            //         return
-            //     }
 
             if(! jmarc.saved) {
                 this.showModalSave=true
@@ -1597,8 +1572,8 @@ export let multiplemarcrecordcomponent = {
 
             if (otherRecord) {
                 // reset the div
-                this.removeRecordFromEditor(otherRecord);
-                this.displayMarcRecord(otherRecord);
+                this.removeRecordFromEditor(otherRecord,true);
+                this.displayMarcRecord(otherRecord,false);
                 this.selectRecord(otherRecord);
             }
 
@@ -1619,7 +1594,9 @@ export let multiplemarcrecordcomponent = {
             // clear the entries for the undoredo vector
             if (keepDataInVector==false) { 
                 jmarc.clearUndoredoVector()
-            }    
+                // stop the timer for undoredo
+                jmarc.stopcheckingUndoRedoEntry() 
+            }
 
             let divID = jmarc.div.id
  
@@ -1632,10 +1609,6 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord1=""
                 let recup=document.getElementById("record1")
                 recup.innerHTML=""
-                if (keepDataInVector==false) { 
-                    //this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
-                }
-                
             }
             else if (divID === "record2") {
                 this.removeJmarcTodisplayedJmarcObject(this.record2)
@@ -1645,9 +1618,6 @@ export let multiplemarcrecordcomponent = {
                 this.collectionRecord2=""
                 let recup=document.getElementById("record2")
                 recup.innerHTML=""
-                if (keepDataInVector==false) {
-                    //this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
-                }
             }
 
             this.currentRecordObjects.splice(this.currentRecordObjects.indexOf(jmarc), 1);
@@ -1694,7 +1664,7 @@ export let multiplemarcrecordcomponent = {
 
             return true
         },
-        displayMarcRecord(jmarc, readOnly,reload=false) {
+        displayMarcRecord(jmarc, readOnly) {
             let component = this;
             let myDivId;
 
@@ -1710,11 +1680,14 @@ export let multiplemarcrecordcomponent = {
                 this.record2 = jmarc.recordId;
                 this.collectionRecord2 = jmarc.collection; // used for auth merge
             }
+
+            // init the undoRedo
+            if (jmarc.checkUndoRedoEntry==false) {
+                jmarc.startcheckingUndoRedoEntry(5000)
+                // set this variable is order to prevent to setup the timer each time
+                jmarc.checkUndoRedoEntry=true
+            } 
             
-            if (reload==false){
-                jmarc.addUndoredoEntry()
-            }
-           
             jmarc.div = document.getElementById(myDivId);
 
             // the display may have been aborted
@@ -1887,8 +1860,8 @@ export let multiplemarcrecordcomponent = {
                     {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                     {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
-                    {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoIndexUndo","param":jmarc},
-                    {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveRedoIndexRedo","param":jmarc},
+                    {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
+                    {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "userClose"},
                 ]
             }
@@ -2303,7 +2276,7 @@ export let multiplemarcrecordcomponent = {
                 input.addEventListener("input",function(){
                     // adding the snapshot 
                     if (tagSpan.innerText.length === 3) {
-                        jmarc.addUndoredoEntry("from Tag")
+
                     }
                 });
             }
@@ -2398,7 +2371,7 @@ export let multiplemarcrecordcomponent = {
                     // adding the snapshot 
                     if (tagSpan.innerText.length === 3) {
                         // todo: add detetction for indicators
-                        //jmarc.addUndoredoEntry("from Tag")
+
                     }
                 });
             }
@@ -2406,9 +2379,6 @@ export let multiplemarcrecordcomponent = {
             function indUpdate(ind) {
                 let cell = ind === 1 ? ind1Cell : ind2Cell;
                 let span = ind === 1 ? ind1Span : ind2Span;
-                
-                // undoredo snapshot
-                jmarc.addUndoredoEntry("INDICATORS") 
 
                 // editing the indicators array directly has strange side effects
                 let updated = [field.indicators[0], field.indicators[1]]
@@ -2544,8 +2514,7 @@ export let multiplemarcrecordcomponent = {
             if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
                 this.setAuthControl(field, subfield)
             }
-            
-            // Events
+
 
             // Menu actions
             menuButton.addEventListener("focus", function() {
@@ -2561,11 +2530,10 @@ export let multiplemarcrecordcomponent = {
             // Delete subfield
             deleteSubfield.addEventListener("click", function() {
                 component.deleteSubFieldFromShort(jmarc)
- 
             });
 
             moveSubfieldUp.addEventListener("click", () => {
-                component.moveSubfield(jmarc, -1)
+                component.moveSubfield(jmarc, -1)        
             })
 
             moveSubfieldDown.addEventListener("click", () => {
@@ -2613,20 +2581,12 @@ export let multiplemarcrecordcomponent = {
 
                 input.addEventListener("input",function(){
                     // adding the snapshot 
-                    if (codeSpan.innerText.length === 1) {
-                        // todo: detect subfield code changes
-                        //jmarc.addUndoredoEntry("from Tag")
-                    }
+ 
                 });
             }
 
             function subfieldCodeUpdate() {
                 subfield.code = codeSpan.innerText || subfield.code;
-
-                // adding the snapshot 
-                if (codeSpan.innerText.length === 1) {
-                    jmarc.addUndoredoEntry("from Code Subfield")
-                }
 
                 // auth control
                 if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
@@ -2661,12 +2621,8 @@ export let multiplemarcrecordcomponent = {
             valCell.addEventListener("click", function () {valSpan.focus()});
             
             function updateSubfieldValue() {
-                subfield.value = valSpan.innerText;
 
-                // adding the snapshot 
-                if (valCell.innerText.length > 0) {
-                    jmarc.addUndoredoEntry("from Subfield Value")
-                }
+                subfield.value = valSpan.innerText;
 
                 valCell.classList.remove("unsaved");
 
@@ -2689,6 +2645,7 @@ export let multiplemarcrecordcomponent = {
             valSpan.addEventListener("focus", updateSubfieldValue); // allows triggering arbitrarily
             valCell.addEventListener("input", updateSubfieldValue);
             valCell.addEventListener("mousedown", updateSubfieldValue); // auth control selection
+    
 
             // System paste
             valCell.addEventListener("paste", function (event) {
