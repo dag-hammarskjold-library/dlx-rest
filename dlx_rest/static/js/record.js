@@ -1321,16 +1321,18 @@ export let multiplemarcrecordcomponent = {
 
                         // adding some events on mouverover / mouseout to change background color
                         firstDiv.addEventListener("click",()=>{
-                            
-                            // // active the history mode
-                            // that.historyMode=true
-                            
-                            // recordiD to the history record for displaying purpose
-                            element.recordId=that.selectedJmarc.recordId
-                            that.historyJmarcHistory=element
-                            that.historyJmarcOriginal=that.selectedJmarc
-                            that.closeModal()
-                            that.displayHistoryEditorView(that.selectedJmarc)
+
+                            if (that.displayedJmarcObject.length===1){
+                                // recordiD to the history record for displaying purpose
+                                element.recordId=that.selectedJmarc.recordId
+                                that.historyJmarcHistory=element
+                                that.historyJmarcOriginal=that.selectedJmarc
+                                that.closeModal()
+                                that.displayHistoryEditorView(that.selectedJmarc,true)
+                            } else {
+                                that.closeModal()
+                                that.callChangeStyling("First remove a record from the stage", "d-flex w-100 alert-danger");
+                            }
                         })
                         recup.appendChild(firstDiv)
                         })
