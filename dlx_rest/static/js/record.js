@@ -405,19 +405,36 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
+                // get rid of empty fields and validate
+                let flags = jmarc.validationWarnings();
+                flags.forEach(x => {this.callChangeStyling(x.message, "d-flex w-100 alert-danger")});
+                
+                if (flags.length > 0) return
+
+                jmarc.getDataFields().forEach(field => {
+                    field.subfields.forEach(subfield => {
+                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
+                            field.deleteSubfield(subfield);
+                        }
+
+                        subfield.validationWarnings().forEach(x => {
+                            this.callChangeStyling(`${field.tag}$${subfield.code}: ${x.message}`, "d-flex w-100 alert-danger");
+                            flags.push(x)
+                        })
+                    });
+
+                    field.validationWarnings().forEach(x => {
+                        this.callChangeStyling(`${field.tag}: ${x.message}`, "d-flex w-100 alert-danger");
+                        flags.push(x)
+                    })
+                });
+
+                if (flags.length > 0) return
+
                 // start the pending spinner
                 jmarc.saveButton.classList.add("fa-spinner");
                 jmarc.saveButton.classList.add("fa-pulse");
                 jmarc.saveButton.style = "pointer-events: none";
-
-                // get rid of empty fields
-                jmarc.getDataFields().forEach(field => {
-                    field.subfields.forEach(subfield => {
-                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                            field.deleteSubfield(subfield); // this should be done somewhere else
-                        }
-                    })
-                });
 
                 // dupe auth check
                 if (jmarc.collection === "auths") {

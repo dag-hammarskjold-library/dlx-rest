@@ -35,6 +35,10 @@ class ValidationFlag {
 	}
 }
 
+class RecordValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
 export class SubfieldCodeValidationFlag extends ValidationFlag {
 	constructor(message) {super(message)}
 }
@@ -991,7 +995,15 @@ export class Jmarc {
 		let flags = [];
 		let data = validationData[this.collection];
 
-		// todo: check for required fields
+		// check for required fields
+		let required = Object.keys(data).filter(x => data[x].required);
+		let tags = new Set(this.getDataFields().map(x => x.tag));
+
+		required.forEach(x => {
+			if (Array.from(tags).indexOf(x) === -1) {
+				flags.push(new RecordValidationFlag(`Required field ${x} is missing`));
+			}
+		});
 
 		return flags
 	}
