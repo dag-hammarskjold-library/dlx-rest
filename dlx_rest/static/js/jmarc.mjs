@@ -357,22 +357,70 @@ export class Jmarc {
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
 		this.authMap = this.collection === 'bibs' ? authMap['bibs'] : authMap['auths'];
+		this.handleSetInterval=0
+		this.checkUndoRedoEntry=false
 		this.fields = [];
 		this._history = [];
 		this.undoredoIndex=0;
 		this.undoredoVector=[];
 	}
 	
+	// check if value already inside the vector
+	isInsideVectorAlready(value){
+		let findOccurence=false
+		this.undoredoVector.forEach(element=>{
+			if (JSON.stringify(element.valueEntry)===JSON.stringify(value)){
+				return findOccurence=true
+			}
+		})
+		return findOccurence
+	}
+
+
+	// this method will check every "myTime" if the field property of the record has changed
+	startcheckingUndoRedoEntry(myTime) {
+
+		  this.handleSetInterval=setInterval(() => {
+
+			// if (Object.keys(this.oldJmarcValue).length === 0) {
+			// 	this.oldJmarcValue = JSON.stringify(this.compile())
+			// 	this.addUndoredoEntry()
+			// } 
+			
+			if (this.undoredoVector.length === 0) {
+				this.addUndoredoEntry()
+			} 
+			
+			else if (this.isInsideVectorAlready(this.compile())===false){
+					this.addUndoredoEntry()
+					console.log("change(s) on : " + this.recordId)
+					console.log("id context: " + this.handleSetInterval)
+				}
+		
+		  	else if (this.isInsideVectorAlready(this.compile())===true){
+				console.log("no change on :" + this.recordId)
+				console.log("id context: " + this.handleSetInterval)
+			}
+
+			console.log(" number of entries : " + this.undoredoVector.length)
+			
+		  }, myTime);
+		
+	}
+
+	stopcheckingUndoRedoEntry() {
+		clearInterval(this.handleSetInterval)
+	}
+
 	// add a new undoredoEntry
 	// this method should be add each time we are changing the value of one input
-	addUndoredoEntry(changeon){
+	addUndoredoEntry(){
 
 		// collecting the values to assign
 		let today = new Date();
 		let dateEntry = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()
 		let recordIdEntry=this.recordId
 		let timeEntry = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-		let changeonEntry=changeon
 		let valueEntry={}
 		valueEntry=this.compile()
 
@@ -383,7 +431,6 @@ export class Jmarc {
 		undoredoEntry.dateEntry=dateEntry
 		undoredoEntry.timeEntry=timeEntry
 		undoredoEntry.recordIdEntry=recordIdEntry
-		undoredoEntry.changeonEntry=changeonEntry
 		undoredoEntry.valueEntry=valueEntry
 		
 		// adding the entry inside the vector

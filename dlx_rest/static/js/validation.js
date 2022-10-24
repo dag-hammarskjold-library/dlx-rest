@@ -192,7 +192,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["b"] 
         },
         "091": {
             "name": "",
@@ -222,7 +222,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         },
         "100": {
             "name": "",
@@ -342,7 +342,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a", "b"] 
         },
         "247": {
             "name": "",
@@ -372,7 +372,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "255": {
             "name": "",
@@ -382,7 +382,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "256": {
             "name": "",
@@ -402,7 +402,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         },
         "264": {
             "name": "",
@@ -438,7 +438,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b"] 
         },
         "306": {
             "name": "",
@@ -718,7 +718,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","u"] 
         },
         "562": {
             "name": "",
@@ -1018,7 +1018,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["9","o","t","z","x"] 
         },
         "772": {
             "name": "",
@@ -1118,7 +1118,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["3","q","u"] 
         },
         "910": {
             "name": "",
@@ -1218,7 +1218,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c","d"] 
         },
         "992": {
             "name": "",
@@ -1278,7 +1278,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c"] 
         }
     },
     "auths": {
@@ -1330,7 +1330,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","f"] 
         },
         "041": {
             "name": "",
@@ -1350,7 +1350,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["s","t"] 
         },
         "049": {
             "name": "",
@@ -1490,7 +1490,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["b","c"] 
         },
         "191": {
             "name": "",
@@ -1500,7 +1500,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a","b","c","d"] 
         },
         "245": {
             "name": "",
@@ -1550,7 +1550,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["c","e"] 
         },
         "374": {
             "name": "",
@@ -1650,7 +1650,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["d"] 
         },
         "493": {
             "name": "",
@@ -1890,7 +1890,7 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["j"] 
         },
         "682": {
             "name": "",
@@ -2232,5 +2232,149 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         }
+    },
+    "speeches": {
+        "089": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["b"] 
+        },
+        "791": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "991": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d"] 
+        },
+        "999": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
+        },
+    },
+    "votes": {
+        "089": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["b"] 
+        },
+        "245": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "791": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
+        "793": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["v"] 
+        },
+        "967": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "968": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "969": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e"] 
+        },
+        "991": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d"] 
+        },
+        "996": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c","d","e","f"] 
+        },
+        "999": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a","b","c"] 
+        },
     }
 }
