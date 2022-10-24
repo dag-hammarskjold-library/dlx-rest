@@ -1,8 +1,8 @@
-
 export const validationData = {
     "comments": "",
     "bibs": {
         "010": {
+            // no definition in specifications
             "name": "",
             "required": false,
             "repeatable": true,
@@ -13,6 +13,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "019": {
+            // no definition in specifications
             "name": "",
             "required": false,
             "repeatable": true,
@@ -38,7 +39,7 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
@@ -52,7 +53,17 @@ export const validationData = {
             "validSubfields": ["a", "b"],
             "defaultSubfields": ["a", "b"],
             "validStrings": {
-                "a": []
+                // To do: dropdown or other select using these controlled values
+                "a": ["JN","GN","IN","SN","UN"]
+                /* 
+                [
+                    {"code":"JN", "description":"ODS job number"},
+                    {"code":"GN", "description":"Government Number"},
+                    {"code":"IN", "description":"International Number"},
+                    {"code":"SN", "description":"Specialized Agency doc. Number"},
+                    {"code":"UN", "description":"UN Map sheets"}
+                ]
+                */
             }
         },
         "030": {
@@ -95,7 +106,17 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"],
             "validStrings": {
-                "a": []
+                // To do: dropdown or other select using these controlled values
+                "a": ["DHU","GUN","ITS","SN","VOT"]
+                /*
+                [
+                    {"code":"DHU", "description":"DHL Indexing Unit, UN Material"},
+                    {"code":"GUN", "description":"UNOG, Indexing Unit"},
+                    {"code":"ITS", "description":"International Number"},
+                    {"code":"SN", "description":"DHL, Speech index record"},
+                    {"code":"VOT", "description":"DHL, Voting record"}
+                ]
+                */
             }
         },
         "040": {
@@ -108,7 +129,14 @@ export const validationData = {
             "validSubfields": ["a", "b"],
             "defaultSubfields": ["a", "b"],
             "validStrings": {
-                "a": []
+                // To do: dropdown or other select using these controlled values
+                "a": ["SzGeBNU","NNUN"]
+                /*
+                [
+                    {"code":"SzGeBNU", "description":"UNOG Library"},
+                    {"code":"NNUN", "description": "DHL"}
+                ]
+                */
             }
         },
         "041": {
@@ -139,10 +167,12 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": ["a"],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"],
+            "defaultSubfields": ["a"]
+            /* To do: get a list of ISO Alpha3 codes
             "validStrings": {
                 "a": []
             }
+            */
         },
         "066": {
             "name": "",
@@ -192,7 +222,10 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["b"] 
+            "defaultSubfields": ["b"],
+            "validStrings": {
+
+            }
         },
         "091": {
             "name": "",
@@ -202,7 +235,22 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validStrings": {
+                // To do: dropdown or other select using these controlled values
+                "a": ["DER","GEN","GER","LTD","PAR","PRO","RES"]
+                /*
+                [
+                    {"code":"DER" ,"description":"Derestricted"},
+                    {"code":"GEN" ,"description":"General"},
+                    {"code":"GER" ,"description":"General (not for deposit)"},
+                    {"code":"LTD" ,"description":"Limited"},
+                    {"code":"PAR" ,"description":"Participants only"},
+                    {"code":"PRO" ,"description":"Provisional"},
+                    {"code":"RES","description":"Restricted"}
+                ]
+                */
+            }
         },
         "093": {
             "name": "",
@@ -222,7 +270,31 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a","b","c"] 
+            "defaultSubfields": ["a","b","c"],
+            "validStrings": {
+                // To do: dropdown or other select using these controlled values
+                // $a=UNG and $a=UNH have different lists of possible values for $b
+                "a": ["UNG","UNH"],
+                "b": ["DHU","DHG","DHL","DHM","DHR","DHS","DHW","DHX","GUN"]
+                /*
+                "a": [
+                    {"code":"UNG", "description":"UN Office at Geneva (UNOG)"},
+                    {"code":"UNH", "description":"UN Headquarters"}
+                ],
+                "b": [
+                    {"code":"DHU","description":"UN/SA Reference Collection" },
+                    {"code":"DHG","description":"Legal Reference Collection" },
+                    {"code":"DHL","description":"Main Collection" },
+                    {"code":"DHM","description":"Map Reference Collection"},
+                    {"code":"DHR","description":"General Reference Reading Room DHS"},
+                    {"code":"DHS","description":"Statistical Reference Collection"},
+                    {"code":"DHW","description":"Woodrow Wilson Memorial Collection" },
+                    {"code":"DHX","description":"UNX Collection [publications about the UN and specialized agencies]" },
+                    // $a=UNG:
+                    {"code":"GUN","description":"UN Document Collection" }
+                ]
+                */
+            }
         },
         "100": {
             "name": "",
@@ -272,7 +344,14 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": ["a", "b"],
             "validSubfields": ["a", "b", "c", "z", "9"],
-            "defaultSubfields": ["a", "b", "c"]
+            "defaultSubfields": ["a", "b", "c"],
+            "validStrings": {
+                // To do: dropdown or other select using these controlled values
+                // $b=A/ $b=E/ $b=S/ all have their own lists of valid strings for $9
+                "9": [  "C00","C01","C10","C88","C99","G00","G01","G03","G04","G05","G09","G1A","G10","G11",
+                        "G14","G22","G33","G55","G66","G67","G88","G99","X00","X01","X10","X15","X88","X99",
+                        "T00","T01","T03","T04","T05","T10","T88","T99"]
+            }
         },
         "192": {
             "name": "",
@@ -1088,7 +1167,10 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validStrings": {
+                "a": ["PL","GC","CR","01","02","03","04","05","06"]
+            }
         },
         "810": {
             "name": "",
@@ -1278,7 +1360,10 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": [],
             "validSubfields": ["*"],
-            "defaultSubfields": ["a","b","c"] 
+            "defaultSubfields": ["a","b","c"],
+            "validStrings": {
+                "a": ["c","d","i","m","o","p","q","r","s","t","u","v","w"]
+            }
         }
     },
     "auths": {
