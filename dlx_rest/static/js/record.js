@@ -779,7 +779,6 @@ export let multiplemarcrecordcomponent = {
         deleteField(jmarc, field=null){ 
             // delete the selected field, or the field supplied by the args if it exists
             field = field || jmarc.fields.filter(x => x.selected)[0];
-            let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
                 this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
@@ -792,6 +791,7 @@ export let multiplemarcrecordcomponent = {
                 return
             }                   
             
+            let fieldIndex = jmarc.fields.indexOf(field);
             jmarc.deleteField(field);
             let myTable=document.getElementById(this.selectedDiv).firstChild 
             myTable.deleteRow(field.row.rowIndex);
@@ -1003,10 +1003,11 @@ export let multiplemarcrecordcomponent = {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
 
-                    if (this.copiedFields) {
+                    if (this.copiedFields.length > 0) {
                         // there are fields checked
                         this.deleteFields(this.selectedJmarc);
                     } else {
+                        // deletes only the active field
                         this.deleteField(this.selectedJmarc);
                     }
                 }
