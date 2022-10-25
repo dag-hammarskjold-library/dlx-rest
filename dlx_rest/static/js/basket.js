@@ -130,9 +130,9 @@ export let basketcomponent = {
             }
         },
         async clearBasket() {
-            for (let item of this.basketItems) {
-                this.removeRecordFromList(item.collection, item._id)
-            }
+            basket.clearItems(this.api_prefix, "userprofile/my_profile/basket").then(() => {
+                this.rebuildBasket()
+            })
         },
         async buildBasket() {
             const myBasket = await basket.getBasket(this.api_prefix);

@@ -36,11 +36,12 @@ export default {
             fetch(url, {
                 method: 'POST',
                 body: data
-            }).then( () => {
-                //console.log("and we did")
-                return true;
-            });
+            }).catch( e => {
+                console.log(e)
+            })
         });
+
+        return true
     },
     async getItem(api_prefix, collection, record_id) {
         Jmarc.api_prefix = api_prefix;
@@ -76,8 +77,9 @@ export default {
         const returnData = new Set(jsonData.data.item_data.sort((a,b) => a - b))
         return returnData;
     },
-    clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
-        let url = `${api_prefix}/${basket_id}`
+    async clearItems(api_prefix, basket_id='userprofile/my_profile/basket') {
+        let url = `${api_prefix}${basket_id}/clear`
+        await fetch(url, {method:"POST"}).then(() => {return true} )
     },
     contains(collection, record_id, basket) {
         for (let item of basket) {
