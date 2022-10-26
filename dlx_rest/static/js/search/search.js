@@ -524,22 +524,6 @@ export let searchcomponent = {
             }
             return false;
         },
-
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-2x fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
-                })
-            } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
-            }
-        },
         async handleIconClick(e) {
             let collection = e.target.id.split("-")[1]
             let record_id = e.target.id.split("-")[2]
@@ -722,29 +706,37 @@ export let searchcomponent = {
             this.abortController.abort();
             this.start = this.end = 0;
         },
-        selectAll()  {
+        selectAll(e)  {
+            e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && !inputEl.disabled) {
                     inputEl.checked = true
                 }
             }
         },
-        selectNone() {
+        selectNone(e) {
+            e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox") {
                     inputEl.checked = false
                 }
             }
         },
-        async sendToBasket() {
+        async sendToBasket(e) {
+            e.preventDefault()
+            let items = []
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && inputEl.checked) {
                     let collection = inputEl.id.split("-")[1]
                     let record_id = inputEl.id.split("-")[2]
-                    let iconEl = document.getElementById(`icon-${collection}-${record_id}`)
-                    iconEl.click()
-                    //console.log(collection, record_id)
+                    items.push({
+                        "collection": `${collection}`,
+                        "record_id": `${record_id}`
+                    })
                 }
+            }
+            if (items.length > 0) {
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
             }
         }
     },

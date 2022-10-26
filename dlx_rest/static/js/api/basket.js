@@ -2,46 +2,23 @@ import { Jmarc } from "../jmarc.mjs";
 
 export default {
     // Individual item methods
-    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id, override=false) {
-        
-        Jmarc.apiUrl = api_prefix;
+    async createItem(api_prefix, basket_id='userprofile/my_profile/basket', collection, record_id, override=false) {        
         let url = `${api_prefix}${basket_id}`;
-        let myItemTitle = "";
-        let myId = null;
-        // Check here to see if the record is already in another basket? Return that fact, along with the user?
-        Jmarc.get(collection, record_id).then(jmarc => {
-            if(collection == "bibs") {
-                let myTitleField = jmarc.getField(245,0);
-                let myTitle = [];
-                if (myTitleField) {
-                    for (let s in myTitleField.subfields) {
-                        myTitle.push(myTitleField.subfields[s].value);
-                    }
-                } else {
-                    myTitle.push("[No Title]")
-                }
-                
-                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
-            } else if (collection == "auths") {
-                //console.log("Trying to create an auth basket item...")
-                let myTitleField = jmarc.fields.filter(x => x.tag.match(/^1[0-9][0-9]/))[0];
-                let myTitle = [];
-                for (let s in myTitleField.subfields) {
-                    myTitle.push(myTitleField.subfields[s].value);
-                }
-                myItemTitle = myTitle.join(" ").replace(/"/g, `\\"`);
-            }
-            let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "${myItemTitle}", "override": ${override}}`
-            //console.log(url)
-            fetch(url, {
-                method: 'POST',
-                body: data
-            }).catch( e => {
-                console.log(e)
-            })
-        });
+        let data = `{"collection": "${collection}", "record_id": "${record_id}", "title": "[No Title]", "override": ${override}}`
+
+        await fetch(url, {
+            method: 'POST',
+            body: data
+        })
 
         return true
+    },
+    async createItems(api_prefix, basket_id='userprofile/my_profile/basket', items) {
+        let url = `${api_prefix}${basket_id}/addBulk`;
+        if (items.length > 0) {
+            await fetch(url, {method: "POST", body: items})
+            return true
+        }
     },
     async getItem(api_prefix, collection, record_id) {
         Jmarc.api_prefix = api_prefix;
