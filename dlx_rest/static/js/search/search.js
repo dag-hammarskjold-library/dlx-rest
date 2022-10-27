@@ -150,9 +150,9 @@ export let searchcomponent = {
         <div id="message-display" class="col-xs-1 text-center"></div>
         <div class="row">
             Select 
-            <a class="mx-1" href="#" @click="selectAll">All</a>
-            <a class="mx-1" href="#" @click="selectNone">None</a>
-            <a class="mx-1" href="#" @click="sendToBasket">Send Selected to Basket</a>
+            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">

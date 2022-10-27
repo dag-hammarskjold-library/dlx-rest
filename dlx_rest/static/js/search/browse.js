@@ -40,6 +40,12 @@ export let browsecomponent = {
                 </ul>
             </nav>
             <div class="row">
+                Select 
+                <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+                <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+                <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
+            </div>
+            <div class="row">
                 <div id="before-spinner" class="col d-flex justify-content-center">
                     <div class="spinner-border" role="status">
                         <span class="sr-only">Loading...</span>
@@ -48,6 +54,9 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_before" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
+                <div class="col-1">
+                    <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                </div>
                 <div class="col">
                     <a :id="'link-' + result.value" :href=result.url target="_blank">
                         {{result.value}}&nbsp;
@@ -64,6 +73,7 @@ export let browsecomponent = {
                 </div>
             </div>
             <div class="row">
+                <div class="col-1"></div>
                 <div class="col"><i class="fas fa-angle-double-right mr-2 text-success"></i><span class="text-success">{{q}}</span></div>
             </div>
             <div class="row">
@@ -75,7 +85,10 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_after" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
-                <div class="col ">
+                <div class="col-1">
+                    <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                </div>
+                <div class="col">
                     <a :id="'link-' + result.value" :href=result.url target="_blank">
                         {{result.value}}&nbsp;
                         <span :id="'count-' + result.value">
@@ -174,6 +187,7 @@ export let browsecomponent = {
 
                 for (let result of jsondata.data) {
                     // tanslate api search to app search
+                    console.log(result)
                     let searchStr = result.search.split('search=')[1];
                     let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
@@ -195,7 +209,7 @@ export let browsecomponent = {
                                             let recordUrl;
 
                                             if (this.logged_in) {
-                                                recordUrl = `${this.base_url}/editor?records=${this.collection}/${recordId}`
+                                                recordUrl = `${this.base_url}editor?records=${this.collection}/${recordId}`
                                             } else {
                                                 recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
                                             }
@@ -258,6 +272,18 @@ export let browsecomponent = {
                     window.location.href=targetUrl;
                 },0)
             }
+        },
+        selectAll(e) {
+            e.preventDefault()
+            return true
+        },
+        selectNone(e) {
+            e.preventDefault()
+            return true
+        },
+        sendToBasket(e) {
+            e.preventDefault()
+            return true
         }
     }
 }
