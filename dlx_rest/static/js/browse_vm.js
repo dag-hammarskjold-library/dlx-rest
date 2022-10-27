@@ -3,7 +3,6 @@
 /////////////////////////////////////////////////////////////////
 
 //import { Jmarc } from "./jmarc.mjs";
-import { messagecomponent } from "./messagebar.js";
 import { sidebarcomponent } from "./search/sidebar.js";
 import { browsecomponent } from "./search/browse.js";
 
