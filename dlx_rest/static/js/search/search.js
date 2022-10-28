@@ -148,7 +148,7 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
-        <div class="row">
+        <div class="row" v-if="user">
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
@@ -156,7 +156,7 @@ export let searchcomponent = {
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
-                <div class="col-sm-1"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
+                <div class="col-sm-1" v-if="user"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
                 <div class="col-sm-10 px-4 ">
                     <div class="row" style="overflow-x:hidden">
                         <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
@@ -259,7 +259,8 @@ export let searchcomponent = {
             maxTime: 15000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
-            myBasket: {}
+            myBasket: {},
+            user: null
         }
     },
     created: async function() {

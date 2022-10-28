@@ -37,7 +37,7 @@ export let browsecomponent = {
                     <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
                 </ul>
             </nav>
-            <div class="row">
+            <div class="row" v-if="user">
                 Select 
                 <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
                 <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
@@ -52,7 +52,7 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_before" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
-                <div class="col-1">
+                <div class="col-1" v-if="user">
                     <input :id="'input-' + result.value" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
                     <input type="hidden" />
                 </div>
@@ -84,7 +84,7 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_after" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
-                <div class="col-1">
+                <div class="col-1" v-if="user">
                     <input :id="'input-' + result.value" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
                     <input type="hidden" />
                 </div>
