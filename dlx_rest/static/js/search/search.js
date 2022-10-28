@@ -152,7 +152,7 @@ export let searchcomponent = {
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
+            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -725,14 +725,20 @@ export let searchcomponent = {
         async sendToBasket(e) {
             e.preventDefault()
             let items = []
+            let limit = 100     // Really shouldn't send more than that
+            let idx = 0
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && inputEl.checked) {
+                    if (idx >= limit) {
+                        continue
+                    }
                     let collection = inputEl.id.split("-")[1]
                     let record_id = inputEl.id.split("-")[2]
                     items.push({
                         "collection": `${collection}`,
                         "record_id": `${record_id}`
                     })
+                    idx++
                 }
             }
             if (items.length > 0) {

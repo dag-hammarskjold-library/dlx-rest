@@ -41,7 +41,7 @@ export let browsecomponent = {
                 Select 
                 <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
                 <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-                <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
+                <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
             </div>
             <div class="row">
                 <div id="before-spinner" class="col d-flex justify-content-center">
@@ -317,14 +317,20 @@ export let browsecomponent = {
         sendToBasket(e) {
             e.preventDefault()
             let items = []
+            let limit = 100     // Really shouldn't send more than that
+            let idx = 0
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && inputEl.checked) {
+                    if (idx >= limit) {
+                        continue
+                    }
                     let hiddenInputEl = inputEl.nextElementSibling
                     let record_id = hiddenInputEl.value
                     items.push({
                         "collection": `${this.collection}`,
                         "record_id": `${record_id}`
                     })
+                    idx++
                 }
             }
             if (items.length > 0) {
