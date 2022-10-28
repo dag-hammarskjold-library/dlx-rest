@@ -724,12 +724,14 @@ export let multiplemarcrecordcomponent = {
                 // Differentiate kinds of bibs based on 089 contents
                 // At worst this will still default to bibs
                 let vcoll = jmarc.collection
-                let recordType = jmarc.getField("089").getSubfield("b").value
-                //console.log(recordType)
-                if (recordType && recordType == "B22") {
-                    vcoll = "speeches"
-                } else if (recordType && recordType == "B23") {
-                    vcoll = "votes"
+                if( vcoll == "bibs") {
+                    let recordType = jmarc.getField("089").getSubfield("b").value
+                    //console.log(recordType)
+                    if (recordType && recordType == "B22") {
+                        vcoll = "speeches"
+                    } else if (recordType && recordType == "B23") {
+                        vcoll = "votes"
+                    }    
                 }
                 //console.log(vcoll)
                 let validatedField = validationData[vcoll][e.target.value]

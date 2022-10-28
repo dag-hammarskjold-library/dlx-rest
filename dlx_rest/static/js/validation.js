@@ -1659,7 +1659,7 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
-                "a": ["c","d","i","m","o","p","q","r","s","t","u","v","w"]
+                "c": ["c","d","i","m","o","p","q","r","s","t","u","v","w"]
             }
         }
     },
