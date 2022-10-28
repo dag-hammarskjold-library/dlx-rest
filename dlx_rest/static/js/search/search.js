@@ -148,9 +148,16 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
+        <div class="row">
+            Select 
+            <a class="mx-1" href="#" @click="selectAll">All</a>
+            <a class="mx-1" href="#" @click="selectNone">None</a>
+            <a class="mx-1" href="#" @click="sendToBasket">Send Selected to Basket</a>
+        </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
-                <div class="col-sm-11 px-4 ">
+                <div class="col-sm-1"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
+                <div class="col-sm-10 px-4 ">
                     <div class="row" style="overflow-x:hidden">
                         <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
@@ -163,7 +170,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket" @click="handleIconClick"></i></a>
                     </div>
                 </div>
             </div>
@@ -251,7 +258,8 @@ export let searchcomponent = {
             searchTime: 0,
             maxTime: 15000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
-            abortController: new AbortController()
+            abortController: new AbortController(),
+            myBasket: {}
         }
     },
     created: async function() {
@@ -413,12 +421,16 @@ export let searchcomponent = {
                             //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
+                                    this.myBasket = myBasket
                                     //console.log(myBasket)
                                     //console.log("got my basket contents")
                                     for (let result of component.results) {
                                         //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
+
+                                        let myCheckboxId = `input-${component.collection}-${result._id}`;
+                                        let inputEl = document.getElementById(myCheckboxId);
                                     
                                         if (component.basketContains(myBasket, component.collection, result._id)) {
                                             //iconEl.classList.remove('fa-folder-plus',);
@@ -428,6 +440,7 @@ export let searchcomponent = {
                                         } else {
                                             iconEl.classList.add('fa-folder-plus');
                                             iconEl.title = "Add to basket";
+                                            inputEl.disabled = false
                                         }
 
                                         // checking if the record is locked and displaying a lock if it is.
@@ -442,45 +455,10 @@ export let searchcomponent = {
                                                     // revert link to read only view. 
                                                     // TODO: acquire the lock status earlier 
                                                     document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
+                                                    inputEl.disabled = true
                                                 }
                                             }
                                         );
-
-                                        iconEl.addEventListener("click", function() {
-                                            if (iconEl.classList.contains("fa-folder-plus")) {
-                                                //console.log("We're trying to create something.")
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run an add
-                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
-                                                    function() {
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-plus");
-                                                        iconEl.classList.add("fa-folder-minus");
-                                                        iconEl.classList.add("text-muted");
-                                                        iconEl.title = "Remove from basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
-                                                //console.log("We're trying to delete something.")
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run a deletion
-                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
-                                                    function() {
-                                                        //console.log("But did we do it?")
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-minus");
-                                                        iconEl.classList.add("fa-folder-plus");
-                                                        iconEl.classList.remove("text-muted");
-                                                        iconEl.title = "Add to basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-lock")) {
-                                                // TODO: unlock
-
-                                            }
-                                        });
                                     }
                                 }
                             )
@@ -546,21 +524,32 @@ export let searchcomponent = {
             }
             return false;
         },
-
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-2x fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
+        async handleIconClick(e) {
+            let collection = e.target.id.split("-")[1]
+            let record_id = e.target.id.split("-")[2]
+            e.target.classList.add("fa-spinner");
+            if (e.target.classList.contains("fa-folder-plus")) {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
+                    e.target.classList.remove("fa-spinner");
+                    e.target.classList.remove("fa-folder-plus");
+                    e.target.classList.add("fa-folder-minus");
+                    e.target.classList.add("text-muted");
+                    e.target.title = "Remove from basket";
                 })
+            } else if (e.target.classList.contains("fa-folder-minus")) {
+                await basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', this.myBasket, collection, record_id).then( () => {
+                    e.target.classList.remove("fa-spinner");
+                    e.target.classList.remove("fa-folder-minus");
+                    e.target.classList.add("fa-folder-plus");
+                    e.target.classList.remove("text-muted");
+                    e.target.title = "Add to basket";
+                })
+            } else if (e.target.classList.contains("fa-lock")) {
+                // To do: unlock
             } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
+                return false
             }
+            return true
         },
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
@@ -716,6 +705,39 @@ export let searchcomponent = {
         cancelSearch() {
             this.abortController.abort();
             this.start = this.end = 0;
+        },
+        selectAll(e)  {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                    inputEl.checked = true
+                }
+            }
+        },
+        selectNone(e) {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox") {
+                    inputEl.checked = false
+                }
+            }
+        },
+        async sendToBasket(e) {
+            e.preventDefault()
+            let items = []
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && inputEl.checked) {
+                    let collection = inputEl.id.split("-")[1]
+                    let record_id = inputEl.id.split("-")[2]
+                    items.push({
+                        "collection": `${collection}`,
+                        "record_id": `${record_id}`
+                    })
+                }
+            }
+            if (items.length > 0) {
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+            }
         }
     },
     components: {

@@ -171,6 +171,27 @@ class Basket(Document):
             self.items.append(item)
             self.save()
 
+    def add_items(self, items):
+        insert_items = []
+        for item in items:
+            ulid = ULID()
+            existing_item = None
+            try:
+                existing_item = self.get_item_by_coll_and_rid(item['collection'], item['record_id'])
+            except IndexError:
+                pass
+
+            if existing_item is None:
+                insert_items.append({
+                    "id": str(ulid.to_uuid()),
+                    "collection": item['collection'],
+                    "record_id": item['record_id'],
+                    "title": "[No Title]",
+                    "override": False
+                })
+        self.items = insert_items
+        self.save()
+
     def remove_item(self, item_id):
         #self.items = list(filter(lambda x: x['collection'] != item['collection'] and x['record_id'] != item['record_id'], self.items))
         this_item = self.get_item_by_id(item_id)
