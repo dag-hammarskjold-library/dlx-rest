@@ -1,3 +1,4 @@
+
 export const validationData = {
     "comments": "",
     "bibs": {
@@ -39,7 +40,7 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": ["a"],
+            "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
