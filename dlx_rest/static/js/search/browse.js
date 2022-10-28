@@ -1,4 +1,6 @@
 import { Jmarc } from "../jmarc.mjs";
+import user from "../api/user.js";
+import basket from "../api/basket.js";
 
 export let browsecomponent = {
     props: {
@@ -21,10 +23,6 @@ export let browsecomponent = {
         index_list: {
             type: String,
             required: false
-        },
-        logged_in: {
-            type: String,
-            required: true
         }
     },
     template: `
@@ -39,6 +37,12 @@ export let browsecomponent = {
                     <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
                 </ul>
             </nav>
+            <div class="row" v-if="user">
+                Select 
+                <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+                <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+                <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            </div>
             <div class="row">
                 <div id="before-spinner" class="col d-flex justify-content-center">
                     <div class="spinner-border" role="status">
@@ -48,8 +52,12 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_before" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
+                <div class="col-1" v-if="user">
+                    <input :id="'input-' + result.value" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                    <input type="hidden" />
+                </div>
                 <div class="col">
-                    <a :id="'link-' + result.value" :href=result.url target="_blank">
+                    <a :id="'link-' + result.value" :href=result.url target="_blank" class="result-link">
                         {{result.value}}&nbsp;
                         <span :id="'count-' + result.value">
                             <i class="fas fa-spinner"></i>
@@ -64,6 +72,7 @@ export let browsecomponent = {
                 </div>
             </div>
             <div class="row">
+                <div class="col-1"></div>
                 <div class="col"><i class="fas fa-angle-double-right mr-2 text-success"></i><span class="text-success">{{q}}</span></div>
             </div>
             <div class="row">
@@ -75,8 +84,12 @@ export let browsecomponent = {
             </div>
             <div v-for="result in results_after" class="row my-2">
                 <!-- <div class="col"><a :href="result.url" target="_blank">{{result.value}} ({{result.count}})</a></div> -->
-                <div class="col ">
-                    <a :id="'link-' + result.value" :href=result.url target="_blank">
+                <div class="col-1" v-if="user">
+                    <input :id="'input-' + result.value" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                    <input type="hidden" />
+                </div>
+                <div class="col">
+                    <a :id="'link-' + result.value" :href=result.url target="_blank" class="result-link">
                         {{result.value}}&nbsp;
                         <span :id="'count-' + result.value">
                             <i class="fas fa-spinner"></i>
@@ -138,7 +151,16 @@ export let browsecomponent = {
             prev: null,
             indexListJson: null,
             base_url: baseUrl,
-            recordType: window.location.search.match(/type=(\w+)/)[1]
+            recordType: window.location.search.match(/type=(\w+)/)[1],
+            user: null,
+            myBasket: {}
+        }
+    },
+    created: async function () {
+        let myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        if (myProfile != null) {
+            this.user = myProfile.data.email
+            await basket.getBasket(this.api_prefix).then( basket => this.myBasket = basket )
         }
     },
     mounted: async function () {
@@ -194,8 +216,25 @@ export let browsecomponent = {
                                             let recordId = parts[parts.length-1];
                                             let recordUrl;
 
-                                            if (this.logged_in) {
-                                                recordUrl = `${this.base_url}/editor?records=${this.collection}/${recordId}`
+                                            if (this.user != null) {
+                                                recordUrl = `${this.base_url}editor?records=${this.collection}/${recordId}`
+                                                let inputEl = document.getElementById(`input-${result.value}`)
+                                                let hiddenInputEl = inputEl.nextElementSibling
+                                                hiddenInputEl.value = `${recordId}`
+                                                
+                                                // enable the checkbox if the basket does not contain the record
+                                                if (!basket.contains(this.collection, recordId, this.myBasket)) {
+                                                    inputEl.disabled = false                                               
+                                                }
+                                                // But disable it again it's in someone else's basket (locked)
+                                                basket.itemLocked(this.api_prefix, this.collection, recordId).then(
+                                                    itemLocked => {
+                                                        if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
+                                                            inputEl.disabled = true
+                                                        }
+                                                    }
+                                                );
+                                                
                                             } else {
                                                 recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
                                             }
@@ -257,6 +296,45 @@ export let browsecomponent = {
                 setTimeout(function(){
                     window.location.href=targetUrl;
                 },0)
+            }
+        },
+        selectAll(e) {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                    inputEl.checked = true
+                }
+            }
+        },
+        selectNone(e) {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox") {
+                    inputEl.checked = false
+                }
+            }
+        },
+        sendToBasket(e) {
+            e.preventDefault()
+            let items = []
+            let limit = 100     // Really shouldn't send more than that
+            let idx = 0
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && inputEl.checked) {
+                    if (idx >= limit) {
+                        continue
+                    }
+                    let hiddenInputEl = inputEl.nextElementSibling
+                    let record_id = hiddenInputEl.value
+                    items.push({
+                        "collection": `${this.collection}`,
+                        "record_id": `${record_id}`
+                    })
+                    idx++
+                }
+            }
+            if (items.length > 0) {
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
             }
         }
     }

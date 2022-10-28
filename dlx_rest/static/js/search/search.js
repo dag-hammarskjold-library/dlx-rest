@@ -148,15 +148,15 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
-        <div class="row">
+        <div class="row" v-if="user">
             Select 
-            <a class="mx-1" href="#" @click="selectAll">All</a>
-            <a class="mx-1" href="#" @click="selectNone">None</a>
-            <a class="mx-1" href="#" @click="sendToBasket">Send Selected to Basket</a>
+            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
-                <div class="col-sm-1"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
+                <div class="col-sm-1" v-if="user"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
                 <div class="col-sm-10 px-4 ">
                     <div class="row" style="overflow-x:hidden">
                         <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
@@ -259,7 +259,8 @@ export let searchcomponent = {
             maxTime: 15000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
-            myBasket: {}
+            myBasket: {},
+            user: null
         }
     },
     created: async function() {
@@ -725,14 +726,20 @@ export let searchcomponent = {
         async sendToBasket(e) {
             e.preventDefault()
             let items = []
+            let limit = 100     // Really shouldn't send more than that
+            let idx = 0
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && inputEl.checked) {
+                    if (idx >= limit) {
+                        continue
+                    }
                     let collection = inputEl.id.split("-")[1]
                     let record_id = inputEl.id.split("-")[2]
                     items.push({
                         "collection": `${collection}`,
                         "record_id": `${record_id}`
                     })
+                    idx++
                 }
             }
             if (items.length > 0) {
