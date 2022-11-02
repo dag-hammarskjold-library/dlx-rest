@@ -85,7 +85,7 @@ export class Subfield {
 		}
 
 		// string match
-		if ("validStrings" in data && this.code in data.validStrings) {
+		if (this.value && "validStrings" in data && this.code in data.validStrings) {
 			let validStrings = data.validStrings[this.code];
 			
 			if  (! validStrings.includes(this.value)) {
@@ -98,7 +98,7 @@ export class Subfield {
 		}
 
 		// date match
-		if ("isDate" in data && this.code in data.isDate) {
+		if (this.value && "isDate" in data && this.code in data.isDate) {
 			let dateStr = this.value
 				.replace(/^(\d{4})(\d{2})/, "$1-$2").replace(/(\d{2})(\d{2})$/, "$1-$2") // add dashes
 				.replace(/(-\d)$/, "reject"); // JS date object accepts single digit day
@@ -113,7 +113,7 @@ export class Subfield {
 		}
 
 		// regex match
-		if ("validRegex" in data && this.code in data.validRegex) {
+		if (this.value && "validRegex" in data && this.code in data.validRegex) {
 			let validRegexes = data.validRegex[this.code];
 			let matched = false;
 
