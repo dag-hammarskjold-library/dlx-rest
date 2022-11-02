@@ -205,7 +205,7 @@ export class DataField {
 		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {
 			if (this !== this.parentRecord.getFields(this.tag)[0]) {
 				// this is not the first instance of the tag
-				flags.push(new TagValidationFlag(this, "Field not repeatable"));
+				flags.push(new TagValidationFlag("Field not repeatable"));
 			}
 		}
         // valid indicators
