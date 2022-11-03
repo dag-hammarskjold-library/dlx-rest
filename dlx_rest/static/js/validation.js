@@ -1537,7 +1537,18 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","b","f"],
-            "defaultSubfields": ["a","b","f"] 
+            "defaultSubfields": ["a","b","f"],
+            "validStrings": {
+                // To do: dropdown or other select using these controlled values
+                "a": ["SzGeBNU","NNUN","LB-BrESC","TH-BaUNE"],
+                "b": ["eng"]
+                /*
+                [
+                    {"code":"SzGeBNU", "description":"UNOG Library"},
+                    {"code":"NNUN", "description": "DHL"}
+                ]
+                */
+            }
         },
         "041": {
             // Not defined in the specification document
@@ -2241,7 +2252,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            // "validStrings": { "a": []}
+            "validStrings": { "a": ["DHL","GEN"]}
         },
         "915": {
             "name": "Record type",
@@ -2252,7 +2263,17 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            // "validStrings": { "a": []}
+            "validStrings": { "a": [
+                "CN",   // name of corporate body
+                "MN",   // name of conference
+                "PN",   // name of person
+                "SR",   // series title
+                "TI",   // uniform title
+                "UC",   // name of UN corporate body
+                "UM",   // name of UN conference
+                "US",   // UN series title
+                "UT"    // UN uniform title
+            ]}
         },
         "925": {
             "name": "Authorized entry for series symbol",
@@ -2262,8 +2283,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"],
-            // "validStrings": { "a": []}
+            "defaultSubfields": ["a"]
         },
         "930": {
             // Not defined in the specification document
