@@ -857,17 +857,6 @@ export const validationData = {
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
-        "504": {
-            // Not defined in bibs validation document
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "505": {
             "name": "Formatted contents note",
             "required": false,
@@ -1141,17 +1130,6 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "651": {
-            // Not defined in bibs validation document
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "654": {
             // Not defined in bibs validation document
             "name": "",
             "required": false,
