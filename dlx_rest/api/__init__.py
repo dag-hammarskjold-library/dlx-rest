@@ -3,6 +3,7 @@ DLX REST API
 '''
 
 # external
+from asyncio import constants
 from http.client import HTTPResponse
 import this
 from dlx_rest.routes import login, search_files
@@ -1646,6 +1647,22 @@ class MyBasketRecord(Resource):
             # The item is not locked, so we can add it to our basket
             this_u.my_basket().add_item(item)
             return {},201      
+
+@ns.route('/userprofile/my_profile/basket/addBulk')
+class MyBasketAddBulk(Resource):
+    @ns.doc("Add a list of records to the user's basket in bulk.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            items = json.loads(request.data)
+            if items:
+                this_basket.add_items(items)
+        except:
+            raise
+        return 200
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):
