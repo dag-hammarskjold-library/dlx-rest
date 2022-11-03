@@ -95,7 +95,7 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
@@ -118,7 +118,7 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a","b"],
             "validSubfields": ["a", "b"],
             "defaultSubfields": ["a", "b"],
             "validStrings": {
@@ -149,7 +149,7 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
@@ -440,11 +440,11 @@ export const validationData = {
         },
         "089": {
             "name": "Content codes",
-            "required": true,   // Validation warning notes indicate field is required
+            "required": true, 
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["b"],
             "validSubfields": ["a","b"],
             "defaultSubfields": ["b"],
             "validStrings": {
@@ -502,11 +502,11 @@ export const validationData = {
         },
         "091": {
             "name": "Distribution code",
-            "required": true,   // Validation warning notes indicate field is required
+            "required": true,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
@@ -538,11 +538,11 @@ export const validationData = {
         },
         "099": {
             "name": "Location library",
-            "required": true,   // Validation warning notes indicate field is required
+            "required": true,
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a","b"],
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
@@ -751,7 +751,7 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "_validRegex": {
@@ -1338,7 +1338,7 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
@@ -1477,7 +1477,7 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a","b","c"],
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
