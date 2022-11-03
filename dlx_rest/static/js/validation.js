@@ -1487,11 +1487,11 @@ export const validationData = {
     },
     "auths": {
         "022": {
-            "name": "",
+            "name": "ISSN",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
