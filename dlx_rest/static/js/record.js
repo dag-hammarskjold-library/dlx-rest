@@ -1467,13 +1467,16 @@ export let multiplemarcrecordcomponent = {
             this.historyMode=true
 
             // put the history record on read only mode
-            this.historyJmarcHistory.readOnly=true
-            console.log(this.historyJmarcHistory.readOnly)
+            //this.historyJmarcHistory.readOnly=true
+            //console.log(this.historyJmarcHistory.readOnly)
+
+            let recordDiff = this.historyJmarcOriginal.diff(this.historyJmarcHistory)
+            recordDiff.readOnly = true
 
             // display the "history" record
-            this.displayMarcRecord(this.historyJmarcHistory)
+            this.displayMarcRecord(recordDiff)
 
-            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
+            //this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
 
             this.filterRecordView(this.historyJmarcOriginal)
             
@@ -1553,6 +1556,9 @@ export let multiplemarcrecordcomponent = {
         // visual diff between the original record and the history one
         // the diff will be executed from the history 
 
+        
+
+        /*
         diff(original,history,color){
             let occur=0
             history.fields.forEach(elementHistory=>{
@@ -1572,10 +1578,12 @@ export let multiplemarcrecordcomponent = {
             if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
 
         },
+        */
 
         // visual diff between the original record and the history one
         // the diff will be executed from the history 
 
+        /*
         diff(original,history,color){
             let occur=0
             history.fields.forEach(elementHistory=>{
@@ -1595,6 +1603,7 @@ export let multiplemarcrecordcomponent = {
             if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
 
         },
+        */
 
         // revert the jmarc record
         revert(){
@@ -2148,7 +2157,11 @@ export let multiplemarcrecordcomponent = {
 
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
+            // diff-bg
             field.row = tableBody.insertRow(place);
+            if (field.isDiff) {
+                field.row.setAttribute("style","background-color:cyan;")
+            }
    
             // add the checkboxes
             let checkCell = field.row.insertCell();
