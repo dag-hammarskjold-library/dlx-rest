@@ -1092,6 +1092,15 @@ class LookupFieldsList(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'browse', 
+        type=str,
+        choices=['partial', 'text'],
+        default='partial',
+        help='The type of lookup to execute (partial string match or text search)'
+    )
+
     @ns.doc(description='Return a list of authorities that match a string value')
     #@ns.expect(list_argparser)
     def get(self, collection, field_tag):
