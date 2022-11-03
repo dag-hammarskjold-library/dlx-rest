@@ -67,16 +67,6 @@ export const validationData = {
                 */
             }
         },
-        "030": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"]
-        },
         "035": {
             "name": "",
             "required": false,
@@ -150,16 +140,6 @@ export const validationData = {
             "requiredSubfields": ["a"],
             "validSubfields": ["a"],
             "defaultSubfields": [] 
-        },
-        "048": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
         },
         "049": {
             "name": "Country of publication",
@@ -424,16 +404,6 @@ export const validationData = {
                 ]
             }
         },
-        "066": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "069": {
             "name": "",
             "required": false,
@@ -662,16 +632,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "198": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "222": {
             "name": "",
             "required": false,
@@ -690,16 +650,6 @@ export const validationData = {
             "validIndicators2": ["*"],
             "requiredSubfields": ["a"],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
-        },
-        "240": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
         "245": {
@@ -782,16 +732,6 @@ export const validationData = {
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"] 
         },
-        "264": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "269": {
             "name": "Publication date",
             "required": true,
@@ -818,16 +758,6 @@ export const validationData = {
             "validSubfields": ["a","b"],
             "defaultSubfields": ["a","b"] 
         },
-        "306": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "310": {
             "name": "",
             "required": false,
@@ -839,16 +769,6 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "321": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "350": {
             "name": "",
             "required": false,
             "repeatable": true,
@@ -918,16 +838,6 @@ export const validationData = {
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
-        "501": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "504": {
             "name": "",
             "required": false,
@@ -946,36 +856,6 @@ export const validationData = {
             "validIndicators2": ["0"],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
-        },
-        "506": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "510": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "511": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
         "515": {
@@ -1008,16 +888,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "530": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "540": {
             "name": "",
             "required": false,
@@ -1029,16 +899,6 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "541": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "545": {
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1068,16 +928,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "550": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "555": {
             "name": "",
             "required": false,
@@ -1098,16 +948,6 @@ export const validationData = {
             "validSubfields": ["a","u"],
             "defaultSubfields": ["a","u"] 
         },
-        "562": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "580": {
             "name": "Linking entry complexity note",
             "required": false,
@@ -1116,16 +956,6 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
-        },
-        "586": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
         "590": {
@@ -1298,26 +1128,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "658": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "690": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "700": {
             "name": "",
             "required": false,
@@ -1359,26 +1169,6 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "740": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "750": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "760": {
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1438,16 +1228,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "787": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "791": {
             "name": "",
             "required": false,
@@ -1470,16 +1250,6 @@ export const validationData = {
             "validStrings": {
                 "a": ["PL","GC","CR","01","02","03","04","05","06"]
             }
-        },
-        "810": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
         },
         "830": {
             "name": "",
