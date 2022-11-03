@@ -123,7 +123,7 @@ export const validationData = {
             "defaultSubfields": ["a", "b"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
-                "a": ["SzGeBNU","NNUN"],    // LB-BrESC ? Other values?
+                "a": ["SzGeBNU","NNUN","LB-BrESC","TH-BaUNE"],
                 "b": ["eng"]
                 /*
                 [
@@ -1098,7 +1098,7 @@ export const validationData = {
             "validIndicators2": ["_","7"],
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
-            "defaultSubfields": ["a"] // $g as well?
+            "defaultSubfields": ["a"]
         },
         "610": {
             "name": "Subject corporate name",
@@ -1134,10 +1134,10 @@ export const validationData = {
             "name": "Subject topical",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["_","0","1"], // 2?
+            "validIndicators1": ["_","0","1", "2"],
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["a"], // $2 ?
+            "validSubfields": ["a", "2"],
             "defaultSubfields": ["a"] 
         },
         "651": {
@@ -1433,7 +1433,6 @@ export const validationData = {
             "name": "Related document symbols",
             "required": false,
             "repeatable": true,
-            // Is this how to signify leaving the indicator blank is valid?
             "validIndicators1": ["_","0","1","2","3","4","5","6","7","8","9"],
             "validIndicators2": [],
             "requiredSubfields": [],
