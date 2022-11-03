@@ -22,58 +22,70 @@ def default_users():
     return {
         'admin': {
             'email':'test_user@un.org',
+            'username': 'admcat',
             'password': 'password',
             'role': 'admin'
         },
         'non-admin': {
             'email':'user@un.org',
+            'username': 'nacat',
             'password': 'password'
         },
         'invalid': {
             'email':'invalid@un.org',
+            'username': 'invcat',
             'password': 'password'
         },
         'new': {
             'email': 'new_test_user@un.org',
+            'username': 'ntucat',
             'password': 'password'
         },
         'bib-admin': {
             'email': 'bib_admin@un.org',
+            'username': 'bibcat',
             'password': 'password',
             'role': 'bibs-admin'
         },
         'auth-admin': {
             'email': 'auth_admin@un.org',
+            'username': 'authcat',
             'password': 'password',
             'role': 'auths-admin'
         },
         'file-admin': {
             'email': 'file_admin@un.org',
+            'username': 'filecat',
             'password': 'password',
             'role': 'files-admin'
         },
         'bib-NY-admin': {
             'email': 'bib_ny_admin@un.org',
+            'username': 'bibnycat',
             'password': 'password',
             'role': 'bibs-NY-admin'
         },
         'auth-NY-admin': {
             'email': 'auth_ny_admin@un.org',
+            'username': 'authnycat',
             'password': 'password',
             'role': 'auths-NY-admin'
         },
         'bib-GE-admin': {
             'email': 'bib_ge_admin@un.org',
+            'username': 'bibgecat',
             'password': 'password',
             'role': 'bibs-GE-admin'
         },
         'auth-GE-admin': {
             'email': 'auth_ge_admin@un.org',
+            'username': 'authgecat',
             'password': 'password',
             'role': 'auths-GE-admin'
         },
         'bib-NY-indexer': {
             'email': 'bib_ny_indexer@un.org',
+            'username': 'bibnyicat',
             'password': 'password',
             'role': 'bibs-NY-indexer'
         },
@@ -204,7 +216,7 @@ def users(roles, default_users):
     for utype in default_users:
         if utype not in ["invalid","new"]:
             u = default_users[utype]
-            user = User(email = u['email'], created=datetime.now())
+            user = User(email = u['email'], username=u['username'], created=datetime.now())
             user.set_password(u['password'])
             try:
                 user.add_role_by_name(u['role'])

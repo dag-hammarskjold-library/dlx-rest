@@ -1,13 +1,12 @@
 {% extends 'base.html' %} {% block content %}
 <div style="background-color:grey;">
     <div id="browse_vm" v-show="true">
-        <messagecomponent></messagecomponent>
         <div class="row">
             <sidebarcomponent sbtype="facet"></sidebarcomponent>
             {% if index and q %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}" logged_in="{{'1'}} if current_user.is_authenticated() else ''"></browsecomponent>
+            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
             {% else %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}" logged_in="{{'1'}} if current_user.is_authenticated() else ''"></browsecomponent>
+            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}"></browsecomponent>
             {% endif %}
             <sidebarcomponent sbtype="other"></sidebarcomponent>
         </div>

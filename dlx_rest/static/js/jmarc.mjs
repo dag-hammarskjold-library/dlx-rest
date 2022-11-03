@@ -1,5 +1,7 @@
 "use strict";
 
+import { validationData } from "./validation.js";
+
 const authMap = {
 	"bibs": {
 		'191': {'b': '190', 'c': '190'},
@@ -27,6 +29,36 @@ const authMap = {
 	}
 };
 
+class ValidationFlag {
+	constructor(message) {
+		this.message = message;
+	}
+}
+
+class RecordValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class SubfieldCodeValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class SubfieldValueValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class TagValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class Indicator1ValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
+export class Indicator2ValidationFlag extends ValidationFlag {
+	constructor(message) {super(message)}
+}
+
 export class Subfield {
 	constructor(code, value, xref) {
 		this.code = code;
@@ -36,6 +68,71 @@ export class Subfield {
 
 	compile() {
 		return {'code': this.code, 'value': this.value, 'xref': this.xref}
+	}
+
+	validationWarnings() {
+		let flags = [];
+		let data = validationData[this.parentField.parentRecord.collection][this.parentField.tag];
+		if (! data) return []
+
+		// valid subfields
+		if (! data.validSubfields.includes("*") && ! data.validSubfields.includes(this.code)) {
+			flags.push(
+				new SubfieldCodeValidationFlag(
+					`Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
+				)
+			)
+		}
+
+		// string match
+		if (this.value && "validStrings" in data && this.code in data.validStrings) {
+			let validStrings = data.validStrings[this.code];
+			
+			if  (! validStrings.includes(this.value)) {
+				flags.push(
+					new SubfieldValueValidationFlag(
+						`Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
+					)
+				)
+			}
+		}
+
+		// date match
+		if (this.value && "isDate" in data && this.code in data.isDate) {
+			let dateStr = this.value
+				.replace(/^(\d{4})(\d{2})/, "$1-$2").replace(/(\d{2})(\d{2})$/, "$1-$2") // add dashes
+				.replace(/(-\d)$/, "reject"); // JS date object accepts single digit day
+
+			let date = new Date(dateStr);
+
+			if (date.toString() === "Invalid Date") {
+				flags.push(
+					new SubfieldValueValidationFlag(`Invalid date "${this.value}"`)
+				)
+			}
+		}
+
+		// regex match
+		if (this.value && "validRegex" in data && this.code in data.validRegex) {
+			let validRegexes = data.validRegex[this.code];
+			let matched = false;
+
+			validRegexes.forEach(x => {
+				if (this.value.match(new RegExp(x))) {
+					matched = true;
+				}
+			});
+
+			if (! matched) {
+				flags.push(
+					new SubfieldValueValidationFlag(
+						`Invalid regex match "${this.value}". Valid regex: ${validRegexes.join(", ")}`
+					)
+				)
+			}
+		}
+
+		return flags
 	}
 }
 
@@ -54,6 +151,10 @@ export class ControlField {
 		this.value = value;
 	}
     
+	toStr() {
+		return self.value
+	}
+
     validate() {}
 }
 
@@ -68,6 +169,8 @@ export class DataField {
 	}
 	
 	validate() {
+		// lower level checks
+		// these throw errors
         if (! this.subfields) {
             throw new Error("Subfield required")
         }
@@ -91,7 +194,49 @@ export class DataField {
             if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
                 throw new Error("Invalid authority-controlled value")
             }
-        }   
+        }
+	}
+
+	validationWarnings() {
+		let flags = [];
+		let data = validationData[this.parentRecord.collection][this.tag];
+		if (! data) return []
+
+		// field level
+		// required
+		// we already know the field exists
+        
+		// repeatable
+		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {
+			if (this !== this.parentRecord.getFields(this.tag)[0]) {
+				// this is not the first instance of the tag
+				flags.push(new TagValidationFlag("Field not repeatable"));
+			}
+		}
+        // valid indicators
+		for (let i of [1, 2]) {
+			let inds = i === 1 ? data.validIndicators1 : data.validIndicators2;
+
+			if (! inds.includes("*") && this.indicators[i - 1] !== "_" && ! inds.includes(this.indicators[i - 1])) {
+				let flag = i === 1 ? Indicator1ValidationFlag : Indicator2ValidationFlag;
+				
+				flags.push(
+					new flag(`Invalid indicator ${i}. Valid indicators: ${inds.join(", ") || "None"}`)
+				)
+			}
+		}
+
+		// required subfields
+		let codes = this.subfields.map(x => x.code);
+		data.requiredSubfields.forEach(x => {
+			if (! codes.includes(x)) {
+				flags.push(
+					new TagValidationFlag(`Required subfield "${x}" is missing`)
+				)
+			}
+		});
+		
+		return flags
 	}
     
     createSubfield(code, place) {
@@ -178,6 +323,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
+						field.indicators = auth[tag][0].indicators;
 						
 						for (let sf of auth[tag][0]['subfields']) {
 							field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
@@ -216,22 +362,70 @@ export class Jmarc {
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
 		this.authMap = this.collection === 'bibs' ? authMap['bibs'] : authMap['auths'];
+		this.handleSetInterval=0
+		this.checkUndoRedoEntry=false
 		this.fields = [];
 		this._history = [];
 		this.undoredoIndex=0;
 		this.undoredoVector=[];
 	}
 	
+	// check if value already inside the vector
+	isInsideVectorAlready(value){
+		let findOccurence=false
+		this.undoredoVector.forEach(element=>{
+			if (JSON.stringify(element.valueEntry)===JSON.stringify(value)){
+				return findOccurence=true
+			}
+		})
+		return findOccurence
+	}
+
+
+	// this method will check every "myTime" if the field property of the record has changed
+	startcheckingUndoRedoEntry(myTime) {
+
+		  this.handleSetInterval=setInterval(() => {
+
+			// if (Object.keys(this.oldJmarcValue).length === 0) {
+			// 	this.oldJmarcValue = JSON.stringify(this.compile())
+			// 	this.addUndoredoEntry()
+			// } 
+			
+			if (this.undoredoVector.length === 0) {
+				this.addUndoredoEntry()
+			} 
+			
+			else if (this.isInsideVectorAlready(this.compile())===false){
+					this.addUndoredoEntry()
+					console.log("change(s) on : " + this.recordId)
+					console.log("id context: " + this.handleSetInterval)
+				}
+		
+		  	else if (this.isInsideVectorAlready(this.compile())===true){
+				console.log("no change on :" + this.recordId)
+				console.log("id context: " + this.handleSetInterval)
+			}
+
+			console.log(" number of entries : " + this.undoredoVector.length)
+			
+		  }, myTime);
+		
+	}
+
+	stopcheckingUndoRedoEntry() {
+		clearInterval(this.handleSetInterval)
+	}
+
 	// add a new undoredoEntry
 	// this method should be add each time we are changing the value of one input
-	addUndoredoEntry(changeon){
+	addUndoredoEntry(){
 
 		// collecting the values to assign
 		let today = new Date();
 		let dateEntry = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()
 		let recordIdEntry=this.recordId
 		let timeEntry = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-		let changeonEntry=changeon
 		let valueEntry={}
 		valueEntry=this.compile()
 
@@ -242,7 +436,6 @@ export class Jmarc {
 		undoredoEntry.dateEntry=dateEntry
 		undoredoEntry.timeEntry=timeEntry
 		undoredoEntry.recordIdEntry=recordIdEntry
-		undoredoEntry.changeonEntry=changeonEntry
 		undoredoEntry.valueEntry=valueEntry
 		
 		// adding the entry inside the vector
@@ -274,7 +467,7 @@ export class Jmarc {
 					if (this.undoredoIndex>0){
 						this.undoredoIndex=this.undoredoIndex-1
 					}
-					this.fields=[]
+					//this.fields=[]
 					this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 				}
 			}
@@ -295,7 +488,7 @@ export class Jmarc {
 				if (this.undoredoIndex<this.undoredoVector.length-1){
 						this.undoredoIndex=this.undoredoIndex+1
 				}	
-				this.fields=[]
+				//this.fields=[]
 				this.parse(this.undoredoVector[this.undoredoIndex].valueEntry)
 			}
 		}
@@ -345,7 +538,10 @@ export class Jmarc {
 			}
 		).then(
 			json => {
-				if (savedResponse.status != 200) {
+				if (savedResponse.status === 404) {
+					// record not found
+					return 
+				} else if (savedResponse.status != 200) {
 					throw new Error(json['message'])
 				}
 				
@@ -357,7 +553,7 @@ export class Jmarc {
 				return jmarc
 			}
 		).catch(
-			error => console.error(error)
+			error => {throw error}
 		)
 	}
 	
@@ -402,7 +598,7 @@ export class Jmarc {
         )
 	}
     
-    static deleteWorkform(collection, workformName) {
+    static async deleteWorkform(collection, workformName) {
         return fetch(
             Jmarc.apiUrl + `marc/${collection}/workforms/${workformName}`,
             { method: 'DELETE' }
@@ -463,7 +659,7 @@ export class Jmarc {
         return true;
     }
     
-    post() {
+    async post() {
 		if (this.recordId) {
 			return Promise.reject("Can't POST existing record")
 		}
@@ -506,7 +702,7 @@ export class Jmarc {
 		)
 	}
 
-	put() {
+	async put() {
 		if (! this.recordId) {
 			return Promise.reject("Can't PUT new record")
 		}
@@ -547,7 +743,7 @@ export class Jmarc {
 		)
 	}
 	
-	delete() {
+	async delete() {
 		if (! this.recordId) {
 			throw new Error("Can't DELETE new record")
 		}
@@ -589,26 +785,50 @@ export class Jmarc {
 	parse(data={}) {
 		this.updated = data['updated'];
 		this.user = data['user'];
-		this.fields = [];
+		//this.fields = [];
 		
 		let tags = Object.keys(data).filter(x => x.match(/^\d{3}/));
 		tags = tags.sort((a, b) => parseInt(a) - parseInt(b));
 		
+		// update the existing objects if the new data exists in this record in order to preserve saved state
 		for (let tag of tags) {
-			for (let field of data[tag]) {
-                let newField = this.createField(tag);
-                
+			for (let [i, field] of data[tag].entries()) {
+				let newField = this.getField(tag, i) || this.createField(tag);
+				newField._seen = true;
+				
 				if (tag.match(/^00/)) {
                     newField.value = field;
                 } else {
                     newField.indicators = field.indicators.map(x => x.replace(" ", "_"));
+					let seen = {}; // for keeping the subfield order
 					
 					for (let subfield of field.subfields) {
-						let newSub = newField.createSubfield(subfield.code);
-                        newSub.value = subfield.value;
+						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
+						newSub._seen = true; // temp flag used for differentiating previous state
+						newSub.value = subfield.value;
                         newSub.xref = subfield.xref;
+						if (! seen[subfield.code]) seen[subfield.code] = 0;
+						seen[subfield.code]++;
 					}
 				}
+			}
+		}
+
+		// remove existing data not in new data
+		for (let field of this.getDataFields()) {
+			if (! field._seen) {
+				this.deleteField(field);
+				continue
+			}
+
+			delete field._seen;
+
+			for (let subfield of field.subfields) {
+				if (! subfield._seen) {
+					field.deleteSubfield(subfield);
+				}
+
+				delete subfield._seen;
 			}
 		}
 		
@@ -687,8 +907,8 @@ export class Jmarc {
 		cloned.deleteField("981");
 		cloned.deleteField("989");
         cloned.deleteField("998");
-        cloned.deleteField("999");
-        cloned.createField("999").createSubfield("a").value = "";
+        //cloned.deleteField("999");
+        //cloned.createField("999").createSubfield("a").value = "";
         
         if (this.recordClass === Auth) {
             return cloned
@@ -710,8 +930,7 @@ export class Jmarc {
 		
 		if (tag && tag.match(/^00/)) {
 			field = new ControlField(tag)
-		} 
-        else {
+		} else {
 			if (this.collection === "bibs") {
 				field = new BibDataField(tag)
 			} else if (this.collection === "auths") {
@@ -724,7 +943,7 @@ export class Jmarc {
         if (field.tag && place) {
             // field place
             let i = 0;
-            let found = false
+            let found = false;
             
             for (let [c, f] of Object.entries(this.fields)) {
                 if (f.tag === field.tag) {
@@ -738,14 +957,19 @@ export class Jmarc {
             }
             
             if (! found) {
-                this.fields.push(field);
+				// put at end of tag group
+                this.fields.splice(
+					this.fields.indexOf(this.getField(field.tag)) + this.getFields(field.tag).length, 
+					0, 
+					field
+				);
+
+				console.log(this.fields.map(x => x.tag))
             }
-        } 
-        else if (place) {
+        } else if (place) {
             // record place
             this.fields.splice(place, 0, field);
-        }
-        else {
+        } else {
             this.fields.push(field);
         }
         
@@ -799,6 +1023,7 @@ export class Jmarc {
 	}
 
     validate() {
+		// lower level checks
         for (let field of this.fields) {
             if (! field.tag) {
                 throw new Error("Tag required")
@@ -817,6 +1042,51 @@ export class Jmarc {
             }
         }
     }
+
+	validationWarnings() {
+		let flags = [];
+		let data = validationData[this.collection];
+
+		// check for required fields
+		let required = Object.keys(data).filter(x => data[x].required);
+		let tags = new Set(this.getDataFields().map(x => x.tag));
+
+		required.forEach(x => {
+			if (Array.from(tags).indexOf(x) === -1) {
+				flags.push(new RecordValidationFlag(`Required field ${x} is missing`));
+			}
+		});
+
+		return flags
+	}
+
+	async authHeadingInUse() {
+		if (this.collection !== "auths") return
+
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ");
+
+    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
+
+    	// wait for the result
+    	let inUse = await fetch(url)
+    	    .then(response => {
+    	        return response.json()
+    	    }).then(json => {
+    	        let count = json.data;
+    	        return count ? true : false
+    	    }).catch(error => {
+    	        throw error
+    	    })
+
+		return inUse ? true : false
+	}
 }
 
 export class Bib extends Jmarc {

@@ -213,13 +213,16 @@ td.unsaved {
 }
 
 span.subfield-value-selected {
+    /*display: inline-box;*/
     outline: 1px solid blue;
-    padding: 3px;
+    padding: 1px;
+    padding-left: 3px;
     font-weight: default;
     background-color: white;
 }
 
 span.authority-controlled {
+    color: #0000EE;
     text-decoration: underline;
 }
 
@@ -243,6 +246,26 @@ li.lookup-choice:hover {
     background-color: gray;
 }
 
+option.lookup-choice:hover {
+    background-color: gray;
+}
+
 i.create-authority {
     color: blue
+}
+
+div.typeahead-dropdown {
+    position: relative;
+}
+
+div.typeahead-select {
+    position: absolute;
+}
+
+td.validation-flag {
+    background-color: #f8d7da;
+}
+
+span.validation-flag {
+    background-color: #f8d7da;
 }

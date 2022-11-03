@@ -3,7 +3,7 @@ from cmath import sin
 from email.policy import default
 import re
 import dlx
-from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
+from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
@@ -38,6 +38,9 @@ def editor():
     fromWorkform = request.args.get('fromWorkform', None)
     return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
+@app.route('/help')
+def help():
+    return render_template('help.html', vcoll="help")
 
 @app.route('/workform')
 def workform():
@@ -140,6 +143,7 @@ def create_user():
     form.views.choices = [(v.id, f'{v.collection}/{v.name}') for v in RecordView.objects()]
     if request.method == 'POST':
         email = request.form.get('email')
+        username = request.form.get('username')
         roles = form.roles.data
         default_views = form.views.data
         password = request.form.get('password')
@@ -147,6 +151,7 @@ def create_user():
 
         user = User(email=email, created=created)
         user.set_password(password)
+        user.username = username
         for role in roles:
             print(role)
             try:
@@ -187,13 +192,18 @@ def update_user(id):
     form.views.process_data([v.id for v in user.default_views])
 
     if request.method == 'POST':
+        print(request.form)
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
+        username = request.form.get('username', user.username)
         roles = request.form.getlist('roles')
         default_views = request.form.getlist('views')
-        print(default_views)
+        password = request.form.get('password', user.password_hash)
 
         user.email = email  #unsure if this is a good idea
+        user.username = username
+        if password:
+            user.set_password(password)
         user.roles = []
         for role in roles:
             print(role)
@@ -208,6 +218,8 @@ def update_user(id):
             user.default_views.append(v)
         user.updated = datetime.now()
         
+        print(user.__str__())
+
         try:
             user.save(validate=True)
             flash("The user was updated successfully.")
@@ -406,8 +418,37 @@ def search_records(coll):
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+
+    session.permanent = True
+
+    # Move vcoll variable here so we can use it in the session 
+    vcoll = coll
+    if "B22" in q:
+        vcoll = "speeches"
+    if "B23" in q:
+        vcoll = "votes"
+
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+
+    if sort and direction:
+        # Regardless of what's in the session already
+        session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
+        this_v = session[f"sort_{vcoll}"]
+        print(f"Got {this_v} from URL")
+    else:
+        # See if something is in the session already
+        try:
+            # We have session values, so use those
+            this_v = session[f"sort_{vcoll}"]
+            print(f"Got {this_v} from session")
+            sort = session[f"sort_{vcoll}"]["field"]
+            direction = session[f"sort_{vcoll}"]["direction"]
+        except KeyError:
+            # There is nothing in the session, so fallback to defaults
+            print(f"No sort/dir for {vcoll} found, using defaults.")
+            sort = "updated"
+            direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
     terms = re.split(' *(AND|OR|NOT) +', q)
@@ -421,19 +462,9 @@ def search_records(coll):
                 # appears to be free text term
                 sort = 'relevance'
                 
-    if not sort:
-        sort = 'updated'
-        direction = 'desc'
-    elif sort != 'relevance' and not direction:
-        direction = 'asc'
+ 
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-
-    vcoll = coll
-    if "B22" in q:
-        vcoll = "speeches"
-    if "B23" in q:
-        vcoll = "votes"
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search

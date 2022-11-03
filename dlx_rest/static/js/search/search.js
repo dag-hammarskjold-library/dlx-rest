@@ -110,6 +110,7 @@ export let searchcomponent = {
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
                 <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
+                <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
                     <span>X</span>
@@ -134,10 +135,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
         <div id="results-spinner" class="col d-flex justify-content-center">
@@ -147,22 +148,29 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
+        <div class="row" v-if="user">
+            Select 
+            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+        </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row pt-2 border-bottom">
-                <div class="col-sm-11 px-4 shadow bg-light rounded">
-                    <div class="row">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
+            <div class="row mt-1 bg-light border-bottom">
+                <div class="col-sm-1" v-if="user"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
+                <div class="col-sm-10 px-4 ">
+                    <div class="row" style="overflow-x:hidden">
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
-                    <div class="row">
-                        <p>{{result.second_line}}</p>
+                    <div class="row" style="white-space:nowrap">
+                        {{result.second_line}}
                     </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket" @click="handleIconClick"></i></a>
                     </div>
                 </div>
             </div>
@@ -181,10 +189,10 @@ export let searchcomponent = {
                         Records ({{searchTime}} seconds)
                     </span>
                 </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
+                <li v-if="prev" class="page-item"><a class="page-link result-link" :href="prev">Previous</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Previous</a></li>
+                <li v-if="next" class="page-item"><a class="page-link result-link" :href="next">Next</a></li>
+                <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
     </div>`,
@@ -250,7 +258,9 @@ export let searchcomponent = {
             searchTime: 0,
             maxTime: 15000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
-            abortController: new AbortController()
+            abortController: new AbortController(),
+            myBasket: {},
+            user: null
         }
     },
     created: async function() {
@@ -260,8 +270,6 @@ export let searchcomponent = {
         let component = this;
 
         //let searchstr = document.getElementById('q').value;
-
-        console.log(this.index_list)
         this.searchFields = JSON.parse(this.index_list)
         
         // [what is this used for?]
@@ -328,11 +336,28 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
+
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
+                } else {
+                    return response.text().then(
+                        text => {
+                            if (response.status === 500) {
+                                throw new Error("Invalid search")
+                            }
+                            text = text.replace(/"message":/, "");
+                            text = text.replace(/[\r\n{}:"]/g, "");
+
+                            throw new Error(text)
+                        }
+                    ).catch(
+                        error => {throw error}
+                    )
                 }
             }
+        ).catch(
+            error => {throw error}
         ).then(
             jsonData => {
                 if (! jsonData) {
@@ -358,7 +383,11 @@ export let searchcomponent = {
                     let myResult = { "_id": result["_id"]}
                     if (component.collection == "bibs") {
                         myResult["first_line"] = result["title"]
-                        myResult["second_line"] = [result["symbol"], result["date"], result["types"]].filter(Boolean).join(" | ")
+                        //.split("::")[result["types"].split("::").length-1]]
+
+                        let rtype = result["types"].split("::")
+
+                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
@@ -393,12 +422,16 @@ export let searchcomponent = {
                             //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
+                                    this.myBasket = myBasket
                                     //console.log(myBasket)
                                     //console.log("got my basket contents")
                                     for (let result of component.results) {
                                         //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
+
+                                        let myCheckboxId = `input-${component.collection}-${result._id}`;
+                                        let inputEl = document.getElementById(myCheckboxId);
                                     
                                         if (component.basketContains(myBasket, component.collection, result._id)) {
                                             //iconEl.classList.remove('fa-folder-plus',);
@@ -408,6 +441,7 @@ export let searchcomponent = {
                                         } else {
                                             iconEl.classList.add('fa-folder-plus');
                                             iconEl.title = "Add to basket";
+                                            inputEl.disabled = false
                                         }
 
                                         // checking if the record is locked and displaying a lock if it is.
@@ -422,45 +456,10 @@ export let searchcomponent = {
                                                     // revert link to read only view. 
                                                     // TODO: acquire the lock status earlier 
                                                     document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
+                                                    inputEl.disabled = true
                                                 }
                                             }
                                         );
-
-                                        iconEl.addEventListener("click", function() {
-                                            if (iconEl.classList.contains("fa-folder-plus")) {
-                                                //console.log("We're trying to create something.")
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run an add
-                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
-                                                    function() {
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-plus");
-                                                        iconEl.classList.add("fa-folder-minus");
-                                                        iconEl.classList.add("text-muted");
-                                                        iconEl.title = "Remove from basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
-                                                //console.log("We're trying to delete something.")
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run a deletion
-                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
-                                                    function() {
-                                                        //console.log("But did we do it?")
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-minus");
-                                                        iconEl.classList.add("fa-folder-plus");
-                                                        iconEl.classList.remove("text-muted");
-                                                        iconEl.title = "Add to basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-lock")) {
-                                                // TODO: unlock
-
-                                            }
-                                        });
                                     }
                                 }
                             )
@@ -526,21 +525,32 @@ export let searchcomponent = {
             }
             return false;
         },
-
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-2x fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
+        async handleIconClick(e) {
+            let collection = e.target.id.split("-")[1]
+            let record_id = e.target.id.split("-")[2]
+            e.target.classList.add("fa-spinner");
+            if (e.target.classList.contains("fa-folder-plus")) {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
+                    e.target.classList.remove("fa-spinner");
+                    e.target.classList.remove("fa-folder-plus");
+                    e.target.classList.add("fa-folder-minus");
+                    e.target.classList.add("text-muted");
+                    e.target.title = "Remove from basket";
                 })
+            } else if (e.target.classList.contains("fa-folder-minus")) {
+                await basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', this.myBasket, collection, record_id).then( () => {
+                    e.target.classList.remove("fa-spinner");
+                    e.target.classList.remove("fa-folder-minus");
+                    e.target.classList.add("fa-folder-plus");
+                    e.target.classList.remove("text-muted");
+                    e.target.title = "Add to basket";
+                })
+            } else if (e.target.classList.contains("fa-lock")) {
+                // To do: unlock
             } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
+                return false
             }
+            return true
         },
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
@@ -696,6 +706,45 @@ export let searchcomponent = {
         cancelSearch() {
             this.abortController.abort();
             this.start = this.end = 0;
+        },
+        selectAll(e)  {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                    inputEl.checked = true
+                }
+            }
+        },
+        selectNone(e) {
+            e.preventDefault()
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox") {
+                    inputEl.checked = false
+                }
+            }
+        },
+        async sendToBasket(e) {
+            e.preventDefault()
+            let items = []
+            let limit = 100     // Really shouldn't send more than that
+            let idx = 0
+            for (let inputEl of document.getElementsByTagName("input")) {
+                if (inputEl.type == "checkbox" && inputEl.checked) {
+                    if (idx >= limit) {
+                        continue
+                    }
+                    let collection = inputEl.id.split("-")[1]
+                    let record_id = inputEl.id.split("-")[2]
+                    items.push({
+                        "collection": `${collection}`,
+                        "record_id": `${record_id}`
+                    })
+                    idx++
+                }
+            }
+            if (items.length > 0) {
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+            }
         }
     },
     components: {

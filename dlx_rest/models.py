@@ -67,11 +67,18 @@ class RecordView(Document):
 
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
+    username = StringField(max_length=200, required=True)
     password_hash = StringField(max_length=200)
     roles = ListField(ReferenceField(Role))
     default_views = ListField(ReferenceField(RecordView))
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+
+    def __str__(self):
+        return {
+            "email": self.email,
+            "username": self.username
+        }
 
 
     def set_password(self, password):
@@ -163,6 +170,27 @@ class Basket(Document):
             item['id'] = str(ulid.to_uuid())
             self.items.append(item)
             self.save()
+
+    def add_items(self, items):
+        insert_items = []
+        for item in items:
+            ulid = ULID()
+            existing_item = None
+            try:
+                existing_item = self.get_item_by_coll_and_rid(item['collection'], item['record_id'])
+            except IndexError:
+                pass
+
+            if existing_item is None:
+                insert_items.append({
+                    "id": str(ulid.to_uuid()),
+                    "collection": item['collection'],
+                    "record_id": item['record_id'],
+                    "title": "[No Title]",
+                    "override": False
+                })
+        self.items = insert_items
+        self.save()
 
     def remove_item(self, item_id):
         #self.items = list(filter(lambda x: x['collection'] != item['collection'] and x['record_id'] != item['record_id'], self.items))
