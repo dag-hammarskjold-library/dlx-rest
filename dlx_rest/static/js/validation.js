@@ -1,3 +1,4 @@
+
 export const validationData = {
     "comments": "",
     "bibs": {
@@ -39,7 +40,7 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": ["a"],
+            "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
@@ -66,17 +67,8 @@ export const validationData = {
                 */
             }
         },
-        "030": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"]
-        },
         "035": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -87,6 +79,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "037": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -102,12 +95,12 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "requiredSubfields": ["a"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
-                "a": ["DHU","GUN","ITS","SN","VOT"]
+                "a": ["DHU","GUN","ITS","SN","VOT","DHM","CAP","GEN"]
                 /*
                 [
                     {"code":"DHU", "description":"DHL Indexing Unit, UN Material"},
@@ -125,12 +118,13 @@ export const validationData = {
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
+            "requiredSubfields": ["a","b"],
             "validSubfields": ["a", "b"],
             "defaultSubfields": ["a", "b"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
-                "a": ["SzGeBNU","NNUN"]
+                "a": ["SzGeBNU","NNUN","LB-BrESC","TH-BaUNE"],
+                "b": ["eng"]
                 /*
                 [
                     {"code":"SzGeBNU", "description":"UNOG Library"},
@@ -143,21 +137,11 @@ export const validationData = {
             "name": "Language",
             "required": true,
             "repeatable": false,
-            "validIndicators1": ["0"],
+            "validIndicators1": ["_","0"],
             "validIndicators2": [],
-            "requiredSubfields": ["a"],
-            "validSubfields": ["a"],
-            "defaultSubfields": [] 
-        },
-        "048": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]   // Not specified, but this is the usual behavior
         },
         "049": {
             "name": "Country of publication",
@@ -166,7 +150,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": ["a"],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
                 "a": [
@@ -422,17 +406,8 @@ export const validationData = {
                 ]
             }
         },
-        "066": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "069": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -443,16 +418,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "079": {
-            "name": "",
+            "name": "UN sales number",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "088": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -463,13 +439,13 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "089": {
-            "name": "",
-            "required": false,
+            "name": "Content codes",
+            "required": true, 
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["b"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["b"],
             "validStrings": {
                 "b": [
@@ -525,13 +501,13 @@ export const validationData = {
             }
         },
         "091": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "name": "Distribution code",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["a"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
@@ -550,6 +526,7 @@ export const validationData = {
             }
         },
         "093": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -560,13 +537,13 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "099": {
-            "name": "",
-            "required": false,
+            "name": "Location library",
+            "required": true,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["a","b"],
+            "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
@@ -594,6 +571,7 @@ export const validationData = {
             }
         },
         "100": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -604,6 +582,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "110": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -614,6 +593,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "111": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -624,6 +604,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "130": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -635,12 +616,12 @@ export const validationData = {
         },
         "191": {
             "name": "Document symbol / series symbol",
-            "required": true,
+            "required": false,  
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": ["a", "b"],
-            "validSubfields": ["a", "b", "c", "z", "9"],
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a", "b", "c", "d", "e", "f", "q", "r", "z", "9"], 
             "defaultSubfields": ["a", "b", "c"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
@@ -651,16 +632,7 @@ export const validationData = {
             }
         },
         "192": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "198": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -671,6 +643,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "222": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -681,23 +654,13 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "239": {
-            "name": "",
+            "name": "Unique title",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["0"],
+            "validIndicators2": ["0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "240": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "245": {
@@ -705,22 +668,23 @@ export const validationData = {
             "required": true,
             "repeatable": false,
             "validIndicators1": ["1"],
-            "validIndicators2": [],
+            "validIndicators2": ["0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": ["a"],
             "validSubfields": ["a", "b", "c", "h", "n", "p"],
             "defaultSubfields": ["a", "b", "c"]
         },
         "246": {
-            "name": "",
+            "name": "Varying form of title",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["0","1","2","3"],
+            "validIndicators2": ["0","1","2","3","4","5","6","7","8"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","i","n","p"],
             "defaultSubfields": ["a", "b"] 
         },
         "247": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -731,36 +695,37 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "249": {
-            "name": "",
+            "name": "ITP title",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "250": {
-            "name": "",
+            "name": "Edition statement",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a","b"] 
         },
         "255": {
-            "name": "",
+            "name": "Cartographic mathematical data",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a","b"] 
         },
         "256": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -771,24 +736,14 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "260": {
-            "name": "",
+            "name": "Publication (place, publisher, date)",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"] 
-        },
-        "264": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
         },
         "269": {
             "name": "Publication date",
@@ -798,7 +753,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": ["a"],
             "validSubfields": ["a"],
-            "defaultSubfields": [],
+            "defaultSubfields": ["a"],
             "_validRegex": {
                 "a": ["^(\\d{4}|\\d{4}-?\\d{2}|\\d{4}-?\\d{2}-?\\d{2})$"] 
             },
@@ -807,26 +762,17 @@ export const validationData = {
             }
         },
         "300": {
-            "name": "",
+            "name": "Physical description",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a","b"] 
         },
-        "306": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "310": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -837,16 +783,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "321": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "350": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -857,6 +794,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "354": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -867,6 +805,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "362": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -877,6 +816,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "440": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -887,6 +827,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "490": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -897,116 +838,57 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "495": {
-            "name": "",
+            "name": "Official record designator",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "500": {
-            "name": "",
+            "name": "General note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "501": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "504": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "505": {
-            "name": "",
+            "name": "Formatted contents note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["0","1","2","8"],
+            "validIndicators2": ["_","0"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "506": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "510": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "511": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "515": {
-            "name": "",
+            "name": "Numbering peculiarities note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "520": {
-            "name": "",
+            "name": "Summary, etc.",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "529": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "530": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1017,6 +899,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "540": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1027,16 +910,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "541": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "545": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1047,26 +921,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "546": {
-            "name": "",
+            "name": "Language note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "547": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "550": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1077,6 +942,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "555": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1087,46 +953,27 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "561": {
-            "name": "",
+            "name": "Ownership and custodial history",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","u"],
             "defaultSubfields": ["a","u"] 
         },
-        "562": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "580": {
-            "name": "",
+            "name": "Linking entry complexity note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "586": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "590": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1137,6 +984,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "591": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1147,6 +995,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "592": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1157,6 +1006,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "593": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1167,6 +1017,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "594": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1177,6 +1028,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "595": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1187,26 +1039,27 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "596": {
-            "name": "",
+            "name": "Local UNBIS note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "597": {
-            "name": "",
+            "name": "Local UN Libraries note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["1","2","3"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "598": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1217,96 +1070,67 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "599": {
-            "name": "",
+            "name": "ITP DOCSYM-2 - Local",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["1"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "600": {
-            "name": "",
+            "name": "Subject personal name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1","2"],
+            "validIndicators2": ["_","7"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a","g"],
+            "defaultSubfields": ["a"]
         },
         "610": {
-            "name": "",
+            "name": "Subject corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","2"],
+            "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a","g"],
+            "defaultSubfields": ["a","g"] 
         },
         "611": {
-            "name": "",
+            "name": "Subject meeting name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","2"],
+            "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a","g"],
+            "defaultSubfields": ["a","g"] 
         },
         "630": {
-            "name": "",
+            "name": "Subject uniform titles",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0"],
+            "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "650": {
-            "name": "",
+            "name": "Subject topical",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1", "2"],
+            "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a", "2"],
             "defaultSubfields": ["a"] 
         },
         "651": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "654": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "658": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "690": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1317,86 +1141,67 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "700": {
-            "name": "",
+            "name": "Added entry - personal name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "710": {
-            "name": "",
+            "name": "Added entry - corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "711": {
-            "name": "",
+            "name": "Added entry - meeting name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "730": {
-            "name": "",
+            "name": "Added entry - uniform title",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "740": {
-            "name": "",
+            "name": "Added entry - uncontrolled title",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1","2","3","4","5","6","7","8","9"],
+            "validIndicators2": ["_","2"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "750": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "760": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "767": {
-            "name": "",
+            "name": "Translation entry",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["0","1"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["9","o","t","z","x"],
             "defaultSubfields": ["9","o","t","z","x"] 
         },
         "772": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1407,6 +1212,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "773": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1417,6 +1223,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "780": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1427,16 +1234,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "785": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
-        "787": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1447,6 +1245,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "791": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1457,49 +1256,40 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "793": {
-            "name": "",
+            "name": "Committee name",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"],
             "validStrings": {
-                "a": ["PL","GC","CR","01","02","03","04","05","06"]
+                "a": ["PL","GC","CR","01","02","03","04","05","06","SP"]
             }
         },
-        "810": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
-        },
         "830": {
-            "name": "",
+            "name": "Uniform title entry",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["4"],
+            "validIndicators2": ["_","0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "856": {
-            "name": "",
+            "name": "Electronic location and access",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1","2","3","4","5","6","7"],
+            "validIndicators2": ["_","0","2","8"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["3","q","u"],
             "defaultSubfields": ["3","q","u"] 
         },
         "910": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1510,6 +1300,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "920": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1520,16 +1311,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "930": {
-            "name": "",
-            "required": false,
+            "name": "Product code",
+            "required": true,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["a"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "949": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1540,6 +1332,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "952": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1550,6 +1343,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "955": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1560,6 +1354,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "967": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1570,6 +1365,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "981": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1580,6 +1376,8 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "989": {
+            // Not defined in bibs validation document
+            // Used for UNDL
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1590,36 +1388,37 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "991": {
-            "name": "",
+            "name": "Agenda",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["*"], // carried from authority
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","c","d","e","f","m","s","z"],
             "defaultSubfields": ["a","b","c","d"] 
         },
         "992": {
-            "name": "",
+            "name": "Action date",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] // $a needs valid date: yyyymmdd
         },
         "993": {
-            "name": "",
+            "name": "Related document symbols",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["_","0","1","2","3","4","5","6","7","8","9"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "995": {
+            // Not defined in bibs validation document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1630,17 +1429,18 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "996": {
-            "name": "",
+            "name": "Vote note",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "998": {
-            "name": "",
+            // Not defined in bibs validation document
+            "name": "Creator/date",
             "required": false,
             "repeatable": true,
             "validIndicators1": ["*"],
@@ -1651,12 +1451,12 @@ export const validationData = {
         },
         "999": {
             "name": "",
-            "required": false,
+            "required": true,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
-            "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["a","b","c"],
+            "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
                 "c": ["c","d","i","m","o","p","q","r","s","t","u","v","w"]
@@ -1665,16 +1465,17 @@ export const validationData = {
     },
     "auths": {
         "022": {
-            "name": "",
+            "name": "ISSN",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "029": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1685,6 +1486,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "035": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1695,6 +1497,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "039": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1705,16 +1508,28 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "040": {
-            "name": "",
-            "required": false,
+            "name": "Cataloguing source",
+            "required": true,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a","b","f"] 
+            "validSubfields": ["a","b","f"],
+            "defaultSubfields": ["a","b","f"],
+            "validStrings": {
+                // To do: dropdown or other select using these controlled values
+                "a": ["SzGeBNU","NNUN","LB-BrESC","TH-BaUNE"],
+                "b": ["eng"]
+                /*
+                [
+                    {"code":"SzGeBNU", "description":"UNOG Library"},
+                    {"code":"NNUN", "description": "DHL"}
+                ]
+                */
+            }
         },
         "041": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1725,16 +1540,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "046": {
-            "name": "",
+            "name": "Special coded dates",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["s","t"],
             "defaultSubfields": ["s","t"] 
         },
         "049": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1745,6 +1561,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "069": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1755,6 +1572,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "072": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1765,6 +1583,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "089": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1775,6 +1594,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "091": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1785,6 +1605,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "099": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1795,36 +1616,37 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "100": {
-            "name": "",
+            "name": "Heading - personal name",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["0","1","3"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "110": {
-            "name": "",
+            "name": "Heading - corporate name",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["1","2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "111": {
-            "name": "",
+            "name": "Heading - meeting name",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "112": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1835,16 +1657,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "130": {
-            "name": "",
+            "name": "Heading - uniform title",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": ["0"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "150": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1855,6 +1678,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "151": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1865,26 +1689,27 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "190": {
-            "name": "",
+            "name": "Main body/session",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["b","c"],
             "defaultSubfields": ["b","c"] 
         },
         "191": {
-            "name": "",
+            "name": "Agenda information",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["0","1","2","3","4"],
+            "validIndicators2": ["0"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","c","d"],
             "defaultSubfields": ["a","b","c","d"] 
         },
         "245": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1895,6 +1720,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "260": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1905,6 +1731,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "269": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1915,6 +1742,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "300": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1925,16 +1753,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "370": {
-            "name": "",
+            "name": "Associated place",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["c","e"],
             "defaultSubfields": ["c","e"] 
         },
         "374": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1945,16 +1774,18 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "375": {
-            "name": "",
+            "name": "Gender",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"],
+            //"validStrings": {"a": []}
         },
         "380": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -1965,46 +1796,47 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "400": {
-            "name": "",
+            "name": "See from tracing - personal name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["0","1","3"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","5"],
             "defaultSubfields": ["a"] 
         },
         "410": {
-            "name": "",
+            "name": "See from tracing - corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["1","2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","5"],
             "defaultSubfields": ["a"] 
         },
         "411": {
-            "name": "",
+            "name": "See from tracing - meeting name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","5"],
             "defaultSubfields": ["a"] 
         },
         "430": {
-            "name": "",
+            "name": "See from tracing - uniform title",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": ["0"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","5"],
             "defaultSubfields": ["a"] 
         },
         "450": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2015,6 +1847,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "490": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2025,16 +1858,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "491": {
-            "name": "",
+            "name": "See reference for ITP publication",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["0"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["d"],
             "defaultSubfields": ["d"] 
         },
         "493": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2045,6 +1879,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "494": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2055,6 +1890,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "495": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2065,6 +1901,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "496": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2075,6 +1912,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "497": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2085,6 +1923,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "500": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2095,26 +1934,27 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "510": {
-            "name": "",
+            "name": "See also from tracing - corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["1","2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","w"],
             "defaultSubfields": ["a"] 
         },
         "511": {
-            "name": "",
+            "name": "See also from tracing - meeting name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": ["2"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","w"],
             "defaultSubfields": ["a"] 
         },
         "520": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2125,16 +1965,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "530": {
-            "name": "",
+            "name": "See also from tracing - uniform title",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": ["0"],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","w"],
             "defaultSubfields": ["a"] 
         },
         "546": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2145,6 +1986,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "550": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2155,6 +1997,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "591": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2165,6 +2008,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "596": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2175,6 +2019,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "610": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2185,6 +2030,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "611": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2195,6 +2041,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "642": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2205,6 +2052,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "643": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2215,6 +2063,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "645": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2225,6 +2074,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "650": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2235,66 +2085,67 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "667": {
-            "name": "",
+            "name": "Non-public general note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "670": {
-            "name": "",
+            "name": "Source data found",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","u"],
             "defaultSubfields": ["a"] 
         },
         "678": {
-            "name": "",
+            "name": "Bibliographical or historical data",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","u"],
             "defaultSubfields": ["a"] 
         },
         "680": {
-            "name": "",
+            "name": "Public general note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["j"] 
+            "validSubfields": ["i"],
+            "defaultSubfields": ["i"] 
         },
         "682": {
-            "name": "",
+            "name": "Deleted heading information",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","i"],
             "defaultSubfields": ["a"] 
         },
         "688": {
-            "name": "",
+            "name": "Application history note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
         "690": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2305,6 +2156,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "693": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2315,6 +2167,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "694": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2325,6 +2178,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "695": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2335,6 +2189,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "696": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2345,6 +2200,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "697": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2355,6 +2211,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "710": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2365,36 +2222,49 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "905": {
-            "name": "",
+            "name": "Source code",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": ["0"],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"],
+            "validStrings": { "a": ["DHL","GEN"]}
         },
         "915": {
-            "name": "",
+            "name": "Record type",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"],
+            "validStrings": { "a": [
+                "CN",   // name of corporate body
+                "MN",   // name of conference
+                "PN",   // name of person
+                "SR",   // series title
+                "TI",   // uniform title
+                "UC",   // name of UN corporate body
+                "UM",   // name of UN conference
+                "US",   // UN series title
+                "UT"    // UN uniform title
+            ]}
         },
         "925": {
-            "name": "",
+            "name": "Authorized entry for series symbol",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
         },
         "930": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2405,6 +2275,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "933": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2415,6 +2286,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "934": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2425,6 +2297,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "935": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2435,6 +2308,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "936": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2445,6 +2319,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "937": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2455,6 +2330,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "940": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2465,6 +2341,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "950": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2475,6 +2352,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "955": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2485,16 +2363,17 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "970": {
-            "name": "",
+            "name": "Series start/series end date",
             "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] // Is a date, needs regex pattern
         },
         "975": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2505,6 +2384,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "976": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2515,6 +2395,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "981": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2525,6 +2406,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "989": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2535,6 +2417,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "991": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2545,6 +2428,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "993": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2555,6 +2439,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "994": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2565,6 +2450,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "995": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2575,6 +2461,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "996": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2585,6 +2472,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "997": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2595,6 +2483,7 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "998": {
+            // Not defined in the specification document
             "name": "",
             "required": false,
             "repeatable": true,
@@ -2605,6 +2494,8 @@ export const validationData = {
             "defaultSubfields": ["a"] 
         },
         "999": {
+            // Not defined in the specification document, but there are values necessary for, e.g., record review/approval
+            // such as 999$c=t
             "name": "",
             "required": false,
             "repeatable": true,
