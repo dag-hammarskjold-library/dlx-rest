@@ -1092,45 +1092,82 @@ class LookupFieldsList(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'type', 
+        type=str,
+        choices=['partial', 'text'],
+        default='partial',
+        help='The type of lookup to execute (partial string match or text search)'
+    )
+
     @ns.doc(description='Return a list of authorities that match a string value')
-    #@ns.expect(list_argparser)
+    @ns.expect(args)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         codes = filter(lambda x: len(x) == 1, request.args.keys())
-        conditions_1, conditions_2 = [], []
-        sparams = {}
-            
-        for code in codes:
-            val = request.args[code]
-            val = re.escape(val)
-            sparams[code] = val
-            auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
-            
-            if not auth_tag:
-                continue
-                
-            tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
-            
-            # matches start
-            conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
-            # matches anywhere
-            conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
-            
-        if not sparams:
-            abort(400, 'Request parameters required')
-            
-        query = Query(*conditions_1)
-        proj = dict.fromkeys(tags, 1)
-        start = int(request.args.get('start', 1))
-        cln = {'locale': 'en', 'strength': 1}
-        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-        auths = list(auths)
-        
-        if len(auths) < 25:
-            query = Query(*conditions_2)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-        
+        args = LookupField.args.parse_args()
+
+        if args.type == 'partial':
+            # partial string match
+            conditions_1, conditions_2 = [], []
+            sparams = {}
+
+            for code in codes:
+                val = request.args[code]
+                val = re.escape(val)
+                sparams[code] = val
+                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+
+                if not auth_tag:
+                    continue
+
+                tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
+
+                # matches start
+                conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+                # matches anywhere
+                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
+
+            if not sparams:
+                abort(400, 'Request parameters required')
+
+            query = Query(*conditions_1)
+            proj = dict.fromkeys(tags, 1)
+            start = int(request.args.get('start', 1))
+            cln = {'locale': 'en', 'strength': 1}
+            auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths = list(auths)
+
+            if len(auths) < 25:
+                query = Query(*conditions_2)
+                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        elif args.type == 'text':
+            sparams = {}
+            conditions = []
+
+            for code in codes:
+                val = request.args[code]
+                #val = re.escape(val)
+                sparams[code] = val
+                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+
+                if not auth_tag:
+                    continue
+
+                tags = [auth_tag]
+
+                conditions.append(f'{auth_tag}__{code}:{val}')
+
+            querystring = " AND ".join(conditions)
+            print(querystring)
+            query = Query.from_string(querystring)
+            proj = dict.fromkeys(tags, 1)
+            start = int(request.args.get('start', 1))
+            cln = {'locale': 'en', 'strength': 1}
+            auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+
         processed = []
         
         for auth in auths:
