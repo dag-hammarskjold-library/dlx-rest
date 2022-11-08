@@ -1096,7 +1096,7 @@ export const validationData = {
             "validIndicators1": ["_","0","2"],
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["a","g"],
+            "validSubfields": ["a","g","2"],
             "defaultSubfields": ["a"] 
         },
         "611": {
@@ -1104,9 +1104,9 @@ export const validationData = {
             "required": false,
             "repeatable": true,
             "validIndicators1": ["_","0","2"],
-            "validIndicators2": ["_","0","7"],
+            "validIndicators2": ["_","0","2","7"],
             "requiredSubfields": [],
-            "validSubfields": ["a","g"],
+            "validSubfields": ["a","g","2"],
             "defaultSubfields": ["a"] 
         },
         "630": {
@@ -1123,7 +1123,7 @@ export const validationData = {
             "name": "Subject topical",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["_","0","1", "2"],
+            "validIndicators1": ["_","0","1","2"],
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
             "validSubfields": ["a", "2"],
@@ -1272,7 +1272,7 @@ export const validationData = {
             "name": "Uniform title entry",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["4"],
+            "validIndicators1": [],
             "validIndicators2": ["_","0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
             "validSubfields": ["a"],
@@ -1283,7 +1283,7 @@ export const validationData = {
             "required": false,
             "repeatable": true,
             "validIndicators1": ["_","0","1","2","3","4","5","6","7"],
-            "validIndicators2": ["_","0","2","8"],
+            "validIndicators2": ["_","0","1","2","8"],
             "requiredSubfields": [],
             "validSubfields": ["3","q","u"],
             "defaultSubfields": ["3","q","u"] 
@@ -1405,7 +1405,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] // $a needs valid date: yyyymmdd
+            "defaultSubfields": ["a"],
+            "isDate": {
+                "a": true
+            }
         },
         "993": {
             "name": "Related document symbols",
