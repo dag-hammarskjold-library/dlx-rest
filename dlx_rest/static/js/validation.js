@@ -1097,7 +1097,7 @@ export const validationData = {
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
-            "defaultSubfields": ["a","g"] 
+            "defaultSubfields": ["a"] 
         },
         "611": {
             "name": "Subject meeting name",
@@ -1107,7 +1107,7 @@ export const validationData = {
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
-            "defaultSubfields": ["a","g"] 
+            "defaultSubfields": ["a"] 
         },
         "630": {
             "name": "Subject uniform titles",
@@ -1116,7 +1116,7 @@ export const validationData = {
             "validIndicators1": ["_","0"],
             "validIndicators2": ["_","0","7"],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","2"],
             "defaultSubfields": ["a"] 
         },
         "650": {
@@ -2507,45 +2507,126 @@ export const validationData = {
         }
     },
     "speeches": {
-        "089": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+        "039": {
+            "name": "Cataloguing Source - Local",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["b"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
+        "040": {
+            "name": "Cataloguing Source",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
+        "089": {
+            "name": "Content code",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a","b"],
+            "defaultSubfields": ["a","b"],
+            "validStrings": {
+                "a": ["Speech index record"],   // Is string validation case sensitive? Should it be?
+                "b": ["B22"]
+            }
+        },
+        "269": {
+            "name": "Date of meeting",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
+            // Is date
+            // Verify value is the same as in 992$a
+            // Can 992$a or 269$a be auto-assigned via save-action if one is provided?
+        },
+        "700": {
+            "name": "Added entry - personal name",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": ["0","1","3"],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
+        "710": {
+            "name": "Added entry - corporate name",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": ["0","1","2"],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
         },
         "791": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+            "name": "UN resolution/meeting record symbol",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a","b","c","q","r"],
             "defaultSubfields": ["a","b","c"] 
         },
-        "991": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+        "930": {
+            "name": "Product code",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"],
+            "validStrings": {
+                "a": ["ITS"]
+            }
+        },
+        "991": {
+            "name": "Agenda information",
+            "required": true,
+            "repeatable": true,
+            "validIndicators1": ["1","2","3","4"],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a","b","c","d"],
             "defaultSubfields": ["a","b","c","d"] 
         },
-        "999": {
-            "name": "",
-            "required": false,
-            "repeatable": true,
-            "validIndicators1": ["*"],
-            "validIndicators2": ["*"],
+        "992": {
+            "name": "Date of meeting",
+            "required": true,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["*"],
-            "defaultSubfields": ["a"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
+            // Is date; see also 269$a 
+        },
+        "999": {
+            "name": "Creator/date",
+            "required": true,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a","b","c"],
+            "defaultSubfields": ["a","b","c"] 
         },
     },
     "votes": {
