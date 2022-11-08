@@ -2555,7 +2555,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"]
+            "defaultSubfields": ["a"],
+            "isDate": {
+                "a": true
+            }
             // Is date
             // Verify value is the same as in 992$a
             // Can 992$a or 269$a be auto-assigned via save-action if one is provided?
@@ -2621,7 +2624,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"]
+            "defaultSubfields": ["a"],
+            "isDate": {
+                "a": true
+            }
             // Is date; see also 269$a 
         },
         "999": {
@@ -2694,7 +2700,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "isDate": {
+                "a": true
+            }
             // Is date. Same as 992$a. Can we get the date from 992$a on the record linked in 791?
         },
         "591": {
@@ -2807,7 +2816,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"]
+            "defaultSubfields": ["a"],
+            "isDate": {
+                "a": true
+            }
             // Is date.  Copy from bib record corresponding to resolution?
         },
         "993": {
