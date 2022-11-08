@@ -2678,7 +2678,7 @@ export const validationData = {
             "validSubfields": ["b"],
             "defaultSubfields": ["b"],
             "validStrings": {
-                "b": ["B22"]    // This is the same as the code for speeches.089$b
+                "b": ["B23"]
             }
         },
         "245": {
