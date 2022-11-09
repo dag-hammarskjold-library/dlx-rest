@@ -3,19 +3,11 @@ let recup=""
 // IMPORT
 /////////////////////////////////////////////////////////////////
  
-import { 
-    Jmarc,
-    TagValidationFlag,
-    Indicator1ValidationFlag,
-    Indicator2ValidationFlag,
-    SubfieldCodeValidationFlag,
-    SubfieldValueValidationFlag
-} from "./jmarc.mjs";
+import { Jmarc } from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
-import { validationData } from "./validation.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -398,7 +390,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         },
-        async saveRecord(jmarc, display=true){
+        saveRecord(jmarc,display=true){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -406,63 +398,12 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
-                // get rid of empty fields and validate
-                let flags = jmarc.validationWarnings();
-                flags.forEach(x => {this.callChangeStyling(x.message, "d-flex w-100 alert-danger")});
+
+                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
                 
-                if (flags.length > 0) return
-
-                jmarc.getDataFields().forEach(field => {
-                    field.subfields.forEach(subfield => {
-                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                            field.deleteSubfield(subfield);
-                        }
-
-                        subfield.validationWarnings().forEach(x => {
-                            this.callChangeStyling(`${field.tag}$${subfield.code}: ${x.message}`, "d-flex w-100 alert-danger");
-                            flags.push(x)
-                        })
-                    });
-
-                    field.validationWarnings().forEach(x => {
-                        this.callChangeStyling(`${field.tag}: ${x.message}`, "d-flex w-100 alert-danger");
-                        flags.push(x)
-                    })
-                });
-
-                if (flags.length > 0) return
-
-                // start the pending spinner
                 jmarc.saveButton.classList.add("fa-spinner");
                 jmarc.saveButton.classList.add("fa-pulse");
                 jmarc.saveButton.style = "pointer-events: none";
-
-                // dupe auth check
-                if (jmarc.collection === "auths") {
-                    let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
-
-                    if (headingField) { 
-                        // wait for the result
-                        let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
-                        let headingString = headingField.subfields.map(x => x.value).join(" ");
-                        let isNewVal = JSON.stringify(headingField.savedState) !== JSON.stringify(headingField.compile());
-                        
-                        if (inUse === true && headingField.tag === "100" && isNewVal) {
-                            // new record personal name exception
-                            let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
-
-                            if (! window.confirm(msg)) {
-                                return
-                            }
-                        } else if (headingField.tag !== "100" && inUse === true && isNewVal) {
-                            this.callChangeStyling(`The heading "${headingString}" is already in use. Headings for records with tag ${headingField.tag} cannot be duplicated`, "d-flex w-100 alert-danger")
-                            return
-                        }
-                    }
-                }
-
-                //save
-                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
                     jmarc.saveButton.classList.remove("fa-spinner");
@@ -684,7 +625,6 @@ export let multiplemarcrecordcomponent = {
         },
         addField(jmarc, newField=null, rowIndex=null) {
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
-            let component = this
 
             if (currentField.tag === "___") {
                 this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
@@ -712,52 +652,13 @@ export let multiplemarcrecordcomponent = {
                 newSubfield.value = "";
             }
             
-            let newFieldRow = this.buildFieldRow(newField, rowIndex);
+            newField = this.buildFieldRow(newField, rowIndex);
             // trigger field check state events
-            newFieldRow.ind1Span.focus();
-            newFieldRow.ind2Span.focus();
-            newFieldRow.subfields[0].codeSpan.focus();
-            newFieldRow.subfields[0].valueSpan.focus();
-            newFieldRow.tagSpan.focus();
-
-            newFieldRow.tagCell.addEventListener("change", function (e) {
-                // Differentiate kinds of bibs based on 089 contents
-                // At worst this will still default to bibs
-                let vcoll = jmarc.collection
-                if( vcoll == "bibs") {
-                    let recordType = jmarc.getField("089").getSubfield("b").value
-                    //console.log(recordType)
-                    if (recordType && recordType == "B22") {
-                        vcoll = "speeches"
-                    } else if (recordType && recordType == "B23") {
-                        vcoll = "votes"
-                    }    
-                }
-                //console.log(vcoll)
-                let validatedField = validationData[vcoll][e.target.value]
-                if (!validatedField) {
-                    // fallback so we don't have to re-specify fields unnecessarily
-                    validatedField = validationData[jmarc.collection][e.target.value]
-                }
-                if (validatedField) {
-                    let blankSubfield = newField.getSubfield("_", 0)
-                    newField.deleteSubfield(blankSubfield)
-                    newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
-                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
-                        let newSubfield = newField.createSubfield(defaultSubfield)
-                        newSubfield.value = ""
-                        component.buildSubfieldRow(newSubfield);
-                    }
-                    // trigger field check state events, needs to be done again if field changes
-                    newFieldRow.ind1Span.focus();
-                    newFieldRow.ind2Span.focus();
-                    for (let subfield of newField.subfields) {
-                        subfield.codeSpan.focus();
-                        subfield.valueSpan.focus();
-                    }
-                    newFieldRow.tagSpan.focus();
-                }
-            })
+            newField.ind1Span.focus();
+            newField.ind2Span.focus();
+            newField.subfields[0].codeSpan.focus();
+            newField.subfields[0].valueSpan.focus();
+            newField.tagSpan.focus();
             
             // select new field
             this.fieldSelected(newField);
@@ -794,6 +695,7 @@ export let multiplemarcrecordcomponent = {
         deleteField(jmarc, field=null){ 
             // delete the selected field, or the field supplied by the args if it exists
             field = field || jmarc.fields.filter(x => x.selected)[0];
+            let fieldIndex = jmarc.fields.indexOf(field);
 
             if (! field) {
                 this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
@@ -806,7 +708,6 @@ export let multiplemarcrecordcomponent = {
                 return
             }                   
             
-            let fieldIndex = jmarc.fields.indexOf(field);
             jmarc.deleteField(field);
             let myTable=document.getElementById(this.selectedDiv).firstChild 
             myTable.deleteRow(field.row.rowIndex);
@@ -844,10 +745,6 @@ export let multiplemarcrecordcomponent = {
                 if (confirm("Are you sure you want to delete this record ?") == true) {
                     let deletedRid = jmarc.recordId;
                     let deletedColl = jmarc.collection;
-
-                    jmarc.deleteButton.classList.add("fa-spinner");
-                    jmarc.deleteButton.classList.add("fa-pulse");
-                    jmarc.deleteButton.style = "pointer-events: none";
  
                     jmarc.delete().then( () => {
                         this.removeRecordFromEditor(jmarc);
@@ -1017,14 +914,7 @@ export let multiplemarcrecordcomponent = {
             {
                 if (event.ctrlKey && event.key === "k"){
                     event.preventDefault();
-
-                    if (this.copiedFields.length > 0) {
-                        // there are fields checked
-                        this.deleteFields(this.selectedJmarc);
-                    } else {
-                        // deletes only the active field
-                        this.deleteField(this.selectedJmarc);
-                    }
+                    this.deleteField(this.selectedJmarc)
                 }
             }
            
@@ -1549,53 +1439,6 @@ export let multiplemarcrecordcomponent = {
 
         },
 
-       
-        // visual diff between the original record and the history one
-        // the diff will be executed from the history 
-
-        diff(original,history,color){
-            let occur=0
-            history.fields.forEach(elementHistory=>{
-                let historyValueRow=elementHistory.row.cells
-                let findHistoryRow=false
-                original.fields.forEach(originalElement=>{
-                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
-                        findHistoryRow=true
-                    }
-                })
-                if (findHistoryRow===false) {
-                    occur++
-                    elementHistory.row.bgColor=color
-                }
-            })
-            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "d-flex w-100 alert-success")
-            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
-
-        },
-
-        // visual diff between the original record and the history one
-        // the diff will be executed from the history 
-
-        diff(original,history,color){
-            let occur=0
-            history.fields.forEach(elementHistory=>{
-                let historyValueRow=elementHistory.row.cells
-                let findHistoryRow=false
-                original.fields.forEach(originalElement=>{
-                   if ((originalElement.row.cells[1].innerHTML===historyValueRow[1].innerHTML) && (originalElement.row.cells[2].innerHTML===historyValueRow[2].innerHTML)){
-                        findHistoryRow=true
-                    }
-                })
-                if (findHistoryRow===false) {
-                    occur++
-                    elementHistory.row.bgColor=color
-                }
-            })
-            if (occur===1) this.callChangeStyling(`${occur}  difference found!!!!`, "d-flex w-100 alert-success")
-            if (occur>1) this.callChangeStyling(`${occur}  differences found!!!!`, "d-flex w-100 alert-success")
-
-        },
-
         // revert the jmarc record
         revert(){
 
@@ -1790,9 +1633,6 @@ export let multiplemarcrecordcomponent = {
 
             jmarc.tableBody.scrollTop = scroll;
             window.scrollTo(scrollX, scrollY);
-
-            // trigger validation warnings
-            this.validationWarnings(jmarc);
             
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
@@ -2345,10 +2185,6 @@ export let multiplemarcrecordcomponent = {
             // call when user changes the tag value
             function tagUpdate() {
                 field.tag = tagSpan.innerText;
-
-                // validations warnings
-                component.validationWarnings(jmarc);
-                
                 field.tagSpan.classList.remove("invalid");
                 field.tagSpan.classList.remove("unsaved");
 
@@ -2455,12 +2291,10 @@ export let multiplemarcrecordcomponent = {
 
                 field.indicators = updated;
 
-                // validation warnings
-                component.validationWarnings(jmarc);
-
-                // record state
                 cell.classList.remove("invalid");
                 cell.classList.remove("unsaved");
+
+                // record state
                 component.checkSavedState(jmarc);
 
                 // skip checks if whole record is saved
@@ -2495,7 +2329,7 @@ export let multiplemarcrecordcomponent = {
                         span.innerText += '_';
                     }
                 });
-            }
+            }   
 
             return field
         },
@@ -2664,9 +2498,6 @@ export let multiplemarcrecordcomponent = {
                 subfield.codeSpan.classList.remove("invalid");
                 subfield.codeSpan.classList.remove("unsaved");
 
-                // validations
-                component.validationWarnings(jmarc);
-
                 // record state
                 component.checkSavedState(jmarc);
 
@@ -2694,9 +2525,6 @@ export let multiplemarcrecordcomponent = {
                 subfield.value = valSpan.innerText;
 
                 valCell.classList.remove("unsaved");
-
-                // validations
-                component.validationWarnings(jmarc);
 
                 // record state
                 component.checkSavedState(jmarc);
@@ -2757,9 +2585,9 @@ export let multiplemarcrecordcomponent = {
                 if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
                     valSpan.innerText = 
                         valSpan.innerText
-                        .replace(/[\r\n]/g, ' ')
+                        .replace(/[\r\n]/, ' ')
                         .trim()
-                        .replace(/ {2,}/g, ' ');
+                        .replace(/ {2,}/, ' ');
                     
                     updateSubfieldValue();
                     
@@ -2890,13 +2718,6 @@ export let multiplemarcrecordcomponent = {
                     subfield.xrefCell.append(addButton);
                 }
             }
-
-            subfield.valueSpan.addEventListener("dblclick", function() {
-                // open the linked auth
-                if (subfield.xref) {
-                    open(component.baseUrl + `records/auths/${subfield.xref}`);
-                }
-            });
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
@@ -2943,118 +2764,11 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.title = "Save Record";
             }
-        },
-        validationWarnings(jmarc) {
-            jmarc.getDataFields().forEach(field => {
-                field.tagCell.classList.remove("validation-flag");
-                field.ind1Cell.classList.remove("validation-flag");
-                field.ind2Cell.classList.remove("validation-flag");
-                field.tagCell.classList.title = field.ind1Cell.classList.title = field.ind2Cell.title = "";
-
-                let flags = field.validationWarnings().filter(x => x instanceof TagValidationFlag);
-
-                if (flags.length > 0) {
-                    field.tagCell.classList.add("validation-flag");
-                    field.tagCell.title = flags.map(x => x.message).join("\n");
-                }
-
-                flags = field.validationWarnings().filter(x => x instanceof Indicator1ValidationFlag);
-
-                if (flags.length > 0) {
-                    field.ind1Cell.classList.add("validation-flag");
-                    field.ind1Cell.title = flags.map(x => x.message).join("\n");
-                }
-
-                flags = field.validationWarnings().filter(x => x instanceof Indicator2ValidationFlag);
-
-                if (flags.length > 0) {
-                    field.ind2Cell.classList.add("validation-flag");
-                    field.ind2Cell.title = flags.map(x => x.message).join("\n");
-                }
-
-                field.subfields.forEach(subfield => {
-                    subfield.codeCell.classList.remove("validation-flag");
-                    subfield.valueSpan.classList.remove("validation-flag");
-                    subfield.codeCell.title = subfield.valueSpan.title = "";
-
-                    let flags = subfield.validationWarnings().filter(x => x instanceof SubfieldCodeValidationFlag);
-
-                    if (flags.length > 0) {
-                        subfield.codeCell.classList.add("validation-flag");
-                        subfield.codeCell.title = flags.map(x => x.message).join("\n");
-                    }
-
-                    flags = subfield.validationWarnings().filter(x => x instanceof SubfieldValueValidationFlag);
-
-                    if (flags.length > 0) {
-                        subfield.valueSpan.classList.add("validation-flag");
-                        subfield.valueSpan.title = flags.map(x => x.message).join("\n");
-                    }
-                })
-            })
         }
     },
     components: {
         'countcomponent': countcomponent
     }
-}
-
-function selectAuthority(component, subfield, choice) {
-//    let component = event.currentTarget.eventParams[0];
-//    let subfield = event.currentTarget.eventParams[1];
-    let field = subfield.parentField;
-    let jmarc = field.parentRecord;
-
-    if (field.tag === "991") {
-        // only carry over indicators for 991
-        field.ind1Span.innerText = choice.indicators[0];
-        field.ind2Span.innerText = choice.indicators[1];
-        field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
-    }
-
-    for (let s of field.subfields) {
-        s.valueSpan.classList.remove("authority-controlled-unmatched");
-    }
-
-    for (let choiceSubfield of choice.subfields) {
-        let currentSubfield = field.getSubfield(choiceSubfield.code);
-        
-        if (typeof currentSubfield === "undefined") {
-            let place = choice.subfields.indexOf(choiceSubfield);
-            let newSubfield = field.createSubfield(choiceSubfield.code, place);
-            newSubfield.value = choiceSubfield.value;
-            currentSubfield = newSubfield;
-            component.buildSubfieldRow(newSubfield, place);
-        }
-
-        currentSubfield.value = choiceSubfield.value;
-        currentSubfield.xref = choiceSubfield.xref;
-        currentSubfield.valueSpan.innerText = currentSubfield.value;
-        currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
-            
-        let xrefLink = document.createElement("a");
-        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
-        xrefLink.target="_blank";
-            
-        let xrefIcon = document.createElement("i");
-        xrefIcon.className = "fas fa-link float-left mr-2";
-        xrefLink.appendChild(xrefIcon);
-            
-        while (currentSubfield.xrefCell.firstChild) {
-            currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
-        }
-            
-        currentSubfield.xrefCell.append(xrefLink);
-    }
-
-    // trigger unsaved changes detection and update events
-    field.ind1Span.focus();
-    field.ind2Span.focus();
-    field.subfields.forEach(x => {x.codeSpan.focus(); x.valueSpan.focus()});
-    subfield.valueSpan.focus();
-    subfield.valueSpan.blur();
-
-    return
 }
 
 // auth-controlled field keyup event function
@@ -3064,11 +2778,9 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
-
    
-    if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
+    if (event.keyCode < 45 && event.keyCode !== 8) {
         // non ascii or delete keys
-        
         return
     }
  
@@ -3081,7 +2793,7 @@ function keyupAuthLookup(event) {
     addButton.title = "Create new authority from this value";
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
-    addButton.addEventListener("click", async function() {
+    addButton.addEventListener("click", function() {
         subfield.xrefCell.innerHTML = null;
         let spinner = document.createElement("i");
         spinner.className = "fa fa-spinner";
@@ -3122,15 +2834,6 @@ function keyupAuthLookup(event) {
                 newSubfield = auth.createField("670").createSubfield("a");
                 newSubfield.value = jmarc.getField("791").getSubfield("a").value;
             }
-        }
-
-        if (await auth.authHeadingInUse()) {
-            let headingField = auth.fields.filter(x => x.tag.match(/^1/))[0];
-            let headingString = headingField.subfields.map(x => x.value).join(" ");
-            component.callChangeStyling(`Auth heading "${headingString}" in field ${field.tag} is already in use`, "d-flex w-100 alert-danger");
-            subfield.xrefCell.removeChild(spinner);
-            subfield.xrefCell.append(addButton);
-            return
         }
 
         auth.post().then(
@@ -3181,39 +2884,15 @@ function keyupAuthLookup(event) {
                     }
                    
                     dropdown.innerHTML = null;
-                    subfield.valueCell.blur()
-                    
-                    let selectorDiv = document.createElement("div");
-                    dropdown.append(selectorDiv);
-                    selectorDiv.className = "typeahead-select";
-
-                    let list = document.createElement("select"); // the select value is in target.value
-                    selectorDiv.appendChild(list);
-                    if (choices.length === 1) {
-                        list.size = 2
-                    } else {
-                        list.size = choices.length;
-                    }
-                     // doesn't build correctly when there is only one choice
+               
+                    let list = document.createElement("ul");
+                    dropdown.appendChild(list);
                     list.className = "list-group";
-                    // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
-                    
-                    // navigate into dropdown choices with down arrow key
-                    // should it be with return instead?
-                    subfield.valueSpan.addEventListener("keydown", (event) => {
-                        if (event.keyCode === 40) {
-                            // down arrow key
-                            list.focus(); // list now navigable by default <select> behavior
-                            list.firstChild.selected = true; // jump to to first choice
-                        }
-                    });
-
-                    // populate the options
+               
                     for (let choice of choices) {
-                        let item = document.createElement("option");
+                        let item = document.createElement("li");
                         list.appendChild(item);
-                        item.className = "list-group-item";
-                        item.value = JSON.stringify(choice.compile()); // option value has to be a string?
+                        item.className = "list-group-item lookup-choice";
                        
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
@@ -3227,25 +2906,52 @@ function keyupAuthLookup(event) {
                         });
                        
                         item.addEventListener("mousedown", function () {
-                            selectAuthority(component, subfield, choice);
                             dropdown.remove();
-                        });    
-                    }
+                            field.ind1Span.innerText = choice.indicators[0];
+                            field.ind2Span.innerText = choice.indicators[1];
+                            field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
 
-                    // keyboard navigation
-                    list.addEventListener("keyup", (event) => { // only "keyup" works here?
-                        if (event.keyCode === 13) {
-                            // return key 
-                            event.stopPropagation();
-
-                            for (let choice of choices) {
-                                if (event.target.value == JSON.stringify(choice.compile())) {
-                                    selectAuthority(component, subfield, choice);
-                                    dropdown.remove();
-                                }
+                            for (let s of field.subfields) {
+                                s.valueSpan.classList.remove("authority-controlled-unmatched");
                             }
-                        }
-                    });
+               
+                            for (let choiceSubfield of choice.subfields) {
+                                let currentSubfield = field.getSubfield(choiceSubfield.code);
+                               
+                                if (typeof currentSubfield === "undefined") {
+                                    let place = choice.subfields.indexOf(choiceSubfield);
+                                    let newSubfield = field.createSubfield(choiceSubfield.code, place);
+                                    newSubfield.value = choiceSubfield.value;
+                                    currentSubfield = newSubfield;
+                                    component.buildSubfieldRow(newSubfield, place);
+                                }
+               
+                                currentSubfield.value = choiceSubfield.value;
+                                currentSubfield.xref = choiceSubfield.xref;
+                                currentSubfield.valueSpan.innerText = currentSubfield.value;
+                                currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+                                   
+                                let xrefLink = document.createElement("a");
+                                xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+                                xrefLink.target="_blank";
+                                    
+                                let xrefIcon = document.createElement("i");
+                                xrefIcon.className = "fas fa-link float-left mr-2";
+                                xrefLink.appendChild(xrefIcon);
+                                    
+                                while (currentSubfield.xrefCell.firstChild) {
+                                    currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+                                }
+                                    
+                                currentSubfield.xrefCell.append(xrefLink);
+                            }
+
+                            // trigger update events
+                            field.ind1Span.focus();
+                            field.ind2Span.focus();
+                            field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
+                        });
+                    }
                 });
             },
             750
