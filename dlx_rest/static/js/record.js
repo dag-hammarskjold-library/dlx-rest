@@ -1357,17 +1357,21 @@ export let multiplemarcrecordcomponent = {
             this.historyMode=true
 
             // put the history record on read only mode
-            this.historyJmarcHistory.readOnly=true
-            console.log(this.historyJmarcHistory.readOnly)
+            //this.historyJmarcHistory.readOnly=true
+            //console.log(this.historyJmarcHistory.readOnly)
+
+            let recordDiff = this.historyJmarcOriginal.diff(this.historyJmarcHistory)
+            recordDiff.readOnly = true
 
             // display the "history" record
-            this.displayMarcRecord(this.historyJmarcHistory)
+            this.displayMarcRecord(recordDiff)
 
-            this.diff(this.historyJmarcOriginal,this.historyJmarcHistory,"cyan")
-
-            this.filterRecordView(this.historyJmarcOriginal)
-            
-           
+            let myTable = document.getElementById('record2');
+            let mySpan0 = myTable.getElementsByTagName('span');
+            for (let t = 0; t < mySpan0.length; t++){
+                mySpan0[t].contentEditable="false";
+            }
+            this.filterRecordView(this.historyJmarcOriginal)          
         },
 
         // filter the record view according the filter view parameter e.g : itp view
@@ -1462,7 +1466,7 @@ export let multiplemarcrecordcomponent = {
         },
         userClose(jmarc) {
 
-            if(! jmarc.saved) {
+            if((! jmarc.saved) && (!this.historyMode)){
                 this.showModalSave=true
                 return
             }
@@ -1686,9 +1690,11 @@ export let multiplemarcrecordcomponent = {
             let table = document.createElement("table");
             jmarc.table = table;
 
-            table.addEventListener("click", function() {
-                component.selectRecord(jmarc) 
-            });
+            if (!this.historyMode){
+                table.addEventListener("click", function() {
+                    component.selectRecord(jmarc) 
+                });
+            }
            
             // record.css
             table.className = jmarc.collection === "bibs" ? "bib" : "auth";
@@ -1705,18 +1711,22 @@ export let multiplemarcrecordcomponent = {
             let tableBody = this.buildTableBody(jmarc);
             
             // check the save status on any input
-            table.addEventListener("input", function() {
-                component.checkSavedState(jmarc);
-            });
+            if (!this.historyMode){
 
-            table.addEventListener("paste", function() {
-                component.checkSavedState(jmarc);
-            });
+                table.addEventListener("input", function() {
+                    component.checkSavedState(jmarc);
+                });
+            
 
-            // check the save status on mousedown (auth conrrol select)
-            table.addEventListener("mousedown", function() {
-                component.checkSavedState(jmarc);
-            });
+                table.addEventListener("paste", function() {
+                    component.checkSavedState(jmarc);
+                });
+
+                // check the save status on mousedown (auth conrrol select)
+                table.addEventListener("mousedown", function() {
+                    component.checkSavedState(jmarc);
+                });
+            }
            
             return table      
         },
@@ -1988,7 +1998,11 @@ export let multiplemarcrecordcomponent = {
 
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
+            // diff-bg
             field.row = tableBody.insertRow(place);
+            if (field.isDiff) {
+                field.row.setAttribute("style","background-color:cyan;")
+            }
    
             // add the checkboxes
             let checkCell = field.row.insertCell();
@@ -2003,7 +2017,9 @@ export let multiplemarcrecordcomponent = {
             // let that = component;
  
             // define the on click event
-            checkCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
+            if (!this.historyMode){
+                checkCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
+            }
 
             // tag container cell
             let tagContainerCell = field.row.insertCell();
@@ -2014,25 +2030,26 @@ export let multiplemarcrecordcomponent = {
             tagContainerCell.append(fieldTable);
 
             let tagRow = fieldTable.insertRow();
+
             // menu
             let menuCell = tagRow.insertCell();
             let tagMenu = document.createElement("div");
             menuCell.append(tagMenu);
-            //tagMenu.tabIndex = 0;
+            
             tagMenu.className = "dropdown-menu tag-menu";
             let menuButton = document.createElement("button");
             menuCell.appendChild(menuButton);
             menuButton.className = "fa fa-bars field-menu";
- 
+
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
- 
+
             // menu item add field
             let addField = document.createElement("i");
             tagMenu.append(addField);
             addField.className = "dropdown-item";
             addField.innerText = "Add field";
-   
+
             // menu item delete field
             let deleteField = document.createElement("i");
             tagMenu.append(deleteField);
@@ -2046,7 +2063,9 @@ export let multiplemarcrecordcomponent = {
 
             deleteMultiField.className = "dropdown-item"
             deleteMultiField.innerText = "Delete Selected Field(s)"
-            deleteMultiField.addEventListener("click", () => this.deleteFields(jmarc))
+            if (!this.historyMode){
+                deleteMultiField.addEventListener("click", () => this.deleteFields(jmarc))
+            }
 
             // Tag
             let tagCell = tagRow.insertCell();
@@ -2116,27 +2135,31 @@ export let multiplemarcrecordcomponent = {
             }
 
             // Events
-            field.row.addEventListener("click", function() {
-                component.fieldSelected(field)
-            });
+            if (!this.historyMode){
+                    field.row.addEventListener("click", function() {
+                        component.fieldSelected(field)
+                    });
 
-            // Menu add field
-            addField.addEventListener("click", function() {
-                component.addField(jmarc)
-            });
+                    // Menu add field
+                    addField.addEventListener("click", function() {
+                        component.addField(jmarc)
+                    });
 
-            // Menu delete field
-            deleteField.addEventListener("click", function() {
-                component.deleteField(jmarc)
-            });
-
-            tagDiv.addEventListener("click", tagActivate);
-            tagSpan.addEventListener("focus", tagActivate);
-            tagSpan.addEventListener("blur", tagUpdate);
+                    // Menu delete field
+                    deleteField.addEventListener("click", function() {
+                        component.deleteField(jmarc)
+                    });
+        
+                    tagDiv.addEventListener("click", tagActivate);
+                    tagSpan.addEventListener("focus", tagActivate);
+                    tagSpan.addEventListener("blur", tagUpdate);
+                }
+               
 
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate() {
+
                 component.fieldSelected(field);
                 tagCell.classList.add("field-tag-selected");
 
@@ -2179,6 +2202,9 @@ export let multiplemarcrecordcomponent = {
 
                     }
                 });
+
+                
+
             }
             
             // Tag update actions
@@ -2212,12 +2238,14 @@ export let multiplemarcrecordcomponent = {
             }
 
             // Indicator actions
-            ind1Div.addEventListener("click", function() {indActivate(1)});
-            ind1Span.addEventListener("focus", function() {indActivate(1)});
-            ind1Span.addEventListener("blur", function() {indUpdate(1)});
-            ind2Div.addEventListener("click", function() {indActivate(2);});
-            ind2Span.addEventListener("focus", function() {indActivate(2)});
-            ind2Span.addEventListener("blur", function() {indUpdate(2);});
+            if (!this.historyMode){
+                ind1Div.addEventListener("click", function() {indActivate(1)});
+                ind1Span.addEventListener("focus", function() {indActivate(1)});
+                ind1Span.addEventListener("blur", function() {indUpdate(1)});
+                ind2Div.addEventListener("click", function() {indActivate(2);});
+                ind2Span.addEventListener("focus", function() {indActivate(2)});
+                ind2Span.addEventListener("blur", function() {indUpdate(2);});
+            }
 
             function indActivate(ind) {
                 let [cell, div, span] = [null, null, null];
@@ -2417,28 +2445,30 @@ export let multiplemarcrecordcomponent = {
 
 
             // Menu actions
-            menuButton.addEventListener("focus", function() {
-                component.clearSelectedSubfield(jmarc);
-                subfield.selected = true;
-            });
+            if (!this.historyMode){
+                menuButton.addEventListener("focus", function() {
+                    component.clearSelectedSubfield(jmarc);
+                    subfield.selected = true;
+                });
 
-            // Add subfiueld
-            addSubfield.addEventListener("click", function() {
-                component.addSubField(jmarc)
-            });
-            
-            // Delete subfield
-            deleteSubfield.addEventListener("click", function() {
-                component.deleteSubFieldFromShort(jmarc)
-            });
+                // Add subfiueld
+                addSubfield.addEventListener("click", function() {
+                    component.addSubField(jmarc)
+                });
+                
+                // Delete subfield
+                deleteSubfield.addEventListener("click", function() {
+                    component.deleteSubFieldFromShort(jmarc)
+                });
 
-            moveSubfieldUp.addEventListener("click", () => {
-                component.moveSubfield(jmarc, -1)        
-            })
+                moveSubfieldUp.addEventListener("click", () => {
+                    component.moveSubfield(jmarc, -1)        
+                })
 
-            moveSubfieldDown.addEventListener("click", () => {
-                component.moveSubfield(jmarc, 1)
-            })
+                moveSubfieldDown.addEventListener("click", () => {
+                    component.moveSubfield(jmarc, 1)
+                })
+            }
 
             // Subfield code actions
             function subfieldCodeActivate() {
@@ -2512,14 +2542,16 @@ export let multiplemarcrecordcomponent = {
 
                 return
             }
-
-            codeDiv.addEventListener("click", subfieldCodeActivate);
-            codeSpan.addEventListener("focus", subfieldCodeActivate);
-            codeSpan.addEventListener("blur", subfieldCodeUpdate);
-
-            // Subfield value actions
-            valCell.addEventListener("click", function () {valSpan.focus()});
             
+            if (!this.historyMode){
+                codeDiv.addEventListener("click", subfieldCodeActivate);
+                codeSpan.addEventListener("focus", subfieldCodeActivate);
+                codeSpan.addEventListener("blur", subfieldCodeUpdate);
+
+                // Subfield value actions
+                valCell.addEventListener("click", function () {valSpan.focus()});
+            }
+
             function updateSubfieldValue() {
 
                 subfield.value = valSpan.innerText;
@@ -2542,30 +2574,32 @@ export let multiplemarcrecordcomponent = {
                 return
             }
 
-            valSpan.addEventListener("focus", updateSubfieldValue); // allows triggering arbitrarily
-            valCell.addEventListener("input", updateSubfieldValue);
-            valCell.addEventListener("mousedown", updateSubfieldValue); // auth control selection
-    
+            if (!this.historyMode){
+                valSpan.addEventListener("focus", updateSubfieldValue); // allows triggering arbitrarily
+                valCell.addEventListener("input", updateSubfieldValue);
+                valCell.addEventListener("mousedown", updateSubfieldValue); // auth control selection
+        
 
-            // System paste
-            valCell.addEventListener("paste", function (event) {
-                // strip the content of HTML tags
-                // https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
-                event.preventDefault();
-                let paste = event.clipboardData.getData("text/plain");
-                // do the paste
-                let selection = window.getSelection();
-                if (!selection.rangeCount) return;
-                selection.deleteFromDocument();
-                selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+                // System paste
+                valCell.addEventListener("paste", function (event) {
+                    // strip the content of HTML tags
+                    // https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
+                    event.preventDefault();
+                    let paste = event.clipboardData.getData("text/plain");
+                    // do the paste
+                    let selection = window.getSelection();
+                    if (!selection.rangeCount) return;
+                    selection.deleteFromDocument();
+                    selection.getRangeAt(0).insertNode(document.createTextNode(paste));
 
-                // strip newlines and multispaces
-                valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
-                valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
+                    // strip newlines and multispaces
+                    valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
+                    valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
 
-                // do the update and checks
-                updateSubfieldValue();
-            });
+                    // do the update and checks
+                    updateSubfieldValue();
+                });
+             
 
             valSpan.addEventListener("focus", function() {
                 component.fieldSelected(field);
@@ -2683,7 +2717,7 @@ export let multiplemarcrecordcomponent = {
                     }
                 }
             });
-
+            }
             const observer = new MutationObserver(function() {
                 console.log('callback that runs when observer is triggered');
             });
@@ -2721,7 +2755,9 @@ export let multiplemarcrecordcomponent = {
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
-            subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+            if (!this.historyMode){
+                subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+            }
         },
         removeAuthControl(subfield) {
             if (subfield.xrefCell) {
@@ -2793,72 +2829,75 @@ function keyupAuthLookup(event) {
     addButton.title = "Create new authority from this value";
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
-    addButton.addEventListener("click", function() {
-        subfield.xrefCell.innerHTML = null;
-        let spinner = document.createElement("i");
-        spinner.className = "fa fa-spinner";
-        subfield.xrefCell.append(spinner);
+            if (!this.historyMode){
+            addButton.addEventListener("click", function() {
+            subfield.xrefCell.innerHTML = null;
+            let spinner = document.createElement("i");
+            spinner.className = "fa fa-spinner";
+            subfield.xrefCell.append(spinner);
 
-        // create and save the new authority record
-        let tag = jmarc.authMap[field.tag][subfield.code];
-        let auth = new Jmarc("auths");
-        
-        // add all auth-controlled subfields from the field
-        let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
-        
-        for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
-            newField.createSubfield(s.code).value = s.value
-        }
-
-        newField = auth.createField("040", "a");
-        let newSubfield = newField.createSubfield("a");
-
-        if (jmarc.getField("040")) {
-            if (jmarc.getField("040").getSubfield("a")) {
-                newSubfield.value = jmarc.getField("040").getSubfield("a").value
+            // create and save the new authority record
+            let tag = jmarc.authMap[field.tag][subfield.code];
+            let auth = new Jmarc("auths");
+            
+            // add all auth-controlled subfields from the field
+            let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
+            
+            for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+                newField.createSubfield(s.code).value = s.value
             }
-        } else {
-            newSubfield.value = "." // record can't be saved with blank value
-        }
 
-        newField.createSubfield("b").value = "eng";
-        newField.createSubfield("f").value = "unbisn";
-        
-        if (jmarc.getField("191")) {
-            if (jmarc.getField("191").getSubfield("a")) {
-                newSubfield = auth.createField("670").createSubfield("a");
-                newSubfield.value = jmarc.getField("191").getSubfield("a").value
-            }
-        } else if (jmarc.getField("791")) {
-            if (jmarc.getField("791").getSubfield("a")) {
-                newSubfield = auth.createField("670").createSubfield("a");
-                newSubfield.value = jmarc.getField("791").getSubfield("a").value;
-            }
-        }
+            newField = auth.createField("040", "a");
+            let newSubfield = newField.createSubfield("a");
 
-        auth.post().then(
-            auth => {
-                // update all auth-ctrled subfields
-                for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
-                    s.xref = auth.recordId;
-                    s.valueSpan.classList.remove("authority-controlled-unmatched");
-                    s.xrefCell.innerHTML = null;
-
-                    // create the xref link
-                    let xrefLink = document.createElement("a");
-                    s.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
-                    xrefLink.target="_blank";
-     
-                    let xrefIcon = document.createElement("i");
-                    xrefIcon.className = "fas fa-link float-left mr-2";
-                    xrefLink.appendChild(xrefIcon);
+            if (jmarc.getField("040")) {
+                if (jmarc.getField("040").getSubfield("a")) {
+                    newSubfield.value = jmarc.getField("040").getSubfield("a").value
                 }
-
-                component.callChangeStyling(`New authority record #${auth.recordId} created`, "d-flex w-100 alert-success");
+            } else {
+                newSubfield.value = "." // record can't be saved with blank value
             }
-        )
-    });
+
+            newField.createSubfield("b").value = "eng";
+            newField.createSubfield("f").value = "unbisn";
+            
+            if (jmarc.getField("191")) {
+                if (jmarc.getField("191").getSubfield("a")) {
+                    newSubfield = auth.createField("670").createSubfield("a");
+                    newSubfield.value = jmarc.getField("191").getSubfield("a").value
+                }
+            } else if (jmarc.getField("791")) {
+                if (jmarc.getField("791").getSubfield("a")) {
+                    newSubfield = auth.createField("670").createSubfield("a");
+                    newSubfield.value = jmarc.getField("791").getSubfield("a").value;
+                }
+            }
+
+            auth.post().then(
+                auth => {
+                    // update all auth-ctrled subfields
+                    for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
+                        s.xref = auth.recordId;
+                        s.valueSpan.classList.remove("authority-controlled-unmatched");
+                        s.xrefCell.innerHTML = null;
+
+                        // create the xref link
+                        let xrefLink = document.createElement("a");
+                        s.xrefCell.appendChild(xrefLink);
+                        xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                        xrefLink.target="_blank";
+        
+                        let xrefIcon = document.createElement("i");
+                        xrefIcon.className = "fas fa-link float-left mr-2";
+                        xrefLink.appendChild(xrefIcon);
+                    }
+
+                    component.callChangeStyling(`New authority record #${auth.recordId} created`, "d-flex w-100 alert-success");
+                }
+            )
+        }
+    )
+    };
  
     let dropdown = document.getElementById("typeahead-dropdown");
     dropdown && dropdown.remove();
@@ -2896,6 +2935,7 @@ function keyupAuthLookup(event) {
                        
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
+                        if (!this.historyMode){
                         item.addEventListener("mouseover", function () {
                             item.classList.add("lookup-choice");
                         });
@@ -2950,7 +2990,7 @@ function keyupAuthLookup(event) {
                             field.ind1Span.focus();
                             field.ind2Span.focus();
                             field.subfields.forEach(x => x.codeSpan.focus() && x.valueSpan.focus());
-                        });
+                        })};
                     }
                 });
             },
