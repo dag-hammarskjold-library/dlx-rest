@@ -246,6 +246,26 @@ li.lookup-choice:hover {
     background-color: gray;
 }
 
+option.lookup-choice:hover {
+    background-color: gray;
+}
+
 i.create-authority {
     color: blue
+}
+
+div.typeahead-dropdown {
+    position: relative;
+}
+
+div.typeahead-select {
+    position: absolute;
+}
+
+td.validation-flag {
+    background-color: #f8d7da;
+}
+
+span.validation-flag {
+    background-color: #f8d7da;
 }

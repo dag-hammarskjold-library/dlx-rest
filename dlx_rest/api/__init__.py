@@ -3,6 +3,7 @@ DLX REST API
 '''
 
 # external
+from asyncio import constants
 from http.client import HTTPResponse
 import this
 from dlx_rest.routes import login, search_files
@@ -450,11 +451,13 @@ class RecordsListBrowse(Resource):
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
         query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
-        lfields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
+        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         collation = Collation(
             locale='en', 
-            strength=2, 
-            numericOrdering=True if field in lfields else False
+            strength=2,
+            #alternate='shifted',
+            #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
+            numericOrdering=True if field in numeric_fields else False
         )
         start, limit = int(args.start), int(args.limit)
 
@@ -1089,45 +1092,82 @@ class LookupFieldsList(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'type', 
+        type=str,
+        choices=['partial', 'text'],
+        default='partial',
+        help='The type of lookup to execute (partial string match or text search)'
+    )
+
     @ns.doc(description='Return a list of authorities that match a string value')
-    #@ns.expect(list_argparser)
+    @ns.expect(args)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         codes = filter(lambda x: len(x) == 1, request.args.keys())
-        conditions_1, conditions_2 = [], []
-        sparams = {}
-            
-        for code in codes:
-            val = request.args[code]
-            val = re.escape(val)
-            sparams[code] = val
-            auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
-            
-            if not auth_tag:
-                continue
-                
-            tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
-            
-            # matches start
-            conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
-            # matches anywhere
-            conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
-            
-        if not sparams:
-            abort(400, 'Request parameters required')
-            
-        query = Query(*conditions_1)
-        proj = dict.fromkeys(tags, 1)
-        start = int(request.args.get('start', 1))
-        cln = {'locale': 'en', 'strength': 1}
-        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-        auths = list(auths)
-        
-        if len(auths) < 25:
-            query = Query(*conditions_2)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-        
+        args = LookupField.args.parse_args()
+
+        if args.type == 'partial':
+            # partial string match
+            conditions_1, conditions_2 = [], []
+            sparams = {}
+
+            for code in codes:
+                val = request.args[code]
+                val = re.escape(val)
+                sparams[code] = val
+                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+
+                if not auth_tag:
+                    continue
+
+                tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
+
+                # matches start
+                conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+                # matches anywhere
+                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
+
+            if not sparams:
+                abort(400, 'Request parameters required')
+
+            query = Query(*conditions_1)
+            proj = dict.fromkeys(tags, 1)
+            start = int(request.args.get('start', 1))
+            cln = {'locale': 'en', 'strength': 1}
+            auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths = list(auths)
+
+            if len(auths) < 25:
+                query = Query(*conditions_2)
+                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        elif args.type == 'text':
+            sparams = {}
+            conditions = []
+
+            for code in codes:
+                val = request.args[code]
+                #val = re.escape(val)
+                sparams[code] = val
+                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+
+                if not auth_tag:
+                    continue
+
+                tags = [auth_tag]
+
+                conditions.append(f'{auth_tag}__{code}:{val}')
+
+            querystring = " AND ".join(conditions)
+            print(querystring)
+            query = Query.from_string(querystring)
+            proj = dict.fromkeys(tags, 1)
+            start = int(request.args.get('start', 1))
+            cln = {'locale': 'en', 'strength': 1}
+            auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+
         processed = []
         
         for auth in auths:
@@ -1644,6 +1684,22 @@ class MyBasketRecord(Resource):
             # The item is not locked, so we can add it to our basket
             this_u.my_basket().add_item(item)
             return {},201      
+
+@ns.route('/userprofile/my_profile/basket/addBulk')
+class MyBasketAddBulk(Resource):
+    @ns.doc("Add a list of records to the user's basket in bulk.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            items = json.loads(request.data)
+            if items:
+                this_basket.add_items(items)
+        except:
+            raise
+        return 200
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):
