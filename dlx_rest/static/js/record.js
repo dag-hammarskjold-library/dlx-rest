@@ -3,7 +3,14 @@ let recup=""
 // IMPORT
 /////////////////////////////////////////////////////////////////
  
-import { Jmarc } from "./jmarc.mjs";
+import { 
+    Jmarc,
+    TagValidationFlag,
+    Indicator1ValidationFlag,
+    Indicator2ValidationFlag,
+    SubfieldCodeValidationFlag,
+    SubfieldValueValidationFlag
+} from "./jmarc.mjs";
 import user from "./api/user.js";
 import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
@@ -390,7 +397,7 @@ export let multiplemarcrecordcomponent = {
                 }
             }
         },
-        saveRecord(jmarc,display=true){
+        async saveRecord(jmarc, display=true){
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -398,12 +405,55 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
-
-                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                // get rid of empty fields and validate
+                let flags = jmarc.validationWarnings();
+                flags.forEach(x => {this.callChangeStyling(x.message, "d-flex w-100 alert-danger")});
                 
+                if (flags.length > 0) return
+
+                jmarc.getDataFields().forEach(field => {
+                    field.subfields.forEach(subfield => {
+                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
+                            field.deleteSubfield(subfield);
+                        }
+
+                        subfield.validationWarnings().forEach(x => {
+                            this.callChangeStyling(`${field.tag}$${subfield.code}: ${x.message}`, "d-flex w-100 alert-danger");
+                            flags.push(x)
+                        })
+                    });
+
+                    field.validationWarnings().forEach(x => {
+                        this.callChangeStyling(`${field.tag}: ${x.message}`, "d-flex w-100 alert-danger");
+                        flags.push(x)
+                    })
+                });
+
+                if (flags.length > 0) return
+
+                // start the pending spinner
                 jmarc.saveButton.classList.add("fa-spinner");
                 jmarc.saveButton.classList.add("fa-pulse");
                 jmarc.saveButton.style = "pointer-events: none";
+
+                // dupe auth check
+                if (jmarc.collection === "auths") {
+                    let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
+
+                    if (headingField) { 
+                        // wait for the result
+                        let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
+                        let headingString = headingField.subfields.map(x => x.value).join(" ");
+                        let isNewVal = JSON.stringify(headingField.savedState) !== JSON.stringify(headingField.compile());
+                        
+                        if (inUse === true && headingField.tag === "100" && isNewVal) {
+                            // new record personal name exception
+                            let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
+                        }
+                    }
+                }
+
+                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
                     jmarc.saveButton.classList.remove("fa-spinner");
@@ -1638,6 +1688,9 @@ export let multiplemarcrecordcomponent = {
 
             jmarc.tableBody.scrollTop = scroll;
             window.scrollTo(scrollX, scrollY);
+
+            // trigger validation warnings
+            this.validationWarnings(jmarc);
             
             // add the jmarc inside the list of jmarc objects displayed
             // only if the array size is under 2
@@ -2212,6 +2265,10 @@ export let multiplemarcrecordcomponent = {
             // call when user changes the tag value
             function tagUpdate() {
                 field.tag = tagSpan.innerText;
+
+                // validations warnings
+                component.validationWarnings(jmarc);
+                
                 field.tagSpan.classList.remove("invalid");
                 field.tagSpan.classList.remove("unsaved");
 
@@ -2320,10 +2377,12 @@ export let multiplemarcrecordcomponent = {
 
                 field.indicators = updated;
 
-                cell.classList.remove("invalid");
-                cell.classList.remove("unsaved");
+                // validation warnings
+                component.validationWarnings(jmarc);
 
                 // record state
+                cell.classList.remove("invalid");
+                cell.classList.remove("unsaved");
                 component.checkSavedState(jmarc);
 
                 // skip checks if whole record is saved
@@ -2358,7 +2417,7 @@ export let multiplemarcrecordcomponent = {
                         span.innerText += '_';
                     }
                 });
-            }   
+            }
 
             return field
         },
@@ -2529,6 +2588,9 @@ export let multiplemarcrecordcomponent = {
                 subfield.codeSpan.classList.remove("invalid");
                 subfield.codeSpan.classList.remove("unsaved");
 
+                // validations
+                component.validationWarnings(jmarc);
+
                 // record state
                 component.checkSavedState(jmarc);
 
@@ -2558,6 +2620,9 @@ export let multiplemarcrecordcomponent = {
                 subfield.value = valSpan.innerText;
 
                 valCell.classList.remove("unsaved");
+
+                // validations
+                component.validationWarnings(jmarc);
 
                 // record state
                 component.checkSavedState(jmarc);
@@ -2801,6 +2866,55 @@ export let multiplemarcrecordcomponent = {
                 jmarc.saveButton.classList.add("text-danger");
                 jmarc.saveButton.title = "Save Record";
             }
+        },
+        validationWarnings(jmarc) {
+            jmarc.getDataFields().forEach(field => {
+                field.tagCell.classList.remove("validation-flag");
+                field.ind1Cell.classList.remove("validation-flag");
+                field.ind2Cell.classList.remove("validation-flag");
+                field.tagCell.classList.title = field.ind1Cell.classList.title = field.ind2Cell.title = "";
+
+                let flags = field.validationWarnings().filter(x => x instanceof TagValidationFlag);
+
+                if (flags.length > 0) {
+                    field.tagCell.classList.add("validation-flag");
+                    field.tagCell.title = flags.map(x => x.message).join("\n");
+                }
+
+                flags = field.validationWarnings().filter(x => x instanceof Indicator1ValidationFlag);
+
+                if (flags.length > 0) {
+                    field.ind1Cell.classList.add("validation-flag");
+                    field.ind1Cell.title = flags.map(x => x.message).join("\n");
+                }
+
+                flags = field.validationWarnings().filter(x => x instanceof Indicator2ValidationFlag);
+
+                if (flags.length > 0) {
+                    field.ind2Cell.classList.add("validation-flag");
+                    field.ind2Cell.title = flags.map(x => x.message).join("\n");
+                }
+
+                field.subfields.forEach(subfield => {
+                    subfield.codeCell.classList.remove("validation-flag");
+                    subfield.valueSpan.classList.remove("validation-flag");
+                    subfield.codeCell.title = subfield.valueSpan.title = "";
+
+                    let flags = subfield.validationWarnings().filter(x => x instanceof SubfieldCodeValidationFlag);
+
+                    if (flags.length > 0) {
+                        subfield.codeCell.classList.add("validation-flag");
+                        subfield.codeCell.title = flags.map(x => x.message).join("\n");
+                    }
+
+                    flags = subfield.validationWarnings().filter(x => x instanceof SubfieldValueValidationFlag);
+
+                    if (flags.length > 0) {
+                        subfield.valueSpan.classList.add("validation-flag");
+                        subfield.valueSpan.title = flags.map(x => x.message).join("\n");
+                    }
+                })
+            })
         }
     },
     components: {
