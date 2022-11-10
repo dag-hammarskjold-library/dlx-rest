@@ -1362,6 +1362,7 @@ export let multiplemarcrecordcomponent = {
 
             let recordDiff = this.historyJmarcOriginal.diff(this.historyJmarcHistory)
             recordDiff.readOnly = true
+            recordDiff.recordId = this.historyJmarcOriginal.recordId
 
             // display the "history" record
             this.displayMarcRecord(recordDiff)
