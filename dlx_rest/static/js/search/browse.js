@@ -252,7 +252,7 @@ export let browsecomponent = {
                                                 // not great way to get the value. to refactor
                                                 let textValue = document.getElementById(`link-${result.value}`).innerText;
                                                 textValue = textValue.replace(/\s+\(\d+\)$/, "");
-                                                let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0].getSubfield("a").value;
+                                                let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0].subfields.map(x => x.value).join(" ");
                                                 let see = heading === textValue ? "" : heading;
 
                                                 // "see also" (related)
