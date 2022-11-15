@@ -306,8 +306,11 @@ export class DataField {
 	
 	lookup() {
 		let collection = this instanceof BibDataField ? "bibs" : "auths";
-		let lookupString = this.subfields.map(x => {return `${x.code}=${x.value}`}).join("&");
+		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${x.code}=${x.value}`}).join("&");
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
+
+		//url += '&type=partial'
+		url += '&type=text'
 		
 		return fetch(url).then(
 			response => {
@@ -669,6 +672,8 @@ export class Jmarc {
 		} catch (error) {
 		    return Promise.reject(error)
 		}
+
+		this.runSaveActions();
         
 		let savedResponse;
 
@@ -712,6 +717,8 @@ export class Jmarc {
 		} catch (error) {
 		    return Promise.reject(error)
 		}
+
+		this.runSaveActions();
 		
 		let savedResponse;
 
@@ -963,8 +970,6 @@ export class Jmarc {
 					0, 
 					field
 				);
-
-				console.log(this.fields.map(x => x.tag))
             }
         } else if (place) {
             // record place
@@ -986,7 +991,6 @@ export class Jmarc {
 		return this.fields.filter(x => ! x.tag.match(/^0{2}/))
 	}
 	
-
 	getFields(tag) {
 		return this.fields.filter(x => x.tag == tag)
 	}
@@ -1086,6 +1090,100 @@ export class Jmarc {
     	    })
 
 		return inUse ? true : false
+	}
+
+	runSaveActions() {
+		let addedFields = [];
+
+		Object.keys(validationData[this.collection]).forEach(tag => {
+			if ("saveActions" in validationData[this.collection][tag]) {
+				this.deleteField(tag);
+
+				for (let [criteria, map] of Object.entries(validationData[this.collection][tag]["saveActions"])) {
+					let terms = criteria.split(/\s*(AND|OR|NOT)\s+/).filter(x => x);
+
+					let modifier = "";
+					let last_bool = true;
+
+					for (let [i, term] of Object.entries(terms)) {
+						if (["AND", "OR", "NOT"].includes(term)) {
+							modifier += term
+						} else {
+							let parts = term.split(":");
+							let field = parts[0];
+							let value = parts[1];
+							let field_parts = field.split("__");
+							let tag = field_parts[0].match(/\d\d\d/) ? field_parts[0] : null;
+							let sub;
+							if (field_parts.length > 1) sub = field_parts[1];
+
+							function evaluate(jmarc, tag, sub, val) {
+								for (let field of jmarc.getFields(tag)) {
+									let subfields = sub ? field.getSubfields(sub) : field.subfields;
+									let regex;
+
+									if (val.substring(0, 1) === "/") {
+										regex = val.substring(1, val.length-1);
+									} else {
+										regex = val
+											.replaceAll("/", "\\/")
+											.replaceAll("[", "\\[")
+											.replaceAll("]", "\\]")
+											.replaceAll(".", "\\.")
+											.replaceAll("*", ".*");
+									}
+
+									let rx = new RegExp(regex);
+
+									for (let subfield of subfields) {
+										if (subfield.value.match(rx)) {
+											return true
+										}
+									}
+								}
+
+								return false
+							}
+
+							switch(modifier) {
+								case "": 
+									last_bool = evaluate(this, tag, sub, value);
+									break
+								case "AND":
+									last_bool = last_bool && evaluate(this, tag, sub, value);
+									break 
+								case "ANDNOT":
+									last_bool = last_bool && ! evaluate(this, tag, sub, value);
+									break
+								case "OR":
+									// pass if true or last_bool is true
+									last_bool = last_bool || evaluate(this, tag, sub, value)
+									break
+								case "ORNOT":
+									// pass if false or last_bool is true
+									last_bool = last_bool || ! evaluate(this, tag, sub, value)
+									break	
+							}
+
+							modifier = "";
+						}
+					}
+
+					if (last_bool === true) {
+						let newField = this.createField(tag);
+						newField.indicators = ["_", "_"];
+
+						for (let [code, string] of Object.entries(map).sort()) {
+							if (! string) continue
+
+							newField.createSubfield(code).value = string;
+						}
+
+						addedFields.push(newField)
+					}
+				}
+			}
+		});
 	}
 }
 
