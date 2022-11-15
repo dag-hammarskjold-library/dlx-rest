@@ -58,14 +58,14 @@ export let multiplemarcrecordcomponent = {
                 <div id="records" class="row">
                     <div id="record1" v-show="this.isRecordOneDisplayed" class="col-sm-6 mt-1 pb-2 div_editor" style="overflow-y: scroll; min-height:650px; position: relative">
                         <!-- <div>
-                            <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
-                            <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record1')">Remove this record</button>
+                            <button v-if="readonly" id="remove1" type="button" class="btn btn-outline-success mb-2" style="display:none">Remove this record</button>
+                            <button v-else id="remove1" type="button" class="btn btn-outline-success mb-2">Remove this record</button>
                         </div> -->
                     </div>
                     <div id="record2" v-show="this.isRecordTwoDisplayed" class="col-sm-6 mt-1 pb-2 div_editor" style="overflow-y: scroll; min-height:650px;">
                         <!-- <div>
-                            <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
-                            <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" v-on:click="removeRecordFromEditor('record2')">Remove this record</button>
+                            <button v-if="readonly" id="remove2" type="button" class="btn btn-outline-success mb-2" style="display:none">Remove this record</button>
+                            <button v-else id="remove2" type="button" class="btn btn-outline-success mb-2" >Remove this record</button>
                         </div> -->
                     </div>
                     <br>&nbsp;
@@ -478,7 +478,7 @@ export let multiplemarcrecordcomponent = {
                             subfield.copied = false;
                         }
                     }
-                    //this.selectRecord(jmarc)
+
                 }).catch(error => {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.classList.remove("fa-pulse");
@@ -901,7 +901,7 @@ export let multiplemarcrecordcomponent = {
             this.selectedRecord = jmarc.recordId
             this.selectedDiv=jmarc.div.id
             this.selectedJmarc=jmarc
-            let idRow = document.querySelector(`div#${jmarc.div.id} thead tr`)
+            let idRow = document.querySelector(`div#${this.selectedDiv} thead tr`)
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
         },
         async unlockRecord(jmarc, lockedBy) {
@@ -1044,7 +1044,8 @@ export let multiplemarcrecordcomponent = {
             if (this.selectedRecord !== "" && ! this.historyMode) {
                 if (event.key == "Escape") {
                     event.preventDefault();
-                    this.userClose(this.selectedJmarc)
+                    //this.userClose(this.selectedJmarc)
+                    this.removeRecordFromEditor(this.selectedJmarc)
                 }
             }
         },
@@ -1617,28 +1618,33 @@ export let multiplemarcrecordcomponent = {
             this.callChangeStyling("Record reverted!!!", "d-flex w-100 alert-success")
             
         },
-        userClose(jmarc) {
+        // userClose(jmarc) {
+
+        //     if(! jmarc.saved) {
+        //         this.showModalSave=true
+        //         return
+        //     }
+        //     this.removeRecordFromEditor(jmarc)
+
+        //     // let otherRecord = this.currentRecordObjects[0];
+
+        //     // if (otherRecord) {
+        //     //     // reset the div
+        //     //     this.removeRecordFromEditor(otherRecord,true);
+        //     //     this.displayMarcRecord(otherRecord,false);
+        //     //     this.selectRecord(otherRecord);
+        //     // }
+
+        //     this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
+
+        //     return true
+        // },
+        removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
             if(! jmarc.saved) {
                 this.showModalSave=true
                 return
             }
-
-            this.removeRecordFromEditor(jmarc)
-            let otherRecord = this.currentRecordObjects[0];
-
-            if (otherRecord) {
-                // reset the div
-                this.removeRecordFromEditor(otherRecord,true);
-                this.displayMarcRecord(otherRecord,false);
-                this.selectRecord(otherRecord);
-            }
-
-            this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
-
-            return true
-        },
-        removeRecordFromEditor(jmarc,keepDataInVector=false) {
 
             // change the color of the background of the item in the basket
             if (!this.historyMode){
@@ -1648,7 +1654,7 @@ export let multiplemarcrecordcomponent = {
             }
             
 
-            // clear the entries for the undoredo vector
+            // clear the entries for the undoredo vectors
             if (keepDataInVector==false) { 
                 jmarc.clearUndoredoVector()
                 // stop the timer for undoredo
@@ -1658,6 +1664,7 @@ export let multiplemarcrecordcomponent = {
             let divID = jmarc.div.id
  
             if (divID === "record1") {
+
                 // reset the parameters
                 this.removeJmarcTodisplayedJmarcObject(this.record1)
                 this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record1)
@@ -1668,6 +1675,7 @@ export let multiplemarcrecordcomponent = {
                 recup.innerHTML=""
             }
             else if (divID === "record2") {
+
                 this.removeJmarcTodisplayedJmarcObject(this.record2)
                 this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
                 this.record2 = ""
@@ -1686,9 +1694,10 @@ export let multiplemarcrecordcomponent = {
  
             // check if we still have a record displayed
             if (this.displayedJmarcObject.length>0) {
-                this.selectedRecord = this.displayedJmarcObject[0].recordId
-                this.selectedDiv=this.displayedJmarcObject[0].recordId     
+                //this.selectedRecord = this.displayedJmarcObject[0].recordId
+                //this.selectedDiv=this.displayedJmarcObject[0].recordId   
                 this.selectRecord(this.displayedJmarcObject[0])
+
             }
 
             // change the history mode to false and remove other record if the history mode was activated
@@ -1697,20 +1706,8 @@ export let multiplemarcrecordcomponent = {
                 //let recup=this.historyJmarcHistory
                 this.historyJmarcHistory=""
                 this.historyJmarcOriginal=""
-      
-                if (divID==="record1") {
-                   // remove the second div (history record)
-                    this.historyMode=false
-                    this.removeJmarcTodisplayedJmarcObject(this.record2)
-                    this.$root.$refs.basketcomponent.removeRecordFromRecordDisplayed(this.record2)
-                    this.record2 = ""
-                    this.isRecordTwoDisplayed = false
-                    this.collectionRecord2=""
-                    let recup=document.getElementById("record2")
-                    recup.innerHTML=""
-                }
-                
                 this.historyMode=false
+                
             }
  
             //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
@@ -1847,7 +1844,13 @@ export let multiplemarcrecordcomponent = {
             jmarc.table = table;
 
             table.addEventListener("click", function() {
-                component.selectRecord(jmarc) 
+                let divID = jmarc.div.id
+                if ((divID === "record1") && (component.isRecordOneDisplayed)) {
+                    component.selectRecord(jmarc) 
+                }
+                if ((divID === "record2") && (component.isRecordTwoDisplayed)) {
+                    component.selectRecord(jmarc) 
+                }
             });
            
             // record.css
@@ -1909,7 +1912,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
-                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
+                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
             ];
             if (jmarc.workformName) {
                 controls = [
@@ -1922,7 +1925,7 @@ export let multiplemarcrecordcomponent = {
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
                     {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                     {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
-                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "userClose"},
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
                 ]
             }
             // history record
@@ -1930,7 +1933,7 @@ export let multiplemarcrecordcomponent = {
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                     {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert to this revision",  "click": "revert"},
-                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"}
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
                 ]
             }
 
@@ -1942,7 +1945,6 @@ export let multiplemarcrecordcomponent = {
 
             if (this.readonly && this.user !== null) {
                 controls = [
-                    //{"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                 ]
                 if (this.recordLocked["locked"] == true && this.recordLocked["by"] !== this.user) {
@@ -1954,7 +1956,6 @@ export let multiplemarcrecordcomponent = {
                 }
             } else if (this.user == null) {
                 controls = [
-                    //{"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Workform", "click": "selectRecord"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                 ]
             }

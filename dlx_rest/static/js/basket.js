@@ -86,11 +86,10 @@ export let basketcomponent = {
             }
 
             if (this.editor.currentRecordObjects.length === 2) {
-                //this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
-
+                this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
                 // attempt to close the second record 
-                let toRemove = this.editor.currentRecordObjects[1];
-                if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
+                // let toRemove = this.editor.currentRecordObjects[1];
+                // if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
             }   
             
             this.editor.recordlist.push(`${myCollection}/${myRecord}`);
