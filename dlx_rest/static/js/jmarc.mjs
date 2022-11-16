@@ -199,7 +199,10 @@ export class DataField {
 
 	validationWarnings() {
 		let flags = [];
-		let data = validationData[this.parentRecord.collection][this.tag];
+        // Change collection here to virtualCollection, which is inferred from data already in the record
+        //let data = validationData[this.parentRecord.collection][this.tag];
+        //console.log("vcoll", this.parentRecord.getVirtualCollection())
+		let data = validationData[this.parentRecord.getVirtualCollection()][this.tag];
 		if (! data) return []
 
 		// field level
@@ -372,6 +375,20 @@ export class Jmarc {
 		this.undoredoIndex=0;
 		this.undoredoVector=[];
 	}
+
+    getVirtualCollection() {
+        let virtualCollection = this.collection
+        if (this.getField("089")) {
+            let recordType = this.getField("089").getSubfield("b").value
+            if (recordType && recordType == "B22") {
+                virtualCollection = "speeches"
+            }
+            else if (recordType && recordType == "B23") {
+                virtualCollection = "votes"
+            }
+        }
+        return virtualCollection
+    }
 	
 	// check if value already inside the vector
 	isInsideVectorAlready(value){

@@ -725,13 +725,18 @@ export let multiplemarcrecordcomponent = {
                 // At worst this will still default to bibs
                 let vcoll = jmarc.collection
                 if( vcoll == "bibs") {
-                    let recordType = jmarc.getField("089").getSubfield("b").value
-                    //console.log(recordType)
-                    if (recordType && recordType == "B22") {
-                        vcoll = "speeches"
-                    } else if (recordType && recordType == "B23") {
-                        vcoll = "votes"
-                    }    
+                    let recordType = null
+                    let _089 = jmarc.getField("089")
+                    
+                    if (_089) {
+                        let _089_a = _089.getSubfield("b").value
+                        //console.log(recordType)
+                        if (_089_a && _089_a == "B22") {
+                            vcoll = "speeches"
+                        } else if (_089_a && _089_a == "B23") {
+                            vcoll = "votes"
+                        }  
+                    }  
                 }
                 //console.log(vcoll)
                 let validatedField = validationData[vcoll][e.target.value]
