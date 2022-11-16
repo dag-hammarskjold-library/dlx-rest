@@ -86,10 +86,15 @@ export let basketcomponent = {
             }
 
             if (this.editor.currentRecordObjects.length === 2) {
-                this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
+                /*
+                This block handles the case where there are already two records on the screen when a new record is selected.
+                Originally, the behavior was to alert the user to remove a record first, but this has been changed to close 
+                the second record and open the new record. There are other options, but we can wait for user feedback.
+                */
+                // this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
                 // attempt to close the second record 
-                // let toRemove = this.editor.currentRecordObjects[1];
-                // if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
+                let toRemove = this.editor.currentRecordObjects[1];
+                if (! this.editor.removeRecordFromEditor(toRemove)) return // the close may have been cancelled by the user
             }   
             
             this.editor.recordlist.push(`${myCollection}/${myRecord}`);
