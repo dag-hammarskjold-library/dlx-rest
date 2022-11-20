@@ -309,8 +309,12 @@ export class DataField {
 		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${x.code}=${x.value}`}).join("&");
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 
-		//url += '&type=partial'
-		url += '&type=text'
+		// determine the lookup type
+		if (["191", "991"].includes(this.tag)) {
+			url += '&type=partial'
+		} else {
+			url += '&type=text'
+		}
 		
 		return fetch(url).then(
 			response => {
