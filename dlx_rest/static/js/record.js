@@ -2423,7 +2423,10 @@ export let multiplemarcrecordcomponent = {
                 let cell = ind === 1 ? ind1Cell : ind2Cell;
                 let span = ind === 1 ? ind1Span : ind2Span;
 
-                // editing the indicators array directly has strange side effects
+                // convert empty strings to underscore
+                span.innerText = ["", ""].includes(span.innerText) ? "_" : span.innerText;
+
+                // copy the indicators array because updating it directly has strange side effects
                 let updated = [field.indicators[0], field.indicators[1]]
 
                 if (span == ind1Span) {
@@ -2432,6 +2435,7 @@ export let multiplemarcrecordcomponent = {
                     updated[1] = span.innerText;
                 }
 
+                // set to the updated array
                 field.indicators = updated;
 
                 // validation warnings
