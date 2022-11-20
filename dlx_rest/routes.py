@@ -469,7 +469,7 @@ def search_records(coll):
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
     if vcoll == 'speeches':
-        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+        index_list = json.dumps(['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
     elif vcoll == 'votes':
         index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
     else:
