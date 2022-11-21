@@ -110,6 +110,8 @@ export class Subfield {
 					new SubfieldValueValidationFlag(`Invalid date "${this.value}"`)
 				)
 			}
+
+			this.value = dateStr;
 		}
 
 		// regex match
