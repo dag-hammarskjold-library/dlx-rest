@@ -1145,7 +1145,7 @@ class LookupField(Resource):
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         elif args.type == 'text':
             sparams = {}
-            conditions = []
+            conditions_1, conditions_2 = [], []
 
             for code in codes:
                 val = request.args[code]
@@ -1158,16 +1158,25 @@ class LookupField(Resource):
 
                 tags = [auth_tag]
 
-                conditions.append(f'{auth_tag}__{code}:{val}')
+                # matches start
+                first_word = re.split('\s+', val)[0]
+                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:{first_word}*')
+                # matches anywhere
+                conditions_2.append(f'{auth_tag}__{code}:{val}')
 
-            querystring = " AND ".join(conditions)
-            print(querystring)
+            querystring = " AND ".join(conditions_1)
             query = Query.from_string(querystring)
             proj = dict.fromkeys(tags, 1)
             start = int(request.args.get('start', 1))
             cln = {'locale': 'en', 'strength': 1}
             auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
 
+            if len(auths) < 25:
+                querystring = " AND ".join(conditions_2)
+                query = Query.from_string(querystring)
+                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        
         processed = []
         
         for auth in auths:

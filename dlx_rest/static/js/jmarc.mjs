@@ -11,9 +11,9 @@ const authMap = {
 		'630': {'a': '130', 'g': '130'},
 		'650': {'a': '150'},
 		'651': {'a': '151'},
-		'700': {'a': '100', 'g': '100'},
-		'710': {'a': '110', '9': '110'},
-		'711': {'a': '111', 'g': '111'},
+		'700': {'a': '100'},
+		'710': {'a': '110'},
+		'711': {'a': '111'},
 		'730': {'a': '130'},
 		'791': {'b': '190', 'c' : '190'},
 		'830': {'a': '130'},
@@ -311,8 +311,12 @@ export class DataField {
 		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${x.code}=${x.value}`}).join("&");
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 
-		//url += '&type=partial'
-		url += '&type=text'
+		// determine the lookup type
+		if (["191", "991"].includes(this.tag)) {
+			url += '&type=partial'
+		} else {
+			url += '&type=text'
+		}
 		
 		return fetch(url).then(
 			response => {
@@ -329,8 +333,9 @@ export class DataField {
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
 						field.indicators = auth[tag][0].indicators;
+						let wantedSubfields = Object.keys(authMap[collection][this.tag]);
 						
-						for (let sf of auth[tag][0]['subfields']) {
+						for (let sf of auth[tag][0]['subfields'].filter(x => wantedSubfields.includes(x.code))) {
 							field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
 						}
 						
