@@ -542,7 +542,10 @@ class Record(Resource):
                 files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': URL('api_file_record', record_id=f.id).to_str()})
         
         data = record.to_dict()
+        data['created'] = record.created
+        data['created_user'] = record.created_user
         data['updated'] = record.updated
+        data['user'] = record.user
         data['files'] = files
         
         meta = {
