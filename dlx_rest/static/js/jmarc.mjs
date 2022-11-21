@@ -527,7 +527,7 @@ export class Jmarc {
 		});
 	}
 	
-	static get(collection, recordId) {
+	static async get(collection, recordId) {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
@@ -586,7 +586,7 @@ export class Jmarc {
         return workforms
     }
     
-    static fromWorkform(collection, workformName) {
+    static async fromWorkform(collection, workformName) {
         let jmarc = new Workform(collection);
         
         return fetch(jmarc.collectionUrl + '/workforms/' + workformName).then(
@@ -797,6 +797,8 @@ export class Jmarc {
 	}
 
 	parse(data={}) {
+		this.created = data['created'];
+		this.createdUser = data['created_user'];
 		this.updated = data['updated'];
 		this.user = data['user'];
 		//this.fields = [];
@@ -1102,13 +1104,13 @@ export class Jmarc {
 	runSaveActions() {
 		let addedFields = [];
 
+		// parse rules
 		Object.keys(validationData[this.collection]).forEach(tag => {
 			if ("saveActions" in validationData[this.collection][tag]) {
 				this.deleteField(tag);
 
 				for (let [criteria, map] of Object.entries(validationData[this.collection][tag]["saveActions"])) {
 					let terms = criteria.split(/\s*(AND|OR|NOT)\s+/).filter(x => x);
-
 					let modifier = "";
 					let last_bool = true;
 
@@ -1122,7 +1124,7 @@ export class Jmarc {
 							let field_parts = field.split("__");
 							let tag = field_parts[0].match(/\d\d\d/) ? field_parts[0] : null;
 							let sub;
-							if (field_parts.length > 1) sub = field_parts[1];
+							if (field_parts.length > 1) { sub = field_parts[1] };
 
 							function evaluate(jmarc, tag, sub, val) {
 								for (let field of jmarc.getFields(tag)) {
