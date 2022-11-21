@@ -721,6 +721,8 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.tagSpan.focus();
 
             newFieldRow.tagCell.addEventListener("change", function (e) {
+                return
+
                 // Differentiate kinds of bibs based on 089 contents
                 // At worst this will still default to bibs
                 let vcoll = jmarc.collection
@@ -2281,7 +2283,7 @@ export let multiplemarcrecordcomponent = {
                 tagCell.append(popout);
                 popout.className = "tag-input-popout";
 
-                let input = document.createElement("input");
+                let input = field.tagInput = document.createElement("input");
                 popout.append(input);
                 input.className = "tag-input";
                 input.placeholder = tagSpan.innerText;
@@ -2321,7 +2323,53 @@ export let multiplemarcrecordcomponent = {
             // Tag update actions
             // call when user changes the tag value
             function tagUpdate() {
+                let changed = field.tag !== tagSpan.innerText ? true : false;
                 field.tag = tagSpan.innerText;
+
+                if (! changed) {
+                    return
+                }
+
+                // default subfields
+                // Differentiate kinds of bibs based on 089 contents
+                // At worst this will still default to bibs
+                let vcoll = jmarc.collection
+                
+                // there's a Jmarc method for this incoming from another branch
+                if (vcoll == "bibs") {
+                    let recordType = jmarc.getField("089").getSubfield("b").value
+                    //console.log(recordType)
+                    if (recordType && recordType == "B22") {
+                        vcoll = "speeches"
+                    } else if (recordType && recordType == "B23") {
+                        vcoll = "votes"
+                    }    
+                }
+
+                let validatedField = validationData[vcoll][field.tag];
+
+                if (!validatedField) {
+                    // fallback so we don't have to re-specify fields unnecessarily
+                    validatedField = validationData[jmarc.collection][field.tag]
+                }
+
+                if (validatedField) {
+                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
+                        if (field.getSubfield(defaultSubfield)) {
+                            // skip if this subfield is already there
+                            continue 
+                        }
+
+                        let newSubfield = field.createSubfield(defaultSubfield);
+                        newSubfield.value = "";
+                        newSubfield = component.buildSubfieldRow(newSubfield);
+                        newSubfield.codeSpan.focus();
+                        newSubfield.valueSpan.focus();
+                    }
+
+                    field.tagInput.focus();
+                }
+                
 
                 // validations warnings
                 component.validationWarnings(jmarc);
