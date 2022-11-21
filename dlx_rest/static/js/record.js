@@ -585,8 +585,8 @@ export let multiplemarcrecordcomponent = {
             this.checkSavedState(jmarc);
                           
         },
-        deleteSubFieldFromShort(jmarc){
-            // delete subfield   
+        deleteSubFieldFromShort(jmarc) {
+            // delete the selected subfield   
             let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
             if (! field) {
@@ -721,6 +721,7 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.tagSpan.focus();
 
             newFieldRow.tagCell.addEventListener("change", function (e) {
+                // moved to consolidate with other the tag change events
                 return
 
                 // Differentiate kinds of bibs based on 089 contents
@@ -2295,6 +2296,8 @@ export let multiplemarcrecordcomponent = {
                     if (event.keyCode === 13) {
                         event.preventDefault();
                         input.blur();
+                        // move cursor to first subfield value
+                        field.subfields[0].valueElement.focus();
                     }
 
                     // shift + tab
@@ -2368,8 +2371,16 @@ export let multiplemarcrecordcomponent = {
                     }
 
                     field.tagInput.focus();
+
+                    // delete any subfields that have a falsy code and value
+                    field.subfields.forEach(subfield => {
+                        if (["", " ", "_"].includes(subfield.code) && ! subfield.value) {
+                            // this should have its own function
+                            field.deleteSubfield(subfield);
+                            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+                        }
+                    });
                 }
-                
 
                 // validations warnings
                 component.validationWarnings(jmarc);
