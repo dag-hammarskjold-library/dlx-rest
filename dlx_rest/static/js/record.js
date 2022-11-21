@@ -2341,19 +2341,7 @@ export let multiplemarcrecordcomponent = {
                 // default subfields
                 // Differentiate kinds of bibs based on 089 contents
                 // At worst this will still default to bibs
-                let vcoll = jmarc.collection
-                
-                // there's a Jmarc method for this incoming from another branch
-                if (vcoll == "bibs") {
-                    let recordType = jmarc.getField("089").getSubfield("b").value
-                    //console.log(recordType)
-                    if (recordType && recordType == "B22") {
-                        vcoll = "speeches"
-                    } else if (recordType && recordType == "B23") {
-                        vcoll = "votes"
-                    }    
-                }
-
+                let vcoll = jmarc.getVirtualCollection();
                 let validatedField = validationData[vcoll][field.tag];
 
                 if (!validatedField) {
