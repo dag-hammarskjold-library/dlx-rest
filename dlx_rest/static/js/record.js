@@ -2317,7 +2317,7 @@ export let multiplemarcrecordcomponent = {
                     tagSpan.innerText = input.value || tagSpan.innerText;
                     tagCell.classList.remove("field-tag-selected");
                     input.remove();
-                    tagUpdate();
+                    tagUpdate();        
                 });
 
                 input.addEventListener("input",function(){
@@ -2341,19 +2341,7 @@ export let multiplemarcrecordcomponent = {
                 // default subfields
                 // Differentiate kinds of bibs based on 089 contents
                 // At worst this will still default to bibs
-                let vcoll = jmarc.collection
-                
-                // there's a Jmarc method for this incoming from another branch
-                if (vcoll == "bibs") {
-                    let recordType = jmarc.getField("089").getSubfield("b").value
-                    //console.log(recordType)
-                    if (recordType && recordType == "B22") {
-                        vcoll = "speeches"
-                    } else if (recordType && recordType == "B23") {
-                        vcoll = "votes"
-                    }    
-                }
-
+                let vcoll = jmarc.getVirtualCollection();
                 let validatedField = validationData[vcoll][field.tag];
 
                 if (!validatedField) {
@@ -2362,6 +2350,15 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 if (validatedField) {
+                    // delete any subfields that have a falsy code and value
+                    field.subfields.forEach(subfield => {
+                        if (["", " ", "_"].includes(subfield.code) && ! subfield.value) {
+                            // this should have its own function
+                            field.deleteSubfield(subfield);
+                            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+                        }
+                    });
+
                     for (let defaultSubfield of validatedField["defaultSubfields"]) {
                         if (field.getSubfield(defaultSubfield)) {
                             // skip if this subfield is already there
@@ -2371,20 +2368,9 @@ export let multiplemarcrecordcomponent = {
                         let newSubfield = field.createSubfield(defaultSubfield);
                         newSubfield.value = "";
                         newSubfield = component.buildSubfieldRow(newSubfield);
-                        newSubfield.codeSpan.focus();
-                        newSubfield.valueSpan.focus();
+                        newSubfield.codeSpan.classList.add("unsaved");
+                        newSubfield.valueCell.classList.add("unsaved");
                     }
-
-                    field.tagInput.focus();
-
-                    // delete any subfields that have a falsy code and value
-                    field.subfields.forEach(subfield => {
-                        if (["", " ", "_"].includes(subfield.code) && ! subfield.value) {
-                            // this should have its own function
-                            field.deleteSubfield(subfield);
-                            field.subfieldTable.deleteRow(subfield.row.rowIndex);
-                        }
-                    });
                 }
 
                 // validations warnings
