@@ -489,8 +489,10 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            if (jmarc.divID) {
-                this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+            console.log(jmarc.div.id)
+            if (jmarc.div.id) {
+                //this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+                this.userClose(jmarc)
             }
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
@@ -1052,8 +1054,8 @@ export let multiplemarcrecordcomponent = {
             if (this.selectedRecord !== "" && ! this.historyMode) {
                 if (event.key == "Escape") {
                     event.preventDefault();
-                    //this.userClose(this.selectedJmarc)
-                    this.removeRecordFromEditor(this.selectedJmarc)
+                    this.userClose(this.selectedJmarc)
+                    //this.removeRecordFromEditor(this.selectedJmarc)
                 }
             }
         },
@@ -1591,13 +1593,13 @@ export let multiplemarcrecordcomponent = {
             this.callChangeStyling("Record reverted!!!", "d-flex w-100 alert-success")
             
         },
-        // userClose(jmarc) {
+         userClose(jmarc) {
 
-        //     if(! jmarc.saved) {
-        //         this.showModalSave=true
-        //         return
-        //     }
-        //     this.removeRecordFromEditor(jmarc)
+             if(! jmarc.saved && !this.historyMode) {
+                 this.showModalSave=true
+                 return
+             }
+             this.removeRecordFromEditor(jmarc)
 
         //     // let otherRecord = this.currentRecordObjects[0];
 
@@ -1608,16 +1610,16 @@ export let multiplemarcrecordcomponent = {
         //     //     this.selectRecord(otherRecord);
         //     // }
 
-        //     this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
+             this.callChangeStyling("Record removed from the editor", "d-flex w-100 alert-success")
 
-        //     return true
-        // },
+             return true
+        },
         removeRecordFromEditor(jmarc,keepDataInVector=false,confirm=false) {
 
-            if(! jmarc.saved && !this.historyMode && !confirm) {
-                this.showModalSave=true
-                return
-            }
+           // if(! jmarc.saved && !this.historyMode && !confirm) {
+           //     this.showModalSave=true
+           //    return
+           // }
 
             // change the color of the background of the item in the basket
             if (!this.historyMode){
@@ -1888,7 +1890,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
-                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"},
+                {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
                 controls = [
@@ -1901,7 +1903,7 @@ export let multiplemarcrecordcomponent = {
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
                     {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                     {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
-                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "removeRecordFromEditor"},
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "userClose"},
                 ]
             }
             // history record
@@ -1909,7 +1911,7 @@ export let multiplemarcrecordcomponent = {
                 controls = [
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                     {"name": "revertButton", "element": "i", "class": "fa fa-undo", "title": "Revert to this revision",  "click": "revert"},
-                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "removeRecordFromEditor"}
+                    {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"}
                 ]
             }
 

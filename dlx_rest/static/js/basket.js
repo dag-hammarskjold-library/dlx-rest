@@ -94,7 +94,7 @@ export let basketcomponent = {
                 // this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
                 // attempt to close the second record 
                 let toRemove = this.editor.currentRecordObjects[1];
-                if (! this.editor.removeRecordFromEditor(toRemove)) return // the close may have been cancelled by the user
+                if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
             }   
             
             this.editor.recordlist.push(`${myCollection}/${myRecord}`);
@@ -124,7 +124,7 @@ export let basketcomponent = {
                 // remove the record from the editor stage (if the record is displayed)
                 this.editor.displayedJmarcObject.forEach((item)=>{
                     if (item.recordId===parseInt(record_id)) { 
-                        this.editor.removeRecordFromEditor(item) }
+                        this.editor.userClose(item) }
                     }
                 )
 
