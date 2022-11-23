@@ -489,7 +489,8 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            if (jmarc.divID) {
+            console.log(jmarc.div.id)
+            if (jmarc.div.id) {
                 this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
             }
             if (jmarc.workformName) {
