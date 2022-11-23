@@ -491,7 +491,8 @@ export let multiplemarcrecordcomponent = {
             let recup = jmarc.clone();
             console.log(jmarc.div.id)
             if (jmarc.div.id) {
-                this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+                //this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
+                this.userClose(jmarc)
             }
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
