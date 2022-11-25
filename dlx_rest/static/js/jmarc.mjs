@@ -72,7 +72,8 @@ export class Subfield {
 
 	validationWarnings() {
 		let flags = [];
-		let data = validationData[this.parentField.parentRecord.collection][this.parentField.tag];
+		//let data = validationData[this.parentField.parentRecord.collection][this.parentField.tag];
+		let data = validationData[this.parentField.parentRecord.getVirtualCollection()][this.parentField.tag];
 		if (! data) return []
 
 		// valid subfields
@@ -203,7 +204,6 @@ export class DataField {
 		let flags = [];
         // Change collection here to virtualCollection, which is inferred from data already in the record
         //let data = validationData[this.parentRecord.collection][this.tag];
-        //console.log("vcoll", this.parentRecord.getVirtualCollection())
 		let data = validationData[this.parentRecord.getVirtualCollection()][this.tag];
 		if (! data) return []
 
@@ -1075,7 +1075,8 @@ export class Jmarc {
 
 	validationWarnings() {
 		let flags = [];
-		let data = validationData[this.collection];
+		//let data = validationData[this.collection];
+		let data = validationData[this.parentRecord.getVirtualCollection()]
 
 		// check for required fields
 		let required = Object.keys(data).filter(x => data[x].required);
