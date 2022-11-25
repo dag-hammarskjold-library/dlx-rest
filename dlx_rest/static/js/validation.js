@@ -2680,7 +2680,7 @@ export const validationData = {
         "930": {
             "name": "Product code",
             "required": true,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
@@ -2769,7 +2769,7 @@ export const validationData = {
             "name": "Title statement",
             "required": true,
             "repeatable": false,
-            "validIndicators1": [],
+            "validIndicators1": ["1"],
             "validIndicators2": ["0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
             "validSubfields": ["a","b","c"],
