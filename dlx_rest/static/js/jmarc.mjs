@@ -1076,7 +1076,7 @@ export class Jmarc {
 	validationWarnings() {
 		let flags = [];
 		//let data = validationData[this.collection];
-		let data = validationData[this.parentRecord.getVirtualCollection()]
+		let data = validationData[this.getVirtualCollection()]
 
 		// check for required fields
 		let required = Object.keys(data).filter(x => data[x].required);
