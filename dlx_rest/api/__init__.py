@@ -1163,7 +1163,7 @@ class LookupField(Resource):
 
                 # matches start
                 first_word = re.split('\s+', val)[0]
-                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:{first_word}*')
+                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:/^{val}/i')
                 # matches anywhere
                 conditions_2.append(f'{auth_tag}__{code}:{val}')
 
