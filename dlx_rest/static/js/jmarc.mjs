@@ -11,7 +11,7 @@ const authMap = {
 		'630': {'a': '130', 'g': '130'},
 		'650': {'a': '150'},
 		'651': {'a': '151'},
-		'700': {'a': '100'},
+		'700': {'a': '100', 'g': '100'},
 		'710': {'a': '110'},
 		'711': {'a': '111'},
 		'730': {'a': '130'},
@@ -101,7 +101,8 @@ export class Subfield {
 		// date match
 		if (this.value && "isDate" in data && this.code in data.isDate) {
 			let dateStr = this.value
-				.replace(/^(\d{4})(\d{2})/, "$1-$2").replace(/(\d{2})(\d{2})$/, "$1-$2") // add dashes
+				.replace(/^(\d{4})(\d{2})/, "$1-$2")
+				.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3") // add dashes
 				.replace(/(-\d)$/, "reject"); // JS date object accepts single digit day
 
 			let date = new Date(dateStr);
