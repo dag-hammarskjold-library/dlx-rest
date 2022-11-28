@@ -1113,7 +1113,7 @@ class LookupField(Resource):
 
         if args.type == 'partial':
             # partial string match
-            conditions_1, conditions_2 = [], []
+            conditions_1, conditions_2, conditions_3 = [], [], []
             sparams = {}
 
             for code in codes:
@@ -1127,10 +1127,12 @@ class LookupField(Resource):
 
                 tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
 
+                # exact match
+                conditions_1.append(Or(*[Condition(tag, {code: f'\'{val}\''}, record_type='auth') for tag in tags]))
                 # matches start
-                conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
                 # matches anywhere
-                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
+                conditions_3.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
 
             if not sparams:
                 abort(400, 'Request parameters required')
@@ -1146,9 +1148,14 @@ class LookupField(Resource):
                 query = Query(*conditions_2)
                 more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+
+            if len(auths) < 25:
+                query = Query(*conditions_3)
+                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         elif args.type == 'text':
             sparams = {}
-            conditions_1, conditions_2 = [], []
+            conditions_1, conditions_2, conditions_3 = [], [], []
 
             for code in codes:
                 val = request.args[code]
@@ -1161,11 +1168,12 @@ class LookupField(Resource):
 
                 tags = [auth_tag]
 
+                # exact match
+                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:\'{val}\'')
                 # matches start
-                first_word = re.split('\s+', val)[0]
-                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:{first_word}*')
-                # matches anywhere
-                conditions_2.append(f'{auth_tag}__{code}:{val}')
+                conditions_2.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:/^{val}/i')
+                # free text
+                conditions_3.append(f'{auth_tag}__{code}:{val}')
 
             querystring = " AND ".join(conditions_1)
             query = Query.from_string(querystring)
@@ -1176,6 +1184,12 @@ class LookupField(Resource):
 
             if len(auths) < 25:
                 querystring = " AND ".join(conditions_2)
+                query = Query.from_string(querystring)
+                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+
+            if len(auths) < 25:
+                querystring = " AND ".join(conditions_3)
                 query = Query.from_string(querystring)
                 more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
