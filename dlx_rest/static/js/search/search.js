@@ -256,7 +256,7 @@ export let searchcomponent = {
             expressions: [],
             vcoll: null,
             searchTime: 0,
-            maxTime: 30000, //milliseconds
+            maxTime: 20000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
             myBasket: {},
