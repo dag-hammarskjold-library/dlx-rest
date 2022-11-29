@@ -1154,7 +1154,7 @@ export const validationData = {
             "name": "Added entry - corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["_","0","2"],
+            "validIndicators1": ["_","0","1","2"],
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","9"],
