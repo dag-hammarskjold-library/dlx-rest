@@ -1154,7 +1154,7 @@ export const validationData = {
             "name": "Added entry - corporate name",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["_","0","2"],
+            "validIndicators1": ["_","0","1","2"],
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","9"],
@@ -1489,6 +1489,9 @@ export const validationData = {
             "defaultSubfields": ["a"],
             "isDate": {
                 "a": true
+            },
+            "validRegex": {
+                "a": ["^\\d{4}-?\\d{2}-?\\d{2}$"]
             }
         },
         "993": {
@@ -2759,7 +2762,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["b"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["b"],
             "validStrings": {
                 "b": ["B23"]
@@ -2815,7 +2818,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","b","c","z"],
+            "validSubfields": ["a","b","c","q","r","z"],
             "defaultSubfields": ["a","b","c"]   // Values copied over from 191 of the linked record?
         },
         "793": {
@@ -2854,7 +2857,7 @@ export const validationData = {
         },
         "967": {
             "name": "Voting information",   // divided into three fields (967, 968, 969) because Horizon has a limit on repeated tags
-            "required": true,               // Only one of these should be required, though, not all three
+            "required": false,               // Only one of these should be required, though, not all three
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2864,7 +2867,7 @@ export const validationData = {
         },
         "968": {
             "name": "Voting information",   // divided into three fields (967, 968, 969) because Horizon has a limit on repeated tags
-            "required": true,               // Only one of these should be required, though, not all three
+            "required": false,               // Only one of these should be required, though, not all three
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2874,7 +2877,7 @@ export const validationData = {
         },
         "969": {
             "name": "Voting information",   // divided into three fields (967, 968, 969) because Horizon has a limit on repeated tags
-            "required": true,               // Only one of these should be required, though, not all three
+            "required": false,               // Only one of these should be required, though, not all three
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2919,7 +2922,7 @@ export const validationData = {
         },
         "996": {
             "name": "Vote note",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2938,7 +2941,7 @@ export const validationData = {
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
-                "c": ["s","t"]
+                "c": ["v","u","t"]
             }
         },
     }
