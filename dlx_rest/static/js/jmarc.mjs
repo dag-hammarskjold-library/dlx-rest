@@ -840,7 +840,9 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-                        newSub.xref = subfield.xref;
+                        if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
+							newSub.xref = subfield.xref
+						}
 						if (! seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}
