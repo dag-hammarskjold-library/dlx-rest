@@ -103,12 +103,11 @@ export class Subfield {
 			let dateStr = this.value
 				.replace(" ", "-")
 				.replace(/^(\d{4})(\d{2})/, "$1-$2")
-				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3") // add dashes
-				.replace(/(-\d)$/, "X"); // JS date object accepts single digit day
+				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3"); // add dashes
 
 			let date = new Date(dateStr);
 
-			if (date.toString() === "Invalid Date") {
+			if (date.toString() === "Invalid Date" || ! [4, 7, 10].includes(dateStr.length)) {
 				flags.push(
 					new SubfieldValueValidationFlag(`Invalid date "${this.value}"`)
 				)
