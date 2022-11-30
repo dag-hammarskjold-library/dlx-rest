@@ -2926,7 +2926,6 @@ export let multiplemarcrecordcomponent = {
 
                     Jmarc.get("auths", subfield.xref)
                         .then(auth => {
-                           console.log("hi")
                             xrefLink.title = auth.toStr()
                         })
                 } else {
@@ -2952,7 +2951,7 @@ export let multiplemarcrecordcomponent = {
         },
         removeAuthControl(subfield) {
             if (subfield.xrefCell) {
-                //delete subfield.xref;
+                delete subfield.xref;
                 subfield.xrefCell.innerHTML = "";
             }
    
