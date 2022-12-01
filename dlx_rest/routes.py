@@ -422,6 +422,7 @@ def search_records(coll):
     session.permanent = True
 
     # Move vcoll variable here so we can use it in the session 
+    # to review
     vcoll = coll
     if "B22" in q:
         vcoll = "speeches"
@@ -454,15 +455,10 @@ def search_records(coll):
     terms = re.split(' *(AND|OR|NOT) +', q)
         
     for term in (filter(None, terms)):
-        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT') and not sort:
+        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT'):
             if re.match('[A-z]+/', term) and len(terms) == 1:
                 # TODO "looks like symbol" util function
                 q = f'symbol:{term.upper()}*'
-            else:    
-                # appears to be free text term
-                sort = 'relevance'
-                
- 
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
