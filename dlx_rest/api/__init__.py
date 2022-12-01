@@ -522,6 +522,13 @@ class Record(Resource):
         args = Record.args.parse_args()
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
+        
+        # remove any unexpected (deprecated) auth-controlled fields
+        for field in record.datafields:
+            for subfield in filter(lambda x: hasattr(x, 'xref'), field.subfields):
+                if DlxConfig.is_authority_controlled(collection[:-1], field.tag, subfield.code) is False:
+                    field.subfields = list(filter(lambda x: x != subfield, field.subfields))
+
         fmt = args.get('format')
 
         if fmt == 'xml':
@@ -547,7 +554,7 @@ class Record(Resource):
         data['updated'] = record.updated
         data['user'] = record.user
         data['files'] = files
-        
+
         meta = {
             'name': 'api_record',
             'returns':  URL('api_schema', schema_name='jmarc').to_str(),
