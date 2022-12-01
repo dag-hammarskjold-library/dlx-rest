@@ -861,10 +861,10 @@ export const validationData = {
             "name": "Formatted contents note",
             "required": false,
             "repeatable": true,
-            "validIndicators1": ["0","1","2","8"],
-            "validIndicators2": ["_","0"],
+            "validIndicators1": ["0", "1", "2", "8"],
+            "validIndicators2": ["_", "0"],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a", "g", "t"],
             "defaultSubfields": ["a"] 
         },
         "515": {
