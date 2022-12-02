@@ -440,7 +440,7 @@ export const validationData = {
         },
         "089": {
             "name": "Content codes",
-            "required": true, 
+            "required": false, // This is turned off temporarily for UAT
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -538,7 +538,7 @@ export const validationData = {
         },
         "099": {
             "name": "Location library",
-            "required": true,
+            "required": false,  // this is turned off temporarily for UAT
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
