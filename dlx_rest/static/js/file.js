@@ -210,11 +210,27 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Action"];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Overwrite All / Keep All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
       th.textContent = th_txt[t];
+
+      // Add the checkbox Overwrite All
+      if (th_txt[t]==="Overwrite All / Keep All "){
+        let ovrwriteAll = document.createElement("INPUT");
+        ovrwriteAll.setAttribute("type", "checkbox");
+        th.appendChild(ovrwriteAll)
+
+      // creation of the listerner
+      ovrwriteAll.addEventListener("click",()=>{
+          let listOverwrite=document.getElementsByClassName("overwrite-class")
+          let listkeep=document.getElementsByClassName("keep-class")
+          for (let i = 0; i < listOverwrite.length; i++) {
+            (ovrwriteAll.checked==true) ? listOverwrite[i].checked=true : listkeep[i].checked=true;
+          }
+        })
+      }      
       tr.appendChild(th);
     }
 
@@ -251,21 +267,22 @@ function createFileObjects() {
         </td>
         <td>
             <div class="row">
+              <div class="col">
+                <div class="col form-check col-form-label-sm">
+                  <input class="form-check-input file__action keep-class" type="radio" name="status${file.id}" 
+                        value="keep" ${file.overwrite ? "checked" : ""}>
+                  <label class="form-check-label" for="keep">Keep</label>
+                  </div>
+                </div>
+             
                <div class="col">
                   <div class="form-check col-form-label-sm">
-                  <input class="form-check-input file__action" type="radio" name="status${file.id}" 
-                     value="overwrite" ${file.overwrite ? "checked" : ""}>
+                  <input class="form-check-input file__action overwrite-class" type="radio" name="status${file.id}" 
+                     value="overwrite" ${file.overwrite ? "" : "checked"}>
                   <label class="form-check-label" for="overwrite">Overwrite</label>
                </div>
            </div>
-         <div class="col">
-            <div class="col form-check col-form-label-sm">
-               <input class="form-check-input file__action" type="radio" name="status${file.id}" 
-                     value="keep" ${file.overwrite ? "" : "checked"}>
-               <label class="form-check-label" for="keep">Keep</label>
-               </div>
-               </div>
-          </div>
+           </div>
          </td>
       `;
    
