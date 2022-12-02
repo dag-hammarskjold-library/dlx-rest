@@ -2923,6 +2923,11 @@ export let multiplemarcrecordcomponent = {
                     let xrefIcon = document.createElement("i");
                     xrefIcon.className = "fas fa-link float-left mr-2";
                     xrefLink.appendChild(xrefIcon);
+
+                    Jmarc.get("auths", subfield.xref)
+                        .then(auth => {
+                            xrefLink.title = auth.toStr()
+                        })
                 } else {
                     let addButton = document.createElement("i");
                     addButton.title = "Create new authority from this value";
@@ -3086,7 +3091,7 @@ function selectAuthority(component, subfield, choice) {
             currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
         }
             
-        currentSubfield.xrefCell.append(xrefLink);
+        currentSubfield.xrefCell.append(xrefLink); 
     }
 
     // trigger unsaved changes detection and update events
