@@ -2228,7 +2228,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","5"],
             "defaultSubfields": ["a"] 
         },
         "690": {
