@@ -893,6 +893,10 @@ export class Jmarc {
 	stringify() {
 		return JSON.stringify(this.compile())
 	}
+
+	toStr() {
+		return this.fields.filter(x => ! x.tag.match(/^00/)).map(x => `${x.tag} ${x.toStr()}`).join("\n")
+	}
 	
 	async history() {
 		if (typeof this.url === "undefined") {
