@@ -234,10 +234,15 @@ export class DataField {
 
 		// required subfields
 		let codes = this.subfields.map(x => x.code);
+
 		data.requiredSubfields.forEach(x => {
 			if (! codes.includes(x)) {
 				flags.push(
 					new TagValidationFlag(`Required subfield "${x}" is missing`)
+				)
+			} else if (! this.getSubfield(x).value) {
+				flags.push(
+					new TagValidationFlag(`Required subfield "${x}" is blank`)
 				)
 			}
 		});

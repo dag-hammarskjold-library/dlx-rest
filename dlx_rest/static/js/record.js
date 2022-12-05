@@ -414,10 +414,6 @@ export let multiplemarcrecordcomponent = {
 
                 jmarc.getDataFields().forEach(field => {
                     field.subfields.forEach(subfield => {
-                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                            field.deleteSubfield(subfield);
-                        }
-
                         subfield.validationWarnings().forEach(x => {
                             this.callChangeStyling(`${field.tag}$${subfield.code}: ${x.message}`, "d-flex w-100 alert-danger");
                             flags.push(x)
