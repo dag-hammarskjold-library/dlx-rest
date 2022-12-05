@@ -1086,7 +1086,7 @@ export const validationData = {
             "validIndicators1": ["_","0","1","2"],
             "validIndicators2": ["_","7"],
             "requiredSubfields": [],
-            "validSubfields": ["a","g"],
+            "validSubfields": ["a","g","2"],
             "defaultSubfields": ["a"]
         },
         "610": {
@@ -1272,7 +1272,7 @@ export const validationData = {
             "name": "Uniform title entry",
             "required": false,
             "repeatable": true,
-            "validIndicators1": [],
+            "validIndicators1": ["_","0"],
             "validIndicators2": ["_","0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
             "validSubfields": ["a"],
@@ -1596,7 +1596,7 @@ export const validationData = {
         },
         "040": {
             "name": "Cataloguing source",
-            "required": true,
+            "required": false,
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -1709,7 +1709,7 @@ export const validationData = {
             "validIndicators1": ["0","1","3"],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","g"],
             "defaultSubfields": ["a"] 
         },
         "110": {
@@ -1846,7 +1846,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["c","e"],
+            "validSubfields": ["a","c","e"],
             "defaultSubfields": ["c","e"] 
         },
         "374": {
