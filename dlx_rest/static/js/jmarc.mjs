@@ -234,10 +234,15 @@ export class DataField {
 
 		// required subfields
 		let codes = this.subfields.map(x => x.code);
+
 		data.requiredSubfields.forEach(x => {
 			if (! codes.includes(x)) {
 				flags.push(
 					new TagValidationFlag(`Required subfield "${x}" is missing`)
+				)
+			} else if (! this.getSubfield(x).value) {
+				flags.push(
+					new TagValidationFlag(`Required subfield "${x}" is blank`)
 				)
 			}
 		});
@@ -938,31 +943,7 @@ export class Jmarc {
 	}
 
 	clone() {
-		let cloned = (new this.recordClass).parse(this.compile());
-		
-        cloned.deleteField("001");
-		cloned.deleteField("005");
-		cloned.deleteField("008");
-        cloned.deleteField("035");
-		cloned.deleteField("981");
-		cloned.deleteField("989");
-        cloned.deleteField("998");
-        //cloned.deleteField("999");
-        //cloned.createField("999").createSubfield("a").value = "";
-        
-        if (this.recordClass === Auth) {
-            return cloned
-        }
-        
-        for (let field of cloned.getFields("029")) {
-            if (field.getSubfield("b")) {
-                field.getSubfield("b").value = "" 
-            } else {
-                field.createSubfield("b").value = ""
-            }
-        }
-		
-		return cloned
+		return (new this.recordClass).parse(this.compile());
 	}
 	
 	createField(tag, place) {
