@@ -949,6 +949,7 @@ export let multiplemarcrecordcomponent = {
         approveAuth(jmarc) {
             this.selectedFields.push
             let newField = jmarc.createField("999")
+            newField.indicators = ["_", "_"]
             let newSubfield = newField.createSubfield("c")
             newSubfield.value = "t"
             newField = this.buildFieldRow(newField);
