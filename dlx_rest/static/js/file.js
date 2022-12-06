@@ -230,6 +230,7 @@ function createFileObjects() {
           let listOverwrite=document.getElementsByClassName("overwrite-class")
           let listkeep=document.getElementsByClassName("keep-class")
           for (let i = 0; i < listOverwrite.length; i++) {
+
               // update the UI
               (ovrwriteAll.checked==true) ? listOverwrite[i].checked=true : listkeep[i].checked=true;
           }

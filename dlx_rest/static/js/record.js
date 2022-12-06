@@ -414,10 +414,6 @@ export let multiplemarcrecordcomponent = {
 
                 jmarc.getDataFields().forEach(field => {
                     field.subfields.forEach(subfield => {
-                        if (! subfield.value || subfield.value.match(/^\s+$/)) {
-                            field.deleteSubfield(subfield);
-                        }
-
                         subfield.validationWarnings().forEach(x => {
                             this.callChangeStyling(`${field.tag}$${subfield.code}: ${x.message}`, "d-flex w-100 alert-danger");
                             flags.push(x)
@@ -490,13 +486,35 @@ export let multiplemarcrecordcomponent = {
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
             //console.log(jmarc.div.id)
+
             if (jmarc.div) {
                 //this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
                 this.userClose(jmarc)
             }
+
             if (jmarc.workformName) {
                 this.callChangeStyling("Workform " + jmarc.workformName + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
             } else {
+                recup.deleteField("001");
+		        recup.deleteField("005");
+		        recup.deleteField("008");
+                recup.deleteField("035");
+		        recup.deleteField("981");
+		        recup.deleteField("989");
+                recup.deleteField("998");
+                //recup.deleteField("999");
+                //recup.createField("999").createSubfield("a").value = "";
+        
+                if (recup.collection === 'bibs') {
+                    for (let field of recup.getFields("029")) {
+                        if (field.getSubfield("b")) {
+                            field.getSubfield("b").value = "" 
+                        } else {
+                            field.createSubfield("b").value = ""
+                        }
+                    }
+                }
+
                 this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
             }
            
@@ -509,7 +527,12 @@ export let multiplemarcrecordcomponent = {
            
             for (let field of recup.fields) {
                 if (! field.tag.match(/^00/)) {
+                    field.tagCell.classList.add("unsaved");
+                    field.ind1Cell.classList.add("unsaved");
+                    field.ind2Cell.classList.add("unsaved");
+
                     for (let subfield of field.subfields) {
+                        subfield.codeSpan.classList.add("unsaved");
                         subfield.valueCell.classList.add("unsaved");
                     }
                 }
