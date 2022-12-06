@@ -193,9 +193,7 @@ export class DataField {
 				if (this.subfields.length === 0) {
 					this.parentRecord.deleteField(this);
 				}
-            }
-            
-            if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
+            } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
                 throw new Error("Invalid authority-controlled value")
             }
         }
