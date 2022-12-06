@@ -213,19 +213,19 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Overwrite All / Keep All "];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
       th.textContent = th_txt[t];
 
       // Add the checkbox Overwrite All
-      if (th_txt[t]==="Overwrite All / Keep All "){
+      if (th_txt[t]==="Keep All / Overwrite All "){
         let ovrwriteAll = document.createElement("INPUT");
         ovrwriteAll.setAttribute("type", "checkbox");
         th.appendChild(ovrwriteAll)
 
-      // creation of the listerner
+      // creation of the listener
       ovrwriteAll.addEventListener("click",()=>{
           let listOverwrite=document.getElementsByClassName("overwrite-class")
           let listkeep=document.getElementsByClassName("keep-class")
