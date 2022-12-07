@@ -137,7 +137,7 @@ export const validationData = {
             "name": "Language",
             "required": true,
             "repeatable": false,
-            "validIndicators1": ["_","0"],
+            "validIndicators1": ["_","0","1"],
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
@@ -440,7 +440,7 @@ export const validationData = {
         },
         "089": {
             "name": "Content codes",
-            "required": true, 
+            "required": false,  // Remember to reset this for production
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -538,7 +538,7 @@ export const validationData = {
         },
         "099": {
             "name": "Location library",
-            "required": true,
+            "required": false,  //Remember to reset this for production
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -1716,7 +1716,7 @@ export const validationData = {
             "name": "Heading - corporate name",
             "required": false,
             "repeatable": false,
-            "validIndicators1": ["1","2"],
+            "validIndicators1": ["0","1","2"],
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
@@ -1847,7 +1847,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","c","e"],
-            "defaultSubfields": ["c","e"] 
+            "defaultSubfields": ["a"] 
         },
         "374": {
             // Not defined in the specification document
@@ -2317,7 +2317,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            "validStrings": { "a": ["DHL","GEN"]}
+            "validStrings": { "a": ["DHL","GEN","DHC"]}
         },
         "915": {
             "name": "Record type",
