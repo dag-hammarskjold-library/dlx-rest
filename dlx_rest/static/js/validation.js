@@ -1709,7 +1709,7 @@ export const validationData = {
             "validIndicators1": ["0","1","3"],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","g","9"],
+            "validSubfields": ["a","g"],
             "defaultSubfields": ["a"] 
         },
         "110": {
@@ -1719,7 +1719,7 @@ export const validationData = {
             "validIndicators1": ["0","1","2"],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","9"],
             "defaultSubfields": ["a"] 
         },
         "111": {
