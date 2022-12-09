@@ -164,13 +164,16 @@ const toggleDE = function () {
 /**
  * Add event listener to overwrite/keep radio button.
  */
+
+
 const toggleAction = function (e) {
   
   // Find the current file object in fileObjectArray
   let fileObject = fileObjectArray.find(
      ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.parentElement.parentElement.id)
+  
   );
-
+ 
   //update the status
   fileObject.updateOverwrite(e.target.value);
 
@@ -210,25 +213,32 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Overwrite All / Keep All "];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
       th.textContent = th_txt[t];
 
       // Add the checkbox Overwrite All
-      if (th_txt[t]==="Overwrite All / Keep All "){
+      if (th_txt[t]==="Keep All / Overwrite All "){
         let ovrwriteAll = document.createElement("INPUT");
         ovrwriteAll.setAttribute("type", "checkbox");
         th.appendChild(ovrwriteAll)
 
-      // creation of the listerner
+      // creation of the listener
       ovrwriteAll.addEventListener("click",()=>{
           let listOverwrite=document.getElementsByClassName("overwrite-class")
           let listkeep=document.getElementsByClassName("keep-class")
           for (let i = 0; i < listOverwrite.length; i++) {
-            (ovrwriteAll.checked==true) ? listOverwrite[i].checked=true : listkeep[i].checked=true;
+
+              // update the UI
+              (ovrwriteAll.checked==true) ? listOverwrite[i].checked=true : listkeep[i].checked=true;
           }
+           // update the file object
+          fileObjectArray.forEach(element=>{
+            (ovrwriteAll.checked==true) ? element.updateOverwrite("overwrite") : element.updateOverwrite("keep") ;
+            txt.value = JSON.stringify(fileObjectArray);
+          })
         })
       }      
       tr.appendChild(th);
@@ -270,7 +280,7 @@ function createFileObjects() {
               <div class="col">
                 <div class="col form-check col-form-label-sm">
                   <input class="form-check-input file__action keep-class" type="radio" name="status${file.id}" 
-                        value="keep" ${file.overwrite ? "checked" : ""}>
+                        value="keep" ${file.overwrite ? "" : "checked"}>
                   <label class="form-check-label" for="keep">Keep</label>
                   </div>
                 </div>
@@ -278,12 +288,12 @@ function createFileObjects() {
                <div class="col">
                   <div class="form-check col-form-label-sm">
                   <input class="form-check-input file__action overwrite-class" type="radio" name="status${file.id}" 
-                     value="overwrite" ${file.overwrite ? "" : "checked"}>
+                     value="overwrite" ${file.overwrite ? "checked" : ""}>
                   <label class="form-check-label" for="overwrite">Overwrite</label>
                </div>
-           </div>
-           </div>
-         </td>
+            </div>
+          </div>
+        </td>
       `;
    
       // Add event listeners
