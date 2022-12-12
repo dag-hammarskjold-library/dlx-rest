@@ -173,8 +173,8 @@ export let browsecomponent = {
         let matches = window.location.search.match(/type=(\w+)/)
         let recordType = this.recordType;
 
-        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=less`
-        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=greater`
+        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=less&limit=3`
+        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=greater&limit=17`
 
         for (let url of [beforeBrowse, afterBrowse]) {
             let resultsList = url === beforeBrowse ? this.results_before : this.results_after;
