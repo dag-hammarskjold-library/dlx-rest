@@ -268,6 +268,7 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
+        let collectionTitle = component.collection
 
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
@@ -289,16 +290,16 @@ export let searchcomponent = {
         }
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
-            //this.searchFields = this.voteSearchFields
-            //this.vcoll = "989:Voting Data";
             this.vcoll = "089:'B22'"
+            collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
-            //this.searchFields = this.speechSearchFields
-            //this.vcoll = "989:Speeches";
             this.vcoll = "089:'B23'"
+            collectionTitle = "votes"
         }
+
+        document.title = document.title + ` ${collectionTitle}`
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
