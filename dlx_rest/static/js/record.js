@@ -2071,6 +2071,7 @@ export let multiplemarcrecordcomponent = {
                     let fileDownload = document.createElement("a");
                     fileDownload.href = `${f['url']}?action=download`;
                     fileDownload.title = "Download";
+                    fileDownload.setAttribute("download","true")
                     let downloadIcon = document.createElement("i");
                     downloadIcon.className = "fas fa-cloud-download-alt text-dark";
                     fileDownload.appendChild(downloadIcon);
