@@ -126,16 +126,16 @@ export let multiplemarcrecordcomponent = {
                     <div class="modal-footer">
                         <slot name="footer">
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and release
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close and discard
+                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave()"> Cancel
+                            @click="closeModalSave()"> Cancel<br><br>
                         </button>
                         </slot>
                     </div>
