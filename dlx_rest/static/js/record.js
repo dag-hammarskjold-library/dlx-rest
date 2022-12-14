@@ -2023,14 +2023,11 @@ export let multiplemarcrecordcomponent = {
                 auditSpan.className = "small mx-2"
                 
                 auditCell.appendChild(auditSpan)
-                jmarc.history().then( (history) => {
-                    if (history.length > 0) {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[history.length-1].user}`
-                    }
-                    else {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by system import.`
-                    }
-                })
+                if (jmarc.user) {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by ${jmarc.user}`
+                } else {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by system import`
+                }
             }
  
             // Files
