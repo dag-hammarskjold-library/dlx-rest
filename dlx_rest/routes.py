@@ -485,7 +485,7 @@ def browse(coll):
 
     # todo: get all from dlx config
     if request.args.get('type') == 'speech':
-        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'country_org', 'bib_creator'])
     elif request.args.get('type') == 'vote':
         index_list = json.dumps(['symbol', 'body', 'agenda', 'related_docs', 'bib_creator'])
     else:
