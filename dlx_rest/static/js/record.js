@@ -461,13 +461,11 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
-                    jmarc.saveButton.classList.remove("fa-spinner");
-                    jmarc.saveButton.classList.remove("fa-pulse");
-                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
                         jmarc = this.displayMarcRecord(returnedJmarc, false);
+                        this.checkSavedState(jmarc)
                     }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
