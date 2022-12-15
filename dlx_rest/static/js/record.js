@@ -2971,8 +2971,9 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell.eventParams = [component, subfield];
             
             if (!this.historyMode) {
-                subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+                subfield.valueCell.addEventListener("input", keyupAuthLookup);
                 subfield.valueCell.addEventListener("paste", keyupAuthLookup);
+
             }
         },
         removeAuthControl(subfield) {
@@ -2983,7 +2984,7 @@ export let multiplemarcrecordcomponent = {
    
             subfield.valueSpan.classList.remove("authority-controlled");
             subfield.valueSpan.classList.remove("authority-controlled-unmatched");
-            subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+            subfield.valueCell.removeEventListener("input", keyupAuthLookup);
             subfield.valueCell.removeEventListener("paste", keyupAuthLookup);
         },
         fieldSelected(field) {
