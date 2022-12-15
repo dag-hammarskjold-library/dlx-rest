@@ -728,7 +728,7 @@ export class Jmarc {
 				this.recordId = parseInt(this.url.split('/').slice(-1));
 				this.updateSavedState();
 				
-				return this;
+				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
 		    error => { throw new Error(error) }
@@ -768,10 +768,10 @@ export class Jmarc {
 				if (savedResponse.status != 200) {
 					throw new Error(json['message'])
 				}
-				
+
 				this.updateSavedState();
 
-				return this;
+				return Jmarc.get(this.collection, this.recordId)
 			} 
 		).catch(
 			 error => { throw new Error(error) }
