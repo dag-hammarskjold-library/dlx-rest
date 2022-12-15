@@ -461,11 +461,13 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
-                    jmarc.saveButton.classList.remove("fa-spinner");
-                    jmarc.saveButton.classList.remove("fa-pulse");
-                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
-                    if (display) this.displayMarcRecord(jmarc, false);
+                    
+                    if (display) {
+                        jmarc = this.displayMarcRecord(returnedJmarc, false);
+                        this.checkSavedState(jmarc)
+                    }
+                    
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
@@ -1834,7 +1836,7 @@ export let multiplemarcrecordcomponent = {
                 }
             });
 
-            return true
+            return jmarc
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
@@ -2020,17 +2022,15 @@ export let multiplemarcrecordcomponent = {
                 auditCell.colSpan = 6
                 auditCell.className = "text-wrap"
                 let auditSpan = document.createElement("span")
+                jmarc.auditSpan = auditSpan
                 auditSpan.className = "small mx-2"
-                
                 auditCell.appendChild(auditSpan)
-                jmarc.history().then( (history) => {
-                    if (history.length > 0) {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[history.length-1].user}`
-                    }
-                    else {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by system import.`
-                    }
-                })
+
+                if (jmarc.user) {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by ${jmarc.user}`
+                } else {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by system import`
+                }
             }
  
             // Files
