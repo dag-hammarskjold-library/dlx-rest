@@ -2969,8 +2969,10 @@ export let multiplemarcrecordcomponent = {
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
+            
             if (!this.historyMode) {
                 subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+                subfield.valueCell.addEventListener("paste", keyupAuthLookup);
             }
         },
         removeAuthControl(subfield) {
@@ -2982,6 +2984,7 @@ export let multiplemarcrecordcomponent = {
             subfield.valueSpan.classList.remove("authority-controlled");
             subfield.valueSpan.classList.remove("authority-controlled-unmatched");
             subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+            subfield.valueCell.removeEventListener("paste", keyupAuthLookup);
         },
         fieldSelected(field) {
             for (let f of field.parentRecord.fields) {
@@ -3135,12 +3138,15 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
-
    
     if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
         // non ascii or delete keys
-        
         return
+    }
+
+    if (subfield.value = '') {
+        // if this is a paste event, the subflied value might not be assigned yet
+        subfield.value = subfield.valueSpan.innerText
     }
  
     subfield.valueSpan.classList.add("authority-controlled-unmatched");
