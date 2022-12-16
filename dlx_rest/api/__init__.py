@@ -257,7 +257,8 @@ class RecordsList(Resource):
             sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
             # only include results with the sorted field. otherwise, records with the field missing will be the first results
             # TODO review
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
+            #query.add_condition(Raw({sort_by: {'$exists': True}}))
+            pass
         else:
             sort = None
 
