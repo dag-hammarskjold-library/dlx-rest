@@ -390,11 +390,11 @@ export class Jmarc {
     getVirtualCollection() {
         let virtualCollection = this.collection
         if (this.getField("089")) {
-            let recordType = this.getField("089").getSubfield("b")
-            if (recordType && recordType.value && recordType.value == "B22") {
+            let recordType = this.getField("089").getSubfield("b").value
+            if (recordType.value && recordType.value == "B22") {
                 virtualCollection = "speeches"
             }
-            else if (recordType && recordType.value && recordType.value == "B23") {
+            else if (recordType.value && recordType.value == "B23") {
                 virtualCollection = "votes"
             }
         }
