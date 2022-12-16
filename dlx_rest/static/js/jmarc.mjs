@@ -319,7 +319,7 @@ export class DataField {
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 
 		// determine the lookup type
-		if (["191", "991"].includes(this.tag)) {
+		if (["191", "791", "991"].includes(this.tag)) {
 			url += '&type=partial'
 		} else {
 			url += '&type=text'
