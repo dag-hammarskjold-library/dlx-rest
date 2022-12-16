@@ -40,7 +40,7 @@ def editor():
 
 @app.route('/help')
 def help():
-    return render_template('help.html', vcoll="help")
+    return render_template('help.html', vcoll="help", title="Help")
 
 @app.route('/workform')
 def workform():
@@ -497,7 +497,7 @@ def browse(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'), title=f'Browse ({request.args.get("type")})')
 
 @app.route('/records/<coll>/browse/<index>')
 def browse_list(coll, index):
@@ -529,7 +529,7 @@ def review_auth():
 
     search_url = url_for('api_records_list', collection="auths", start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
-    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths")
+    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths", title="AuthReview")
 
 
 def search_records_old(coll):
@@ -582,7 +582,7 @@ def create_record(coll):
 @login_required
 @requires_permission('readFile')
 def upload_files():
-    return render_template('process_files.html', vcoll="files")
+    return render_template('process_files.html', vcoll="files", title="Files")
 
 
 @app.route('/files/process', methods=["POST"])
@@ -670,7 +670,7 @@ def search_files():
     baseURL = url_for('doc', _external=True)
     #this_prefix = baseURL.replace("/api/", url_for('files_results'))
     this_prefix = url_for('files_results')
-    return render_template('file_update.html', prefix=this_prefix, vcoll="files")
+    return render_template('file_update.html', prefix=this_prefix, vcoll="files", title="Files")
 
 
 @app.route('/files/update/results', methods=['GET', 'POST'])

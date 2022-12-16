@@ -126,16 +126,16 @@ export let multiplemarcrecordcomponent = {
                     <div class="modal-footer">
                         <slot name="footer">
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and release
+                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close and discard
+                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
                         </button>
                         <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave()"> Cancel
+                            @click="closeModalSave()"> Cancel<br><br>
                         </button>
                         </slot>
                     </div>
@@ -461,11 +461,13 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
-                    jmarc.saveButton.classList.remove("fa-spinner");
-                    jmarc.saveButton.classList.remove("fa-pulse");
-                    jmarc.saveButton.style = "pointer-events: auto";
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
-                    if (display) this.displayMarcRecord(jmarc, false);
+                    
+                    if (display) {
+                        jmarc = this.displayMarcRecord(returnedJmarc, false);
+                        this.checkSavedState(jmarc)
+                    }
+                    
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
                     basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
@@ -1834,7 +1836,7 @@ export let multiplemarcrecordcomponent = {
                 }
             });
 
-            return true
+            return jmarc
         },
         buildRecordTable(jmarc, readOnly) {
             let component = this;
@@ -1904,7 +1906,6 @@ export let multiplemarcrecordcomponent = {
                 {"name": "idField", "element": "span", "class": "mx-1", "title": "", "load": "getId" },
                 {"name": "countField", "element": "span", "class": "mx-1", "title": "", "load": "getId"},
                 {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "No Unsaved Changes", "click": "saveRecord"},
-                {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "cloneButton", "element": "i", "class": "fas fa-copy", "title": "Clone Record", "click": "cloneRecord" },
                 {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                 {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
@@ -1913,6 +1914,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
+                {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
@@ -1920,12 +1922,12 @@ export let multiplemarcrecordcomponent = {
                     {"name": "selectRecordButton", "element": "i", "class": "far fa-square", "title": "Select/Unselect Fields", "click": "selectFields"},
                     {"name": "idField", "element": "h5", "class": "mx-2", "title": "", "load": "getId" },
                     {"name": "saveButton", "element": "i", "class": "fas fa-save", "title": "Save Workform", "click": "saveRecord"},
-                    {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Record", "click": "cloneRecord" },
                     {"name": "pasteButton", "element": "i", "class": "far fa-arrow-alt-circle-down", "title": "Paste Fields", "click": "pasteField" },
                     {"name": "toggleButton", "element": "i", "class": "fas fa-solid fa-eye", "title": "Toggle Hidden Fields", "click": "toggleHidden" },
                     {"name": "deleteButton", "element": "i", "class": "fas fa-trash-alt", "title": "Delete Workform", "click": "deleteRecord" },
                     {"name": "undoButton", "element": "i", "class": "fa fa-undo", "title": "Undo",  "click": "moveUndoredoIndexUndo","param":jmarc},
                     {"name": "redoButton", "element": "i", "class": "fa fa-redo", "title": "Redo",  "click": "moveUndoredoIndexRedo","param":jmarc},
+                    {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Record", "click": "cloneRecord" },
                     {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `close Workform`, "click": "userClose"},
                 ]
             }
@@ -2020,17 +2022,15 @@ export let multiplemarcrecordcomponent = {
                 auditCell.colSpan = 6
                 auditCell.className = "text-wrap"
                 let auditSpan = document.createElement("span")
+                jmarc.auditSpan = auditSpan
                 auditSpan.className = "small mx-2"
-                
                 auditCell.appendChild(auditSpan)
-                jmarc.history().then( (history) => {
-                    if (history.length > 0) {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by ${history[history.length-1].user}`
-                    }
-                    else {
-                        auditSpan.innerText = `Last updated ${jmarc.updated} by system import.`
-                    }
-                })
+
+                if (jmarc.user) {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by ${jmarc.user}`
+                } else {
+                    auditCell.innerText = `Last updated ${jmarc.updated} by system import`
+                }
             }
  
             // Files
@@ -2071,6 +2071,7 @@ export let multiplemarcrecordcomponent = {
                     let fileDownload = document.createElement("a");
                     fileDownload.href = `${f['url']}?action=download`;
                     fileDownload.title = "Download";
+                    fileDownload.setAttribute("download","true")
                     let downloadIcon = document.createElement("i");
                     downloadIcon.className = "fas fa-cloud-download-alt text-dark";
                     fileDownload.appendChild(downloadIcon);
@@ -2968,8 +2969,11 @@ export let multiplemarcrecordcomponent = {
      
             // lookup
             subfield.valueCell.eventParams = [component, subfield];
+            
             if (!this.historyMode) {
-                subfield.valueCell.addEventListener("keyup", keyupAuthLookup);
+                subfield.valueCell.addEventListener("input", keyupAuthLookup);
+                subfield.valueCell.addEventListener("paste", keyupAuthLookup);
+
             }
         },
         removeAuthControl(subfield) {
@@ -2980,7 +2984,8 @@ export let multiplemarcrecordcomponent = {
    
             subfield.valueSpan.classList.remove("authority-controlled");
             subfield.valueSpan.classList.remove("authority-controlled-unmatched");
-            subfield.valueCell.removeEventListener("keyup", keyupAuthLookup);
+            subfield.valueCell.removeEventListener("input", keyupAuthLookup);
+            subfield.valueCell.removeEventListener("paste", keyupAuthLookup);
         },
         fieldSelected(field) {
             for (let f of field.parentRecord.fields) {
@@ -3134,12 +3139,15 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
-
    
     if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
         // non ascii or delete keys
-        
         return
+    }
+
+    if (subfield.value = '') {
+        // if this is a paste event, the subflied value might not be assigned yet
+        subfield.value = subfield.valueSpan.innerText
     }
  
     subfield.valueSpan.classList.add("authority-controlled-unmatched");

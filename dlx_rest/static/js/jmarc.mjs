@@ -193,9 +193,7 @@ export class DataField {
 				if (this.subfields.length === 0) {
 					this.parentRecord.deleteField(this);
 				}
-            }
-            
-            if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
+            } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
                 throw new Error("Invalid authority-controlled value")
             }
         }
@@ -730,7 +728,7 @@ export class Jmarc {
 				this.recordId = parseInt(this.url.split('/').slice(-1));
 				this.updateSavedState();
 				
-				return this;
+				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
 		    error => { throw new Error(error) }
@@ -770,10 +768,10 @@ export class Jmarc {
 				if (savedResponse.status != 200) {
 					throw new Error(json['message'])
 				}
-				
+
 				this.updateSavedState();
 
-				return this;
+				return Jmarc.get(this.collection, this.recordId)
 			} 
 		).catch(
 			 error => { throw new Error(error) }

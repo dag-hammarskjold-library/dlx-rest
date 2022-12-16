@@ -45,7 +45,7 @@ export let searchcomponent = {
                         <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
                     </div>
                 </div>
-                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1">
+                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
                     <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
@@ -70,7 +70,7 @@ export let searchcomponent = {
                         <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
                     </div>
                 </div>
-                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2">
+                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
                     <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
@@ -95,7 +95,7 @@ export let searchcomponent = {
                         <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
                     </div>
                 </div>
-                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3">
+                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-append">
                     <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
@@ -104,7 +104,7 @@ export let searchcomponent = {
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">Search</button>
+            <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
         </div>
         <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
@@ -268,6 +268,7 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
+        let collectionTitle = component.collection
 
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
@@ -289,16 +290,16 @@ export let searchcomponent = {
         }
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
-            //this.searchFields = this.voteSearchFields
-            //this.vcoll = "989:Voting Data";
             this.vcoll = "089:'B22'"
+            collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
-            //this.searchFields = this.speechSearchFields
-            //this.vcoll = "989:Speeches";
             this.vcoll = "089:'B23'"
+            collectionTitle = "votes"
         }
+
+        document.title = document.title + ` ${collectionTitle}`
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
@@ -581,7 +582,8 @@ export let searchcomponent = {
                 el.innerText = what
             }
         },
-        submitAdvancedSearch() {
+        submitAdvancedSearch(e) {
+            //console.log(e)
             // Build the URL
             var expressions = []
             var anycount = 0
@@ -692,7 +694,7 @@ export let searchcomponent = {
             // ...
 
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
-            
+            //console.log(url)
             window.location = url
         },
         reportError(message) {
