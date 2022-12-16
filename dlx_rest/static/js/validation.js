@@ -100,7 +100,7 @@ export const validationData = {
             "defaultSubfields": ["a"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
-                "a": ["DHU","GUN","ITS","SN","VOT","DHM","CAP","GEN"]
+                "a": ["DHU","GUN","ITS","SN","VOT","DHM","CAP","GEN","DIG"]
                 /*
                 [
                     {"code":"DHU", "description":"DHL Indexing Unit, UN Material"},
@@ -496,7 +496,8 @@ export const validationData = {
                     "B24",
                     "B25",
                     "B26",
-                    "B27"
+                    "B27",
+                    "B28"
                 ]
             }
         },
@@ -543,13 +544,13 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": ["a","b"],
-            "validSubfields": ["a","b","c"],
+            "validSubfields": ["a","b","c","q"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
                 // $a=UNG and $a=UNH have different lists of possible values for $b
                 "a": ["UNG","UNH"],
-                "b": ["DHU","DHG","DHL","DHM","DHR","DHS","DHW","DHX","GUN"]
+                "b": ["DHU","DHG","DHL","DHM","DHR","DHS","DHW","DHX","DLS","GUN"]
                 /*
                 "a": [
                     {"code":"UNG", "description":"UN Office at Geneva (UNOG)"},
@@ -657,7 +658,7 @@ export const validationData = {
             "name": "Unique title",
             "required": false,
             "repeatable": false,
-            "validIndicators1": ["0"],
+            "validIndicators1": ["0","1"],
             "validIndicators2": ["0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": [],
             "validSubfields": ["a"],
@@ -667,7 +668,7 @@ export const validationData = {
             "name": "Title",
             "required": true,
             "repeatable": false,
-            "validIndicators1": ["1"],
+            "validIndicators1": ["0","1"],
             "validIndicators2": ["0","1","2","3","4","5","6","7","8","9"],
             "requiredSubfields": ["a"],
             "validSubfields": ["a", "b", "c", "h", "n", "p"],
@@ -721,7 +722,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","b"],
+            "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b"] 
         },
         "256": {
@@ -768,7 +769,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","b"],
+            "validSubfields": ["a","b","c","e"],
             "defaultSubfields": ["a","b"] 
         },
         "310": {
@@ -1951,7 +1952,7 @@ export const validationData = {
             "validIndicators1": ["0"],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["d"],
+            "validSubfields": ["a","c","d"],
             "defaultSubfields": ["d"] 
         },
         "493": {
@@ -2594,6 +2595,17 @@ export const validationData = {
         }
     },
     "speeches": {
+        "035": {
+            "name": "",
+            "required": true,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"]
+            // Need specification for this
+        },
         "039": {
             "name": "Cataloguing Source - Local",
             "required": true,
