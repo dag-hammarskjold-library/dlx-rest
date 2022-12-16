@@ -31,6 +31,8 @@ def newui():
     return redirect(url_for('editor'))
 
 @app.route('/editor')
+@login_required
+#@requires_permission('updateRecord')
 def editor():
     this_prefix = url_for('doc', _external=True)
     records = request.args.get('records', None)
@@ -39,10 +41,13 @@ def editor():
     return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
 @app.route('/help')
+@login_required
 def help():
     return render_template('help.html', vcoll="help", title="Help")
 
 @app.route('/workform')
+@login_required
+#@requires_permission('readWorkform')
 def workform():
     this_prefix = url_for('doc', _external=True)
     return render_template('workform.html', api_prefix=this_prefix)
@@ -408,11 +413,14 @@ def build_head(coll, record_data):
 
 # Records Routes
 @app.route('/records/<coll>')
+@login_required
 def get_records_list(coll):
     # This is just a passthrough route
     return redirect(url_for('search_records', coll=coll))
 
 @app.route('/records/<coll>/search')
+@login_required
+#@requires_permission('readRecord')
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
@@ -480,6 +488,7 @@ def search_records(coll):
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
 
 @app.route('/records/<coll>/browse')
+@login_required
 def browse(coll):
     api_prefix = url_for('doc', _external=True)
 
@@ -500,14 +509,18 @@ def browse(coll):
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'), title=f'Browse ({request.args.get("type")})')
 
 @app.route('/records/<coll>/browse/<index>')
+@login_required
+#@requires_permission('readRecord')
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
 
+'''
 @app.route('/records/<coll>/facets')
 def facet_record(coll):
     return {"Facets..."}
+'''
 
 @app.route('/records/auths/review')
 @login_required
@@ -566,6 +579,8 @@ def search_records_old(coll):
 
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
+@login_required
+#@requires_permission('readRecord')
 def get_record_by_id(coll,id):
     # register the permission, but don't require it yet, TBI
     #register_permission('updateRecord')

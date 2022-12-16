@@ -346,15 +346,60 @@ def test_delete_role(client, default_users):
 Next: Add tests to manage permissions
 '''
 
-# Test search listings sort ascending/descending
-def test_sort(client):
+def test_collection_lists(client, default_users):
+    collections = ['bibs','auths']
+    # Unauthenticated
+    for c in collections:
+        response = client.get(f'/records/{c}')
+        # We expect a 302 because we're getting redirected to login
+        assert response.status_code == 302
+
+    # Authenticated
+    user = default_users['non-admin']
+    login(client, user['email'], user['password'])
+    print(client)
+    for c in collections:
+        response = client.get(f'/records/{c}')
+        # We expect a redirect here because the eventual route is the next one
+        assert response.status_code == 302
+        response = client.get(f'/records/{c}/search')
+        assert response.status_code == 200
+
+    logout(client)
+
+
+def test_browse_lists(client, default_users):
+    # Unauthenticated
+    # bibs
+    for v in ['bib','speech','vote']:
+        response = client.get(f'/records/bibs/browse?type={v}')
+        # We expect a 302 because we're getting redirected to login
+        print(response)
+        assert response.status_code == 302
+
+    # Authenticated
+
+def test_files(client, default_users):
+    # Unauthenticated
+
+    # Authenticated
     pass
 
-# Test changing number of results per page in search listings
-def test_rpp(client):
+def test_editor(client, default_users):
+    # Unauthenticated
+
+    # Authenticated
     pass
+
+# Test search listings sort ascending/descending
+#def test_sort(client):
+#    pass
+
+# Test changing number of results per page in search listings
+#def test_rpp(client):
+#    pass
 
 # Test page forward and backward
 # Also test that pagination preserves other options (namely sort direction)
-def test_pagination(client):
-    pass
+#def test_pagination(client):
+#    pass
