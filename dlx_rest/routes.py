@@ -302,15 +302,18 @@ def update_role(id):
         name = request.form.get('name', role.name)
         permissions = request.form.getlist('permissions')
 
+        print(permissions)
+
         role.permissions = []
         for permission in permissions:
             try:
-                p = Permission.objects.get(action=permission)
+                p = Permission.objects.get(id=permission)
                 role.permissions.append(p)
             except:
                 pass
         
         try:
+            print(role.permissions)
             role.save(validate=True)
             print("I am here")
             flash("The role was updated successfully.")
