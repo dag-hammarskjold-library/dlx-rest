@@ -875,7 +875,13 @@ export class Jmarc {
 	}
 	
 	compile() {
-		let recordData = {_id: this.recordId, updated: this.updated, user: this.user};
+		let recordData = {
+			_id: this.recordId, 
+			created: this.created,
+			created_user: this.createdUser,
+			updated: this.updated, 
+			user: this.user
+		};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
 		for (let tag of tags.sort(x => parseInt(x))) {
