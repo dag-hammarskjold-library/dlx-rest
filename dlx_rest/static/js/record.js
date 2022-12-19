@@ -426,7 +426,16 @@ export let multiplemarcrecordcomponent = {
                     })
                 });
 
-                if (flags.length > 0) return
+                // prevent save
+                if (flags.length > 0) {
+                    // todo: change this to use audit data as criteria
+                    if (jmarc.getField("998")) {
+                        // record was created in legacy system
+                    } else {
+                        // record was created in this system
+                        return
+                    }
+                }
 
                 // start the pending spinner
                 jmarc.saveButton.classList.add("fa-spinner");
