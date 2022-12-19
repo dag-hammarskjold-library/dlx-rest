@@ -249,6 +249,8 @@ class RecordsList(Resource):
         # sort
         sort_by = args.get('sort')
         sort_by = 'subject' if sort_by == 'heading' else sort_by
+        sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
+        sort_by = 'date' if sort_by == 'meeting date' else sort_by
         
         if sort_by == 'relevance':
             project['score'] = {'$meta': 'textScore'}
@@ -269,7 +271,7 @@ class RecordsList(Resource):
             # convert the query to a query on symbol so that the collation can be used on both search and sort. ugh
             symbols, i = [], 0
             
-            for r in cls.from_query(query, projection={'191': 1, 'symbol': 1}):
+            for r in cls.from_query(query, projection={'191': 1, '791': 1, 'symbol': 1}):
                 for symbol in r.logical_fields('symbol').values():
                     symbols.append(symbol)
                     i += 1
