@@ -713,10 +713,11 @@ export let multiplemarcrecordcomponent = {
             let component = this;
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
             
-            if (newField && ! currentField) {
-                currentField = jmarc.fields.at(-2)
+            if (! currentField) {
+                this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
+                return 
             }
-
+           
             if (currentField.tag === "___") {
                 this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
                 return
@@ -725,11 +726,6 @@ export let multiplemarcrecordcomponent = {
             if (rowIndex === null) {
                 // add a field below the active field
                 rowIndex = currentField.row.rowIndex - 2;
-
-                if (! currentField) {
-                    this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
-                    return 
-                }
             }
 
             if (newField === null) {
@@ -953,16 +949,15 @@ export let multiplemarcrecordcomponent = {
             }
         },
         approveAuth(jmarc) {
-            //this.selectedFields.push
-            let newField = jmarc.createField("999")
-            newField.indicators = ["_", "_"]
-            let newSubfield = newField.createSubfield("c")
-            newSubfield.value = "t"
+            // activate the last field so that the new field gets added below it
+            this.fieldSelected(jmarc.fields.at(-1));
 
-            let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(newField.tag) >= parseInt(x)).length - 1;
+            let newField = jmarc.createField("999");
+            newField.indicators = ["_", "_"];
+            let newSubfield = newField.createSubfield("c");
+            newSubfield.value = "t";
             
-            return this.addField(jmarc, newField, rowIndex)
-
+            return this.addField(jmarc, newField)
         },
 
         ///////////////////////////////////////////////////
