@@ -710,8 +710,12 @@ export let multiplemarcrecordcomponent = {
             return
         },
         addField(jmarc, newField=null, rowIndex=null) {
+            let component = this;
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
-            let component = this
+            
+            if (newField && ! currentField) {
+                currentField = jmarc.fields.at(-2)
+            }
 
             if (currentField.tag === "___") {
                 this.callChangeStyling("Can't add new field until active field has a tag", "d-flex w-100 alert-danger");
@@ -949,17 +953,15 @@ export let multiplemarcrecordcomponent = {
             }
         },
         approveAuth(jmarc) {
-            this.selectedFields.push
+            //this.selectedFields.push
             let newField = jmarc.createField("999")
+            newField.indicators = ["_", "_"]
             let newSubfield = newField.createSubfield("c")
             newSubfield.value = "t"
-            newField = this.buildFieldRow(newField);
-            newField.tagSpan.focus();
-            //document.execCommand("selectall");
-            newField.subfields[0].valueCell.classList.add("unsaved");
 
-            // Manage visual indicators
-            this.checkSavedState(jmarc);
+            let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(newField.tag) >= parseInt(x)).length - 1;
+            
+            return this.addField(jmarc, newField, rowIndex)
 
         },
 
