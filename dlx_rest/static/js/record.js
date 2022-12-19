@@ -956,16 +956,10 @@ export let multiplemarcrecordcomponent = {
             newField.indicators = ["_", "_"]
             let newSubfield = newField.createSubfield("c")
             newSubfield.value = "t"
+
+            let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(newField.tag) >= parseInt(x)).length - 1;
             
-            return this.addField(jmarc, newField)
-
-            newField = this.buildFieldRow(newField);
-            newField.tagSpan.focus();
-            //document.execCommand("selectall");
-            newField.subfields[0].valueCell.classList.add("unsaved");
-
-            // Manage visual indicators
-            this.checkSavedState(jmarc);
+            return this.addField(jmarc, newField, rowIndex)
 
         },
 
