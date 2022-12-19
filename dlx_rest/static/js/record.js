@@ -714,8 +714,12 @@ export let multiplemarcrecordcomponent = {
             let currentField = jmarc.getDataFields().filter(x => x.selected)[0];
             
             if (! currentField) {
-                this.callChangeStyling("No field selected", "d-flex w-100 alert-danger")
-                return 
+                // add to end of record
+                if (newField) {
+                    currentField = jmarc.fields.filter(x => x !== newField).at(-1); 
+                } else {
+                    currentField = jmarc.fields.at(-1)
+                }
             }
            
             if (currentField.tag === "___") {
@@ -949,15 +953,15 @@ export let multiplemarcrecordcomponent = {
             }
         },
         approveAuth(jmarc) {
-            // activate the last field so that the new field gets added below it
-            this.fieldSelected(jmarc.fields.at(-1));
+            //this.selectedFields.push
+            let newField = jmarc.createField("999")
+            newField.indicators = ["_", "_"]
+            let newSubfield = newField.createSubfield("c")
+            newSubfield.value = "t"
 
-            let newField = jmarc.createField("999");
-            newField.indicators = ["_", "_"];
-            let newSubfield = newField.createSubfield("c");
-            newSubfield.value = "t";
+            let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(newField.tag) >= parseInt(x)).length - 1;
             
-            return this.addField(jmarc, newField)
+            return this.addField(jmarc, newField, rowIndex)
         },
 
         ///////////////////////////////////////////////////
