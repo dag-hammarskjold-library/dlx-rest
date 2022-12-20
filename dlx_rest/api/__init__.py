@@ -3,9 +3,7 @@ DLX REST API
 '''
 
 # external
-from asyncio import constants
 from http.client import HTTPResponse
-import this
 from dlx_rest.routes import login, search_files
 import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
@@ -18,7 +16,7 @@ from base64 import b64decode
 from mongoengine.document import Document
 from pymongo import ReplaceOne, ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
-from bson import Regex
+from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
@@ -1126,9 +1124,28 @@ class LookupField(Resource):
             conditions_1, conditions_2, conditions_3 = [], [], []
             sparams = {}
 
+            def process(query, heading_tag, limit):
+                # todo: update subject logical field to heading name change
+                
+                auths = list(
+                    # sort by length of subfield array
+                    DB.auths.aggregate(
+                        [
+                            {'$match': dict(query)},
+                            #{'$addFields': {'subfieldsSize': {'$size': f'${heading_tag}.subfields'}}},
+                            {'$project': {'subject': 1, heading_tag: 1, 'subfieldsSize': {'$size': f'${tag}.subfields'}}},
+                            {'$sort': SON([('subfieldsSize', 1), ('subject', 1)])}, # preserve key order using bson
+                            {'$limit': limit}
+                        ],
+                        collation={'locale': 'en', 'strength': 1, 'numericOrdering': True}
+                    )
+                )
+
+                return [Auth(x) for x in auths] 
+
+            # gather conditions
             for code in codes:
                 val = request.args[code]
-                val = re.escape(val)
                 sparams[code] = val
                 auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
 
@@ -1136,13 +1153,14 @@ class LookupField(Resource):
                     continue
 
                 tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
+                tag = tags[0]
 
                 # exact match
-                conditions_1.append(Or(*[Condition(tag, {code: f'\'{val}\''}, record_type='auth') for tag in tags]))
+                conditions_1.append(Or(*[Condition(tag, {code: val}, record_type='auth') for tag in tags]))
                 # matches start
-                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
+                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'^{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
                 # matches anywhere
-                conditions_3.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
+                conditions_3.append(Or(*[Condition(tag, {code: Regex(f'{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
 
             if not sparams:
                 abort(400, 'Request parameters required')
@@ -1150,18 +1168,16 @@ class LookupField(Resource):
             query = Query(*conditions_1)
             proj = dict.fromkeys(tags, 1)
             start = int(request.args.get('start', 1))
-            cln = {'locale': 'en', 'strength': 1}
-            auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-            auths = list(auths)
+            auths = process(query.compile(), heading_tag=tag, limit=25)
 
             if len(auths) < 25:
                 query = Query(*conditions_2)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
             if len(auths) < 25:
                 query = Query(*conditions_3)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         elif args.type == 'text':
             sparams = {}
