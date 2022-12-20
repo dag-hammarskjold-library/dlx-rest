@@ -2625,7 +2625,7 @@ export let multiplemarcrecordcomponent = {
             //valCell.title = `Guidelines for ${field.tag}\$${subfield.code} (pending)`;
             valCell.innerText = " "; // space for padding
    
-            let valSpan = document.createElement("span");
+            let valSpan = document.createElement("div");
             valCell.appendChild(valSpan);
             valSpan.classList.add("subfield-value");
 

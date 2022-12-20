@@ -205,7 +205,7 @@ td.subfield-value {
     width: 10000px;
     font-size: 14px;
     border-left: 3px groove black;
-    white-space: pre-wrap;
+    /*white-space: pre-wrap;*/
 }
 
 td.unsaved {
@@ -221,7 +221,7 @@ span.subfield-value-selected {
     background-color: white;
 }
 
-span.authority-controlled {
+div.authority-controlled {
     color: #0000EE;
     text-decoration: underline;
 }
