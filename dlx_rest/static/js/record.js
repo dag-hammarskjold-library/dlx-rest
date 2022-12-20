@@ -3135,16 +3135,16 @@ function selectAuthority(component, subfield, choice) {
 
 // auth-controlled field keyup event function
 function keyupAuthLookup(event) {
-    //target: subfield value cell`
+    //target: subfield value cell
     let component = event.currentTarget.eventParams[0];
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
 
     if (event.type === "input") {
-        subfield.value = subfield.valueSpan.innerText;
+        subfield.value = subfield.valueSpan.innerText.trim();
     } else if (event.type == "paste") {
-        subfield.value = event.clipboardData.getData("text");
+        subfield.value = event.clipboardData.getData("text").trim();
     } else {
         throw Error("Event type not recognized")
     }
