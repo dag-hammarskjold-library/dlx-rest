@@ -429,16 +429,16 @@ export class Jmarc {
 			
 			else if (this.isInsideVectorAlready(this.compile())===false){
 					this.addUndoredoEntry()
-					console.log("change(s) on : " + this.recordId)
-					console.log("id context: " + this.handleSetInterval)
+					//console.log("change(s) on : " + this.recordId)
+					//console.log("id context: " + this.handleSetInterval)
 				}
 		
 		  	else if (this.isInsideVectorAlready(this.compile())===true){
-				console.log("no change on :" + this.recordId)
-				console.log("id context: " + this.handleSetInterval)
+				//console.log("no change on :" + this.recordId)
+				//console.log("id context: " + this.handleSetInterval)
 			}
 
-			console.log(" number of entries : " + this.undoredoVector.length)
+			//console.log(" number of entries : " + this.undoredoVector.length)
 			
 		  }, myTime);
 		
