@@ -2983,7 +2983,6 @@ export let multiplemarcrecordcomponent = {
             if (!this.historyMode) {
                 subfield.valueCell.addEventListener("input", keyupAuthLookup);
                 subfield.valueCell.addEventListener("paste", keyupAuthLookup);
-
             }
         },
         removeAuthControl(subfield) {
@@ -3149,18 +3148,18 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
-   
-    if (event.keyCode < 45 && event.keyCode !== 8 && event.keyCode !== 13) {
-        // non ascii or delete keys
-        return
-    }
 
-    if (subfield.value = '') {
-        // if this is a paste event, the subflied value might not be assigned yet
-        subfield.value = subfield.valueSpan.innerText
+    if (event.type === "input") {
+        subfield.value = subfield.valueSpan.innerText.trim();
+    } else if (event.type == "paste") {
+        subfield.value = event.clipboardData.getData("text").trim();
+    } else {
+        throw Error("Event type not recognized")
     }
- 
+    
     subfield.valueSpan.classList.add("authority-controlled-unmatched");
+    clearTimeout(subfield.timer);
+    delete subfield.xref;
     
     // authority creation button
     subfield.xrefCell.innerHTML = null;
@@ -3247,10 +3246,6 @@ function keyupAuthLookup(event) {
  
     let dropdown = document.getElementById("typeahead-dropdown");
     dropdown && dropdown.remove();
- 
-    clearTimeout(subfield.timer);
-    subfield.value = subfield.valueSpan.innerText;
-    delete subfield.xref;
  
     if (subfield.value) {
         subfield.timer = setTimeout(
