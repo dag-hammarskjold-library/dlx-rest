@@ -1197,8 +1197,7 @@ class LookupField(Resource):
                 # exact match
                 conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:\'{val}\'')
                 # matches start
-
-                conditions_2.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:/^{val}/i')
+                conditions_2.append(f'{auth_tag}__{code}:/^{val}/i')
                 # free text
                 conditions_3.append(f'{auth_tag}__{code}:{val}')
 
