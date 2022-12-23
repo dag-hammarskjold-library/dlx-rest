@@ -172,7 +172,7 @@ class Basket(Document):
             self.save()
 
     def add_items(self, items):
-        insert_items = []
+        insert_items = self.items
         for item in items:
             ulid = ULID()
             existing_item = None
