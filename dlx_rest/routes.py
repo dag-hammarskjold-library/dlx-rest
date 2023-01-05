@@ -422,6 +422,11 @@ def search_records(coll):
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
+    # Compare the old query with the new query; if the new query is different, reset pagination
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', '')
+    if q != old_q:
+        start = 1
+
     session.permanent = True
 
     # Move vcoll variable here so we can use it in the session 
