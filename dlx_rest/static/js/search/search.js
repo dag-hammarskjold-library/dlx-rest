@@ -170,7 +170,7 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket" @click="handleIconClick"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
                     </div>
                 </div>
             </div>
@@ -458,6 +458,8 @@ export let searchcomponent = {
                                                     // TODO: acquire the lock status earlier 
                                                     document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
                                                     inputEl.disabled = true
+                                                } else {
+                                                    iconEl.addEventListener("click", component.handleIconClick, true)
                                                 }
                                             }
                                         );
@@ -546,9 +548,10 @@ export let searchcomponent = {
                     e.target.classList.remove("text-muted");
                     e.target.title = "Add to basket";
                 })
-            } else if (e.target.classList.contains("fa-lock")) {
+            } //else if (e.target.classList.contains("fa-lock")) {
                 // To do: unlock
-            } else {
+            //} 
+            else {
                 return false
             }
             return true
