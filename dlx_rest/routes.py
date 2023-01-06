@@ -423,8 +423,11 @@ def search_records(coll):
     q = request.args.get('q', '')
 
     # Compare the old query with the new query; if the new query is different, reset pagination
-    old_q = parse_qs(urlparse(request.referrer).query).get('q', '')
-    if q != old_q:
+    # if old_q contains anything at all, it returns a list, so let's make sure we're checking
+    # for the first string in the list entry instead of assuming we got a string.
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', [None])
+    #print(f'Old: {old_q} | New: {q}')
+    if q != old_q[0]:
         start = 1
 
     session.permanent = True
