@@ -509,7 +509,7 @@ export let multiplemarcrecordcomponent = {
                 recup.deleteField("001");
 		        recup.deleteField("005");
 		        recup.deleteField("008");
-                recup.deleteField("035");
+                //recup.deleteField("035");
 		        recup.deleteField("981");
 		        recup.deleteField("989");
                 recup.deleteField("998");
