@@ -320,7 +320,7 @@ export class DataField {
 
 		// determine the lookup type
 		if (["191", "791", "991"].includes(this.tag)) {
-			url += '&type=partial'
+			url += '&type=text'
 		} else {
 			url += '&type=text'
 		}
