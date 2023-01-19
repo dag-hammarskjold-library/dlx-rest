@@ -262,24 +262,7 @@ class RecordsList(Resource):
         else:
             sort = None
 
-        # temporary solution for symbol numeric sorting
-        #collation = Collation(locale='en', strength=2, numericOrdering=True) if sort_by == 'symbol' else None
-        if sort_by == 'symbol':
-            collation = Collation(locale='en', numericOrdering=True)
-            # convert the query to a query on symbol so that the collation can be used on both search and sort. ugh
-            symbols, i = [], 0
-            
-            for r in cls.from_query(query, projection={'191': 1, '791': 1, 'symbol': 1}):
-                for symbol in r.logical_fields('symbol').values():
-                    symbols.append(symbol)
-                    i += 1
-
-                if i > 5000:
-                    abort(403, "Sorry, can't currently sort this many symbols as search results")
-
-            query = Query(Raw({'symbol': {'$in': symbols}}))
-        else:
-            collation = None
+        collation = Collation(locale='en', strength=1, numericOrdering=True)
 
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
@@ -400,7 +383,10 @@ class RecordsListCount(Resource):
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
-        data = cls().handle.count_documents(query.compile(), maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
+        data = cls().handle.count_documents(
+            query.compile(),
+            collation=Collation(locale='en', strength=1, numericOrdering=True),
+            maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -455,7 +441,7 @@ class RecordsListBrowse(Resource):
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         collation = Collation(
             locale='en', 
-            strength=2,
+            strength=1,
             #alternate='shifted',
             #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
             numericOrdering=True if field in numeric_fields else False
