@@ -262,7 +262,8 @@ class RecordsList(Resource):
         else:
             sort = None
 
-        collation = Collation(locale='en', strength=1, numericOrdering=True)
+        # collation is not implemented in mongomock
+        collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
 
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
@@ -385,7 +386,8 @@ class RecordsListCount(Resource):
         
         data = cls().handle.count_documents(
             query.compile(),
-            collation=Collation(locale='en', strength=1, numericOrdering=True),
+            # collation is not implemented in mongomock
+            collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
             maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
@@ -439,15 +441,20 @@ class RecordsListBrowse(Resource):
         direction = DESC if args.compare == 'less' else ASC
         query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
-        collation = Collation(
-            locale='en', 
-            strength=1,
-            #alternate='shifted',
-            #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
-            numericOrdering=True if field in numeric_fields else False
-        )
+        
+        if Config.TESTING:
+            # collation is not implemented in mongomock
+            collation = None
+        else:
+            collation = Collation(
+                locale='en', 
+                strength=1,
+                #alternate='shifted',
+                #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
+                numericOrdering=True
+            )
+        
         start, limit = int(args.start), int(args.limit)
-
         values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
         
         if args.compare == 'less':
