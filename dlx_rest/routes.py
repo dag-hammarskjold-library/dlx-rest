@@ -5,7 +5,7 @@ import re
 import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
@@ -19,6 +19,15 @@ from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, require
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
+# This function sets an expiration/timeout for idle sessions.
+# We can configure this to anything we like, but 15 minutes is 
+# typical, and mentioned under OICT security controls.
+# If we implement this, we should alert the user with enough 
+# time to respond accordingly.
+@app.before_request
+def make_sesion_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=15)
 
 # Main app routes
 @app.route('/')
