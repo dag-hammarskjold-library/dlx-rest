@@ -29,6 +29,10 @@ def make_sesion_permanent():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=15)
 
+    # Special case for testing, so we can test this without waiting too long
+    if Config.TESTING:
+        app.permanent_session_lifetime = timedelta(minutes=1)
+
 # Main app routes
 @app.route('/')
 def index():
@@ -426,6 +430,7 @@ def get_records_list(coll):
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
+    #print(session.get('_id')) # Returns id if authenticated, or None if not.
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)

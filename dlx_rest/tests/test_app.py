@@ -2,6 +2,7 @@ import os
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import json, re
+#from flask import session
 from dlx_rest.config import Config
 from dlx_rest.forms import LoginForm
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
@@ -50,6 +51,15 @@ def test_logout(client):
     rv = logout(client)
     assert rv.status_code == 200
     assert b'Logged out successfully' in rv.data
+
+def test_session_timeout(client, default_users):
+    with client.session_transaction() as session:
+        #response = client.get('/records/bibs/search')
+        assert session.get('_id') == None
+        user = default_users['admin']
+        rv = login(client, user['email'], user['password'])
+        print(session.get('_id'))
+        assert session.get('_id') != None
 
 # Administration
 # All of these should work only if authenticated.
