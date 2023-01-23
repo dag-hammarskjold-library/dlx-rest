@@ -1377,7 +1377,7 @@ export const validationData = {
             "defaultSubfields": ["a"],
             "saveActions": {
                 "191__b:E/* OR 791__b:E*": {"a": "Economic and Social Council", "b": null, "c": null},
-                "symbol:/^A\\/([1-9]|DEC|RES|BUR|PV|INF|SR|ES-|S-)/": {"b": "General Assembly Plenary", "c": null, "a": "General Assembly"},
+                "191:/^A\\/([1-9]|DEC|RES|BUR|PV|INF|SR|ES-|S-)/": {"b": "General Assembly Plenary", "c": null, "a": "General Assembly"},
                 "710:/UN\\. General Assembly.*(1st|First) Committee/ OR symbol:/A\\/C\\.1\\//": {"c": null, "b": "1st Committee", "a": "General Assembly"},
                 "710:/UN\\. General Assembly.*(2nd|Second) Committee/ OR symbol:/A\\/C\\.2\\//": {"b": "2nd Committee", "c": null, "a": "General Assembly"},
                 "710:/UN\\. General Assembly.*(3rd|Third) Committee/ OR symbol:/A\\/C\\.3\\//": {"a": "General Assembly", "c": null, "b": "3rd Committee"},
