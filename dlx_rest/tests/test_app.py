@@ -24,7 +24,6 @@ def login(client, username, password):
     return response
 
 def logout(client):
-
     response = client.get('/logout', follow_redirects=True)
     return response
 
@@ -56,18 +55,27 @@ def test_logout(client):
     assert b'Logged out successfully' in rv.data
 
 def test_session_timeout(client, default_users):
-    # A new session should be completely empty.
+    # The timeout is lowered to 5 seconds for testing, so we'll sleep just
+    # long enough to ensure the session is timed out.
+    # Also, it turns out that the session from above was still active...
+    time.sleep(7)
     with client.session_transaction() as session:
         response = client.get('/records/bibs/search')
-        print(session)
+        #print(session)
         assert session.get('_fresh') == None
+
+    # A new session should be completely empty.
+    #with client.session_transaction() as session:
+    #    response = client.get('/records/bibs/search')
+    #    print(session)
+    #    assert session.get('_fresh') == None
         
     # While an existing session should have some data in it.
     with client.session_transaction() as session:
         user = default_users['admin']
         rv = login(client, user['email'], user['password'])
         response = client.get('/records/bibs/search')
-        print(session)
+        #print(session)
         assert session.get('_fresh') == False
 
     # Sleep a short amount of time, then try again to make sure the session
@@ -75,16 +83,10 @@ def test_session_timeout(client, default_users):
     time.sleep(2)
     with client.session_transaction() as session:
         response = client.get('/records/bibs/search')
-        print(session)
+        #print(session)
         assert session.get('_fresh') == False
     
-    # The timeout is lowered to 5 seconds for testing, so we'll sleep just
-    # long enough to ensure the session is timed out.
-    time.sleep(7)
-    with client.session_transaction() as session:
-        response = client.get('/records/bibs/search')
-        print(session)
-        assert session.get('_fresh') == None
+    
 
 # Administration
 # All of these should work only if authenticated.
