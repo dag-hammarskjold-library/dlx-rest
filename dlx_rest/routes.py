@@ -31,7 +31,7 @@ def make_sesion_permanent():
 
     # Special case for testing, so we can test this without waiting too long
     if Config.TESTING:
-        app.permanent_session_lifetime = timedelta(minutes=1)
+        app.permanent_session_lifetime = timedelta(seconds=5)
 
 # Main app routes
 @app.route('/')

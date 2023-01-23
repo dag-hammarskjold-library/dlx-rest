@@ -1,7 +1,7 @@
 import os
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
-import json, re
+import json, re, time
 #from flask import session
 from dlx_rest.config import Config
 from dlx_rest.forms import LoginForm
@@ -20,10 +20,13 @@ def test_index(client):
 
 # User session management
 def login(client, username, password):
-    return client.post('/login', data = {'email': username, 'password': password}, follow_redirects=True)
+    response = client.post('/login', data = {'email': username, 'password': password}, follow_redirects=True)
+    return response
 
 def logout(client):
-    return client.get('/logout', follow_redirects=True)
+
+    response = client.get('/logout', follow_redirects=True)
+    return response
 
 def test_login(client, default_users):
     # Get the login form
@@ -53,13 +56,35 @@ def test_logout(client):
     assert b'Logged out successfully' in rv.data
 
 def test_session_timeout(client, default_users):
+    # A new session should be completely empty.
     with client.session_transaction() as session:
-        #response = client.get('/records/bibs/search')
-        assert session.get('_id') == None
+        response = client.get('/records/bibs/search')
+        print(session)
+        assert session.get('_fresh') == None
+        
+    # While an existing session should have some data in it.
+    with client.session_transaction() as session:
         user = default_users['admin']
         rv = login(client, user['email'], user['password'])
-        print(session.get('_id'))
-        assert session.get('_id') != None
+        response = client.get('/records/bibs/search')
+        print(session)
+        assert session.get('_fresh') == False
+
+    # Sleep a short amount of time, then try again to make sure the session
+    # is still active.
+    time.sleep(2)
+    with client.session_transaction() as session:
+        response = client.get('/records/bibs/search')
+        print(session)
+        assert session.get('_fresh') == False
+    
+    # The timeout is lowered to 5 seconds for testing, so we'll sleep just
+    # long enough to ensure the session is timed out.
+    time.sleep(7)
+    with client.session_transaction() as session:
+        response = client.get('/records/bibs/search')
+        print(session)
+        assert session.get('_fresh') == None
 
 # Administration
 # All of these should work only if authenticated.
