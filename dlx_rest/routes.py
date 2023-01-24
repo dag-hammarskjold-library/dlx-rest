@@ -416,6 +416,7 @@ def get_records_list(coll):
     return redirect(url_for('search_records', coll=coll))
 
 @app.route('/records/<coll>/search')
+@login_required
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
@@ -491,6 +492,7 @@ def search_records(coll):
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
 
 @app.route('/records/<coll>/browse')
+@login_required
 def browse(coll):
     api_prefix = url_for('doc', _external=True)
 
@@ -511,14 +513,11 @@ def browse(coll):
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'), title=f'Browse ({request.args.get("type")})')
 
 @app.route('/records/<coll>/browse/<index>')
+@login_required
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
-
-@app.route('/records/<coll>/facets')
-def facet_record(coll):
-    return {"Facets..."}
 
 @app.route('/records/auths/review')
 @login_required
@@ -542,41 +541,8 @@ def review_auth():
 
     return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths", title="AuthReview")
 
-
-def search_records_old(coll):
-    '''Collect arguments'''
-    #print(f"Args: {request.args}")
-    limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 1)
-    q = request.args.get('q', '')
-
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-    print(f"Endpoint: {endpoint}")
-    data = requests.get(endpoint).json()
-    records = []
-    for r in data['data']:
-        record = build_head(coll, r)
-        records.append(record)
-
-    prev_page = None
-    next_page = None
-
-    record_count_url = data['_links']['related']['count']
-
-    if not len(records) < int(limit):
-        next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
-    if int(start) > int(limit):
-        prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
-
-    #parameters to call the API
-    this_prefix = url_for('doc', _external=True)
-        
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url, prefix=this_prefix)
-
-
 @app.route('/records/<coll>/<id>', methods=['GET'])
+@login_required
 def get_record_by_id(coll,id):
     # register the permission, but don't require it yet, TBI
     #register_permission('updateRecord')
