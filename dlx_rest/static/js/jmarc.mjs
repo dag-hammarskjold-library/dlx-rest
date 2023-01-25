@@ -1113,7 +1113,6 @@ export class Jmarc {
 
 	runSaveActions() {
 		let addedFields = [];
-
 		// parse rules
 		Object.keys(validationData[this.collection]).forEach(tag => {
 			if ("saveActions" in validationData[this.collection][tag]) {
@@ -1163,7 +1162,7 @@ export class Jmarc {
 
 								return false
 							}
-
+							
 							switch(modifier) {
 								case "": 
 									last_bool = evaluate(this, tag, sub, value);
