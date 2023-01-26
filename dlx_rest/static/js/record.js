@@ -3148,15 +3148,22 @@ function keyupAuthLookup(event) {
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
+    let dropdown = document.getElementById("typeahead-dropdown");
 
     if (event.type === "input") {
+        if (dropdown && dropdown.list) {
+            // the drodpwn list is being navigated. not sure why it triggers the inupt event
+            return
+        }
+
         subfield.value = subfield.valueSpan.innerText.trim();
     } else if (event.type == "paste") {
         subfield.value = event.clipboardData.getData("text").trim();
     } else {
         throw Error("Event type not recognized")
     }
-    
+
+    dropdown && dropdown.remove();
     subfield.valueSpan.classList.add("authority-controlled-unmatched");
     clearTimeout(subfield.timer);
     delete subfield.xref;
@@ -3244,9 +3251,6 @@ function keyupAuthLookup(event) {
         )
     });
  
-    let dropdown = document.getElementById("typeahead-dropdown");
-    dropdown && dropdown.remove();
- 
     if (subfield.value) {
         subfield.timer = setTimeout(
             function () {
@@ -3286,6 +3290,7 @@ function keyupAuthLookup(event) {
                     subfield.valueSpan.addEventListener("keydown", (event) => {
                         if (event.keyCode === 40) {
                             // down arrow key
+                            dropdown.list = list;
                             list.focus(); // list now navigable by default <select> behavior
                             list.firstChild.selected = true; // jump to to first choice
                         }
