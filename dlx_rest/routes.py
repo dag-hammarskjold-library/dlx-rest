@@ -5,7 +5,7 @@ import re
 import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
@@ -19,6 +19,19 @@ from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, require
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
+# This function sets an expiration/timeout for idle sessions.
+# We can configure this to anything we like, but 15 minutes is 
+# typical, and mentioned under OICT security controls.
+# If we implement this, we should alert the user with enough 
+# time to respond accordingly.
+@app.before_request
+def make_sesion_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=15)
+
+    # Special case for testing, so we can test this without waiting too long
+    if Config.TESTING:
+        app.permanent_session_lifetime = timedelta(seconds=5)
 
 # Main app routes
 @app.route('/')
@@ -417,6 +430,7 @@ def get_records_list(coll):
 
 @app.route('/records/<coll>/search')
 def search_records(coll):
+    #print(session.get('_id')) # Returns id if authenticated, or None if not.
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
