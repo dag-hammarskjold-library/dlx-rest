@@ -3284,6 +3284,12 @@ function keyupAuthLookup(event) {
                      // doesn't build correctly when there is only one choice
                     list.className = "list-group";
                     // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
+
+                    list.addEventListener("change", function() {
+                        list.childNodes.forEach(x => {
+                            x.classList.remove("lookup-choice-hover");
+                        });
+                    })
                     
                     // navigate into dropdown choices with down arrow key
                     // should it be with return instead?
@@ -3306,11 +3312,15 @@ function keyupAuthLookup(event) {
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
                        
                         item.addEventListener("mouseover", function () {
-                            item.classList.add("lookup-choice");
+                            if (dropdown.list) {
+                                dropdown.list.childNodes.forEach(x => {x.selected = false})
+                            }
+
+                            item.classList.add("lookup-choice-hover");
                         });
                        
                         item.addEventListener("mouseout", function () {
-                            item.classList.remove("lookup-choice");
+                            item.classList.remove("lookup-choice-hover");
                             subfield.value = subfield.valueSpan.innerText;
                         });
                        
