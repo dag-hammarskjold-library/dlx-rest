@@ -20,14 +20,10 @@ from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserFo
 from dlx_rest.utils import is_safe_url
 
 # This function sets an expiration/timeout for idle sessions.
-# We can configure this to anything we like, but 15 minutes is 
-# typical, and mentioned under OICT security controls.
-# If we implement this, we should alert the user with enough 
-# time to respond accordingly.
 @app.before_request
 def make_sesion_permanent():
     session.permanent = True
-    app.permanent_session_lifetime = timedelta(minutes=15)
+    app.permanent_session_lifetime = timedelta(hours=12)
 
     # Special case for testing, so we can test this without waiting too long
     if Config.TESTING:
