@@ -1178,7 +1178,6 @@ class LookupField(Resource):
 
             for code in codes:
                 val = request.args[code]
-                #val = re.escape(val)
                 sparams[code] = val
                 auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
 
@@ -1188,27 +1187,27 @@ class LookupField(Resource):
                 tags = [auth_tag]
 
                 # exact match
-                conditions_1.append(f'{auth_tag}__{code}:{val} AND {auth_tag}__{code}:\'{val}\'')
-                # matches start
-                conditions_2.append(f'{auth_tag}__{code}:/^{val}/i')
+                #conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
+                # starts with
+                conditions_1.append(f'{auth_tag}__{code}:/^{re.escape(val)}/i')
                 # free text
-                conditions_3.append(f'{auth_tag}__{code}:{val}')
+                conditions_2.append(f'{auth_tag}__{code}:{val}')
 
             querystring = " AND ".join(conditions_1)
             query = Query.from_string(querystring)
             proj = dict.fromkeys(tags, 1)
             start = int(request.args.get('start', 1))
-            cln = {'locale': 'en', 'strength': 1}
+            cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
             auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+
+            #if len(auths) < 25:
+            #    querystring = " AND ".join(conditions_2)
+            #    query = Query.from_string(querystring)
+            #    more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            #    auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
             if len(auths) < 25:
                 querystring = " AND ".join(conditions_2)
-                query = Query.from_string(querystring)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-
-            if len(auths) < 25:
-                querystring = " AND ".join(conditions_3)
                 query = Query.from_string(querystring)
                 more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
                 auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
