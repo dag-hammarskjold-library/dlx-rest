@@ -2842,6 +2842,13 @@ export let multiplemarcrecordcomponent = {
                         )
                     }
 
+                    // character xformations
+                    if (valSpan.innerText.match(/[\x{2018}\x{2019}\x{201C}\x{201D}]/)) {
+                        valSpan.innerText = valSpan.innerText
+                            .replace(/[\u2018\u2019]/g, "'")
+                            .replace(/[\u201C\u201D]/g, '"')
+                    }
+
                     valSpan.classList.remove("subfield-value-selected");
                     component.clearSelectedSubfield(jmarc);
                     subfield.selected = false;
