@@ -340,9 +340,9 @@ export class DataField {
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
 						field.indicators = auth[tag][0].indicators;
-						let wantedSubfields = Object.keys(authMap[collection][this.tag]);
+						//let wantedSubfields = Object.keys(authMap[collection][this.tag]);
 						
-						for (let sf of auth[tag][0]['subfields'].filter(x => wantedSubfields.includes(x.code))) {
+						for (let sf of auth[tag][0]['subfields']) { //.filter(x => wantedSubfields.includes(x.code))) {
 							field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
 						}
 						
