@@ -2843,8 +2843,9 @@ export let multiplemarcrecordcomponent = {
                     }
 
                     // character xformations
-                    if (valSpan.innerText.match(/[\x{2018}\x{2019}\x{201C}\x{201D}]/)) {
+                    if (valSpan.innerText.match(/[’\x{2018}\x{2019}\x{201C}\x{201D}\x{0060}\x{0084}]/)) {
                         valSpan.innerText = valSpan.innerText
+                            .replace(/[\u0060\u0084/]/, "'")
                             .replace(/[\u2018\u2019]/g, "'")
                             .replace(/[\u201C\u201D]/g, '"')
                     }
