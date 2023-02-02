@@ -1385,7 +1385,7 @@ export const validationData = {
                 "710:/UN\\. General Assembly.*(5th|Fifth) Committee/ OR 191:/A\\/C\\.5\\// OR 791:/A\\/C\\.5\\//": {"b": "5th Committee", "c": null, "a": "General Assembly"},
                 "710:/UN\\. General Assembly.*(6th|Sixth) Committee/ OR 191:/A\\/C\\.6\\// OR 791:/A\\/C\\.6\\//": {"a": "General Assembly", "c": null, "b": "6th Committee"},
                 "191__b:/^A\\/HRC\\// OR 710:/UN\. Human Rights Council.*/": {"a": "General Assembly", "b": "Human Rights Council", "c": null},
-                "191__a:/^A\\/(AB|AC|CONF|CR|COPUOS|Executive|HQC|ICH|LA|LN|NC|SEC|SITE|UNRRA|WGAP|WGFS|WGUNS)/": {"a": "General Assembly", "b": "Subsidiary Bodies", "c": null},
+                "191__a:/^A\\/(AB|AC|CONF|CR|COPUOS|Executive|HQC|ICH|LA|LN|CN|SEC|SITE|UNRRA|WGAP|WGFS|WGUNS)/": {"a": "General Assembly", "b": "Subsidiary Bodies", "c": null},
                 "191__b:ICJ/* OR 710:ICJ*": {"a": "International Court of Justice", "b": null, "c": null},
                 "191__b:ST/*": {"c": null, "b": null, "a": "Secretariat"},
                 "191__b:/^S\// OR 791__b:/^S\// OR 710:'UN. Security Council'": {"a": "Security Council", "c": null, "b": null},
