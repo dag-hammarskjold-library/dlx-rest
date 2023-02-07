@@ -2843,10 +2843,18 @@ export let multiplemarcrecordcomponent = {
                     }
 
                     // character xformations
-                    if (valSpan.innerText.match(/[\x{2018}\x{2019}\x{201C}\x{201D}]/)) {
+                    if (valSpan.innerText.match(/[\u2018\u2019\u201C\u201D\u0060\u00b4]/)) {
                         valSpan.innerText = valSpan.innerText
+                            .replace(/[\u0060\u00b4]/g, "'")
                             .replace(/[\u2018\u2019]/g, "'")
-                            .replace(/[\u201C\u201D]/g, '"')
+                            .replace(/[\u201C\u201D]/g, '"');
+
+                        updateSubfieldValue();
+
+                        component.callChangeStyling(
+                            `Converted quotation mark character in ${field.tag}$${subfield.code}`,
+                            "d-flex w-100 alert-success"
+                        )
                     }
 
                     valSpan.classList.remove("subfield-value-selected");
