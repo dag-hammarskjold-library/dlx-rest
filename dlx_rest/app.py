@@ -19,7 +19,7 @@ login_manager.login_view = "login"
 login_manager.login_message =""
 
 connect(host=Config.connect_string,db=Config.dbname)
-DB.connect(Config.connect_string)
+DB.connect(Config.connect_string,database=Config.dbname)
 
 try:
     app.secret_key=Config.secret_key

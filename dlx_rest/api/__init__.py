@@ -39,7 +39,7 @@ authorizations = {
 
 api = Api(app, doc='/api/', authorizations=authorizations)
 ns = api.namespace('api', description='DLX MARC REST API')
-DB.connect(Config.connect_string)
+DB.connect(Config.connect_string, database=Config.dbname)
     
 # Set up the login manager for the API
 @login_manager.request_loader

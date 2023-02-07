@@ -25,8 +25,8 @@ class Config(object):
         environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='dev-dlx-connect-string')['Parameter']['Value']
-        dbname = 'dev_undlFiles'
+        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
