@@ -1151,10 +1151,10 @@ export class Jmarc {
 											.replaceAll("*", ".*");
 									}
 
-									let rx = new RegExp(regex);
+									let rx = new RegExp(regex, 'i'); // case insensitive
 
 									for (let subfield of subfields) {
-										if (subfield.value.match(rx)) {
+										if (subfield.value.match(rx)) { 
 											return true
 										}
 									}
@@ -1166,6 +1166,9 @@ export class Jmarc {
 							switch(modifier) {
 								case "": 
 									last_bool = evaluate(this, tag, sub, value);
+									break
+								case "NOT": 
+									last_bool = ! evaluate(this, tag, sub, value);
 									break
 								case "AND":
 									last_bool = last_bool && evaluate(this, tag, sub, value);
