@@ -51,7 +51,7 @@ six==1.16.0
 tomli==2.0.1
 troposphere==4.0.1
 urllib3==1.26.9
-Werkzeug==2.0.3
+Werkzeug==2.2.3
 WTForms==3.0.1
 xlrd==1.2.0
 xmldiff==2.4
