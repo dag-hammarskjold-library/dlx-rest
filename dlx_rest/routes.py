@@ -64,7 +64,7 @@ def load_user(id):
     try:
         user = User.objects.get(id=id)
     except:
-        return False
+        return None
     # Hopefully this re-generates every 10 minutes of activity...
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
@@ -73,6 +73,8 @@ def load_user(id):
 def login():
     next_url = request.args.get('next')
     form = LoginForm()
+
+    print(current_user)
 
     if current_user.is_authenticated:
         if not is_safe_url(request, next_url):
