@@ -74,8 +74,6 @@ def login():
     next_url = request.args.get('next')
     form = LoginForm()
 
-    print(current_user)
-
     if current_user.is_authenticated:
         if not is_safe_url(request, next_url):
             return abort(400)
