@@ -2,9 +2,15 @@
 
 import { validationData } from "./validation.js";
 
+// todo: fetch this data from the API to avoid redundancy
 const authMap = {
 	"bibs": {
+		'100': {'a': '100'},
+		'110': {'a': '110'},
+		'111': {'a': '111'},
+		'130': {'a': '130'},
 		'191': {'b': '190', 'c': '190'},
+		'440': {'a': '140'},
 		'600': {'a': '100', 'g': '100'},
 		'610': {'a': '110', 'g': '110'},
 		'611': {'a': '111', 'g': '111'},

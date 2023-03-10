@@ -266,6 +266,7 @@ class RecordsList(Resource):
         collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
 
         # exec query
+        #print('Executing query: ' + query.to_json())
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 
         # process
