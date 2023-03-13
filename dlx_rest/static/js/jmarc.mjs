@@ -4,6 +4,7 @@ import { validationData } from "./validation.js";
 
 // todo: fetch this data from the API to avoid redundancy
 const authMap = {
+	// this should be coming form the API @ /marc/<bibs|auths>/lookup/map
 	"bibs": {
 		'100': {'a': '100'},
 		'110': {'a': '110'},
@@ -26,7 +27,7 @@ const authMap = {
 		'991': {'a': '191', 'b': '191', 'c': '191', 'd': '191'}
 	},
 	"auths": {
-		//'491': {'a': '191'}, # ?
+		'491': {'a': '191', 'b': '191', 'c': '191', 'd': '191'},
 		'500': {'a': '100'},
 		'510': {'a': '110'},
 		'511': {'a': '111'},
