@@ -29,6 +29,13 @@ export let browsecomponent = {
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
             <div class="row"><h3>Browsing {{recordType}}/{{index}} at {{q}}</h3></div>
+            <div class="row">
+                <div class="form-group">
+                    <label for="searchAgain">Your search: </label>
+                    <input id="searchAgain" type="text" :value=q>
+                    <button type="button mx-2" class="btn btn-primary" value="Search" @click="resubmitBrowse(index)">Search Again</button></td>
+                </div>
+            </div>
             <nav>
                 <ul class="pagination pagination-md justify-content-left">
                     <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
@@ -299,6 +306,14 @@ export let browsecomponent = {
                     window.location.href=targetUrl;
                 },0)
             }
+        },
+        resubmitBrowse(index) {
+            let val = document.getElementById("searchAgain").value
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${index}?q=${val}&type=${this.recordType}`
+            history.pushState({}, window.location.href);
+            setTimeout(function(){
+                window.location.href=targetUrl;
+            },0)
         },
         selectAll(e) {
             e.preventDefault()
