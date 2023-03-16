@@ -266,7 +266,7 @@ class RecordsList(Resource):
         collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
 
         # exec query
-        #print('Executing query: ' + query.to_json())
+        print(query.to_json())
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 
         # process
@@ -322,7 +322,6 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
     
         user = current_user if request_loader(request) is None else request_loader(request)
-        
 
         if args.format == 'mrk':
             
@@ -1402,6 +1401,7 @@ class WorkformsList(Resource):
         # interim implementation
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         workforms = workform_collection.find({})
+        #print(workforms)
         data = [URL('api_workform', collection=collection, workform_name=t['name']).to_str() for t in workforms]
         
         links = {

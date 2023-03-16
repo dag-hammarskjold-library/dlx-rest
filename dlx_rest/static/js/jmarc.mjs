@@ -802,6 +802,8 @@ export class Jmarc {
 					this.url = null;
 				
 					return this;
+				} else if (response.status == 403) {
+					throw new Error("Auth record in use")
 				}
 				
 				return response.json()
