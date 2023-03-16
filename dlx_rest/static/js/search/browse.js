@@ -30,11 +30,13 @@ export let browsecomponent = {
         <div v-if="q && index">
             <div class="row"><h3>Browsing {{recordType}}/{{index}} at {{q}}</h3></div>
             <div class="row">
+                <form>
                 <div class="form-group">
                     <label for="searchAgain">Your search: </label>
                     <input id="searchAgain" type="text" :value=q>
                     <button type="button mx-2" class="btn btn-primary" value="Search" @click="resubmitBrowse(index)">Search Again</button></td>
                 </div>
+                </form>
             </div>
             <nav>
                 <ul class="pagination pagination-md justify-content-left">
