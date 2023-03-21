@@ -266,7 +266,6 @@ class RecordsList(Resource):
         collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
 
         # exec query
-        print(query.to_json())
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 
         # process
@@ -876,12 +875,17 @@ class RecordFieldPlace(Resource):
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
     def delete(self, collection, record_id, field_tag, field_place):
-        #user = f'testing' if current_user.is_anonymous else current_user.email
+        abort(503, 'This route is under construction')
 
         user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
+        
+        if record.get_field(field_tag, place=field_place) is None:
+            print(record.id)
+            print('???\n' + record.to_mrk())
+        
         record.get_field(field_tag, place=field_place) or abort(404)
 
         if not has_permission(user, "updateRecord", record, collection):
