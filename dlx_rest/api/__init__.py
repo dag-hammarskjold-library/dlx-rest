@@ -1405,6 +1405,7 @@ class WorkformsList(Resource):
         # interim implementation
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         workforms = workform_collection.find({})
+        #print(workforms)
         data = [URL('api_workform', collection=collection, workform_name=t['name']).to_str() for t in workforms]
         
         links = {

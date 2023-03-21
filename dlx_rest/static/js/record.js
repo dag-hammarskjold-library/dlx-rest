@@ -457,10 +457,16 @@ export let multiplemarcrecordcomponent = {
                             let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
 
                             if (! window.confirm(msg)) {
+                                jmarc.saveButton.classList.remove("fa-spinner");
+                                jmarc.saveButton.classList.remove("fa-pulse");
+                                jmarc.saveButton.style = "pointer-events: auto";
                                 return
                             }
                         } else if (headingField.tag !== "100" && inUse === true && isNewVal) {
                             this.callChangeStyling(`The heading "${headingString}" is already in use. Headings for records with tag ${headingField.tag} cannot be duplicated`, "d-flex w-100 alert-danger")
+                            jmarc.saveButton.classList.remove("fa-spinner");
+                            jmarc.saveButton.classList.remove("fa-pulse");
+                            jmarc.saveButton.style = "pointer-events: auto";
                             return
                         }
                     }
@@ -903,6 +909,10 @@ export let multiplemarcrecordcomponent = {
                         //this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
                         this.$root.$refs.basketcomponent.rebuildBasket()
                     }).catch( error => {
+                        jmarc.deleteButton.classList.remove("fa-spinner");
+                        jmarc.deleteButton.classList.remove("fa-pulse");
+                        jmarc.deleteButton.style = "pointer-events: auto";
+
                         this.callChangeStyling(error.message,"d-flex w-100 alert-danger");
                     });
                 }
@@ -2826,35 +2836,38 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valSpan.addEventListener("blur", function() {
-                    // remove extraneous whitespace
-                    if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
-                        valSpan.innerText = 
-                            valSpan.innerText
-                            .replace(/[\r\n]/g, ' ')
-                            .trim()
-                            .replace(/ {2,}/g, ' ');
-                        
-                        updateSubfieldValue();
-                        
-                        component.callChangeStyling(
-                            `Extraneous whitespace removed from ${field.tag}$${subfield.code}`,
-                            "d-flex w-100 alert-success"
-                        )
-                    }
+                    if (! jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                        // not auth controlled
+                        // remove extraneous whitespace
+                        if (valSpan.innerText.match(/(^\s)|(\s$)|([\r\n])|(\s{2,})/)) {
+                            valSpan.innerText = 
+                                valSpan.innerText
+                                .replace(/[\r\n]/g, ' ')
+                                .trim()
+                                .replace(/ {2,}/g, ' ');
 
-                    // character xformations
-                    if (valSpan.innerText.match(/[\u2018\u2019\u201C\u201D\u0060\u00b4]/)) {
-                        valSpan.innerText = valSpan.innerText
-                            .replace(/[\u0060\u00b4]/g, "'")
-                            .replace(/[\u2018\u2019]/g, "'")
-                            .replace(/[\u201C\u201D]/g, '"');
+                            updateSubfieldValue();
 
-                        updateSubfieldValue();
+                            component.callChangeStyling(
+                                `Extraneous whitespace removed from ${field.tag}$${subfield.code}`,
+                                "d-flex w-100 alert-success"
+                            )
+                        }
 
-                        component.callChangeStyling(
-                            `Converted quotation mark character in ${field.tag}$${subfield.code}`,
-                            "d-flex w-100 alert-success"
-                        )
+                        // character xformations
+                        if (valSpan.innerText.match(/[\u2018\u2019\u201C\u201D\u0060\u00b4]/)) {
+                            valSpan.innerText = valSpan.innerText
+                                .replace(/[\u0060\u00b4]/g, "'")
+                                .replace(/[\u2018\u2019]/g, "'")
+                                .replace(/[\u201C\u201D]/g, '"');
+
+                            updateSubfieldValue();
+
+                            component.callChangeStyling(
+                                `Converted quotation mark character in ${field.tag}$${subfield.code}`,
+                                "d-flex w-100 alert-success"
+                            )
+                        }
                     }
 
                     valSpan.classList.remove("subfield-value-selected");

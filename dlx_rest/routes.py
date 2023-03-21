@@ -424,6 +424,9 @@ def get_records_list(coll):
     # This is just a passthrough route
     return redirect(url_for('search_records', coll=coll))
 
+def get_index_list(record_type):
+    return index_list
+
 @app.route('/records/<coll>/search')
 @login_required
 def search_records(coll):
@@ -527,6 +530,7 @@ def browse(coll):
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
+    
     return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
 
 @app.route('/records/auths/review')
