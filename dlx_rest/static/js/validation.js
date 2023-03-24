@@ -497,7 +497,10 @@ export const validationData = {
                     "B25",
                     "B26",
                     "B27",
-                    "B28"
+                    "B28",
+                    "C01",
+                    "C02",
+                    "C08"
                 ]
             }
         },
