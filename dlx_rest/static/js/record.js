@@ -2175,9 +2175,40 @@ export let multiplemarcrecordcomponent = {
 
                // editable case
                if (renderingPolicy[String(`${field.tag}`)]["editable"]==false){
-                    for (let b of field.row.querySelectorAll("button[data-toggle='dropdown']" )) {
-                        b.setAttribute("disabled", true)
+
+                    // let myTable = field.row
+                    // let mySpan0 = myTable.getElementsByTagName('span');
+                    // let mySpan=field.row.find("span");
+                    // console.log(mySpan)
+                    // for (let t = 0; t < mySpan0.length; t++){
+                    //     mySpan0[t].contentEditable="false";
+                    //     console.log(mySpan0[t].parentElement.parentElement.nodeName)
+                    // }
+                    // recup=field.row.parentElement
+                    // console.log(recup)
+                    
+                    // tag case 
+                    for (let el of table.querySelectorAll('span[tabindex="0"]')) {
+                        //console.log(el.textContent)
+                        // console.log(el.textContent) 
+                        // console.log(field.tag)
+                        if (el.textContent == field.tag) {
+                            console.log("inside")
+                            el.setAttribute("disable", true)
+                            el.setAttribute("style","background-color:cyan;")
+                        }
                     }
+    
+                    //field.row.find("input,button,textarea,select,span").attr("disabled", "disabled");
+                    // let recup=field.row.getElementsByTagName("span")
+                    // let arr = Array.from(recup);
+                    // alert(arr)
+                    // .each((element)=>{
+                    //         element.setAttribute("contenteditable", "false");
+                    // })
+                    // for (let b of field.row.querySelectorAll("button[data-toggle='dropdown']" )) {
+                    //     b.setAttribute("disabled", true)
+                    // }
 
 //                        for (let s of field.row.querySelectorAll("span")) {
 //                            s.setAttribute("contenteditable", false)
