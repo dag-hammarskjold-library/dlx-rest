@@ -16,6 +16,7 @@ import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
 import { validationData } from "./validation.js";
+import { renderingData } from "./rendering.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -268,7 +269,7 @@ export let multiplemarcrecordcomponent = {
                 // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
                 let wfCollection = this.fromworkform.split('/')[0];
                 let wfRecordId = this.fromworkform.split('/')[1]
-                //console.log(wfCollection, wfRecordId)
+
 
                 //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
                 Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
@@ -375,7 +376,7 @@ export let multiplemarcrecordcomponent = {
                     checkbox.click()
                 }
             }
-            //console.log(this.copiedFields)
+
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
@@ -496,7 +497,6 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            //console.log(jmarc.div.id)
 
             if (jmarc.div) {
                 //this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -578,7 +578,6 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No fields are selected to paste", "d-flex w-100 alert-danger")
                 return
             }
-            //console.log(this.copiedFields)
 
             let seen = [];
 
@@ -773,7 +772,7 @@ export let multiplemarcrecordcomponent = {
                     
                     if (_089) {
                         let _089_a = _089.getSubfield("b").value
-                        //console.log(recordType)
+
                         if (_089_a && _089_a == "B22") {
                             vcoll = "speeches"
                         } else if (_089_a && _089_a == "B23") {
@@ -781,7 +780,7 @@ export let multiplemarcrecordcomponent = {
                         }  
                     }  
                 }
-                //console.log(vcoll)
+
                 let validatedField = validationData[vcoll][e.target.value]
                 if (!validatedField) {
                     // fallback so we don't have to re-specify fields unnecessarily
@@ -1514,7 +1513,7 @@ export let multiplemarcrecordcomponent = {
 
             // put the history record on read only mode
             //this.historyJmarcHistory.readOnly=true
-            //console.log(this.historyJmarcHistory.readOnly)
+
 
             let recordDiff = this.historyJmarcHistory.diff(this.historyJmarcOriginal)
             recordDiff.readOnly = true
@@ -1543,7 +1542,6 @@ export let multiplemarcrecordcomponent = {
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
         filterRecordView(record,filter)
         {
-            console.log(typeof(record))
             try {
                     // check the size of the filter
                     if (filter && filter[0].collection===record.collection){ // we should filter on the same collection
@@ -1719,9 +1717,7 @@ export let multiplemarcrecordcomponent = {
                 this.historyMode=false
                 
             }
- 
-            //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
-            // needed?
+
             this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
             let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
             window.history.replaceState({}, null, updatedUrl);
@@ -2156,23 +2152,57 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
+
             let component = this;
             let jmarc = field.parentRecord;
 
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
+
             // diff-bg
             field.row = tableBody.insertRow(place);
             if (field.isDiff) {
                 field.row.setAttribute("style","background-color:cyan;")
             }
-   
+
+            // retrieve the values for rendering purpose
+            let renderingPolicy=renderingData[jmarc.collection]
+            if (renderingPolicy[String(`${field.tag}`)]){
+                // visible case
+               if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
+                    field.row.classList.add("hidden-field");
+               }
+
+               // editable case
+               if (renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                    for (let b of field.row.querySelectorAll("button[data-toggle='dropdown']" )) {
+                        b.setAttribute("disabled", true)
+                    }
+
+//                        for (let s of field.row.querySelectorAll("span")) {
+//                            s.setAttribute("contenteditable", false)
+//                            s.removeEventListener('blur', this.subfieldCodeUpdate)
+//                            s.removeEventListener('focus', this.subfieldCodeActivate)
+//                            s.removeEventListener('click', this.subfieldCodeActivate)
+//                        }
+//
+//                        for (let d of field.row.querySelectorAll("div")) {
+//                            d.setAttribute("contenteditable", false)
+//                            d.removeEventListener('click', this.subfieldCodeActivate)
+//                        }
+
+
+               }
+
+            }
+
             // add the checkboxes
             let checkCell = field.row.insertCell();
             checkCell.className = "field-checkbox";
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
             inputCheckboxCell.setAttribute("type","checkbox")
+
             // adding the checkbox only if we are not in dual mode
             if (!this.historyMode) checkCell.appendChild(inputCheckboxCell)
    
