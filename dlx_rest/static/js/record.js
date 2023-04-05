@@ -2167,14 +2167,16 @@ export let multiplemarcrecordcomponent = {
 
             // retrieve the values for rendering purpose
             let renderingPolicy=renderingData[jmarc.collection]
-            if (renderingPolicy[String(`${field.tag}`)]){
-                // visible case
-               if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
-                    field.row.classList.add("hidden-field");
-               }
+            if (renderingPolicy[field.tag]){
 
-               // editable case
-               if (renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                // visible case
+                if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
+                    field.row.classList.add("hidden-field");
+                }
+
+                // editable case
+                if (false) { //(renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                    // do this when building the elements? - JB
 
                     // let myTable = field.row
                     // let mySpan0 = myTable.getElementsByTagName('span');
@@ -2223,8 +2225,7 @@ export let multiplemarcrecordcomponent = {
 //                        }
 
 
-               }
-
+                }
             }
 
             // add the checkboxes
@@ -2379,6 +2380,12 @@ export let multiplemarcrecordcomponent = {
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate() {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 component.fieldSelected(field);
                 tagCell.classList.add("field-tag-selected");
 
@@ -2510,6 +2517,12 @@ export let multiplemarcrecordcomponent = {
             }
 
             function indActivate(ind) {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag]
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 let [cell, div, span] = [null, null, null];
 
                 if (ind === 1) {
@@ -2701,7 +2714,11 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell = valCell;
             subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
             valSpan.innerText = subfield.value;
-            valSpan.contentEditable = true;
+            let renderingPolicy = renderingData[jmarc.collection][field.tag]
+            
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                valSpan.contentEditable = false;
+            }
 
             // create the last cell
             subfield.xrefCell = subfield.row.insertCell()
@@ -2739,6 +2756,12 @@ export let multiplemarcrecordcomponent = {
 
             // Subfield code actions
             function subfieldCodeActivate() {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 component.clearSelectedSubfield(jmarc);
                 subfield.selected = true;
                 codeCell.classList.add("subfield-code-selected");
@@ -2823,9 +2846,7 @@ export let multiplemarcrecordcomponent = {
             }
             
             function updateSubfieldValue() {
-
                 subfield.value = valSpan.innerText;
-
                 valCell.classList.remove("unsaved");
 
                 // validations
@@ -2874,6 +2895,12 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valSpan.addEventListener("focus", function() {
+                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                    if (renderingPolicy && renderingPolicy["editable"] === false) {
+                        return
+                    }
+
                     component.fieldSelected(field);
                     valSpan.classList.add("subfield-value-selected");
                     component.clearSelectedSubfield(jmarc);
@@ -2881,6 +2908,12 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valCell.addEventListener("click", function() {
+                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                    if (renderingPolicy && renderingPolicy["editable"] === false) {
+                        return
+                    }
+
                     valSpan.classList.add("subfield-value-selected");
                     component.clearSelectedSubfield(jmarc);
                     subfield.selected = true;
