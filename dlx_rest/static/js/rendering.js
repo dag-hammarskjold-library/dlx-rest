@@ -8,6 +8,10 @@ export const renderingData = {
             "visible": false,
             "editable": false
         },
+        "998": {
+            "visible": true,
+            "editable": false
+        }
     },
     "auths": {
         "XXX": {
