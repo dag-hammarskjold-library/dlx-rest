@@ -2173,59 +2173,6 @@ export let multiplemarcrecordcomponent = {
                 if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
                     field.row.classList.add("hidden-field");
                 }
-
-                // editable case
-                if (false) { //(renderingPolicy[String(`${field.tag}`)]["editable"]==false){
-                    // do this when building the elements? - JB
-
-                    // let myTable = field.row
-                    // let mySpan0 = myTable.getElementsByTagName('span');
-                    // let mySpan=field.row.find("span");
-                    // console.log(mySpan)
-                    // for (let t = 0; t < mySpan0.length; t++){
-                    //     mySpan0[t].contentEditable="false";
-                    //     console.log(mySpan0[t].parentElement.parentElement.nodeName)
-                    // }
-                    // recup=field.row.parentElement
-                    // console.log(recup)
-                    
-                    // tag case 
-                    for (let el of table.querySelectorAll('span[tabindex="0"]')) {
-                        //console.log(el.textContent)
-                        // console.log(el.textContent) 
-                        // console.log(field.tag)
-                        if (el.textContent == field.tag) {
-                            console.log("inside")
-                            el.setAttribute("disable", true)
-                            el.setAttribute("style","background-color:cyan;")
-                        }
-                    }
-    
-                    //field.row.find("input,button,textarea,select,span").attr("disabled", "disabled");
-                    // let recup=field.row.getElementsByTagName("span")
-                    // let arr = Array.from(recup);
-                    // alert(arr)
-                    // .each((element)=>{
-                    //         element.setAttribute("contenteditable", "false");
-                    // })
-                    // for (let b of field.row.querySelectorAll("button[data-toggle='dropdown']" )) {
-                    //     b.setAttribute("disabled", true)
-                    // }
-
-//                        for (let s of field.row.querySelectorAll("span")) {
-//                            s.setAttribute("contenteditable", false)
-//                            s.removeEventListener('blur', this.subfieldCodeUpdate)
-//                            s.removeEventListener('focus', this.subfieldCodeActivate)
-//                            s.removeEventListener('click', this.subfieldCodeActivate)
-//                        }
-//
-//                        for (let d of field.row.querySelectorAll("div")) {
-//                            d.setAttribute("contenteditable", false)
-//                            d.removeEventListener('click', this.subfieldCodeActivate)
-//                        }
-
-
-                }
             }
 
             // add the checkboxes
@@ -2234,6 +2181,13 @@ export let multiplemarcrecordcomponent = {
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
             inputCheckboxCell.setAttribute("type","checkbox")
+
+            // check if this field is part of the rendering policy
+            let policyMenuTwo = renderingData[jmarc.collection][field.tag];
+            if (policyMenuTwo)
+                if (policyMenuTwo["editable"] === false) {
+                    inputCheckboxCell.disabled=true
+                }
 
             // adding the checkbox only if we are not in dual mode
             if (!this.historyMode) checkCell.appendChild(inputCheckboxCell)
@@ -2265,7 +2219,14 @@ export let multiplemarcrecordcomponent = {
  
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
- 
+
+            // check if this field is part of the rendering policy
+            let policyMenuOne = renderingData[jmarc.collection][field.tag];
+            if (policyMenuOne)
+                if (policyMenuOne["editable"] === false) {
+                    menuButton.disabled=true
+                }
+            
             // menu item add field
             let addField = document.createElement("i");
             tagMenu.append(addField);
@@ -2663,6 +2624,13 @@ export let multiplemarcrecordcomponent = {
    
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
+            
+            // check if this field is part of the rendering policy
+            let policyMenuOne = renderingData[jmarc.collection][field.tag];
+            if (policyMenuOne)
+                if (policyMenuOne["editable"] === false) {
+                    menuButton.disabled=true
+                }
 
             // Subfield code
             let codeCell = subfield.row.insertCell();
@@ -2718,6 +2686,11 @@ export let multiplemarcrecordcomponent = {
             
             if (renderingPolicy && renderingPolicy["editable"] === false) {
                 valSpan.contentEditable = false;
+            }
+            
+            // This case was missing
+            if (renderingPolicy && renderingPolicy["editable"] === true) {
+                valSpan.contentEditable = true;
             }
 
             // create the last cell
