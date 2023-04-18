@@ -1099,9 +1099,11 @@ export class Jmarc {
 
 		if (! headingField) return
 
+		let regex = new RegExp()
+
 		let searchStr = 
     	    headingField.subfields
-    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value}$/`) // regex ensures exact match
     	    .join(" AND ");
 
     	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
