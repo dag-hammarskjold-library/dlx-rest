@@ -2152,12 +2152,11 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
-
             let component = this;
             let jmarc = field.parentRecord;
-
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
+            let renderingPolicy = renderingData[jmarc.collection][field.tag];
 
             // diff-bg
             field.row = tableBody.insertRow(place);
@@ -2166,16 +2165,16 @@ export let multiplemarcrecordcomponent = {
             }
 
             // retrieve the values for rendering purpose
-            let renderingPolicy=renderingData[jmarc.collection]
-            if (renderingPolicy[field.tag]){
-
+            if (renderingPolicy){
                 // visible case
-                if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
+                if (renderingPolicy["visible"]==false){
                     field.row.classList.add("hidden-field");
                 }
 
                 // editable case
-                if (false) { //(renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                if (renderingPolicy["editable"]==false){
+                    field.row.classList.add("read-only");
+
                     // do this when building the elements? - JB
 
                     // let myTable = field.row
@@ -2190,16 +2189,16 @@ export let multiplemarcrecordcomponent = {
                     // console.log(recup)
                     
                     // tag case 
-                    for (let el of table.querySelectorAll('span[tabindex="0"]')) {
-                        //console.log(el.textContent)
-                        // console.log(el.textContent) 
-                        // console.log(field.tag)
-                        if (el.textContent == field.tag) {
-                            console.log("inside")
-                            el.setAttribute("disable", true)
-                            el.setAttribute("style","background-color:cyan;")
-                        }
-                    }
+                    //for (let el of table.querySelectorAll('span[tabindex="0"]')) {
+                    //    //console.log(el.textContent)
+                    //    // console.log(el.textContent) 
+                    //    // console.log(field.tag)
+                    //    if (el.textContent == field.tag) {
+                    //        console.log("inside")
+                    //        el.setAttribute("disable", true)
+                    //        el.setAttribute("style","background-color:cyan;")
+                    //    }
+                    //}
     
                     //field.row.find("input,button,textarea,select,span").attr("disabled", "disabled");
                     // let recup=field.row.getElementsByTagName("span")
@@ -2264,7 +2263,12 @@ export let multiplemarcrecordcomponent = {
             menuButton.className = "fa fa-bars field-menu";
  
             // enable elems to toggle menu
-            menuButton.setAttribute("data-toggle", "dropdown");
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                menuButton.setAttribute("data-toggle", null);
+                menuButton.title = "Field not editable";       
+            } else {
+                menuButton.setAttribute("data-toggle", "dropdown");
+            }
  
             // menu item add field
             let addField = document.createElement("i");
@@ -2303,6 +2307,10 @@ export let multiplemarcrecordcomponent = {
             //tagSpan.contentEditable = true;
             tagSpan.innerText = field.tag;
 
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                tagSpan.title = "Field not edtiable";
+            }
+
             // Indicators
             let ind1Cell = tagRow.insertCell();
             field.ind1Cell = ind1Cell;
@@ -2327,6 +2335,10 @@ export let multiplemarcrecordcomponent = {
             ind2Div.append(ind2Span);
             ind2Span.className = "mx-1";
             ind2Span.tabIndex = 0;
+
+            if (renderingPolicy && renderingPolicy["editable"] == false) {
+                ind1Span.title = ind2Span.title = "Field not editable";
+            }
 
             // Subfield table
             let fieldCell = field.row.insertCell();
@@ -2380,8 +2392,6 @@ export let multiplemarcrecordcomponent = {
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate() {
-                let renderingPolicy = renderingData[jmarc.collection][field.tag];
-
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
                     return
                 }
@@ -2517,8 +2527,6 @@ export let multiplemarcrecordcomponent = {
             }
 
             function indActivate(ind) {
-                let renderingPolicy = renderingData[jmarc.collection][field.tag]
-
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
                     return
                 }
@@ -2647,6 +2655,7 @@ export let multiplemarcrecordcomponent = {
             let field = subfield.parentField;
             let table = field.subfieldTable;
             let jmarc = field.parentRecord;
+            let renderingPolicy = renderingData[jmarc.collection][field.tag];
    
             // create the row
             subfield.row = table.insertRow(place);
@@ -2662,7 +2671,12 @@ export let multiplemarcrecordcomponent = {
             menuButton.classList = "fa fa-bars subfield-menu";
    
             // enable elems to toggle menu
-            menuButton.setAttribute("data-toggle", "dropdown");
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                menuButton.setAttribute("data-toggle", null);
+                menuButton.title = "Field not editable";       
+            } else {
+                menuButton.setAttribute("data-toggle", "dropdown");
+            }
 
             // Subfield code
             let codeCell = subfield.row.insertCell();
@@ -2677,6 +2691,10 @@ export let multiplemarcrecordcomponent = {
             //codeSpan.contentEditable = true;
             codeSpan.innerText = subfield.code;
             codeSpan.tabIndex = 0;
+
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                codeSpan.title = "Field not editable";
+            }
 
             // add subfield
             let addSubfield = document.createElement("i");
@@ -2714,10 +2732,13 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell = valCell;
             subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
             valSpan.innerText = subfield.value;
-            let renderingPolicy = renderingData[jmarc.collection][field.tag]
             
             if (renderingPolicy && renderingPolicy["editable"] === false) {
                 valSpan.contentEditable = false;
+                valCell.title = "Field not editable";
+                valSpan.title = "Field not editable";
+            } else {
+                valSpan.contentEditable = true;
             }
 
             // create the last cell
@@ -2756,8 +2777,6 @@ export let multiplemarcrecordcomponent = {
 
             // Subfield code actions
             function subfieldCodeActivate() {
-                let renderingPolicy = renderingData[jmarc.collection][field.tag];
-
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
                     return
                 }
@@ -2895,8 +2914,6 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valSpan.addEventListener("focus", function() {
-                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
-
                     if (renderingPolicy && renderingPolicy["editable"] === false) {
                         return
                     }
@@ -2908,8 +2925,6 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valCell.addEventListener("click", function() {
-                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
-
                     if (renderingPolicy && renderingPolicy["editable"] === false) {
                         return
                     }

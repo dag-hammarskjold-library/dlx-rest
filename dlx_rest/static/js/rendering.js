@@ -14,8 +14,8 @@ export const renderingData = {
         }
     },
     "auths": {
-        "XXX": {
-            "visible": false,
+        "998": {
+            "visible": true,
             "editable": false,
         }
     }

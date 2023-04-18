@@ -80,6 +80,11 @@ tr.field-row-selected {
     box-shadow: -5px 10px 10px 1px gray;
 }
 
+tr.read-only {
+    outline: thin dotted red;
+    background-color: #faf6f0;
+}
+
 tr.subfield-row {
     box-shadow: -1px 1px 1px lightgray;
 }
