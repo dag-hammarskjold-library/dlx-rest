@@ -2686,10 +2686,8 @@ export let multiplemarcrecordcomponent = {
             
             if (renderingPolicy && renderingPolicy["editable"] === false) {
                 valSpan.contentEditable = false;
-            }
-            
-            // This case was missing
-            if (renderingPolicy && renderingPolicy["editable"] === true) {
+            } else {
+                // This case was missing
                 valSpan.contentEditable = true;
             }
 
