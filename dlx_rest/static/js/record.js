@@ -451,6 +451,7 @@ export let multiplemarcrecordcomponent = {
                         let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
                         let headingString = headingField.subfields.map(x => x.value).join(" ");
                         let saved = headingField.savedState;
+                        let isNewVal = true;
                         
                         if (saved && saved['tag'] === headingField.tag) {
                             if (JSON.stringify(saved["subfields"]) === JSON.stringify(headingField.compile()["subfields"])) {
