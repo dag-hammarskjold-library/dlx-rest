@@ -1098,9 +1098,7 @@ export class Jmarc {
 		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
 
 		if (! headingField) return
-
-		let regex = new RegExp()
-
+		
 		let searchStr = 
     	    headingField.subfields
     	    .map(x => `${headingField.tag}__${x.code}:/^${x.value}$/`) // regex ensures exact match
