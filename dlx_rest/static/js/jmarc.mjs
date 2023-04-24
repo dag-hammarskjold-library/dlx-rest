@@ -913,7 +913,7 @@ export class Jmarc {
 	}
 
 	toStr() {
-		return this.fields.filter(x => ! x.tag.match(/^00/)).map(x => `${x.tag} ${x.toStr()}`).join("\n")
+		return this.fields.filter(x => ! x.tag.match(/^00/)).map(x => `: ${x.tag} ${x.toStr()}`).join("\n")
 	}
 	
 	async history() {
