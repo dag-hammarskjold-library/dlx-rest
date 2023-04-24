@@ -2152,7 +2152,6 @@ export let multiplemarcrecordcomponent = {
             return tableBody
         },
         buildFieldRow(field, place) {
-
             let component = this;
             let jmarc = field.parentRecord;
 
@@ -2172,6 +2171,10 @@ export let multiplemarcrecordcomponent = {
                 // visible case
                 if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
                     field.row.classList.add("hidden-field");
+                }
+
+                if (renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                    field.row.classList.add("uneditable-field");
                 }
             }
 

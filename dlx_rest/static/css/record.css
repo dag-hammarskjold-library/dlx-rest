@@ -75,8 +75,13 @@ tr.hidden-field {
     display: none;
 }
 
+tr.uneditable-field {
+    outline: 1px dotted red;
+    background-color: rgb(250, 239, 226);
+}
+
 tr.field-row-selected {
-    outline: thin solid;
+    outline: 1px solid black;
     box-shadow: -5px 10px 10px 1px gray;
 }
 
