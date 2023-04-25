@@ -1098,10 +1098,12 @@ export class Jmarc {
 		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
 
 		if (! headingField) return
-
+		
 		let searchStr = 
     	    headingField.subfields
-    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+			// regex ensures exact match
+			// there is no builtin method to escape regex in JS?
+    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`)
     	    .join(" AND ");
 
     	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;

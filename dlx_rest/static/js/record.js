@@ -450,8 +450,22 @@ export let multiplemarcrecordcomponent = {
                         // wait for the result
                         let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
                         let headingString = headingField.subfields.map(x => x.value).join(" ");
-                        let isNewVal = JSON.stringify(headingField.savedState) !== JSON.stringify(headingField.compile());
+                        let saved = headingField.savedState;
+                        let isNewVal;
                         
+                        if (saved && saved['tag'] === headingField.tag) {
+                            if (JSON.stringify(saved["subfields"]) === JSON.stringify(headingField.compile()["subfields"])) {
+                                if (saved["indicators"] !== headingField.compile()["indicators"]) {
+                                    // only the indicators have changed
+                                    isNewVal = false
+                                }
+                            } else {
+                                isNewVal = true
+                            }
+                        } else {
+                            isNewVal = true
+                        }
+
                         if (inUse === true && headingField.tag === "100" && isNewVal) {
                             // new record personal name exception
                             let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
