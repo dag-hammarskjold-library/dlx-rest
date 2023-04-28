@@ -320,7 +320,7 @@ export class DataField {
 		return str
 	}
 	
-	lookup() {
+	async lookup() {
 		let collection = this instanceof BibDataField ? "bibs" : "auths";
 		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${x.code}=${x.value}`}).join("&");
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
