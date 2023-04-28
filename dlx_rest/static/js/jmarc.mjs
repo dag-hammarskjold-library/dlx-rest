@@ -1107,19 +1107,46 @@ export class Jmarc {
     	    .join(" AND ");
 
     	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
+		let res = await fetch(url);
+		let json = await res.json();
+		let count = json['data'];
 
-    	// wait for the result
-    	let inUse = await fetch(url)
-    	    .then(response => {
-    	        return response.json()
-    	    }).then(json => {
-    	        let count = json.data;
-    	        return count ? true : false
-    	    }).catch(error => {
-    	        throw error
-    	    })
+		if (count === 0) {
+			return false
+		} else if (count > 1000) {
+			// this shouldn't really happen IRL as there won't be this many similar auth records.
+			// if there are too many records to look up here, we will need a more efficient check
+			return Promise.reject(new Error("There are too many records to fetch here. Please notify the developers."))
+		} else {
+			// other auths that have the same subfield value(s) in the heading, but
+			// could have additional subfields that make it unique
+			let url = Jmarc.apiUrl + "/marc/auths/records?search=" + searchStr + '&limit=' + count;
 
-		return inUse ? true : false
+			let matches = await fetch(url)
+    	    	.then(response => {
+    	    	    return response.json()
+    	    	}).then(json => {
+					// get the record IDs from the search results
+					return json['data'].map(url => url.split('/').slice(-1)[0]);
+    	    	}).catch(error => {throw error})
+			
+			// get the records
+			let promises = matches.map(recordId => Jmarc.get("auths", recordId));
+			let records = await Promise.all(promises);
+
+			for (let auth of records) {
+				if (auth.recordId === this.recordId) continue
+				
+				let otherHeadingField = auth.fields.filter(x => x.tag.match(/^1/))[0];
+				
+				if (headingField.toStr() === otherHeadingField.toStr()) {
+					// another record has the same exact heading field value
+					return true
+				}
+			}
+
+			return false
+		}
 	}
 
 	runSaveActions() {
