@@ -916,7 +916,7 @@ export class Jmarc {
 		return this.fields.filter(x => ! x.tag.match(/^00/)).map(x => `${x.tag} ${x.toStr()}`).join("\n")
 	}
 	
-	async history() {
+    async history() {
 		if (typeof this.url === "undefined") {
 			return []
 		}
@@ -924,17 +924,15 @@ export class Jmarc {
 		let response = await fetch(this.url + "/history");
 		let json = await response.json();
 		let data = json['data'];
-		let historyRecords = [];
-		
-		for (let result of data) {
-			let record = new Jmarc(this.collection);
+		let promises = data.map(async result => {
+			let jmarc = new Jmarc(this.collection);
 			let response = await fetch(result.event);
 			let json = await response.json();
-			record.parse(json['data']);
-			historyRecords.push(record);
-		}
-		
-		return historyRecords
+			return jmarc.parse(json['data']);
+		});
+
+		// list of jmarc objects
+		return Promise.all(promises)
 	}
 
 	diff(other) {
