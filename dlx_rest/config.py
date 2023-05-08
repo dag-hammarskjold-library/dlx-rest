@@ -10,13 +10,14 @@ class Config(object):
     bucket = 'undl-files'
     
     if 'DLX_REST_TESTING' in os.environ:
+        environment = 'test'
         connect_string = 'mongomock://localhost'
         TESTING = True
         LOGIN_DISABLED = True
         dbname = 'dlx'
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_LOCAL' in os.environ:
-        environment = 'dev'
+        environment = 'dev/local'
         connect_string = "mongodb://localhost:27017/?authSource=undlFiles"
         dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
@@ -25,23 +26,23 @@ class Config(object):
         environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='dev-dlx-connect-string')['Parameter']['Value']
-        dbname = 'dev_undlFiles'
+        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
         environment = 'qat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
-        dbname = 'qat_undlFiles'
+        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
         environment = 'uat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'uat_undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
@@ -50,7 +51,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         #connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
         sync_log_collection = 'dlx_dl_log'
     else:
@@ -61,3 +62,8 @@ class Config(object):
     AUTH_COLLECTION = 'auths'
     FILE_COLLECTION = 'files'
     MAX_QUERY_TIME = 20000
+    
+    if "@" in connect_string:
+        print(f'Loading {environment}: {connect_string.split("@")[-1].split("/")[0]}')
+    else:
+        print(f'Loading {environment}')
