@@ -192,11 +192,13 @@ def brief_bib(record):
     
     if record.get_value('245', 'a'):
         head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
-    elif record.get_value('710', 'a'):
+    elif record.get_value('700', 'a') or record.get_value('710', 'a'):
         head, member = record.get_value('700', 'a'), record.get_value('710', 'a')
         
-        if member:
+        if head and member:
             head += f' ({member})'
+        elif member:
+            head = member
     else:
         head = None
 
