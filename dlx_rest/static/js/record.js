@@ -449,7 +449,13 @@ export let multiplemarcrecordcomponent = {
 
                     if (headingField) { 
                         // wait for the result
-                        let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
+                        let inUse = await jmarc.authHeadingInUse().catch(error => {
+                            this.callChangeStyling(error, "d-flex w-100 alert-danger");
+                            jmarc.saveButton.classList.remove("fa-spinner");
+                            jmarc.saveButton.classList.remove("fa-pulse");
+                            jmarc.saveButton.style = "pointer-events: auto";
+                            throw error;
+                        });
                         let headingString = headingField.subfields.map(x => x.value).join(" ");
                         let saved = headingField.savedState;
                         let isNewVal;
