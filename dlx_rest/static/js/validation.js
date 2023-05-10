@@ -1714,7 +1714,8 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validRegex": {"g": ["^\\(.*[^\\)]\\)$"]}
         },
         "110": {
             "name": "Heading - corporate name",
