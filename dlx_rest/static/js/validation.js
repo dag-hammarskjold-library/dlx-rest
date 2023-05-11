@@ -2652,7 +2652,7 @@ export const validationData = {
         },
         "269": {
             "name": "Date of meeting",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2698,7 +2698,7 @@ export const validationData = {
         },
         "930": {
             "name": "Product code",
-            "required": true,
+            "required": false,
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
