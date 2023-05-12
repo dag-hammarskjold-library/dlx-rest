@@ -2678,7 +2678,7 @@ export const validationData = {
         },
         "710": {
             "name": "Added entry - corporate name",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": ["0","1","2"],
             "validIndicators2": [],
