@@ -2,6 +2,7 @@ import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
+import { Jmarc } from "../jmarc.mjs";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -156,8 +157,18 @@ export let searchcomponent = {
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
-                <div class="col-sm-1" v-if="user"><input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/></div>
-                <div class="col-sm-10 px-4 ">
+                <div class="col-sm-1" v-if="user">
+                    <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                </div>
+                <div>
+                    <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
+                    <div :id="'preview-' + result._id" class="record-preview hidden">
+                        <span class="record-preview-id">{{result._id}}</span>
+                        </br>
+                        <span :id="'preview-text-' + result._id" class="preview-text"></span>
+                    </div>
+                </div>
+                <div class="col-sm-9 px-4">
                     <div class="row" style="overflow-x:hidden">
                         <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
@@ -268,7 +279,25 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
-        let collectionTitle = component.collection
+        let collectionTitle = component.collection;
+        Jmarc.apiUrl = component.api_prefix;
+
+        // cancel record preview if clicking anywhere besides the preview
+        window.addEventListener("click", function(event) {
+            if (
+                event.target.classList.contains("preview-toggle")
+                || event.target.classList.contains("record-preview")
+                || event.target.parentElement.classList.contains("record-preview")
+            ) {
+                return
+            }
+
+            for (let x of document.getElementsByClassName("record-preview")) {
+                let match = x.id.match(/^preview\-(\d+)$/);
+                let recordId = match[1];
+                component.hidePreview(recordId);
+            }
+        });
 
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
@@ -397,6 +426,17 @@ export let searchcomponent = {
                         // not implemented yet
                     }
                     component.results.push(myResult);
+
+                    /*
+                    // add the preview
+                    // too slow for large result lists
+                    Jmarc.apiUrl = component.api_prefix;
+                    Jmarc.get(component.collection, result["_id"])
+                        .then(jmarc => {
+                            console.log(jmarc.toStr());
+                            document.getElementById('link-' + result["_id"]).title = jmarc.toStr()
+                        })
+                    */
                 }
             }
         ).catch(
@@ -750,6 +790,44 @@ export let searchcomponent = {
             if (items.length > 0) {
                 basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
             }
+        },
+        togglePreview(event, recordId) {
+            let preview = document.getElementById("preview-" + recordId);
+            let toggleButton = document.getElementById("preview-toggle-" + recordId);
+
+            if (preview.classList.contains("hidden")) {
+                // unhide the preview div
+                preview.classList.remove("hidden");
+                toggleButton.className = "fas fa-spinner preview-toggle";
+                let display = document.getElementById("preview-text-" + recordId);
+
+                // get the data
+                Jmarc.get(this.collection, recordId)
+                    .then(jmarc => {
+                        display.innerText = jmarc.toStr();
+                        toggleButton.className = "fas fa-window-close preview-toggle";
+                        toggleButton.title = "close preview";
+                    })
+                
+                // hide any other unhidden preview divs
+                for (let x of document.getElementsByClassName("record-preview")) {
+                    if (x !== preview) {
+                        let match = x.id.match(/^preview\-(\d+)/);
+                        let otherId = match[1];
+                        this.hidePreview(otherId);
+                    }
+                }
+            } else {
+                // hide the preview div
+                this.hidePreview(recordId);
+            }
+        },
+        hidePreview(recordId) {
+            let preview = document.getElementById("preview-" + recordId);
+            preview.classList.add("hidden");
+            let toggleButton = document.getElementById("preview-toggle-" + recordId);
+            toggleButton.className = "fas fa-file preview-toggle";
+            toggleButton.title = "preview record";
         }
     },
     components: {
