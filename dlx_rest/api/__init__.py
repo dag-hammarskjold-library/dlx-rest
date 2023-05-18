@@ -383,12 +383,16 @@ class RecordsListCount(Resource):
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
-        data = cls().handle.count_documents(
-            query.compile(),
-            # collation is not implemented in mongomock
-            collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
-            maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
-        
+        if query:
+            data = cls().handle.count_documents(
+                query.compile(),
+                # collation is not implemented in mongomock
+                collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                maxTimeMS=Config.MAX_QUERY_TIME
+            )
+        else:
+            data = cls().handle.estimated_document_count()
+
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Records list browse

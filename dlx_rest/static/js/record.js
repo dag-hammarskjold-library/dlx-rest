@@ -16,6 +16,7 @@ import basket from "./api/basket.js";
 import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
 import { validationData } from "./validation.js";
+import { renderingData } from "./rendering.js";
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -268,7 +269,7 @@ export let multiplemarcrecordcomponent = {
                 // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
                 let wfCollection = this.fromworkform.split('/')[0];
                 let wfRecordId = this.fromworkform.split('/')[1]
-                //console.log(wfCollection, wfRecordId)
+
 
                 //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
                 Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
@@ -375,7 +376,7 @@ export let multiplemarcrecordcomponent = {
                     checkbox.click()
                 }
             }
-            //console.log(this.copiedFields)
+
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
@@ -448,10 +449,30 @@ export let multiplemarcrecordcomponent = {
 
                     if (headingField) { 
                         // wait for the result
-                        let inUse = await jmarc.authHeadingInUse().catch(error => {throw error});
+                        let inUse = await jmarc.authHeadingInUse().catch(error => {
+                            this.callChangeStyling(error, "d-flex w-100 alert-danger");
+                            jmarc.saveButton.classList.remove("fa-spinner");
+                            jmarc.saveButton.classList.remove("fa-pulse");
+                            jmarc.saveButton.style = "pointer-events: auto";
+                            throw error;
+                        });
                         let headingString = headingField.subfields.map(x => x.value).join(" ");
-                        let isNewVal = JSON.stringify(headingField.savedState) !== JSON.stringify(headingField.compile());
+                        let saved = headingField.savedState;
+                        let isNewVal;
                         
+                        if (saved && saved['tag'] === headingField.tag) {
+                            if (JSON.stringify(saved["subfields"]) === JSON.stringify(headingField.compile()["subfields"])) {
+                                if (saved["indicators"] !== headingField.compile()["indicators"]) {
+                                    // only the indicators have changed
+                                    isNewVal = false
+                                }
+                            } else {
+                                isNewVal = true
+                            }
+                        } else {
+                            isNewVal = true
+                        }
+
                         if (inUse === true && headingField.tag === "100" && isNewVal) {
                             // new record personal name exception
                             let msg = `The heading "${headingString}" is already in use by another authority record. Are you sure you want to save the record with a duplicate heading?`;
@@ -502,7 +523,6 @@ export let multiplemarcrecordcomponent = {
         },
         cloneRecord(jmarc) {
             let recup = jmarc.clone();
-            //console.log(jmarc.div.id)
 
             if (jmarc.div) {
                 //this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -584,7 +604,6 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No fields are selected to paste", "d-flex w-100 alert-danger")
                 return
             }
-            //console.log(this.copiedFields)
 
             let seen = [];
 
@@ -780,7 +799,7 @@ export let multiplemarcrecordcomponent = {
                     
                     if (_089) {
                         let _089_a = _089.getSubfield("b").value
-                        //console.log(recordType)
+
                         if (_089_a && _089_a == "B22") {
                             vcoll = "speeches"
                         } else if (_089_a && _089_a == "B23") {
@@ -788,7 +807,7 @@ export let multiplemarcrecordcomponent = {
                         }  
                     }  
                 }
-                //console.log(vcoll)
+
                 let validatedField = validationData[vcoll][e.target.value]
                 if (!validatedField) {
                     // fallback so we don't have to re-specify fields unnecessarily
@@ -1525,7 +1544,7 @@ export let multiplemarcrecordcomponent = {
 
             // put the history record on read only mode
             //this.historyJmarcHistory.readOnly=true
-            //console.log(this.historyJmarcHistory.readOnly)
+
 
             let recordDiff = this.historyJmarcHistory.diff(this.historyJmarcOriginal)
             recordDiff.readOnly = true
@@ -1554,7 +1573,6 @@ export let multiplemarcrecordcomponent = {
         //filterRecordView(record,filter =[ { "collection": "bibs", "fieldsets": [ { "field": "191", "subfields": [ "a", "b", "c", "d" ] } ,{"field": "245", "subfields": [ "a", "b"] }], "name": "ITP" }])
         filterRecordView(record,filter)
         {
-            console.log(typeof(record))
             try {
                     // check the size of the filter
                     if (filter && filter[0].collection===record.collection){ // we should filter on the same collection
@@ -1730,9 +1748,7 @@ export let multiplemarcrecordcomponent = {
                 this.historyMode=false
                 
             }
- 
-            //console.log(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`));
-            // needed?
+
             this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
             let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
             window.history.replaceState({}, null, updatedUrl);
@@ -2172,18 +2188,41 @@ export let multiplemarcrecordcomponent = {
 
             let table = jmarc.table;
             let tableBody = jmarc.tableBody; 
+
             // diff-bg
             field.row = tableBody.insertRow(place);
             if (field.isDiff) {
                 field.row.setAttribute("style","background-color:cyan;")
             }
-   
+
+            // retrieve the values for rendering purpose
+            let renderingPolicy=renderingData[jmarc.collection]
+            if (renderingPolicy[field.tag]){
+
+                // visible case
+                if (renderingPolicy[String(`${field.tag}`)]["visible"]==false){
+                    field.row.classList.add("hidden-field");
+                }
+
+                if (renderingPolicy[String(`${field.tag}`)]["editable"]==false){
+                    field.row.classList.add("uneditable-field");
+                }
+            }
+
             // add the checkboxes
             let checkCell = field.row.insertCell();
             checkCell.className = "field-checkbox";
             let inputCheckboxCell = document.createElement("input");
             inputCheckboxCell.className = "field-checkbox";
             inputCheckboxCell.setAttribute("type","checkbox")
+
+            // check if this field is part of the rendering policy
+            let policyMenuTwo = renderingData[jmarc.collection][field.tag];
+            if (policyMenuTwo)
+                if (policyMenuTwo["editable"] === false) {
+                    inputCheckboxCell.disabled=true
+                }
+
             // adding the checkbox only if we are not in dual mode
             if (!this.historyMode) checkCell.appendChild(inputCheckboxCell)
    
@@ -2216,7 +2255,14 @@ export let multiplemarcrecordcomponent = {
  
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
- 
+
+            // check if this field is part of the rendering policy
+            let policyMenuOne = renderingData[jmarc.collection][field.tag];
+            if (policyMenuOne)
+                if (policyMenuOne["editable"] === false) {
+                    menuButton.disabled=true
+                }
+            
             // menu item add field
             let addField = document.createElement("i");
             tagMenu.append(addField);
@@ -2331,6 +2377,12 @@ export let multiplemarcrecordcomponent = {
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate() {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 component.fieldSelected(field);
                 tagCell.classList.add("field-tag-selected");
 
@@ -2462,6 +2514,12 @@ export let multiplemarcrecordcomponent = {
             }
 
             function indActivate(ind) {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag]
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 let [cell, div, span] = [null, null, null];
 
                 if (ind === 1) {
@@ -2602,6 +2660,13 @@ export let multiplemarcrecordcomponent = {
    
             // enable elems to toggle menu
             menuButton.setAttribute("data-toggle", "dropdown");
+            
+            // check if this field is part of the rendering policy
+            let policyMenuOne = renderingData[jmarc.collection][field.tag];
+            if (policyMenuOne)
+                if (policyMenuOne["editable"] === false) {
+                    menuButton.disabled=true
+                }
 
             // Subfield code
             let codeCell = subfield.row.insertCell();
@@ -2653,7 +2718,14 @@ export let multiplemarcrecordcomponent = {
             subfield.valueCell = valCell;
             subfield.valueElement = subfield.valueSpan = valSpan; // save the value HTML element in the subfield object
             valSpan.innerText = subfield.value;
-            valSpan.contentEditable = true;
+            let renderingPolicy = renderingData[jmarc.collection][field.tag]
+            
+            if (renderingPolicy && renderingPolicy["editable"] === false) {
+                valSpan.contentEditable = false;
+            } else {
+                // This case was missing
+                valSpan.contentEditable = true;
+            }
 
             // create the last cell
             subfield.xrefCell = subfield.row.insertCell()
@@ -2691,6 +2763,12 @@ export let multiplemarcrecordcomponent = {
 
             // Subfield code actions
             function subfieldCodeActivate() {
+                let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                if (renderingPolicy && renderingPolicy["editable"] === false) {
+                    return
+                }
+
                 component.clearSelectedSubfield(jmarc);
                 subfield.selected = true;
                 codeCell.classList.add("subfield-code-selected");
@@ -2775,9 +2853,7 @@ export let multiplemarcrecordcomponent = {
             }
             
             function updateSubfieldValue() {
-
                 subfield.value = valSpan.innerText;
-
                 valCell.classList.remove("unsaved");
 
                 // validations
@@ -2826,6 +2902,12 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valSpan.addEventListener("focus", function() {
+                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                    if (renderingPolicy && renderingPolicy["editable"] === false) {
+                        return
+                    }
+
                     component.fieldSelected(field);
                     valSpan.classList.add("subfield-value-selected");
                     component.clearSelectedSubfield(jmarc);
@@ -2833,6 +2915,12 @@ export let multiplemarcrecordcomponent = {
                 });
 
                 valCell.addEventListener("click", function() {
+                    let renderingPolicy = renderingData[jmarc.collection][field.tag];
+
+                    if (renderingPolicy && renderingPolicy["editable"] === false) {
+                        return
+                    }
+
                     valSpan.classList.add("subfield-value-selected");
                     component.clearSelectedSubfield(jmarc);
                     subfield.selected = true;
