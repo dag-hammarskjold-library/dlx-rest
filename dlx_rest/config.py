@@ -35,10 +35,10 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         # Use these value when we're ready to migrate QAT to Atlas.
-        #connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
-        #dbname = 'undlFiles'
-        connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
-        dbname = 'qat_undlFiles'
+        connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
+        #connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
+        #dbname = 'qat_undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
