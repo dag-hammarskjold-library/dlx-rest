@@ -25,16 +25,16 @@ class Config(object):
         environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='dev-dlx-connect-string')['Parameter']['Value']
-        dbname = 'dev_undlFiles'
+        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
         environment = 'qat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
-        dbname = 'qat_undlFiles'
+        connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
+        dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
@@ -61,3 +61,8 @@ class Config(object):
     AUTH_COLLECTION = 'auths'
     FILE_COLLECTION = 'files'
     MAX_QUERY_TIME = 20000
+
+    if "@" in connect_string:
+        print(f'Loading {environment}: {connect_string.split("@")[-1].split("/")[0]}')
+    else:
+        print(f'Loading {environment}')
