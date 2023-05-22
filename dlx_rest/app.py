@@ -7,6 +7,7 @@ from flask_cors import CORS
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
+import certifi
 
 #DB.connect(Config.connect_string)
 
@@ -18,8 +19,8 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
-connect(host=Config.connect_string,db=Config.dbname)
-DB.connect(Config.connect_string)
+connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+DB.connect(Config.connect_string, database=Config.dbname)
 
 try:
     app.secret_key=Config.secret_key
