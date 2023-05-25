@@ -46,7 +46,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         # Use these value when we're ready to migrate UAT to Atlas.
-        connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
         #connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
         #dbname = 'uat_undlFiles'
