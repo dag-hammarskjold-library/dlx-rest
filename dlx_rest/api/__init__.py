@@ -542,23 +542,35 @@ class Record(Resource):
             return Response(record.to_mrk(), mimetype='text/plain')
         elif fmt == 'mrc':
             return Response(record.to_mrc(), mimetype='text/plain')
-            
+        
+        # check for files
+        # todo: get identifier type mapping from config
         files = []
-        
+        symbol = record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')
+        isbn = record.get_value('020', 'a')
+        isbn = isbn.split(' ')[0] if isbn else None # field may have extra text after the isbn
+
         for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            f = File.latest_by_identifier_language(
-                Identifier('symbol', record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')), lang
-            )
-            
-            if f:
-                files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': URL('api_file_record', record_id=f.id).to_str()})
-        
+            for idtype in ([symbol, 'symbol'], [isbn, 'isbn']):
+                if idtype[0]:
+                    f = File.latest_by_identifier_language(Identifier(idtype[1], idtype[0]), lang)
+
+                    if f and f not in files:
+                        files.append(f)
+
         data = record.to_dict()
         data['created'] = record.created
         data['created_user'] = record.created_user
         data['updated'] = record.updated
         data['user'] = record.user
-        data['files'] = files
+        data['files'] = [
+            {
+                'mimetype': f.mimetype, 
+                'language': f.languages[0].lower(), 
+                'url': URL('api_file_record', record_id=f.id).to_str()
+            } 
+            for f in files
+        ]
 
         meta = {
             'name': 'api_record',
