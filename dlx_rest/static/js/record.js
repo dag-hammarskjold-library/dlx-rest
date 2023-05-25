@@ -609,6 +609,7 @@ export let multiplemarcrecordcomponent = {
 
             // paste fields 
             for (let field of this.copiedFields || []) {
+                //console.log(field)
                 // get index of row of next highest tag
                 let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(field.tag) >= parseInt(x)).length;
 
@@ -2229,7 +2230,9 @@ export let multiplemarcrecordcomponent = {
             // let that = component;
  
             // define the on click event
-            checkCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
+            //checkCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
+            // Issue #1011: Clicking the cell surrounding the checkbox was removing the field from the copy stack if it had been added
+            inputCheckboxCell.addEventListener('click', (e) => this.toggleSelectField(e, jmarc, field))
 
             // tag container cell
             let tagContainerCell = field.row.insertCell();
