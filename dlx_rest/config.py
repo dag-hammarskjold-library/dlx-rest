@@ -35,7 +35,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         # Use these value when we're ready to migrate QAT to Atlas.
-        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
         #connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
         #dbname = 'qat_undlFiles'
