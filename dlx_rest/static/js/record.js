@@ -1002,6 +1002,10 @@ export let multiplemarcrecordcomponent = {
             
             return this.addField(jmarc, newField, rowIndex)
         },
+        batchEdit() {
+            console.log("batch edit")
+            return true
+        },
 
         ///////////////////////////////////////////////////
         //  definition of the listeners for the shortcuts
@@ -1952,6 +1956,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
+                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Save", "click": "batchEdit"},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
