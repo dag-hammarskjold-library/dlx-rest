@@ -1296,7 +1296,8 @@ export let multiplemarcrecordcomponent = {
 
         async closeWithSaveCheck(jmarc, removeFromBasket=false) {
             this.closeModalSave();
-            let save_succesful = await this.saveRecord(jmarc,false);
+            //
+            let save_succesful = await this.saveRecord(jmarc);
 
             if (save_succesful) {
                 this.removeRecordFromEditor(jmarc)
