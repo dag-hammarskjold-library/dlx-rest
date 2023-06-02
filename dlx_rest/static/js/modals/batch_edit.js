@@ -6,13 +6,8 @@ Modal for batch editing records using basket functionality
 */
 
 export let batcheditmodal = {
-    //template: `<div class="modal fade" id="batchActions" tabindex="-1" role="dialog" aria-labelledby="batchActionsModalTitle" aria-hidden="true">
-    //<div><p v-for="field in selectedFields" :key="field.id">{{field.name}}</p></div>
-    //<div><p v-for="item in basketItems" :key="item.id">{{item.name}}</p></div>
-    //</div>`,
     template: `
-    <div v-if="show">
-        <div class="modal fade" id="batchActions" tabindex="-1" role="dialog" aria-labelledby="batchActionsModalTitle" aria-hidden="true">
+        <div class="modal fade" id="batchActions" role="dialog" aria-labelledby="batchActionsModalTitle" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                 <div class="modal-header">
@@ -22,29 +17,46 @@ export let batcheditmodal = {
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div><p v-for="field in selectedFields" :key="field.id">{{field.name}}</p></div>
-                    <div><p v-for="item in basketItems" :key="item.id">{{item.name}}</p></div>
+                    <h6>Select your action</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="add" name="actions" value="add" checked>
+                        <label class="form-check-label" for="add">Add</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="delete" name="actions" value="delete">
+                        <label class="form-check-label" for="delete">Delete</label>
+                    </div>
+                    <div class="row" v-if="selectedFields.length == 0">You have no selected fields</div>
+                    <h6 class="pt-2" v-else>These fields:</h6>
+                    <div class="row"><span class="mx-2" v-for="field in selectedFields" :key="field.tag">{{field.tag}} {{field.toStr()}}</span></div>
+                    <div class="row py-3">
+                        <h6>To/From these records</h6>
+                        <div class="card" v-for="item in basketItems" :key="item._id">{{item.title}}</div></div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" v-if="selectedFields.length > 0">Apply</button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
                 </div>
             </div>
-        </div>
-    </div>`,
+        </div>`,
     data: function () {
         return {
             basketItems: [],
             selectedFields: [],
-            show: false
+            actions: ["Add to All", "Delete from All"],
+            selected: "Add to All"
+            //show: false
         }
     },
+    created: function () {
+        this.basketItems = this.$root.$refs.basketcomponent.basketItems
+        console.log(this.basketItems)
+    },
     methods: {
-        showModal: function() {
-            console.log("Show?", this.show)
-            this.show = true
-            console.log("Show?", this.show)
-            return true
+        updateSelectedFields(selectedFields) {
+            this.selectedFields = selectedFields
+            console.log(this.selectedFields)
         },
         handleClick() {
             // Find which radio button is selected and call the corresponding function when the Update Records button is clicked

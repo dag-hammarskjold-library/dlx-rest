@@ -19,7 +19,7 @@ import { validationData } from "./validation.js";
 import { renderingData } from "./rendering.js";
 
 // Modals
-import { batcheditmodal } from "./modals/batch_edit.js"
+import {batcheditmodal} from "./modals/batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -1009,16 +1009,8 @@ export let multiplemarcrecordcomponent = {
             return this.addField(jmarc, newField, rowIndex)
         },
         batchEdit() {
-            //console.log("batch edit")
-            //for (let field of this.copiedFields) {
-            //    console.log(field)
-            //}
-            //console.log(this.$root.$refs.basketcomponent.basketItems)
-            // We just want to open the modal for batch updates with our field selections and the contents of the basket.
-
-            this.$refs.batcheditmodal.showModal();
-
-            //return true
+            // Get the list of copied fields and send them to the batch edit modal.
+            this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
         },
 
         ///////////////////////////////////////////////////
@@ -2030,6 +2022,7 @@ export let multiplemarcrecordcomponent = {
                     if (control["name"] == "batchButton") {
                         console.log("batch button")
                         controlButton.setAttribute("data-toggle", "modal")
+                        controlButton.setAttribute("data-target", "#batchActions")
                     }
                     if (control["param"]) {
                         controlButton.onclick = () => {
