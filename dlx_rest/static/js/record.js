@@ -17,6 +17,9 @@ import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
 import { validationData } from "./validation.js";
 import { renderingData } from "./rendering.js";
+
+// Modals
+import { batcheditmodal } from "./modals/batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -72,6 +75,9 @@ export let multiplemarcrecordcomponent = {
                     <br>&nbsp;
                 </div>
             </div>
+
+            <!-- Modal for batch edit -->
+            <batcheditmodal ref="batcheditmodal"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -1003,8 +1009,16 @@ export let multiplemarcrecordcomponent = {
             return this.addField(jmarc, newField, rowIndex)
         },
         batchEdit() {
-            console.log("batch edit")
-            return true
+            //console.log("batch edit")
+            //for (let field of this.copiedFields) {
+            //    console.log(field)
+            //}
+            //console.log(this.$root.$refs.basketcomponent.basketItems)
+            // We just want to open the modal for batch updates with our field selections and the contents of the basket.
+
+            this.$refs.batcheditmodal.showModal();
+
+            //return true
         },
 
         ///////////////////////////////////////////////////
@@ -1956,7 +1970,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
-                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Save", "click": "batchEdit"},
+                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Actions", "click": "batchEdit"},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
@@ -2013,6 +2027,10 @@ export let multiplemarcrecordcomponent = {
                     controlButton.className = `${control["class"]} float-left p-1 record-control`;
                     controlButton.title = control["title"];
                     jmarc[control["name"]] = controlButton;
+                    if (control["name"] == "batchButton") {
+                        console.log("batch button")
+                        controlButton.setAttribute("data-toggle", "modal")
+                    }
                     if (control["param"]) {
                         controlButton.onclick = () => {
                             this[control["click"]](control["param"]) 
@@ -3203,7 +3221,8 @@ export let multiplemarcrecordcomponent = {
         }
     },
     components: {
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'batcheditmodal': batcheditmodal,
     }
 }
 
