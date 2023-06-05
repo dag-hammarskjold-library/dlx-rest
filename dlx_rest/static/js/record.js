@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" v-on:update-records="log($event)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -331,6 +331,10 @@ export let multiplemarcrecordcomponent = {
         });
     },
     methods: {
+
+        log(message) {
+            console.log(message);
+        },
 
         // popup warning modal if we have unsaved changes
         warningSave(){
