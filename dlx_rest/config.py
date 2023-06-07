@@ -27,6 +27,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
+        ssl = True
         dbname = 'undlFiles'
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
@@ -39,6 +40,7 @@ class Config(object):
         #dbname = 'undlFiles'
         connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
         dbname = 'qat_undlFiles'
+        ssl = True
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
@@ -50,6 +52,7 @@ class Config(object):
         #dbname = 'undlFiles'
         connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
         dbname = 'uat_undlFiles'
+        ssl = True
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_PRODUCTION' in os.environ:
@@ -57,6 +60,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
+        ssl = False
         # Use the following value when we're ready to migrate production to Atlas.
         #connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
