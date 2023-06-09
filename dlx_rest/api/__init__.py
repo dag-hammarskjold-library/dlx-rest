@@ -218,14 +218,6 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-        # Exclude votes and speeches from this search unless they're specifically being searched for
-        # Issue 1014
-        if collection == 'bibs': 
-            if search is None:
-                search = "NOT 089:'B22' AND NOT 089:'B23'"
-            if 'B22' not in search and 'B23' not in search:
-                search = search + " AND NOT 089:'B22' AND NOT 089:'B23'"
-
         query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
         # start
