@@ -509,10 +509,10 @@ export let multiplemarcrecordcomponent = {
                     if (display) {
                         jmarc = this.displayMarcRecord(returnedJmarc, false);
                         this.checkSavedState(jmarc)
-                    } 
+                    }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
-                    basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                    //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields) {
@@ -1297,12 +1297,13 @@ export let multiplemarcrecordcomponent = {
         async closeWithSaveCheck(jmarc, removeFromBasket=false) {
             this.closeModalSave();
             //
-            let save_succesful = await this.saveRecord(jmarc);
+            let save_succesful = await this.saveRecord(jmarc,false);
 
             if (save_succesful) {
-                this.removeRecordFromEditor(jmarc)
+                this.removeRecordFromEditor(jmarc,true)
 
                 if (removeFromBasket) {
+
                     this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
                 }
 

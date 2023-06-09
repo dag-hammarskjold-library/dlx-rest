@@ -55,9 +55,7 @@ export let basketcomponent = {
         this.buildBasket();
     },
     mounted: async function() {
-        //this.timer = setInterval(this.rebuildBasket, 20000) // Removed
-
-        this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
+      this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
     },
     methods: {
         handleClick(e, record_id, collection) {
@@ -117,9 +115,11 @@ export let basketcomponent = {
             this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
         },
         async removeRecordFromList(collection, record_id) {
+            
             let el = document.getElementById(`${collection}--${record_id}`)
             const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
-            const deleted = await basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, collection, record_id);
+            const deleted = await basket.deleteItem(myBasket, collection, record_id);
+
             if (deleted) {
                 // remove the record from the editor stage (if the record is displayed)
                 this.editor.displayedJmarcObject.forEach((item)=>{
@@ -147,8 +147,7 @@ export let basketcomponent = {
                 basket.getItem(this.api, element.collection, element.record_id).then(
                     item => {
                         if (typeof item === "undefined") {
-                            //const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
-                            basket.deleteItem(this.api_prefix, "userprofile/my_profile/basket", myBasket, element.collection, element.record_id);
+                            basket.deleteItem(myBasket, element.collection, element.record_id);
                             return
                         }
 
@@ -195,13 +194,6 @@ export let basketcomponent = {
                 ).catch(
                     error => {
                         console.log(error)
-                        /* 
-                        this is likely why items are disappearing from the basket. we probably don't want to 
-                        delete the item from the basket for any old error that might occur.
-
-                        //basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, element.collection, element.record_id);
-                        */
-
                         // alert that debugging is needed
                         this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
                     }
