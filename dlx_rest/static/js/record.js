@@ -1012,7 +1012,9 @@ export let multiplemarcrecordcomponent = {
             
             return this.addField(jmarc, newField, rowIndex)
         },
-        batchEdit() {
+        batchEdit(jmarc) {
+            // Send the referring record to the modal
+            this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
             // Get the list of copied fields and send them to the batch edit modal.
             this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
         },

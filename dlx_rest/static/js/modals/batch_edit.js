@@ -31,7 +31,7 @@ export let batcheditmodal = {
                     </div>
                     <h6 class="pt-1" v-else>These fields:</h6>
                     <div class="row">
-                        <div class="col"><span class="mx-2" v-for="field in selectedFields" :key="field.tag">{{field.tag}} {{field.toStr()}}</span></div>
+                        <div class="col"><p v-for="field in selectedFields" :key="field.tag">{{field.tag}} {{field.toStr()}}</p></div>
                     </div>
                     <div class="row pt-2">
                         <div class="col">
@@ -41,12 +41,16 @@ export let batcheditmodal = {
                                 Select <a href="#" @click="select" id="all">All</a> or <a href="#" @click="select" id="none">None</a>
                                 </div>
                             </div>
-                            <div class="row px-2" v-for="item in basketItems" :key="item._id">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect" >
-                                    <label class="form-check-label" :for="item._id">{{item.title}} ({{item.collection}}/{{item._id}})</label>
-                                </div>
-                            </div>
+                            <table class="table table-striped table-hover">
+                                <tbody>
+                                <tr v-for="item in basketItems" :key="item._id">
+                                    <td>
+                                        <input v-if="!matchesReferrer(item.collection, item._id)" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
+                                    </td>
+                                    <td><label class="form-check-label" :for="item._id">{{item.title}} ({{item.collection}}/{{item._id}})</label></td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -59,10 +63,14 @@ export let batcheditmodal = {
         </div>`,
     data: function () {
         return {
+            referringRecord: null,
             basketItems: [],
             selectedFields: [],
-            selectedRecords: []        
+            selectedRecords: [],
         }
+    },
+    computed: {
+        
     },
     emits: ['update-records'],
     created: function () {
@@ -71,12 +79,22 @@ export let batcheditmodal = {
     watch: {
         selectedRecords() {
             let button = document.getElementById("batchUpdateSubmit")
-            button.disabled = this.selectedRecords.length == 0
+            if (button) {
+                button.disabled = this.selectedRecords.length == 0
+            }
         }
     },
     methods: {
         updateSelectedFields(selectedFields) {
             this.selectedFields = selectedFields
+        },
+        setReferringRecord(collection, recordId) {
+            this.referringRecord = `${collection}/${recordId}`
+            console.log(this.referringRecord)
+        },
+        matchesReferrer: function (collection, recordId) {
+            let testRecord = [collection, recordId].join("/")
+            return testRecord === this.referringRecord
         },
         toggleSelect(event) {
             let record = [event.target.dataset.collection, event.target.id].join("/")
