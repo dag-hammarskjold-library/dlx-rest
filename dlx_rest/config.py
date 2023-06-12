@@ -15,11 +15,13 @@ class Config(object):
         TESTING = True
         LOGIN_DISABLED = True
         dbname = 'dlx'
+        ssl = False
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_LOCAL' in os.environ:
         environment = 'dev/local'
         connect_string = "mongodb://localhost:27017/?authSource=undlFiles"
         dbname = 'undlFiles'
+        ssl = False
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_DEV' in os.environ:
