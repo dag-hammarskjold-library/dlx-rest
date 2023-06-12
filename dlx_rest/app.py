@@ -19,7 +19,10 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
-connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+if Config.ssl:
+    connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+else:
+    connect(host=Config.connect_string,db=Config.dbname)
 DB.connect(Config.connect_string, database=Config.dbname)
 
 try:
