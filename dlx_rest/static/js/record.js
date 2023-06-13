@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" v-on:update-records="log($event)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="log($event)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -1017,6 +1017,8 @@ export let multiplemarcrecordcomponent = {
             this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
             // Get the list of copied fields and send them to the batch edit modal.
             this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
+            // Reinitialize the modal
+            this.$refs.batcheditmodal.confirm = false
         },
 
         ///////////////////////////////////////////////////

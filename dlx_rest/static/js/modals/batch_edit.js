@@ -6,9 +6,21 @@ Modal for batch editing records using basket functionality
 */
 
 export let batcheditmodal = {
+    props: ["api_prefix"],
     template: `
         <div class="modal fade" id="batchActions" role="dialog" aria-labelledby="batchActionsModalTitle" aria-hidden="true">
-            <div class="modal-dialog" role="document">
+            <div v-if="confirm" class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">Results</div>
+                    <div class="modal-body">
+                        {{this.results}}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Okay</button>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="modal-dialog" role="document">
                 <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="batchActionsModalTitle"><i class="fas fa-tasks pr-2" />Basket Update</h5>
@@ -67,6 +79,8 @@ export let batcheditmodal = {
             basketItems: [],
             selectedFields: [],
             selectedRecords: [],
+            confirm: false,
+            results: []
         }
     },
     computed: {
@@ -135,14 +149,36 @@ export let batcheditmodal = {
                 alert("Please select at least one record")
             }
         },
-        addToAll(selectedFields, selectedRecords) {
+        async addToAll(selectedFields, selectedRecords) {
             // Add the selected fields to the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by adding the selected fields.
             console.log("Adding to all")
             console.log(selectedFields, selectedRecords)
-            // If true
-            this.$emit('update-records', { "message": "Field(s) added", "count": this.selectedRecords.length } )
+            for (let record of selectedRecords) {
+                let collection = record.split("/")[0]
+                let recordId = record.split("/")[1]
+                Jmarc.api_prefix = this.api_prefix;
+                let result = {"record": record, "fields": []}
+                await Jmarc.get(collection, recordId).then(jmarc => {
+                    for (let field of selectedFields) {
+                        let createdField = jmarc.createField(field.tag)
+                        createdField.subfields = field.subfields
+                        jmarc.put().then(() => {
+                            //this.$emit('update-records', { "message": "Field(s) added", "count": this.selectedRecords.length })
+                            result["fields"].push({"field": field.tag, "status": "success", "error": null})
+                        } ).catch(err => {
+                            //this.$emit('update-records', { "message": "Error adding field(s)", "error": err.message } )
+                            result["fields"].push({"field": field.tag, "status": "failed", "error": err.message})
+                        })
+                    }
+                }).catch(err => {
+                    this.$emit('update-records', { "message": `Error fetching ${record}`, "error": err.message } )
+                })
+                this.results.push(result)
+            }
+            this.confirm = true
+            this.$emit('update-records', { "message": "Records update complete.", "results": this.results })           
         },
         deleteFromAll(selectedFields, selectedRecords) {
             // Delete the selected fields from the selected records in the basket
