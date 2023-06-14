@@ -1014,11 +1014,16 @@ export let multiplemarcrecordcomponent = {
         },
         batchEdit(jmarc) {
             // Send the referring record to the modal
-            this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
+            //this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
+            this.$refs.batcheditmodal.referringRecord = `${jmarc.collection}/${jmarc.recordId}`
+            
             // Get the list of copied fields and send them to the batch edit modal.
-            this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
+            //this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
+            this.$refs.batcheditmodal.selectedFields = this.copiedFields
+
             // Reinitialize the modal
             this.$refs.batcheditmodal.confirm = false
+            this.$refs.batcheditmodal.results = []
         },
 
         ///////////////////////////////////////////////////

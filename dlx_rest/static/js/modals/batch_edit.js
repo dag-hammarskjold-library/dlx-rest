@@ -13,7 +13,12 @@ export let batcheditmodal = {
                 <div class="modal-content">
                     <div class="modal-header">Results</div>
                     <div class="modal-body">
-                        {{this.results}}
+                        <div class="row" v-for="result in results">
+                            <div class="col">
+                                {{result.record}}
+                                <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Okay</button>
@@ -31,11 +36,11 @@ export let batcheditmodal = {
                 <div class="modal-body">
                     <h6>Select Action</h6>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" id="add" name="actions" value="add" checked>
+                        <input class="form-check-input" type="radio" id="add" name="actions" value="add" checked @change="includeReferrer=false">
                         <label class="form-check-label" for="add">Add</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" id="delete" name="actions" value="delete">
+                        <input class="form-check-input" type="radio" id="delete" name="actions" value="delete" @change="includeReferrer=true">
                         <label class="form-check-label" for="delete">Delete</label>
                     </div>
                     <div class="row pt-1" v-if="selectedFields.length == 0">
@@ -57,6 +62,7 @@ export let batcheditmodal = {
                                 <tbody>
                                 <tr v-for="item in basketItems" :key="item._id">
                                     <td>
+                                        <input v-if="matchesReferrer(item.collection, item._id) && includeReferrer" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                         <input v-if="!matchesReferrer(item.collection, item._id)" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                     </td>
                                     <td><label class="form-check-label" :for="item._id">{{item.title}} ({{item.collection}}/{{item._id}})</label></td>
@@ -76,15 +82,13 @@ export let batcheditmodal = {
     data: function () {
         return {
             referringRecord: null,
+            includeReferrer: false,
             basketItems: [],
             selectedFields: [],
             selectedRecords: [],
             confirm: false,
             results: []
         }
-    },
-    computed: {
-        
     },
     emits: ['update-records'],
     created: function () {
@@ -96,16 +100,14 @@ export let batcheditmodal = {
             if (button) {
                 button.disabled = this.selectedRecords.length == 0
             }
+        },
+        includeReferrer() {
+            if (!this.includeReferrer) {
+                this.selectedRecords.splice(this.selectedRecords.indexOf(this.referringRecord), 1)
+            }
         }
     },
     methods: {
-        updateSelectedFields(selectedFields) {
-            this.selectedFields = selectedFields
-        },
-        setReferringRecord(collection, recordId) {
-            this.referringRecord = `${collection}/${recordId}`
-            console.log(this.referringRecord)
-        },
         matchesReferrer: function (collection, recordId) {
             let testRecord = [collection, recordId].join("/")
             return testRecord === this.referringRecord
@@ -138,7 +140,6 @@ export let batcheditmodal = {
         applySelection() {
             // Find which radio button is selected and call the corresponding function when the Update Records button is clicked
             let selected = document.querySelector('input[name="actions"]:checked').value
-            console.log(selected)
             if (this.selectedRecords.length > 0) {
                 if (selected == "add") {
                     this.addToAll(this.selectedFields, this.selectedRecords)
@@ -149,43 +150,67 @@ export let batcheditmodal = {
                 alert("Please select at least one record")
             }
         },
-        async addToAll(selectedFields, selectedRecords) {
+        addToAll(selectedFields, selectedRecords) {
             // Add the selected fields to the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by adding the selected fields.
-            console.log("Adding to all")
-            console.log(selectedFields, selectedRecords)
+            // ** TODO: Make all the messaging consistent **
+            // Initialize Jmarc 
+            Jmarc.api_prefix = this.api_prefix
+
+            // 
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
                 let recordId = record.split("/")[1]
-                Jmarc.api_prefix = this.api_prefix;
                 let result = {"record": record, "fields": []}
-                await Jmarc.get(collection, recordId).then(jmarc => {
+                // Fetch the record using Jmarc
+                
+                Jmarc.get(collection, recordId).then((jmarc) => {
+                    // iterate through the selected fields and add them to the record
                     for (let field of selectedFields) {
-                        let createdField = jmarc.createField(field.tag)
-                        createdField.subfields = field.subfields
-                        jmarc.put().then(() => {
-                            //this.$emit('update-records', { "message": "Field(s) added", "count": this.selectedRecords.length })
-                            result["fields"].push({"field": field.tag, "status": "success", "error": null})
-                        } ).catch(err => {
-                            //this.$emit('update-records', { "message": "Error adding field(s)", "error": err.message } )
-                            result["fields"].push({"field": field.tag, "status": "failed", "error": err.message})
-                        })
+                        // add the field to the record
+                        // jmarc add field from the field object 
+                        // Validate here at the field level
+                        //let validationFlags = jmarc.validationWarnings()
+                        
+                        if (validationFlags.length > 0) {
+                            // We have an error
+                            result["fields"].push({"field": field.to_string(), "status": "error", "message": validationFlags })
+                        } else {
+                            // update the results returned 
+                            result["fields"].push({"field": field.to_string(), "status": "OK", "message": null}) 
+                        }
+                        this.results.push(result)
                     }
-                }).catch(err => {
-                    this.$emit('update-records', { "message": `Error fetching ${record}`, "error": err.message } )
+                }).then((jmarc) => {
+                    // Try to save the record now
+                    /*
+                    jmarc.put().then({
+
+                    }).catch((err) => {
+
+                    })
+                    */
+                }).catch( (err) => {
+                    // Encountered an error, so note it for later
                 })
-                this.results.push(result)
             }
+            // Show the confirmation screen
             this.confirm = true
-            this.$emit('update-records', { "message": "Records update complete.", "results": this.results })           
+
+            // If nothing else has been emitted by this point, return a processed response
+            this.$emit('update-records', { "action": "add", "status": "processed", "results": this.results })  
         },
         deleteFromAll(selectedFields, selectedRecords) {
             // Delete the selected fields from the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by deleting the selected fields.
-            console.log("Deleting from all")
-            this.$emit('update-records', { "message": "Field(s) deleted", "count": this.selectedRecords.length } )
+
+            // Show the confirmation screen
+            this.confirm = true
+
+            // If nothing else has been emitted by this point, return a processed response
+            this.$emit('update-records', { "action": "delete", "status": "processed", "results": this.results } )
         }
     }
 }
