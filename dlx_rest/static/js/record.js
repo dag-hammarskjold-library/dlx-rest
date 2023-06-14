@@ -126,18 +126,20 @@ export let multiplemarcrecordcomponent = {
                     </div>
                     <div class="modal-footer">
                         <slot name="footer">
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave()"> Cancel<br><br>
-                        </button>
+                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close </button> -->
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeWithSaveCheck(selectedJmarc)">Save and close 
+                            </button>
+                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket </button> -->
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
+                            </button>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
+                            </button>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeModalSave()"> Cancel<br><br>
+                            </button>
                         </slot>
                     </div>
                     </div>
@@ -409,10 +411,11 @@ export let multiplemarcrecordcomponent = {
             } else if (! jmarc.saved) {
                 // get rid of empty fields and validate
                 let flags = jmarc.validationWarnings();
+                
+                // record level validations
                 flags.forEach(x => {this.callChangeStyling(x.message, "d-flex w-100 alert-danger")});
                 
-                if (flags.length > 0) return
-
+                // field level validations
                 jmarc.getDataFields().forEach(field => {
                     field.subfields.forEach(subfield => {
                         subfield.validationWarnings().forEach(x => {
@@ -432,8 +435,10 @@ export let multiplemarcrecordcomponent = {
                     // todo: change this to use audit data as criteria
                     if (jmarc.getField("998")) {
                         // record was created in legacy system
+                        // proceed
                     } else {
                         // record was created in this system
+                        // abort save
                         return
                     }
                 }
@@ -497,6 +502,8 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
+
+                    
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
@@ -505,7 +512,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
-                    basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                    //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields) {
@@ -519,6 +526,8 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
                 });
+
+                return true
             }
         },
         cloneRecord(jmarc) {
@@ -1285,6 +1294,25 @@ export let multiplemarcrecordcomponent = {
         closeModalSave() {
             this.showModalSave = false;
         },
+
+        async closeWithSaveCheck(jmarc, removeFromBasket=false) {
+            this.closeModalSave();
+            //
+            let save_succesful = await this.saveRecord(jmarc,false);
+
+            if (save_succesful) {
+                this.removeRecordFromEditor(jmarc,true)
+
+                if (removeFromBasket) {
+
+                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
+                }
+
+                return true
+            } else {
+                this.callChangeStyling("Record could not be saved", "d-flex w-100 alert-danger")
+            }
+        },
         
         async getRecordView(collection) {
             let content= `/views/${collection}`
@@ -1680,10 +1708,10 @@ export let multiplemarcrecordcomponent = {
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false,confirm=false) {
 
-           // if(! jmarc.saved && !this.historyMode && !confirm) {
-           //     this.showModalSave=true
-           //    return
-           // }
+            //    if(! jmarc.saved && !this.historyMode && !confirm) {
+            //        this.showModalSave=true
+            //       return
+            //    }
 
             // change the color of the background of the item in the basket
             if (!this.historyMode){
@@ -2049,8 +2077,7 @@ export let multiplemarcrecordcomponent = {
                     }
 
                     controlButton.className = `${control["class"]} float-left`;
-                }
-                
+                }  
             }
 
             if (this.user != null) {
