@@ -15,8 +15,8 @@ export let batcheditmodal = {
                     <div class="modal-body">
                         <div class="row" v-for="result in results">
                             <div class="col">
-                                {{result.record}}
-                                <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p>
+                                {{result}}
+                                <!-- <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p> -->
                             </div>
                         </div>
                     </div>
@@ -179,30 +179,30 @@ export let batcheditmodal = {
                     // todo: add this as a clone field method in Jmarc
                     let newField = jmarc.createField(field.tag)
 
+                    let subfields = []
                     for (let subfield of field.subfields) {
                         let newSubfield = newField.createSubfield(subfield.code)
-                        if ('xref' in subfield) {
+                        if (subfield.xref !== undefined) {
                             newSubfield.xref = subfield.xref
+                            subfields.push({"code": subfield.code, xref: subfield.xref})
                         } else {
                             newSubfield.value = subfield.value
+                            subfields.push({"code": subfield.code, "value": subfield.value})
                         }
                     }
-                    result["fields"].push({"field": field.toString(), "status": "OK", "message": null})
+                    result["fields"].push({"field": field.tag, "subfields": subfields})
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
-                
+                console.log(validationFlags)
                 if (validationFlags.length > 0) {
                     // We have an error
                     result["invalid"] = true
-                    result["message"] = validationFlags.map(x => x.message).join("\n")
+                    result["message"] = validationFlags.map(x => x.message)
                 } else {
                     // save record if no warnings
                     // do we want to do this here, or do we only want to make any updates if all records are valid?
                     jmarc.put().catch(err => {throw err})
-                    
-                    // update the results returned
-                    result["fields"].push({"field": field.toString(), "status": "OK", "message": null}) 
                 }
 
                 this.results.push(result)
