@@ -15,8 +15,8 @@ export let batcheditmodal = {
                     <div class="modal-body">
                         <div class="row" v-for="result in results">
                             <div class="col">
-                                {{result.record}}
-                                <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p>
+                                {{result}}
+                                <!-- <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p> -->
                             </div>
                         </div>
                     </div>
@@ -93,6 +93,8 @@ export let batcheditmodal = {
     emits: ['update-records'],
     created: function () {
         this.basketItems = this.$root.$refs.basketcomponent.basketItems
+        // Initialize Jmarc 
+        Jmarc.api_prefix = this.api_prefix
     },
     watch: {
         selectedRecords() {
@@ -150,51 +152,62 @@ export let batcheditmodal = {
                 alert("Please select at least one record")
             }
         },
-        addToAll(selectedFields, selectedRecords) {
+        async addToAll(selectedFields, selectedRecords) {
             // Add the selected fields to the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by adding the selected fields.
             // ** TODO: Make all the messaging consistent **
-            // Initialize Jmarc 
-            Jmarc.api_prefix = this.api_prefix
-
-            // 
+            
+            // collect the promises so we can await all of them in parrallel
+            let promises = []
+            
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
                 let recordId = record.split("/")[1]
-                let result = {"record": record, "fields": []}
-                // Fetch the record using Jmarc
-                
-                Jmarc.get(collection, recordId).then((jmarc) => {
-                    // iterate through the selected fields and add them to the record
-                    for (let field of selectedFields) {
-                        // add the field to the record
-                        // jmarc add field from the field object 
-                        // Validate here at the field level
-                        //let validationFlags = jmarc.validationWarnings()
-                        
-                        if (validationFlags.length > 0) {
-                            // We have an error
-                            result["fields"].push({"field": field.to_string(), "status": "error", "message": validationFlags })
-                        } else {
-                            // update the results returned 
-                            result["fields"].push({"field": field.to_string(), "status": "OK", "message": null}) 
-                        }
-                        this.results.push(result)
-                    }
-                }).then((jmarc) => {
-                    // Try to save the record now
-                    /*
-                    jmarc.put().then({
-
-                    }).catch((err) => {
-
-                    })
-                    */
-                }).catch( (err) => {
-                    // Encountered an error, so note it for later
-                })
+                // add the promise to the list
+                promises.push(Jmarc.get(collection, recordId))
             }
+
+            let jmarcRecords  = await Promise.all(promises)
+
+            for (let jmarc of jmarcRecords) {
+                let result = {"record": `${jmarc.collection}/${jmarc.recordId}`, "fields": []}
+                
+                // iterate through the selected fields and add them to the record
+                for (let field of selectedFields) {
+                    // add a copy of the field, not the reference to the origianl field object
+                    // todo: add this as a clone field method in Jmarc
+                    let newField = jmarc.createField(field.tag)
+
+                    let subfields = []
+                    for (let subfield of field.subfields) {
+                        let newSubfield = newField.createSubfield(subfield.code)
+                        if (subfield.xref !== undefined) {
+                            newSubfield.xref = subfield.xref
+                            subfields.push({"code": subfield.code, xref: subfield.xref})
+                        } else {
+                            newSubfield.value = subfield.value
+                            subfields.push({"code": subfield.code, "value": subfield.value})
+                        }
+                    }
+                    result["fields"].push({"field": field.tag, "subfields": subfields})
+                }
+
+                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                console.log(validationFlags)
+                if (validationFlags.length > 0) {
+                    // We have an error
+                    result["invalid"] = true
+                    result["message"] = validationFlags.map(x => x.message)
+                } else {
+                    // save record if no warnings
+                    // do we want to do this here, or do we only want to make any updates if all records are valid?
+                    jmarc.put().catch(err => {throw err})
+                }
+
+                this.results.push(result)
+            }
+            
             // Show the confirmation screen
             this.confirm = true
 
