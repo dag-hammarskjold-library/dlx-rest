@@ -7,8 +7,7 @@ from flask_cors import CORS
 from dlx import DB
 from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
-import certifi
-
+import certifi, sentry_sdk
 #DB.connect(Config.connect_string)
 
 app = Flask(__name__)
@@ -21,6 +20,15 @@ login_manager.login_message =""
 
 connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
 DB.connect(Config.connect_string, database=Config.dbname)
+
+sentry_sdk.init(
+    dsn="https://59d4551b9d8744f180a98776d8fe3422@o4504922831060992.ingest.sentry.io/4504922841939968",
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+)
 
 try:
     app.secret_key=Config.secret_key
