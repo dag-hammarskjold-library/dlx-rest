@@ -23,7 +23,7 @@
               <div class="browse"> click here to browse </div>
             </div>
               <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
-                <input id="files" name="file[]" type="file" multiple/>
+                <input id="files" name="file[]" type="file" multiple />
                 <!-- <input type="submit" value="Submit">
               </form> -->
                 <!-- <button type="submit" class="btn btn-primary">Process Files</button>
@@ -33,16 +33,17 @@
         </div>
       </div>
       <div class="preview">
-        <p>No files currently selected for upload</p>
+
       </div>
-  
+
       <div class="toSend">
         <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
       </div>
       <!-- Figure out how to move the button after the drag and drop section but still in the form -->
       <!-- <button type="button" class="btn btn-primary" onclick="toggle_form()">Process Files</button> -->
-      <button type="submit" class="btn btn-primary">Process Files</button>
-              </form>
+      <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
+      
+      </form>
               
     </div>
     
@@ -51,4 +52,17 @@
 
 <script type="module" src="{{ url_for('static', filename='js/file.js') }}" defer></script>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
-  {% endblock %}
+<script>
+    $("div *").change(function() {
+      var file = document.getElementById("files");
+      var btn = document.getElementById("process");
+
+          if(file.files.length == 0 ){
+            btn.style.display = 'none';
+          } else {
+            btn.style.display = 'inline-block';
+          }
+    })
+</script>
+
+{% endblock %}
