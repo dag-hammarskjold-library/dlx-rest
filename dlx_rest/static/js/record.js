@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="log($event)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">

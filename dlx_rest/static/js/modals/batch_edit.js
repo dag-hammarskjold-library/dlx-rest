@@ -172,6 +172,7 @@ export let batcheditmodal = {
             
             // collect the promises so we can await all of them in parrallel
             let promises = []
+            let errors = 0
             
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
@@ -211,10 +212,14 @@ export let batcheditmodal = {
                     // We have an error
                     result["invalid"] = true
                     result["message"] = validationFlags.map(x => x.message)
+                    errors += 1
                 } else {
                     // save record if no warnings
                     // do we want to do this here, or do we only want to make any updates if all records are valid?
-                    jmarc.put().catch(err => {throw err})
+                    jmarc.put().catch(err => {
+                        throw err
+                        errors += 1
+                    })
                 }
 
                 this.results.push(result)
@@ -224,7 +229,7 @@ export let batcheditmodal = {
             this.confirm = true
 
             // If nothing else has been emitted by this point, return a processed response
-            this.$emit('update-records', { "action": "add", "status": "processed", "results": this.results })  
+            this.$emit('update-records', { "message": `Added fields to ${this.results.length} record(s). ${errors} validation error(s) encountered.` , "status": "success"})  
         },
         async deleteFromAll(selectedFields, selectedRecords) {
             // Delete the selected fields from the selected records in the basket
@@ -232,6 +237,7 @@ export let batcheditmodal = {
             // by deleting the selected fields.
             // collect the promises so we can await all of them in parrallel
             let promises = []
+            let errors = 0
             
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
@@ -256,10 +262,14 @@ export let batcheditmodal = {
                     // We have an error
                     result["invalid"] = true
                     result["message"] = validationFlags.map(x => x.message)
+                    errors += 1
                 } else {
                     // save record if no warnings
                     // do we want to do this here, or do we only want to make any updates if all records are valid?
-                    jmarc.put().catch(err => {throw err})
+                    jmarc.put().catch(err => {
+                        throw err
+                        errors += 1
+                    })
                 }
 
                 this.results.push(result)
@@ -269,7 +279,7 @@ export let batcheditmodal = {
             this.confirm = true
 
             // If nothing else has been emitted by this point, return a processed response
-            this.$emit('update-records', { "action": "delete", "status": "processed", "results": this.results } )
+            this.$emit('update-records', { "message": `Deleted fields from ${this.results.length} record(s). ${errors} validation error(s) encounterd.`, "status": "success" } )
         }
     }
 }
