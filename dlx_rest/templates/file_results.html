@@ -1,6 +1,8 @@
 {% extends 'base.html' %} {% block content %}
-<div class="container">
-  <table class="table table-striped">
+<div class="container mt-3 shadow-lg p-3 rounded">
+  <h4>Results</h4>
+  <hr />
+  <table class="table table-sm table-hover mt-3">
     <thead>
       <th>File</th>
       <th>Document Symbol</th>
@@ -18,6 +20,7 @@
       </tr>
     </tbody>
   </table>
+  <a class="btn btn-primary" href="{{url_for('upload_files')}}" role="button">Return to Upload Files</a>
 </div>
 
 {% endblock %}
