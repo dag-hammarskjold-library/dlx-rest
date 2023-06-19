@@ -15,8 +15,16 @@ export let batcheditmodal = {
                     <div class="modal-body">
                         <div class="row" v-for="result in results">
                             <div class="col">
-                                {{result}}
+                                <p v-if="result.invalid" class="text-danger">{{result.record}}: {{result.message.join('; ')}}</p>
                                 <!-- <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p> -->
+                                <p v-else class="borderless">
+                                    {{result.record}}
+                                    <ul>
+                                        <li v-for="field in result.fields">
+                                            {{field.field}} <span class="mr-2" v-for="subfield in field.subfields">\${{subfield.code}} {{subfield.value}}</span><span class="mx-3 text-success">{{field.action}}</span>
+                                        </li>
+                                    </ul>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -60,7 +68,7 @@ export let batcheditmodal = {
                             </div>
                             <table class="table table-striped table-hover">
                                 <tbody>
-                                <tr v-for="item in basketItems" :key="item._id">
+                                <tr v-for="item in $root.$refs.basketcomponent.basketItems" :key="item._id">
                                     <td>
                                         <input v-if="matchesReferrer(item.collection, item._id) && includeReferrer" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                         <input v-if="!matchesReferrer(item.collection, item._id)" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
@@ -92,6 +100,7 @@ export let batcheditmodal = {
     },
     emits: ['update-records'],
     created: function () {
+        // basketItems should change when the actual basket contents change, but this isn't happening
         this.basketItems = this.$root.$refs.basketcomponent.basketItems
         // Initialize Jmarc 
         Jmarc.api_prefix = this.api_prefix
@@ -143,10 +152,13 @@ export let batcheditmodal = {
             // Find which radio button is selected and call the corresponding function when the Update Records button is clicked
             let selected = document.querySelector('input[name="actions"]:checked').value
             if (this.selectedRecords.length > 0) {
+                // Just in case something gave us a bunch of duplicates
+                var selectedRecords = this.selectedRecords.filter((value, index, array) => array.indexOf(value) === index)
+                var selectedFields = this.selectedFields.filter((value, index, array) => array.indexOf(value) === index)
                 if (selected == "add") {
-                    this.addToAll(this.selectedFields, this.selectedRecords)
+                    this.addToAll(selectedFields, selectedRecords)
                 } else if (selected == "delete") {
-                    this.deleteFromAll(this.selectedFields, this.selectedRecords)
+                    this.deleteFromAll(selectedFields, selectedRecords)
                 }
             } else {
                 alert("Please select at least one record")
@@ -190,11 +202,11 @@ export let batcheditmodal = {
                             subfields.push({"code": subfield.code, "value": subfield.value})
                         }
                     }
-                    result["fields"].push({"field": field.tag, "subfields": subfields})
+                    result["fields"].push({"field": field.tag, "subfields": subfields, "action": "added"})
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
-                console.log(validationFlags)
+                //console.log(validationFlags)
                 if (validationFlags.length > 0) {
                     // We have an error
                     result["invalid"] = true
@@ -214,10 +226,44 @@ export let batcheditmodal = {
             // If nothing else has been emitted by this point, return a processed response
             this.$emit('update-records', { "action": "add", "status": "processed", "results": this.results })  
         },
-        deleteFromAll(selectedFields, selectedRecords) {
+        async deleteFromAll(selectedFields, selectedRecords) {
             // Delete the selected fields from the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by deleting the selected fields.
+            // collect the promises so we can await all of them in parrallel
+            let promises = []
+            
+            for (let record of selectedRecords) {
+                let collection = record.split("/")[0]
+                let recordId = record.split("/")[1]
+                // add the promise to the list
+                promises.push(Jmarc.get(collection, recordId))
+            }
+
+            let jmarcRecords  = await Promise.all(promises)
+
+            for (let jmarc of jmarcRecords) {
+                let result = {"record": `${jmarc.collection}/${jmarc.recordId}`, "fields": []}
+
+                for (let field of selectedFields) {
+                    jmarc.deleteField(field.tag)
+                    result["fields"].push({"field": field.tag, "action": "deleted"})
+                }
+
+                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                //console.log(validationFlags)
+                if (validationFlags.length > 0) {
+                    // We have an error
+                    result["invalid"] = true
+                    result["message"] = validationFlags.map(x => x.message)
+                } else {
+                    // save record if no warnings
+                    // do we want to do this here, or do we only want to make any updates if all records are valid?
+                    jmarc.put().catch(err => {throw err})
+                }
+
+                this.results.push(result)
+            }
 
             // Show the confirmation screen
             this.confirm = true
