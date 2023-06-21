@@ -1031,8 +1031,7 @@ export let multiplemarcrecordcomponent = {
             this.$refs.batcheditmodal.selectedFields = this.copiedFields
 
             // Reinitialize the modal
-            this.$refs.batcheditmodal.confirm = false
-            this.$refs.batcheditmodal.results = []
+            this.$refs.batcheditmodal.reinitialize()
         },
 
         ///////////////////////////////////////////////////

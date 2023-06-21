@@ -119,6 +119,13 @@ export let batcheditmodal = {
         }
     },
     methods: {
+        reinitialize() {
+            this.includeReferrer = false
+            this.confirm = false
+            this.results = []
+            this.selectedRecords = []
+            
+        },
         matchesReferrer: function (collection, recordId) {
             let testRecord = [collection, recordId].join("/")
             return testRecord === this.referringRecord
