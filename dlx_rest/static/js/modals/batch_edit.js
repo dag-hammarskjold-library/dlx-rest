@@ -195,13 +195,10 @@ export let batcheditmodal = {
                     let subfields = []
                     for (let subfield of field.subfields) {
                         let newSubfield = newField.createSubfield(subfield.code)
-                        if (subfield.xref !== undefined) {
-                            newSubfield.xref = subfield.xref
-                            subfields.push({"code": subfield.code, xref: subfield.xref})
-                        } else {
-                            newSubfield.value = subfield.value
-                            subfields.push({"code": subfield.code, "value": subfield.value})
-                        }
+                        newSubfield.code = subfield.code
+                        newSubfield.value = subfield.value
+                        newSubfield.xref = subfield.xref
+                        subfields.push(newSubfield)
                     }
                     result["fields"].push({"field": field.tag, "subfields": subfields, "action": "added"})
                 }
