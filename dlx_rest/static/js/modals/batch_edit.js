@@ -213,10 +213,20 @@ export let batcheditmodal = {
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
                 //console.log(validationFlags)
                 if (validationFlags.length > 0) {
-                    // We have an error
-                    result["invalid"] = true
-                    result["message"] = validationFlags.map(x => x.message)
-                    errors += 1
+                    // Check if we can save on invalid; see record.js L#443 for comparison
+                    if (jmarc.getField("998")) {
+                        // proceed
+                        jmarc.put().catch(err => {
+                            throw err
+                            errors += 1
+                        })
+                    } else {
+                        // We have an error
+                        result["invalid"] = true
+                        result["message"] = validationFlags.map(x => x.message)
+                        errors += 1
+                    }
+                    
                 } else {
                     // save record if no warnings
                     // do we want to do this here, or do we only want to make any updates if all records are valid?
@@ -263,10 +273,20 @@ export let batcheditmodal = {
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
                 //console.log(validationFlags)
                 if (validationFlags.length > 0) {
-                    // We have an error
-                    result["invalid"] = true
-                    result["message"] = validationFlags.map(x => x.message)
-                    errors += 1
+                    // Check if we can save on invalid; see record.js L#443 for comparison
+                    if (jmarc.getField("998")) {
+                        // proceed
+                        jmarc.put().catch(err => {
+                            throw err
+                            errors += 1
+                        })
+                    } else {
+                        // We have an error
+                        result["invalid"] = true
+                        result["message"] = validationFlags.map(x => x.message)
+                        errors += 1
+                    }
+                    
                 } else {
                     // save record if no warnings
                     // do we want to do this here, or do we only want to make any updates if all records are valid?
