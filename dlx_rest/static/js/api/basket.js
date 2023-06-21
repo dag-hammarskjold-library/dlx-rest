@@ -28,11 +28,10 @@ export default {
         });
         return returnObj;
     },
-    async deleteItem(api_prefix, basket_id='userprofile/my_profile/basket', myBasket, collection, record_id) {
+    async deleteItem(myBasket, collection, record_id) {
         for (let item of myBasket) {
-            //let url = `${api_prefix}${basket_id}/items/${item.id}`
             if (item.record_id == record_id && item.collection == collection) {
-                await fetch(item.url, {method:"DELETE"});
+                await fetch(item.url, {method:"DELETE"});                
             }
         }
         return true;
@@ -42,7 +41,6 @@ export default {
         let url = `${api_prefix}marc/${collection}/records/${record_id}/locked`
         let res = await fetch(url);
         let jsonData = await res.json();
-        //console.log(jsonData);
         return jsonData;
     },
 
