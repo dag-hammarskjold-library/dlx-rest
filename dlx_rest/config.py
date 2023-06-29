@@ -56,9 +56,9 @@ class Config(object):
         environment = 'prod'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
+        #connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
         # Use the following value when we're ready to migrate production to Atlas.
-        #connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
+        connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
         sync_log_collection = 'dlx_dl_log'
     else:
