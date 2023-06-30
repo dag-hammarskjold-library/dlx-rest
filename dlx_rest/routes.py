@@ -582,7 +582,7 @@ def upload_files():
 @requires_permission('createFile')
 def process_files():
 
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     S3.connect(bucket=Config.bucket)
 
     fileInfo = request.form.get("fileText")
@@ -677,7 +677,7 @@ def files_results():
 
 
 def process_text(text, option):
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     
 
     pipeline = []
@@ -736,7 +736,7 @@ def update_file():
     """
     Updates the file entry based on record id
     """
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     
 
     record_id = request.form.get('record_id')
