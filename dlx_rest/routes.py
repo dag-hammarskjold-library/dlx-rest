@@ -48,6 +48,7 @@ def editor():
     return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
 @app.route('/help')
+@login_required
 def help():
     return render_template('help.html', vcoll="help", title="Help")
 
@@ -581,7 +582,7 @@ def upload_files():
 @requires_permission('createFile')
 def process_files():
 
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     S3.connect(bucket=Config.bucket)
 
     fileInfo = request.form.get("fileText")
@@ -649,10 +650,9 @@ def process_files():
         
         fileResults.append(record)
         record = {}
-
-    #print(fileResults)    
-
+    
     return render_template('file_results.html', submitted=fileResults, vcoll="files")
+   
 
 @app.route('/files/search')
 @login_required

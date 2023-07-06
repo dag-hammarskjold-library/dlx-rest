@@ -17,6 +17,9 @@ import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
 import { validationData } from "./validation.js";
 import { renderingData } from "./rendering.js";
+
+// Modals
+import {batcheditmodal} from "./modals/batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -72,6 +75,9 @@ export let multiplemarcrecordcomponent = {
                     <br>&nbsp;
                 </div>
             </div>
+
+            <!-- Modal for batch edit -->
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -126,18 +132,20 @@ export let multiplemarcrecordcomponent = {
                     </div>
                     <div class="modal-footer">
                         <slot name="footer">
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
-                        </button>
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModalSave()"> Cancel<br><br>
-                        </button>
+                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close </button> -->
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeWithSaveCheck(selectedJmarc)">Save and close 
+                            </button>
+                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket </button> -->
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
+                            </button>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
+                            </button>
+                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                @click="closeModalSave()"> Cancel<br><br>
+                            </button>
                         </slot>
                     </div>
                     </div>
@@ -326,6 +334,10 @@ export let multiplemarcrecordcomponent = {
     },
     methods: {
 
+        log(message) {
+            console.log(message);
+        },
+
         // popup warning modal if we have unsaved changes
         warningSave(){
             this.showModalSave=true
@@ -409,10 +421,11 @@ export let multiplemarcrecordcomponent = {
             } else if (! jmarc.saved) {
                 // get rid of empty fields and validate
                 let flags = jmarc.validationWarnings();
+                
+                // record level validations
                 flags.forEach(x => {this.callChangeStyling(x.message, "d-flex w-100 alert-danger")});
                 
-                if (flags.length > 0) return
-
+                // field level validations
                 jmarc.getDataFields().forEach(field => {
                     field.subfields.forEach(subfield => {
                         subfield.validationWarnings().forEach(x => {
@@ -432,8 +445,10 @@ export let multiplemarcrecordcomponent = {
                     // todo: change this to use audit data as criteria
                     if (jmarc.getField("998")) {
                         // record was created in legacy system
+                        // proceed
                     } else {
                         // record was created in this system
+                        // abort save
                         return
                     }
                 }
@@ -497,6 +512,8 @@ export let multiplemarcrecordcomponent = {
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
+
+                    
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
@@ -505,7 +522,7 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
-                    basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                    //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields) {
@@ -519,6 +536,8 @@ export let multiplemarcrecordcomponent = {
                     jmarc.saveButton.style = "pointer-events: auto";
                     this.callChangeStyling(error.message.substring(0, 100), "d-flex w-100 alert-danger");
                 });
+
+                return true
             }
         },
         cloneRecord(jmarc) {
@@ -1002,6 +1021,18 @@ export let multiplemarcrecordcomponent = {
             
             return this.addField(jmarc, newField, rowIndex)
         },
+        batchEdit(jmarc) {
+            // Send the referring record to the modal
+            //this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
+            this.$refs.batcheditmodal.referringRecord = `${jmarc.collection}/${jmarc.recordId}`
+            
+            // Get the list of copied fields and send them to the batch edit modal.
+            //this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
+            this.$refs.batcheditmodal.selectedFields = this.copiedFields
+
+            // Reinitialize the modal
+            this.$refs.batcheditmodal.reinitialize()
+        },
 
         ///////////////////////////////////////////////////
         //  definition of the listeners for the shortcuts
@@ -1284,6 +1315,25 @@ export let multiplemarcrecordcomponent = {
 
         closeModalSave() {
             this.showModalSave = false;
+        },
+
+        async closeWithSaveCheck(jmarc, removeFromBasket=false) {
+            this.closeModalSave();
+            //
+            let save_succesful = await this.saveRecord(jmarc,false);
+
+            if (save_succesful) {
+                this.removeRecordFromEditor(jmarc,true)
+
+                if (removeFromBasket) {
+
+                    this.$root.$refs.basketcomponent.removeRecordFromList(jmarc.collection, jmarc.recordId)
+                }
+
+                return true
+            } else {
+                this.callChangeStyling("Record could not be saved", "d-flex w-100 alert-danger")
+            }
         },
         
         async getRecordView(collection) {
@@ -1680,10 +1730,10 @@ export let multiplemarcrecordcomponent = {
         },
         removeRecordFromEditor(jmarc,keepDataInVector=false,confirm=false) {
 
-           // if(! jmarc.saved && !this.historyMode && !confirm) {
-           //     this.showModalSave=true
-           //    return
-           // }
+            //    if(! jmarc.saved && !this.historyMode && !confirm) {
+            //        this.showModalSave=true
+            //       return
+            //    }
 
             // change the color of the background of the item in the basket
             if (!this.historyMode){
@@ -1952,6 +2002,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
+                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Actions", "click": "batchEdit"},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
@@ -2008,6 +2059,11 @@ export let multiplemarcrecordcomponent = {
                     controlButton.className = `${control["class"]} float-left p-1 record-control`;
                     controlButton.title = control["title"];
                     jmarc[control["name"]] = controlButton;
+                    if (control["name"] == "batchButton") {
+                        console.log("batch button")
+                        controlButton.setAttribute("data-toggle", "modal")
+                        controlButton.setAttribute("data-target", "#batchActions")
+                    }
                     if (control["param"]) {
                         controlButton.onclick = () => {
                             this[control["click"]](control["param"]) 
@@ -2049,8 +2105,7 @@ export let multiplemarcrecordcomponent = {
                     }
 
                     controlButton.className = `${control["class"]} float-left`;
-                }
-                
+                }  
             }
 
             if (this.user != null) {
@@ -3198,7 +3253,8 @@ export let multiplemarcrecordcomponent = {
         }
     },
     components: {
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'batcheditmodal': batcheditmodal,
     }
 }
 
