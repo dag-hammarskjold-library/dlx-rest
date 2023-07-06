@@ -669,6 +669,7 @@ def process_files():
         mycol = mydb["file_upload_col"]
         mycol.insert_one(upload_operation)
     
+
     return render_template('file_results.html', submitted=fileResults, vcoll="files")
    
 

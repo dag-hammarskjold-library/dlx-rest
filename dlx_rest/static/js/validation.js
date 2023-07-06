@@ -1874,7 +1874,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            //"validStrings": {"a": []}
+            "validStrings": {"a": ["Mr.", "Ms.", "Unknown"]}
         },
         "380": {
             // Not defined in the specification document

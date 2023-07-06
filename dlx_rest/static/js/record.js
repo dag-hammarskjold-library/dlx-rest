@@ -17,6 +17,9 @@ import { basketcomponent } from "./basket.js";
 import { countcomponent } from "./search/count.js";
 import { validationData } from "./validation.js";
 import { renderingData } from "./rendering.js";
+
+// Modals
+import {batcheditmodal} from "./modals/batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -72,6 +75,9 @@ export let multiplemarcrecordcomponent = {
                     <br>&nbsp;
                 </div>
             </div>
+
+            <!-- Modal for batch edit -->
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -327,6 +333,10 @@ export let multiplemarcrecordcomponent = {
         });
     },
     methods: {
+
+        log(message) {
+            console.log(message);
+        },
 
         // popup warning modal if we have unsaved changes
         warningSave(){
@@ -1010,6 +1020,18 @@ export let multiplemarcrecordcomponent = {
             let rowIndex = jmarc.fields.map(x => x.tag).filter(x => parseInt(newField.tag) >= parseInt(x)).length - 1;
             
             return this.addField(jmarc, newField, rowIndex)
+        },
+        batchEdit(jmarc) {
+            // Send the referring record to the modal
+            //this.$refs.batcheditmodal.setReferringRecord(jmarc.collection, jmarc.recordId)
+            this.$refs.batcheditmodal.referringRecord = `${jmarc.collection}/${jmarc.recordId}`
+            
+            // Get the list of copied fields and send them to the batch edit modal.
+            //this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
+            this.$refs.batcheditmodal.selectedFields = this.copiedFields
+
+            // Reinitialize the modal
+            this.$refs.batcheditmodal.reinitialize()
         },
 
         ///////////////////////////////////////////////////
@@ -1980,6 +2002,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
+                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Actions", "click": "batchEdit"},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
@@ -2036,6 +2059,11 @@ export let multiplemarcrecordcomponent = {
                     controlButton.className = `${control["class"]} float-left p-1 record-control`;
                     controlButton.title = control["title"];
                     jmarc[control["name"]] = controlButton;
+                    if (control["name"] == "batchButton") {
+                        console.log("batch button")
+                        controlButton.setAttribute("data-toggle", "modal")
+                        controlButton.setAttribute("data-target", "#batchActions")
+                    }
                     if (control["param"]) {
                         controlButton.onclick = () => {
                             this[control["click"]](control["param"]) 
@@ -3225,7 +3253,8 @@ export let multiplemarcrecordcomponent = {
         }
     },
     components: {
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'batcheditmodal': batcheditmodal,
     }
 }
 
