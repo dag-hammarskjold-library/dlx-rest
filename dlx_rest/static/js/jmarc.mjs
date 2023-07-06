@@ -1075,6 +1075,7 @@ export class Jmarc {
     }
 
 	validationWarnings() {
+		// record level validations
 		let flags = [];
 		//let data = validationData[this.collection];
 		let data = validationData[this.getVirtualCollection()]
@@ -1090,6 +1091,21 @@ export class Jmarc {
 		});
 
 		return flags
+	}
+
+	allValidationWarnings() {
+		// returns validation flags at all levels: record, field, subfield
+		let flags = this.validationWarnings();
+
+		this.getDataFields().forEach(field => {
+			flags.push(field.validationWarnings().flat());
+
+			field.subfields.forEach(subfield => {
+				flags.push(subfield.validationWarnings().flat())
+			})
+		});
+
+		return flags.flat()
 	}
 
 	async authHeadingInUse() {
