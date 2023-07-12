@@ -661,7 +661,8 @@ def process_files():
         upload_operation={}   
         upload_operation["user"]=current_user.username
         upload_operation["when"]=datetime.today()
-        upload_operation["files_uploaded"]=fileResults
+        upload_operation["import_log"]=fileResults
+        upload_operation["type"]="File_Upload"
         
         # create a mongo client and save the json inside the database
         myclient = pymongo.MongoClient(Config.connect_string)
