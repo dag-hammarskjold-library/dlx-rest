@@ -1,15 +1,11 @@
 from flask import Flask, Response, url_for, jsonify, abort as flask_abort, session
 #from flask_restx import Resource, Api, reqparse
 from flask_login import LoginManager
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from mongoengine import connect, disconnect
 from flask_cors import CORS
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
 import certifi
-
-#DB.connect(Config.connect_string)
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -19,8 +15,14 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
-connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+# dlx connect
 DB.connect(Config.connect_string, database=Config.dbname)
+
+# mongoengine connect
+if Config.ssl:
+    connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+else:
+    connect(host=Config.connect_string,db=Config.dbname)
 
 try:
     app.secret_key=Config.secret_key
