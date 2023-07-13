@@ -698,6 +698,24 @@ export class Jmarc {
         }
         return true;
     }
+
+	static async from_mrk(mrk, collection) {
+		let jmarc = new Jmarc(collection)
+		for (let line of mrk.split("\n")) {
+			let match = line.match(/=(\w{3})  (.*)/)
+			tag = match[0]
+			rest = match[1]
+
+			if (tag == 'LDR') { tag = '000' }
+			let field = jmarc.createField(tag)
+			if (tag.substring(0,1) == '00') {
+				// Controlfield
+				let field = jmarc.createField(tag)
+			} else {
+				// Datafield
+			}
+		}
+	}
     
     async post() {
 		if (this.recordId) {
