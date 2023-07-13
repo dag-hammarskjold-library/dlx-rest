@@ -671,7 +671,7 @@ def process_files():
         mycol.insert_one(upload_operation)
     
 
-    return render_template('file_results.html', submitted=fileResults, vcoll="files")
+    return render_template('file_results.html', submitted=fileResults, vcoll="files",user=current_user.username)
    
 
 @app.route('/files/search')
