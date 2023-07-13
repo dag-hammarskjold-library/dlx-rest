@@ -64,6 +64,15 @@
             btn.style.display = 'inline-block';
           }
     })
+
+
+    // drag and drop color management
+    $("#files").droppable({
+      over: function() { $("#files").addClass("drop-yellow"); /* remove other classes if needed */ },
+      out: function() { $("#files").removeClass("drop-yellow"); }
+  });
+
+
 </script>
 
 {% endblock %}
