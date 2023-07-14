@@ -509,11 +509,11 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 //save
+                // new records do not have an ID yet
+                let newRecord = jmarc.recordId ? true : false;
                 let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
-
-                    
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
@@ -522,12 +522,17 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
-                    //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields) {
                             subfield.copied = false;
                         }
+                    }
+
+                    if (newRecord === true) {
+                        basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                        
+                        // todo: the record is being added to the basket, but it does not show up unless you refresh the entire page
                     }
 
                 }).catch(error => {
