@@ -46,7 +46,7 @@ class FileContent {
         let sym_1 = filename.replace(/\.[^.$]+$/g, "");
 
         //remove language extension
-        let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); //
+        let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); 
 
         //replaces any underscores or dashes  with slashes
         //let sym_3 = sym_2.replaceAll(/-|_/g, "/");
