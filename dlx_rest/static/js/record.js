@@ -461,8 +461,10 @@ export let multiplemarcrecordcomponent = {
                 // dupe auth check
                 if (jmarc.collection === "auths") {
                     let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
+                    let previous = new Jmarc(jmarc.collection);
+                    previous = previous.parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0];
 
-                    if (headingField) { 
+                    if (headingField && headingField.toStr() !== previous.toStr()) { 
                         // wait for the result
                         let inUse = await jmarc.authHeadingInUse().catch(error => {
                             this.callChangeStyling(error, "d-flex w-100 alert-danger");
