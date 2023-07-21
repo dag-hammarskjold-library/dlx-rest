@@ -2322,7 +2322,8 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            "validStrings": { "a": ["DHL","GEN","DHC"]}
+            "validStrings": { "a": ["DHL","GEN","DHC"]},
+            "saveActions": {"100:* OR 110:* OR 111:* OR 130:* OR 150:* OR 151:* OR 190:* OR 191:*": {"a": "DHL"}}
         },
         "915": {
             "name": "Record type",
