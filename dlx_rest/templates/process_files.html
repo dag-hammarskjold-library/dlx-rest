@@ -55,8 +55,8 @@
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 <script>
     $("div *").change(function() {
-      var file = document.getElementById("files");
-      var btn = document.getElementById("process");
+      let file = document.getElementById("files");
+      let btn = document.getElementById("process");
 
           if(file.files.length == 0 ){
             btn.style.display = 'none';
