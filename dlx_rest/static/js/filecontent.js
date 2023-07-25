@@ -49,7 +49,8 @@ class FileContent {
         let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); //
 
         //replaces any underscores or dashes  with slashes
-        let sym_3 = sym_2.replaceAll(/-|_/g, "/");
+        //let sym_3 = sym_2.replaceAll(/-|_/g, "/");
+        let sym_3 = sym_2.replaceAll(/_/g, "/");
 
         return sym_3;
     }
