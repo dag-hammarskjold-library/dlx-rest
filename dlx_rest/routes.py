@@ -661,13 +661,13 @@ def process_files():
         upload_operation={}   
         upload_operation["user"]=current_user.username
         upload_operation["when"]=datetime.today()
-        upload_operation["import_log"]=fileResults
+        upload_operation["events"]=fileResults
         upload_operation["type"]="File_Upload"
         
         # create a mongo client and save the json inside the database
         myclient = pymongo.MongoClient(Config.connect_string)
         mydb = myclient[Config.dbname]
-        mycol = mydb["file_upload_col"]
+        mycol = mydb["import_log"]
         mycol.insert_one(upload_operation)
     
 
@@ -696,7 +696,7 @@ def files_results():
 
 
 def process_text(text, option):
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     
 
     pipeline = []
@@ -755,7 +755,7 @@ def update_file():
     """
     Updates the file entry based on record id
     """
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     
 
     record_id = request.form.get('record_id')
