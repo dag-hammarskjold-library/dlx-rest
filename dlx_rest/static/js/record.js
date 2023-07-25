@@ -510,8 +510,8 @@ export let multiplemarcrecordcomponent = {
 
                 //save
                 // new records do not have an ID yet
-                let newRecord = jmarc.recordId ? true : false;
-                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                let recordExists = jmarc.recordId ? true : false;
+                let promise = recordExists ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
@@ -529,12 +529,11 @@ export let multiplemarcrecordcomponent = {
                         }
                     }
 
-                    if (newRecord === true) {
+                    if (recordExists === false) {
+                        // new record
                         basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
-                        
-                        // todo: the record is being added to the basket, but it does not show up unless you refresh the entire page
+                        // todo: update the basket display instantly
                     }
-
                 }).catch(error => {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.classList.remove("fa-pulse");
