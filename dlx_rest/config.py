@@ -15,11 +15,13 @@ class Config(object):
         TESTING = True
         LOGIN_DISABLED = True
         dbname = 'dlx'
+        ssl = False
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_LOCAL' in os.environ:
         environment = 'dev/local'
         connect_string = "mongodb://localhost:27017/?authSource=undlFiles"
         dbname = 'undlFiles'
+        ssl = False
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_DEV' in os.environ:
@@ -28,6 +30,7 @@ class Config(object):
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
+        ssl = True
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
@@ -37,6 +40,7 @@ class Config(object):
         # Use these value when we're ready to migrate QAT to Atlas.
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
+        ssl = True
         #connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
         #dbname = 'qat_undlFiles'
         sync_log_collection = 'sync_log'
@@ -48,6 +52,7 @@ class Config(object):
         # Use these value when we're ready to migrate UAT to Atlas.
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
+        ssl = True
         #connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
         #dbname = 'uat_undlFiles'
         sync_log_collection = 'sync_log'
@@ -60,6 +65,7 @@ class Config(object):
         # Use the following value when we're ready to migrate production to Atlas.
         connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
+        ssl = False
         sync_log_collection = 'dlx_dl_log'
     else:
         raise Exception('One of the environment variables "DLX_REST_TESTING", "DLX_REST_DEV", "DLX_REST_QAT", "DLX_REST_UAT", or "DLX_REST_PRODUCTION" must return a true value in order to initialize the runtime environment')

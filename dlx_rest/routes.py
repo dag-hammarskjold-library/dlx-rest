@@ -650,10 +650,9 @@ def process_files():
         
         fileResults.append(record)
         record = {}
-
-    #print(fileResults)    
-
+    
     return render_template('file_results.html', submitted=fileResults, vcoll="files")
+   
 
 @app.route('/files/search')
 @login_required
@@ -677,8 +676,8 @@ def files_results():
 
 
 def process_text(text, option):
-    DB.connect(Config.connect_string, database=Config.dbname)
     
+    DB.connect(Config.connect_string, database=Config.dbname)
 
     pipeline = []
 

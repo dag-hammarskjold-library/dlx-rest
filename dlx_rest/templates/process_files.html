@@ -1,54 +1,69 @@
 {% extends 'base.html' %} {% block content %}
 
-<div class="container mt-4 mb-4">
-  <h4>Upload Files</h4>
-  <hr />
-  <p>Drag and drop or browse to select files to upload. One or more files may be selected to process in batches. Adjust the document symbols and languages as necessary.
-    Once finished, click "Process Files". The results will be on the "View File Results" tab.
-  </p>
-  <p>
-    <em>Note: There is a 10 MB limit. Please upload no more than 10 MB of files at a time. If you need to upload a file larger than that, please
-      contact support.</em>
-  </p>
-</div>
-<div class="container">
-  <div class="card border-white">
-    <div class="card-body">
-      <div class="dashed_upload">
-        <div class="wrapper">
-          <div class="drop">
-            <div class="cont">
-              <div class="tit"> Drag & Drop </div>
-              <div class="desc"> or </div>
-              <div class="browse"> click here to browse </div>
+<div class="container mt-3>
+  <div class="container mt-4 mb-4 ">
+    <h4>Upload Files</h4>
+    <hr />
+    <p>Drag and drop or browse to select files to upload. One or more files may be selected to process in batches. Adjust the document symbols and languages as necessary.
+      Once finished, click "Process Files". The results will be on the "View File Results" tab.
+    </p>
+    <p>
+      <em>Note: There is a 10 MB limit. Please upload no more than 10 MB of files at a time. If you need to upload a file larger than that, please
+        contact support.</em>
+    </p>
+  </div>
+  <div class="container mt-3 ">
+    <div class="card border-white">
+      <div class="card-body">
+        <div class="dashed_upload">
+          <div class="wrapper">
+            <div class="drop">
+              <div class="cont">
+                <div class="tit"> Drag & Drop </div>
+                <div class="desc"> or </div>
+                <div class="browse"> click here to browse </div>
+              </div>
+                <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
+                  <input id="files" name="file[]" type="file" multiple />
+                  <!-- <input type="submit" value="Submit">
+                </form> -->
+                  <!-- <button type="submit" class="btn btn-primary">Process Files</button>
+                </form> -->
+              <!-- <output id="list"></output> -->
             </div>
-              <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
-                <input id="files" name="file[]" type="file" multiple/>
-                <!-- <input type="submit" value="Submit">
-              </form> -->
-                <!-- <button type="submit" class="btn btn-primary">Process Files</button>
-              </form> -->
-            <!-- <output id="list"></output> -->
           </div>
         </div>
-      </div>
-      <div class="preview">
-        <p>No files currently selected for upload</p>
-      </div>
-  
-      <div class="toSend">
-        <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
-      </div>
-      <!-- Figure out how to move the button after the drag and drop section but still in the form -->
-      <!-- <button type="button" class="btn btn-primary" onclick="toggle_form()">Process Files</button> -->
-      <button type="submit" class="btn btn-primary">Process Files</button>
-              </form>
-              
-    </div>
-    
-  </div>
-  </div>
+        <div class="preview">
 
+        </div>
+
+        <div class="toSend">
+          <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
+        </div>
+        <!-- Figure out how to move the button after the drag and drop section but still in the form -->
+        <!-- <button type="button" class="btn btn-primary" onclick="toggle_form()">Process Files</button> -->
+        <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
+        
+        </form>
+                
+      </div>
+      
+    </div>
+    </div>
+</div>
 <script type="module" src="{{ url_for('static', filename='js/file.js') }}" defer></script>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
-  {% endblock %}
+<script>
+    $("div *").change(function() {
+      var file = document.getElementById("files");
+      var btn = document.getElementById("process");
+
+          if(file.files.length == 0 ){
+            btn.style.display = 'none';
+          } else {
+            btn.style.display = 'inline-block';
+          }
+    })
+</script>
+
+{% endblock %}
