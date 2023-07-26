@@ -200,8 +200,15 @@ function createFileObjects() {
   }
   //otherwise, create objects and display table
   else {
+    
+    // check if there is already a table displayed
+    // let previousTable=document.getElementById("table_upload")
+    // console.log(previousTable)
+    // if (previousTable) previousTable.remove() 
+
     const table = document.createElement("table");
     table.classList.add("table", "table-sm", "table-hover");
+    table.setAttribute("id","table_upload")
 
     preview.appendChild(table);
 
