@@ -4,13 +4,29 @@
   <div class="container mt-4 mb-4 ">
     <h4>Upload Files</h4>
     <hr />
-    <p>Drag and drop or browse to select files to upload. One or more files may be selected to process in batches. Adjust the document symbols and languages as necessary.
-      Once finished, click "Process Files". The results will be on the "View File Results" tab.
-    </p>
-    <p>
-      <em>Note: There is a 10 MB limit. Please upload no more than 10 MB of files at a time. If you need to upload a file larger than that, please
-        contact support.</em>
-    </p>
+<p>Below are the steps to upload files to the Central Database. After the files are uploaded here, a syncing operation runs and makes them available in UNDL in due time.</p>
+<ol>
+<li> 1- Drag and drop or browse to select files to upload. Please make sure that the filenames adhere to the following conventions: </li>
+<ul>
+<li>A slash (/) in the symbol is replaced by an underscore(_)</li>
+<li>Other punctuation/characters/spaces should be the same as they appear in the document symbol</li>
+<li>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br>
+Example: A_RES_76_1-EN.pdf</li>
+</ul>
+<li>2- After uploading the files you can go through the list of the files: 
+<ul>
+<li>Check the <b>symbol</b> and change it if it was not converted properly. </li>
+<li>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </li>
+<li>Select either <b> Keep</b> or <b>Overwrite</b>:<br>
+<b> Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If file exists, it doesn’t upload it. If file doesn’t exist, it creates it.<br>
+<b>Overwrite:</b> Select it if you want to replace existing file. If file doesn’t exist, it creates it.
+</li>
+</ul>
+
+</li>
+<li>
+3- After pressing the Process Files button, you will get a list that will tell you if the file has been properly uploaded or if there were any issues. </li>
+</ol>
   </div>
   <div class="container mt-3 ">
     <div class="card border-white">
@@ -55,8 +71,8 @@
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 <script>
     $("div *").change(function() {
-      var file = document.getElementById("files");
-      var btn = document.getElementById("process");
+      let file = document.getElementById("files");
+      let btn = document.getElementById("process");
 
           if(file.files.length == 0 ){
             btn.style.display = 'none';
@@ -64,6 +80,15 @@
             btn.style.display = 'inline-block';
           }
     })
+
+
+    // drag and drop color management
+    $("#files").droppable({
+      over: function() { $("#files").addClass("drop-yellow"); /* remove other classes if needed */ },
+      out: function() { $("#files").removeClass("drop-yellow"); }
+  });
+
+
 </script>
 
 {% endblock %}
