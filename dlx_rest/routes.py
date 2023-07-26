@@ -11,6 +11,9 @@ import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
 from dlx.file.s3 import S3
 from dlx import DB
+import pymongo
+
+
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -585,6 +588,8 @@ def process_files():
     DB.connect(Config.connect_string, database=Config.dbname)
     S3.connect(bucket=Config.bucket)
 
+    #print(Config.environment)
+    
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
 
@@ -651,7 +656,22 @@ def process_files():
         fileResults.append(record)
         record = {}
     
-    return render_template('file_results.html', submitted=fileResults, vcoll="files")
+    if len(fileResults)>0:
+        # creation of the json
+        upload_operation={}   
+        upload_operation["user"]=current_user.username
+        upload_operation["when"]=datetime.today()
+        upload_operation["events"]=fileResults
+        upload_operation["type"]="File_Upload"
+        
+        # create a mongo client and save the json inside the database
+        myclient = pymongo.MongoClient(Config.connect_string)
+        mydb = myclient[Config.dbname]
+        mycol = mydb["import_log"]
+        mycol.insert_one(upload_operation)
+    
+
+    return render_template('file_results.html', submitted=fileResults, vcoll="files", user=current_user.username)
    
 
 @app.route('/files/search')
@@ -676,9 +696,8 @@ def files_results():
 
 
 def process_text(text, option):
-    
     DB.connect(Config.connect_string, database=Config.dbname)
-
+    
     pipeline = []
 
     collation={
@@ -736,7 +755,6 @@ def update_file():
     Updates the file entry based on record id
     """
     DB.connect(Config.connect_string, database=Config.dbname)
-    
 
     record_id = request.form.get('record_id')
     docsymbol = request.form.get('docsymbol')

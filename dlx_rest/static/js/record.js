@@ -461,8 +461,9 @@ export let multiplemarcrecordcomponent = {
                 // dupe auth check
                 if (jmarc.collection === "auths") {
                     let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
+                    let previous = new Jmarc(jmarc.collection).parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0];
 
-                    if (headingField) { 
+                    if (headingField && headingField.toStr() !== previous.toStr()) { 
                         // wait for the result
                         let inUse = await jmarc.authHeadingInUse().catch(error => {
                             this.callChangeStyling(error, "d-flex w-100 alert-danger");
@@ -509,11 +510,11 @@ export let multiplemarcrecordcomponent = {
                 }
 
                 //save
-                let promise = jmarc.recordId ? jmarc.put() : jmarc.post();
+                // new records do not have an ID yet
+                let recordExists = jmarc.recordId ? true : false;
+                let promise = recordExists ? jmarc.put() : jmarc.post();
  
                 promise.then(returnedJmarc => {
-
-                    
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
@@ -522,7 +523,6 @@ export let multiplemarcrecordcomponent = {
                     }
                     
                     this.callChangeStyling("Record " + jmarc.recordId + " has been updated/saved", "d-flex w-100 alert-success")
-                    //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                     
                     for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
                         for (let subfield of field.subfields) {
@@ -530,6 +530,11 @@ export let multiplemarcrecordcomponent = {
                         }
                     }
 
+                    if (recordExists === false) {
+                        // new record
+                        basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                        // todo: update the basket display instantly
+                    }
                 }).catch(error => {
                     jmarc.saveButton.classList.remove("fa-spinner");
                     jmarc.saveButton.classList.remove("fa-pulse");
