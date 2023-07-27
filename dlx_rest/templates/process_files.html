@@ -36,16 +36,13 @@ Example: A_RES_76_1-EN.pdf</li>
       <div class="card-body">
         <div class="dashed_upload">
           <div class="wrapper">
-            <div class="drop">
-              <div class="cont">
+            <div class="drop" id="target">
+              <div class="cont" >
                 <div class="tit"> Drag &amp; Drop </div>
                 <div class="desc"> or </div>
                 <div class="browse" style="background:#28a745;">Browse</div>
               </div>
                  <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
-              
-           
-              <!-- <output id="list"></output> -->
             </div>
           </div>
         </div>
@@ -74,6 +71,20 @@ Example: A_RES_76_1-EN.pdf</li>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 <script>
 
+  const target = document.getElementById("target");
+  const myFile = document.getElementById("files");
+
+  myFile.addEventListener("dragenter", (event) => {
+    target.style.backgroundColor = '#DCDCDC';
+  });
+
+  myFile.addEventListener("drop", (event) => {
+    target.style.backgroundColor = 'white';
+  });
+
+  myFile.addEventListener("dragleave", (event) => {
+    target.style.backgroundColor = 'white';
+  });
 
     function resetUI(){
       let correct=document.getElementById("correctsize");
