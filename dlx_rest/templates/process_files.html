@@ -28,6 +28,8 @@ Example: A_RES_76_1-EN.pdf</li>
 3- After pressing the Process Files button, you will get a list that will tell you if the file has been properly uploaded or if there were any issues. </li>
 </ol>
   </div>
+
+  
   <div class="container mt-3 ">
     <div class="card border-white">
       <div class="card-body">
@@ -49,6 +51,9 @@ Example: A_RES_76_1-EN.pdf</li>
             </div>
           </div>
         </div>
+
+        <div id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold">  </div>
+        <div id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold">  </div> 
         <div class="preview">
 
         </div>
@@ -56,8 +61,6 @@ Example: A_RES_76_1-EN.pdf</li>
         <div class="toSend">
           <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
         </div>
-        <!-- Figure out how to move the button after the drag and drop section but still in the form -->
-        <!-- <button type="button" class="btn btn-primary" onclick="toggle_form()">Process Files</button> -->
         <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
         
         </form>
@@ -66,19 +69,53 @@ Example: A_RES_76_1-EN.pdf</li>
       
     </div>
     </div>
-</div>
+  </div>
+</div>  
 <script type="module" src="{{ url_for('static', filename='js/file.js') }}" defer></script>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 <script>
-    $("div *").change(function() {
-      var file = document.getElementById("files");
-      var btn = document.getElementById("process");
 
-          if(file.files.length == 0 ){
+
+    function resetUI(){
+      let correct=document.getElementById("correctsize");
+      let incorrect=document.getElementById("incorrectsize");
+      let btn = document.getElementById("process");
+
+      // reset the message about the size of the upload
+      incorrect.style.display= 'none';  
+      correct.style.display= 'none';  
+
+      // reset the button to process
+      btn.style.display = 'none';
+
+    }
+
+    $("div *").change(function() {
+      resetUI()
+      let file = document.getElementById("files");
+      let btn = document.getElementById("process");
+      let limitSize=1073741824
+      let correct=document.getElementById("correctsize");
+      let incorrect=document.getElementById("incorrectsize");
+
+          if (file.files.length == 0 ){
             btn.style.display = 'none';
-          } else {
-            btn.style.display = 'inline-block';
+          } 
+          
+          let sizeFile=0
+          for (let myfile of file.files){
+            sizeFile+=myfile.size
           }
+
+          if (file.files.length > 0 )
+              if(sizeFile>limitSize) {
+                incorrect.textContent=`The total size of your files is > ${limitSize} kb (1Gb). Consider uploading less,otherwise your request might not be served`
+                incorrect.style.display= 'inline-block';  
+              } else {
+                correct.textContent=`The total size of your files is : ${sizeFile} Kb`
+                correct.style.display= 'inline-block';  
+                btn.style.display = 'inline-block';
+                }
     })
 </script>
 
