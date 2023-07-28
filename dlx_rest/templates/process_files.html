@@ -39,29 +39,29 @@ Example: A_RES_76_1-EN.pdf</li>
             <div class="drop" id="target">
               <div class="cont" >
                 <div class="tit"> Drag &amp; Drop </div>
-                <div class="desc"> or </div>
-                <div class="browse" style="background:#28a745;">Browse</div>
-              </div>
-                 <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
-            </div>
-          </div>
-        </div>
-        <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
-          <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
-          <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
-        
-        <div class="preview">
+                  <div class="desc"> or </div>
+                    <div class="browse" style="background:#28a745;">Browse</div>
+                    </div>
+                      <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
+                            <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
+                        </div>
+                      </div>
+                    </div>
+                    <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
+                      <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
+                      <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
+                    
+                    <div class="preview">
 
-        </div>
+                    </div>
 
-        <div class="toSend">
-          <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
-        </div>
-        <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
-        
-        </form>
-                
-      </div>
+                    <div class="toSend">
+                      <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
+          
+                </form>
+                </div>
       
     </div>
     </div>
