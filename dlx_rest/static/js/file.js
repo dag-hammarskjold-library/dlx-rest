@@ -306,7 +306,17 @@ function createFileObjects() {
       // Add event listeners
       const ds = fileEntry.querySelector(".file__docSymbol");
       ds.addEventListener("blur", changeDS);
-   
+
+      // event listener when there is a change for adding background color when we have spaces in docsymbol
+      ds.addEventListener("DOMSubtreeModified",()=>{
+        (ds.textContent.indexOf(" ")>=0) ? ds.setAttribute("bgcolor", "#FFEBCD") : ds.setAttribute("bgcolor", "");
+      })
+
+      // adding background color when we have spaces in docsymbol
+      if (ds.textContent.indexOf(" ")>=0) ds.setAttribute("bgcolor", "#FFEBCD");
+     
+
+
       const en = fileEntry.querySelector(".file__EN");
       en.addEventListener("click", toggleEN);
    

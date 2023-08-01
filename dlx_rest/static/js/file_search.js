@@ -90,11 +90,9 @@ function createFileObjects(results) {
         //column #2 - document symbol
         const col_2 = document.createElement("td");
         col_2.textContent = element.docSymbol;
-        col_2.setAttribute("contenteditable", true); //new
-
+        col_2.setAttribute("contenteditable", true); 
         col_2.addEventListener("blur", function(e) {
             element.updateSymbol(this.textContent);
-
         });
 
         //column #3 - language
