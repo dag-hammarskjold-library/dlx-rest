@@ -3,14 +3,6 @@
 const target = document.getElementById("target");
 const myFile = document.getElementById("files");
 
-myFile.addEventListener("change", () => {
-  // alert("New change")
-  // const tableToRemove = document.getElementById("table_upload");
-  // if (tableToRemove) tableToRemove.remove()
-
-});
-
-
 myFile.addEventListener("dragenter", () => {
   target.style.backgroundColor = '#DCDCDC';
 });
@@ -45,6 +37,7 @@ $("div *").change(function() {
     resetUI()
     let file = document.getElementById("files");
     let btn = document.getElementById("process");
+    let btn1 = document.getElementById("cancelBtn");
     let limitSize=1073741824
     let correct=document.getElementById("correctsize");
     let incorrect=document.getElementById("incorrectsize");
@@ -52,6 +45,7 @@ $("div *").change(function() {
 
         if (file.files.length == 0 ){
           btn.style.display = 'none';
+          btn1.style.display = 'none';
         } 
         
         let sizeFile=0
@@ -66,6 +60,7 @@ $("div *").change(function() {
               myIcon.style.display= 'inline-block'; 
               myIcon.style.color= '#dc3545';  
               incorrect.style.display= 'inline-block'; 
+              btn1.style.display = 'inline-block';
               
             } else {
               correct.textContent=`The total size of your files is : ${(sizeFile/1048576).toFixed(2)} MB`
@@ -73,6 +68,7 @@ $("div *").change(function() {
               myIcon.style.color= '#28a745'; 
               correct.style.display= 'inline-block';  
               btn.style.display = 'inline-block';
+              btn1.style.display = 'inline-block';
               
               }
 })
