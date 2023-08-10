@@ -17,6 +17,10 @@ function init() {
     form.addEventListener('submit', async(e) => {
         e.preventDefault();
 
+        // Find the actual table already displayed and remove it from the UI
+        const myTables= document.getElementById("table_list")
+        if (myTables) myTables.remove()
+
         const text = textInput.value;
         const option = optionInput.checked;
         const url = updateURL.value;

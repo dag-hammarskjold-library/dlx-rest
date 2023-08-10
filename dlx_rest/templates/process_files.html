@@ -1,76 +1,224 @@
 {% extends 'base.html' %} {% block content %}
 
-<div class="container mt-3>
+
   <div class="container mt-4 mb-4 ">
     <br>
     <h4>Upload Files</h4>
     <hr />
-<p>Below are the steps to upload files to the Central Database. After the files are uploaded here, a syncing operation runs and makes them available in UNDL in due time.</p>
-<ol>
-<li> 1- Drag and drop or browse to select files to upload. Please make sure that the filenames adhere to the following conventions: </li>
-<ul>
-<li>A slash (/) in the symbol is replaced by an underscore(_)</li>
-<li>Other punctuation/characters/spaces should be the same as they appear in the document symbol</li>
-<li>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br>
-Example: A_RES_76_1-EN.pdf</li>
-</ul>
-<li>2- After uploading the files you can go through the list of the files: 
-<ul>
-<li>Check the <b>symbol</b> and change it if it was not converted properly. </li>
-<li>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </li>
-<li>Select either <b> Keep</b> or <b>Overwrite</b>:<br>
-<b> Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If file exists, it doesn’t upload it. If file doesn’t exist, it creates it.<br>
-<b>Overwrite:</b> Select it if you want to replace existing file. If file doesn’t exist, it creates it.
-</li>
-</ul>
 
-</li>
-<li>
-3- After pressing the Process Files button, you will get a list that will tell you if the file has been properly uploaded or if there were any issues. </li>
-</ol>
-  </div>
+    <p>Below are the steps to upload files to the Central Database. After the files are uploaded here, a syncing operation runs and makes them available in UNDL in due time.</p>
+    <div class="accordion" id="accordionExample">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+            <strong> Step 1 : Drag and drop or browse to select files to upload. </strong>
+          </button>
+        </h2>
+        <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <p> Please make sure that the filenames adhere to the following conventions:</p>
+            <p>A slash (/) in the symbol is replaced by an underscore(_)</p>
+            <p>Other punctuation/characters/spaces should be the same as they appear in the document symbol</p>
+            <p>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br></p>
+            <p><strong>Example: A_RES_76_1-EN.pdf</strong></p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTwo">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+            <strong> Step 2 :  After uploading the files you can go through the list of the files: </strong>
+          </button>
+        </h2>
+        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <p>Check the <b>symbol</b> and change it if it was not converted properly. </p>
+            <p>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </p>
+            Select either <b> Keep</b> or <b>Overwrite</b>:<br>
+            Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If file exists, it doesn’t upload it. If file doesn’t exist, it creates it.<br>
+            Overwrite:</b> Select it if you want to replace existing file. If file doesn’t exist, it creates it.
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingThree">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+            <strong> Step 3 : After pressing the Process Files button: </strong>
+          </button>
+        </h2>
+        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <p>You will get a list that will tell you if the file has been properly uploaded or if there were any issues. </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
 
   
   <div class="container mt-3 ">
+    <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
     <div class="card border-white">
       <div class="card-body">
-        <div class="dashed_upload">
+        <div class="dashed_upload" id="box"> 
           <div class="wrapper">
             <div class="drop" id="target">
               <div class="cont" >
                 <div class="tit"> Drag &amp; Drop </div>
                   <div class="desc"> or </div>
                     <div class="browse" style="background:#28a745;">Browse</div>
+                    <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
                     </div>
-                      <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
-                            <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
-                        </div>
-                      </div>
                     </div>
-                    <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
-                      <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
-                      <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
-                    
-                    <div class="preview">
-
-                    </div>
-
-                    <div class="toSend">
-                      <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="process"  style="display:none;">Process Files</button>
-          
-                </form>
-                <button id="cancelBtn" type="button" class="btn btn-primary" onclick="location.reload()" style="display:none;"> Cancel the operation </button>
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
+                                               
+          <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
+          <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
+          <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
+          
+          <!-- Preview DIV -->
+          <div class="preview">
       
+          </div>
+      
+          <!-- ToSend DIV -->
+          <div class="toSend">
+            <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
+          </div>
+      
+          <button type="submit" class="mt-0 ml-1 btn btn-primary float-right " id="process"  style="display:none;">Process Files</button>
+          <button id="cancelBtn" type="button" class="mt-0 ml-1 btn btn-secondary float-right" onclick="location.reload()" style="display:none;"> Cancel the operation </button>
+        
+        </div>
+      </div>
     </div>
-    </div>
+  </form>
   </div>
 </div>  
 
 <!-- <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script> -->
 <script type="module" src="{{ url_for('static', filename='js/file.js') }}" defer></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/file_feature.js') }}" defer></script>
- 
+<script>
+
+
+  const target = document.getElementById("target");
+  const myFile = document.getElementById("files");
+  const myBox = document.getElementById("box");
+  const myTable = document.getElementById("table_upload");
+  
+  myFile.addEventListener("change", () => {
+    myBox.style.display = 'none';
+  
+  });
+  
+  myFile.addEventListener("dragenter", () => {
+    target.style.backgroundColor = '#DCDCDC';
+  });
+  
+  myFile.addEventListener("drop", () => {
+      target.style.backgroundColor = 'white';
+  });
+  
+  myFile.addEventListener("dragleave", () => {
+    target.style.backgroundColor = 'white';
+  });
+  
+  // this function is calculating the size of the files to upload and render some information 
+  $("div *").change(function() {
+      resetUI()
+      let file = document.getElementById("files");
+      let btn = document.getElementById("process");
+      let btn1 = document.getElementById("cancelBtn");
+      let limitSize=1073741824
+      let correct=document.getElementById("correctsize");
+      let incorrect=document.getElementById("incorrectsize");
+      let myIcon=document.getElementById("myicon");
+  
+          if (file.files.length == 0 ){
+            btn.style.display = 'none';
+            btn1.style.display = 'none';
+          } 
+          
+          let sizeFile=0
+          for (let myfile of file.files){
+            sizeFile+=myfile.size
+          }
+  
+          if (file.files.length > 0 )
+              if(sizeFile>limitSize) {
+                //incorrect.textContent=`The total size of your files is > ${limitSize} kb (1Gb). Consider uploading less,otherwise your request might not be served`
+                incorrect.textContent=`The total size of your files is > 1GB. Consider uploading less,otherwise your request might not be served`
+                myIcon.style.display= 'inline-block'; 
+                myIcon.style.color= '#dc3545';  
+                incorrect.style.display= 'inline-block'; 
+                btn1.style.display = 'inline-block';
+                
+              } else {
+                correct.textContent=`The total size of your files is : ${(sizeFile/1048576).toFixed(2)} MB`
+                myIcon.style.display= 'inline-block';
+                myIcon.style.color= '#28a745'; 
+                correct.style.display= 'inline-block';  
+                btn.style.display = 'inline-block';
+                btn1.style.display = 'inline-block';
+                
+                }
+  })
+    
+    // this function reset some visual elements
+    function resetUI(){
+        
+      let correct=document.getElementById("correctsize");
+      let incorrect=document.getElementById("incorrectsize");
+      let myIcon=document.getElementById("myicon");
+      let btn = document.getElementById("process");
+    
+      // reset the message about the size of the upload
+      incorrect.style.display= 'none';  
+      correct.style.display= 'none';  
+      myIcon.style.display= 'none';
+    
+      // reset the button to process
+      btn.style.display = 'none';
+    }
+    
+  
+  
+  function deleteRow(){
+    
+      // 1- visual process
+    
+        // get the number of rows
+        let rowCount = $("#table_upload tr").length;
+    
+        // event.target will be the input element.
+        let fileToRemove = event.target.parentNode.id; 
+        let td = event.target.parentNode; 
+        let tr = td.parentNode; // the row to be removed
+        tr.parentNode.removeChild(tr);
+        if (rowCount==2) {
+          resetUI()
+          let myTable=document.getElementById("table_upload");
+          // remove the table
+          if (myTable) myTable.parentNode.removeChild(myTable);
+        }
+    
+      // 2- file content process
+  
+          let myListFiles= new DataTransfer()
+          let input = document.getElementById("files");
+          let myFiles = input.files;
+          for (const file of myFiles) {
+              if (file.name!==fileToRemove) myListFiles.items.add(file)
+          }
+      
+      document.getElementById("files").value =""
+      //document.getElementById("files").value = myListFiles
+  
+    }
+</script> 
 {% endblock %}
