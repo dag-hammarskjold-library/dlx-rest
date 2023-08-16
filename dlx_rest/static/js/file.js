@@ -299,25 +299,21 @@ function createFileObjects() {
         </td>
        <!-- <td id="${file.filename}" title="remove this file"><i class="fa fa-trash mt-2" aria-hidden="true" style="color: #11a745;" onclick="deleteRow()"></i></td> -->
       `;
-      
-      // Add event listeners for click on the trash
-      // const trash=document.querySelector(".fa-trash");
-      // if (trash)
-      //   trash.addEventListener("click",()=>{
-      //     deleteRow()
-      //   })
 
+
+      
       // Add event listeners for docsymbol
       const ds = fileEntry.querySelector(".file__docSymbol");
+
+      const checkSpaceInName= function(){
+            // adding background color when we have spaces in docsymbol
+            (ds.textContent.indexOf(" ")>=0) ? ds.style.backgroundColor = "#FFEBCD" : ds.style.backgroundColor = "#FFFFFF";
+          }
+
       ds.addEventListener("blur", changeDS);
+      ds.addEventListener("DOMSubtreeModified", checkSpaceInName);
 
-      // event listener when there is a change for adding background color when we have spaces in docsymbol
-      ds.addEventListener("DOMSubtreeModified",()=>{
-        (ds.textContent.indexOf(" ")>=0) ? ds.setAttribute("bgcolor", "#FFEBCD") : ds.setAttribute("bgcolor", "");
-      })
-
-      // adding background color when we have spaces in docsymbol
-      if (ds.textContent.indexOf(" ")>=0) ds.setAttribute("bgcolor", "#FFEBCD");
+      checkSpaceInName()  
 
       const en = fileEntry.querySelector(".file__EN");
       en.addEventListener("click", toggleEN);
