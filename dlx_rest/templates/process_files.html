@@ -2,6 +2,7 @@
 
 <div class="container mt-3>
   <div class="container mt-4 mb-4 ">
+    <br>
     <h4>Upload Files</h4>
     <hr />
 <p>Below are the steps to upload files to the Central Database. After the files are uploaded here, a syncing operation runs and makes them available in UNDL in due time.</p>
@@ -35,25 +36,20 @@ Example: A_RES_76_1-EN.pdf</li>
       <div class="card-body">
         <div class="dashed_upload">
           <div class="wrapper">
-            <div class="drop">
-              <div class="cont">
-                <div class="tit"> Drag & Drop </div>
+            <div class="drop" id="target">
+              <div class="cont" >
+                <div class="tit"> Drag &amp; Drop </div>
                 <div class="desc"> or </div>
-                <div class="browse"> click here to browse </div>
+                <div class="browse" style="background:#28a745;">Browse</div>
               </div>
-                <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
-                  <input id="files" name="file[]" type="file" multiple />
-                  <!-- <input type="submit" value="Submit">
-                </form> -->
-                  <!-- <button type="submit" class="btn btn-primary">Process Files</button>
-                </form> -->
-              <!-- <output id="list"></output> -->
+                 <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
             </div>
           </div>
         </div>
-
-        <div id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold">  </div>
-        <div id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold">  </div> 
+        <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
+          <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
+          <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
+        
         <div class="preview">
 
         </div>
@@ -75,15 +71,31 @@ Example: A_RES_76_1-EN.pdf</li>
 <script type="module" src="{{ url_for('static', filename='js/filecontent.js') }}" defer></script>
 <script>
 
+  const target = document.getElementById("target");
+  const myFile = document.getElementById("files");
+
+  myFile.addEventListener("dragenter", (event) => {
+    target.style.backgroundColor = '#DCDCDC';
+  });
+
+  myFile.addEventListener("drop", (event) => {
+    target.style.backgroundColor = 'white';
+  });
+
+  myFile.addEventListener("dragleave", (event) => {
+    target.style.backgroundColor = 'white';
+  });
 
     function resetUI(){
       let correct=document.getElementById("correctsize");
       let incorrect=document.getElementById("incorrectsize");
+      let myIcon=document.getElementById("myicon");
       let btn = document.getElementById("process");
 
       // reset the message about the size of the upload
       incorrect.style.display= 'none';  
       correct.style.display= 'none';  
+      myIcon.style.display= 'none';
 
       // reset the button to process
       btn.style.display = 'none';
@@ -97,6 +109,7 @@ Example: A_RES_76_1-EN.pdf</li>
       let limitSize=1073741824
       let correct=document.getElementById("correctsize");
       let incorrect=document.getElementById("incorrectsize");
+      let myIcon=document.getElementById("myicon");
 
           if (file.files.length == 0 ){
             btn.style.display = 'none';
@@ -109,12 +122,19 @@ Example: A_RES_76_1-EN.pdf</li>
 
           if (file.files.length > 0 )
               if(sizeFile>limitSize) {
-                incorrect.textContent=`The total size of your files is > ${limitSize} kb (1Gb). Consider uploading less,otherwise your request might not be served`
-                incorrect.style.display= 'inline-block';  
+                //incorrect.textContent=`The total size of your files is > ${limitSize} kb (1Gb). Consider uploading less,otherwise your request might not be served`
+                incorrect.textContent=`The total size of your files is > 1GB. Consider uploading less,otherwise your request might not be served`
+                myIcon.style.display= 'inline-block'; 
+                myIcon.style.color= '#dc3545';  
+                incorrect.style.display= 'inline-block'; 
+                
               } else {
-                correct.textContent=`The total size of your files is : ${sizeFile} Kb`
+                correct.textContent=`The total size of your files is : ${(sizeFile/1048576).toFixed(2)} MB`
+                myIcon.style.display= 'inline-block';
+                myIcon.style.color= '#28a745'; 
                 correct.style.display= 'inline-block';  
                 btn.style.display = 'inline-block';
+                
                 }
     })
 </script>
