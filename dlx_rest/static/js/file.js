@@ -1,12 +1,13 @@
 import FileContent from "./filecontent.js";
 
-const input = document.getElementById("files");
-const preview = document.querySelector(".preview");
-const txt = document.getElementById("fileText"); //new
-const fileObjectArray = [];
+let input = document.getElementById("files");
+let preview = document.querySelector(".preview");
+let txt = document.getElementById("fileText"); 
+let fileObjectArray = [];
 
 input.style.opacity = 0;
 txt.style.opacity = 0;
+
 
 /**Updated Section*/
 /**
@@ -185,6 +186,7 @@ input.addEventListener("change", createFileObjects);
 
 /* For each file added to the drag/drop or browse, create a file object*/
 function createFileObjects() {
+  
   while (preview.firstChild) {
     preview.removeChild(preview.firstChild);
   }
@@ -200,18 +202,12 @@ function createFileObjects() {
   }
   //otherwise, create objects and display table
   else {
-    
-    // check if there is already a table displayed
-    // let previousTable=document.getElementById("table_upload")
-    // console.log(previousTable)
-    // if (previousTable) previousTable.remove() 
 
-    const table = document.createElement("table");
+    let table = document.createElement("table");
     table.classList.add("table", "table-sm", "table-hover");
     table.setAttribute("id","table_upload")
-
     preview.appendChild(table);
-
+    
     const thead = document.createElement("thead");
 
     table.appendChild(thead);
@@ -220,7 +216,7 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All " , " "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
@@ -301,12 +297,24 @@ function createFileObjects() {
             </div>
           </div>
         </td>
+       <!-- <td id="${file.filename}" title="remove this file"><i class="fa fa-trash mt-2" aria-hidden="true" style="color: #11a745;" onclick="deleteRow()"></i></td> -->
       `;
-   
-      // Add event listeners
+
+
+      
+      // Add event listeners for docsymbol
       const ds = fileEntry.querySelector(".file__docSymbol");
+
+      const checkSpaceInName= function(){
+            // adding background color when we have spaces in docsymbol
+            (ds.textContent.indexOf(" ")>=0) ? ds.style.backgroundColor = "#FFEBCD" : ds.style.backgroundColor = "#FFFFFF";
+          }
+
       ds.addEventListener("blur", changeDS);
-   
+      ds.addEventListener("DOMSubtreeModified", checkSpaceInName);
+
+      checkSpaceInName()  
+
       const en = fileEntry.querySelector(".file__EN");
       en.addEventListener("click", toggleEN);
    
