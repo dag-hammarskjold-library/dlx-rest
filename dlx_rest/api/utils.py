@@ -192,8 +192,8 @@ def brief_bib(record):
     
     if record.get_value('245', 'a'):
         head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
-    elif record.get_value('700', 'a') or record.get_value('710', 'a'):
-        head, member = ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']), record.get_value('710', 'a')
+    elif record.get_value('700', 'a') or record.get_value('710', 'a') or record.get_value('711', 'a'):
+        head, member = ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']), record.get_value('710', 'a') or record.get_value('711', 'a')
         
         if head and member:
             head += f' ({member})'
