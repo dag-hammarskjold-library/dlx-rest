@@ -460,10 +460,14 @@ export let multiplemarcrecordcomponent = {
 
                 // dupe auth check
                 if (jmarc.collection === "auths") {
+                    // new records do not have an ID yet
+                    let isNewRecord = jmarc.recordId ? false : true;
                     let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
-                    let previous = new Jmarc(jmarc.collection).parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0];
+                    // previous saved state, if any
+                    let previous = new Jmarc(jmarc.collection).parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0]
+                    let previousToStr = previous ? previous.toStr() : '';
 
-                    if (headingField && headingField.toStr() !== previous.toStr()) { 
+                    if (headingField && isNewRecord || (headingField.toStr() !== previousToStr)) { 
                         // wait for the result
                         let inUse = await jmarc.authHeadingInUse().catch(error => {
                             this.callChangeStyling(error, "d-flex w-100 alert-danger");
