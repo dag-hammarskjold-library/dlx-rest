@@ -198,6 +198,7 @@ export let batcheditmodal = {
                     // add a copy of the field, not the reference to the origianl field object
                     // todo: add this as a clone field method in Jmarc
                     let newField = jmarc.createField(field.tag)
+                    newField.indicators = field.indicators
 
                     let subfields = []
                     for (let subfield of field.subfields) {
