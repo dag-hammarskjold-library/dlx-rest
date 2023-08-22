@@ -176,31 +176,10 @@ export let batcheditmodal = {
         },
         commitSelection() {
             for (let jmarc of this.stagedChanges) {
-                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
-                //console.log(validationFlags)
-                if (validationFlags.length > 0) {
-                    // Check if we can save on invalid; see record.js L#443 for comparison
-                    if (jmarc.getField("998")) {
-                        // proceed
-                        jmarc.put().catch(err => {
-                            throw err
-                            errors += 1
-                        })
-                    } else {
-                        // We have an error
-                        result["invalid"] = true
-                        result["message"] = validationFlags.map(x => x.message)
-                        errors += 1
-                    }
-                    
-                } else {
-                    // save record if no warnings
-                    // do we want to do this here, or do we only want to make any updates if all records are valid?
-                    jmarc.put().catch(err => {
-                        throw err
-                        errors += 1
-                    })
-                }
+                jmarc.put().catch(err => {
+                    throw err
+                    //errors += 1
+                })
             }
             // If nothing else has been emitted by this point, return a processed response
             this.$emit('update-records', { "message": this.stagedOperationMessage, "status": "success" } )
@@ -245,7 +224,24 @@ export let batcheditmodal = {
                     result["fields"].push({"field": field.tag, "subfields": subfields, "action": "added"})
                 }
 
-                this.stagedChanges.push(jmarc)
+                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                //console.log(validationFlags)
+                if (validationFlags.length > 0) {
+                    // Check if we can save on invalid; see record.js L#443 for comparison
+                    if (!jmarc.getField("998")) {
+                        // We have an error
+                        result["invalid"] = true
+                        result["message"] = validationFlags.map(x => x.message)
+                        errors += 1
+                    } else {
+                        this.stagedChanges.push(jmarc)
+                    }
+                    
+                } else {
+                    this.stagedChanges.push(jmarc)
+                }
+                jmarc.result = result
+
                 this.stagedOperationMessage = `Added fields to ${this.results.length} record(s). ${errors} validation error(s) encountered.`
                 this.results.push(result)
             }
@@ -281,7 +277,24 @@ export let batcheditmodal = {
                     result["fields"].push({"field": field.tag, "action": "deleted"})
                 }
 
-                this.stagedChanges.push(jmarc)
+                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                //console.log(validationFlags)
+                if (validationFlags.length > 0) {
+                    // Check if we can save on invalid; see record.js L#443 for comparison
+                    if (!jmarc.getField("998")) {
+                        // We have an error
+                        result["invalid"] = true
+                        result["message"] = validationFlags.map(x => x.message)
+                        errors += 1
+                    } else {
+                        this.stagedChanges.push(jmarc)
+                    }
+                    
+                } else {
+                    this.stagedChanges.push(jmarc)
+                }
+                jmarc.result = result
+
                 this.stagedOperationMessage = `Deleted fields from ${this.results.length} record(s). ${errors} validation error(s) encounterd.`
                 this.results.push(result)
             }
