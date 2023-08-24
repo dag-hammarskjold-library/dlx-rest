@@ -222,7 +222,7 @@ export let batcheditmodal = {
                         newSubfield.xref = subfield.xref
                         subfields.push(newSubfield)
                     }
-                    result["fields"].push({"field": field.tag, "subfields": subfields, "action": "added"})
+                    result["fields"].push({"field": field.tag, "subfields": subfields, "action": "will be added"})
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
@@ -243,9 +243,11 @@ export let batcheditmodal = {
                 }
                 jmarc.result = result
 
-                this.stagedOperationMessage = `Added fields to ${this.results.length} record(s). ${errors} validation error(s) encountered.`
+                
                 this.results.push(result)
             }
+
+            this.stagedOperationMessage = `Added fields to ${this.results.length} record(s). ${errors} validation error(s) encountered.`
             
             // Show the confirmation screen
             this.confirm = true
