@@ -15,13 +15,20 @@ export let batcheditmodal = {
                     <div class="modal-body">
                         <div class="row" v-for="result in results">
                             <div class="col">
-                                <p v-if="result.invalid" class="text-danger">{{result.record}}: {{result.message.join('; ')}}</p>
+                                <p v-if="result.invalid">
+                                    {{result.record}}
+                                    <ul>
+                                        <li v-for="m in result.message" class="text-danger">
+                                            {{m}}
+                                        </li>
+                                    </ul>
+                                </p>
                                 <!-- <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p> -->
                                 <p v-else class="borderless">
                                     {{result.record}}
                                     <ul>
                                         <li v-for="field in result.fields">
-                                            {{field.field}} <span class="mr-2" v-for="subfield in field.subfields">\${{subfield.code}} {{subfield.value}}</span><span class="mx-3 text-success">{{field.action}}</span>
+                                            {{field.tag}} <span class="mr-2" v-for="subfield in field.subfields">\${{subfield.code}} {{subfield.value}}</span><span class="mx-3 text-success">{{field.action}}</span>
                                         </li>
                                     </ul>
                                 </p>
@@ -30,7 +37,7 @@ export let batcheditmodal = {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" @click="commitSelection" data-dismiss="modal">Commit & Close</button>
+                        <button v-if="results.filter(x => x.invalid === false).length > 0" type="button" class="btn btn-primary" @click="commitSelection" data-dismiss="modal">Commit & Close</button>
                     </div>
                 </div>
             </div>
@@ -227,6 +234,7 @@ export let batcheditmodal = {
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
                 //console.log(validationFlags)
+                result["invalid"] = false
                 if (validationFlags.length > 0) {
                     // Check if we can save on invalid; see record.js L#443 for comparison
                     if (!jmarc.getField("998")) {
@@ -243,11 +251,10 @@ export let batcheditmodal = {
                 }
                 jmarc.result = result
 
-                
                 this.results.push(result)
             }
 
-            this.stagedOperationMessage = `Added fields to ${this.results.length} record(s). ${errors} validation error(s) encountered.`
+            this.stagedOperationMessage = `Added fields to ${this.results.filter(x => x.invalid === false).length} record(s). ${errors} validation error(s) encountered.`
             
             // Show the confirmation screen
             this.confirm = true
@@ -282,7 +289,7 @@ export let batcheditmodal = {
                             // delete the field
                             jmarc.deleteField(targetField)
                             //console.log("deleted the field")
-                            result["fields"].push({"field": targetField.tag + " " + targetField.toStr(), "action": "deleted"})
+                            result["fields"].push({"field": targetField.tag + " " + targetField.toStr(), "action": "will be deleted"})
                         }
                     }
                     //jmarc.deleteField(field.tag)
@@ -291,6 +298,7 @@ export let batcheditmodal = {
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
                 //console.log(validationFlags)
+                result["invalid"] = false
                 if (validationFlags.length > 0) {
                     // Check if we can save on invalid; see record.js L#443 for comparison
                     if (!jmarc.getField("998")) {
@@ -307,9 +315,10 @@ export let batcheditmodal = {
                 }
                 jmarc.result = result
 
-                this.stagedOperationMessage = `Deleted fields from ${this.results.length} record(s). ${errors} validation error(s) encounterd.`
                 this.results.push(result)
             }
+
+            this.stagedOperationMessage = `Deleted fields from ${this.results.filter(x => x.invalid === false).length} record(s). ${errors} validation error(s) encounterd.`
 
             // Show the confirmation screen
             this.confirm = true

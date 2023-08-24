@@ -89,7 +89,7 @@ export class Subfield {
 		if (! data.validSubfields.includes("*") && ! data.validSubfields.includes(this.code)) {
 			flags.push(
 				new SubfieldCodeValidationFlag(
-					`${this.tag}: Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
+					`${this.parentField.tag}: Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
 				)
 			)
 		}
@@ -101,7 +101,7 @@ export class Subfield {
 			if  (! validStrings.includes(this.value)) {
 				flags.push(
 					new SubfieldValueValidationFlag(
-						`${this.tag} \$${this.code}: Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
+						`${this.parentField.tag} \$${this.code}: Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
 					)
 				)
 			}
