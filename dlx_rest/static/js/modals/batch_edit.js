@@ -256,6 +256,7 @@ export let batcheditmodal = {
             // Delete the selected fields from the selected records in the basket
             // We need jmarc for each of the selected records, which we will update
             // by deleting the selected fields.
+            // Update via ah/1148: Only delete fields whose subfield values match the selection
             // collect the promises so we can await all of them in parrallel
             let promises = []
             let errors = 0
@@ -273,8 +274,16 @@ export let batcheditmodal = {
                 let result = {"record": `${jmarc.collection}/${jmarc.recordId}`, "fields": []}
 
                 for (let field of selectedFields) {
-                    jmarc.deleteField(field.tag)
-                    result["fields"].push({"field": field.tag, "action": "deleted"})
+                    for (let targetField of jmarc.fields) {
+                        if (targetField.toStr() == field.toStr()) {
+                            // delete the field
+                            jmarc.deleteField(targetField)
+                            //console.log("deleted the field")
+                            result["fields"].push({"field": targetField.tag + " " + targetField.toStr(), "action": "deleted"})
+                        }
+                    }
+                    //jmarc.deleteField(field.tag)
+                    
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
