@@ -392,7 +392,7 @@ export let multiplemarcrecordcomponent = {
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
-            console.log(`Toggling ${field.toStr()} at ${this.copiedFields.indexOf(field)}`)
+            // console.log(`Toggling ${field.toStr()} at ${this.copiedFields.indexOf(field)}`)
             if (e.target.checked) {
                 if (!field.row.className.includes("hidden-field")) {
                     if (jmarc.recordId == this.selectedJmarc.recordId) {
