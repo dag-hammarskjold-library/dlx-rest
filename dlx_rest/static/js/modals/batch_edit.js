@@ -28,7 +28,7 @@ export let batcheditmodal = {
                                     {{result.record}}
                                     <ul>
                                         <li v-for="field in result.fields">
-                                            {{field.tag}} <span class="mr-2" v-for="subfield in field.subfields">\${{subfield.code}} {{subfield.value}}</span><span class="mx-3 text-success">{{field.action}}</span>
+                                            {{field.field}} <span class="mr-2" v-for="subfield in field.subfields">\${{subfield.code}} {{subfield.value}}</span><span class="mx-3 text-success">{{field.action}}</span>
                                         </li>
                                     </ul>
                                 </p>
@@ -289,7 +289,9 @@ export let batcheditmodal = {
                             // delete the field
                             jmarc.deleteField(targetField)
                             //console.log("deleted the field")
-                            result["fields"].push({"field": targetField.tag + " " + targetField.toStr(), "action": "will be deleted"})
+                            console.log(field.tag, field.toStr())
+                            //result["fields"].push({"field": field.tag, "subfields": subfields, "action": "will be added"})
+                            result["fields"].push({"field": field.tag, "subfields":field.subfields, "action": "will be deleted"})
                         }
                     }
                     //jmarc.deleteField(field.tag)
