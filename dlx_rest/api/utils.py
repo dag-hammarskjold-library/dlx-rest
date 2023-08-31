@@ -207,7 +207,7 @@ def brief_bib(record):
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
         'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
         'title': head or '[No Title]',
-        'date': record.get_value('269', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
         'types': '; '.join(ctypes)
     }
 
