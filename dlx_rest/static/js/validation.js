@@ -1715,7 +1715,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
             "defaultSubfields": ["a"],
-            "validRegex": {"g": ["^\\(.*[^\\)]\\)$"]}
+            "validRegex": {"g": ["^\\(.*[^\\)]\\){1,2}$"]}    // See issue #1191; need at least one, up to 2 closing parentheses?
         },
         "110": {
             "name": "Heading - corporate name",
