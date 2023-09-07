@@ -89,7 +89,7 @@ export class Subfield {
 		if (! data.validSubfields.includes("*") && ! data.validSubfields.includes(this.code)) {
 			flags.push(
 				new SubfieldCodeValidationFlag(
-					`Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
+					`${this.parentField.tag}: Invalid subfield code "${this.code}". Valid subfields: ${data.validSubfields.join(", ")}`
 				)
 			)
 		}
@@ -101,7 +101,7 @@ export class Subfield {
 			if  (! validStrings.includes(this.value)) {
 				flags.push(
 					new SubfieldValueValidationFlag(
-						`Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
+						`${this.parentField.tag} \$${this.code}: Invalid string value "${this.value}". Valid values: ${validStrings.join(", ")}`
 					)
 				)
 			}
@@ -118,7 +118,7 @@ export class Subfield {
 
 			if (date.toString() === "Invalid Date" || ! [4, 7, 10].includes(dateStr.length)) {
 				flags.push(
-					new SubfieldValueValidationFlag(`Invalid date "${this.value}"`)
+					new SubfieldValueValidationFlag(`${this.tag} \$${this.code}: Invalid date "${this.value}"`)
 				)
 			}
 
@@ -139,7 +139,7 @@ export class Subfield {
 			if (! matched) {
 				flags.push(
 					new SubfieldValueValidationFlag(
-						`Invalid regex match "${this.value}". Valid regex: ${validRegexes.join(", ")}`
+						`Invalid regex match "${this.tag} \$${this.code}: ${this.value}". Valid regex: ${validRegexes.join(", ")}`
 					)
 				)
 			}
@@ -223,7 +223,7 @@ export class DataField {
 		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {
 			if (this !== this.parentRecord.getFields(this.tag)[0]) {
 				// this is not the first instance of the tag
-				flags.push(new TagValidationFlag("Field not repeatable"));
+				flags.push(new TagValidationFlag(`${this.tag} Field not repeatable`));
 			}
 		}
         // valid indicators
@@ -234,7 +234,7 @@ export class DataField {
 				let flag = i === 1 ? Indicator1ValidationFlag : Indicator2ValidationFlag;
 				
 				flags.push(
-					new flag(`Invalid indicator ${i}. Valid indicators: ${inds.join(", ") || "None"}`)
+					new flag(`${this.tag}: Invalid indicator ${i}. Valid indicators: ${inds.join(", ") || "None"}`)
 				)
 			}
 		}
@@ -245,11 +245,11 @@ export class DataField {
 		data.requiredSubfields.forEach(x => {
 			if (! codes.includes(x)) {
 				flags.push(
-					new TagValidationFlag(`Required subfield "${x}" is missing`)
+					new TagValidationFlag(`${this.tag}: Required subfield "${x}" is missing`)
 				)
 			} else if (! this.getSubfield(x).value) {
 				flags.push(
-					new TagValidationFlag(`Required subfield "${x}" is blank`)
+					new TagValidationFlag(`${this.tag}: Required subfield "${x}" is blank`)
 				)
 			}
 		});

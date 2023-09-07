@@ -392,6 +392,7 @@ export let multiplemarcrecordcomponent = {
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
+            // console.log(`Toggling ${field.toStr()} at ${this.copiedFields.indexOf(field)}`)
             if (e.target.checked) {
                 if (!field.row.className.includes("hidden-field")) {
                     if (jmarc.recordId == this.selectedJmarc.recordId) {
@@ -402,10 +403,11 @@ export let multiplemarcrecordcomponent = {
             } else {
                 if (this.copiedFields) {
                     // remove from the list of copied fields
-                    this.copiedFields.splice(this.copiedFields.indexOf(field, 1))
+                    // Issue #1147: splice + indexOf has trouble with objects, especially if they have any depth
+                    this.copiedFields = this.copiedFields.filter(f => f.toStr() !== field.toStr())
                     if (jmarc.recordId==this.selectedJmarc.recordId)
                     {
-                        this.selectedFields.splice(this.selectedFields.indexOf(field, 1))
+                        this.selectedFields = this.selectedFields.filter(f => f.toStr() !== field.toStr())
                     }
                    
                 }
