@@ -1,10 +1,9 @@
 import { Jmarc } from './jmarc.mjs'
 
-export let importcomponent = new Vue({
-    el: "#import_marc",
+export let importcomponent = {
     props: ["api_prefix"],
     template: `
-    <div class="container">
+    <div id="foo" class="container">
         <div v-if="!review">
             <h4>Import Records</h4>
             <div @drop.prevent @dragover.prevent @click="handleClick">
@@ -30,6 +29,7 @@ export let importcomponent = new Vue({
         </div>
     </div>`,
     data: function () { 
+        console.log(this.api_prefix)
         return {
             // Setting the import type here lets us expand this later
             importType: "records",
@@ -89,4 +89,4 @@ export let importcomponent = new Vue({
             /* loop through the valid records and submit each one to the endpoint */
         }
     }
-})
+}
