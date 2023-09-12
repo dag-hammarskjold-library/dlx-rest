@@ -657,7 +657,7 @@ export let multiplemarcrecordcomponent = {
 
             // refresh
             this.removeRecordFromEditor(jmarc,true);
-            this.displayMarcRecord(jmarc,false);
+            this.displayMarcRecord(jmarc,false, true);
             seen[0].valueSpan.focus();
             seen[0].valueSpan.blur();
 
