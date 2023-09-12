@@ -524,7 +524,7 @@ export let multiplemarcrecordcomponent = {
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
-                        jmarc = this.displayMarcRecord(returnedJmarc, false);
+                        jmarc = this.displayMarcRecord(returnedJmarc, false, true);
                         this.checkSavedState(jmarc)
                     }
                     
@@ -1816,7 +1816,7 @@ export let multiplemarcrecordcomponent = {
 
             return true
         },
-        displayMarcRecord(jmarc, readOnly) {
+        displayMarcRecord(jmarc, readOnly, skipSaveDetection=false) {
             let component = this;
             let myDivId;
 
@@ -1862,29 +1862,45 @@ export let multiplemarcrecordcomponent = {
             // check save state
             this.checkSavedState(jmarc);
 
-            // trigger field level unsaved changes detection
-            // preserve scroll location
-            let scrollX = window.scrollX;
-            let scrollY = window.scrollY;
-            let scroll = jmarc.tableBody.scrollTop;
+            if (skipSaveDetection === false) {
+                // trigger field level unsaved changes detection
+                // preserve scroll location
+                /* Issue 992: This parent function is called on the record when loading the record and
+                   when saving the record. It seems unnecessary to do this check immediately after 
+                   the record is saved, because it shouldn't then have any unsaved changes.
+                   So the proposal is to skip this check when displayMarcRecord() is called from 
+                   the saveRecord() function. */
+                let scrollX = window.scrollX;
+                let scrollY = window.scrollY;
+                let scroll = jmarc.tableBody.scrollTop;
 
-            for (let field of jmarc.getDataFields()) {
-                field.tagSpan.focus();
-                field.ind1Span.focus();
-                field.ind2Span.focus();
+                let tagCount = 1
+                let loopCount = 1
 
-                for (let subfield of field.subfields) {
-                    subfield.codeSpan.focus();
-                    subfield.valueSpan.focus();
-                    subfield.valueSpan.blur();
+                for (let field of jmarc.getDataFields()) {
+                    field.tagSpan.focus();
+                    field.ind1Span.focus();
+                    field.ind2Span.focus();
+
+                    let subfieldCount = 1
+
+                    for (let subfield of field.subfields) {
+                        subfield.codeSpan.focus();
+                        subfield.valueSpan.focus();
+                        subfield.valueSpan.blur();
+                        subfieldCount += 1
+                        loopCount += 1
+                    }
+                    tagCount += 1
+                    loopCount += 1
                 }
+
+                jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
+                jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
+
+                jmarc.tableBody.scrollTop = scroll;
+                window.scrollTo(scrollX, scrollY);
             }
-
-            jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
-            jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
-
-            jmarc.tableBody.scrollTop = scroll;
-            window.scrollTo(scrollX, scrollY);
 
             // trigger validation warnings
             this.validationWarnings(jmarc);
@@ -2442,7 +2458,8 @@ export let multiplemarcrecordcomponent = {
 
             // Activate
             // call when user clicks or tabs into tag field
-            function tagActivate() {
+            function tagActivate(e) {
+                //console.log(e)
                 let renderingPolicy = renderingData[jmarc.collection][field.tag];
 
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
@@ -2493,6 +2510,7 @@ export let multiplemarcrecordcomponent = {
 
                     }
                 });
+                //console.log("foo")
             }
             
             // Tag update actions
