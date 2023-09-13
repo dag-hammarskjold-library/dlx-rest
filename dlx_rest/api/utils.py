@@ -201,10 +201,6 @@ def brief_bib(record):
             head = member
     else:
         head = None
-    
-    agendas = []
-    if "Speeches" in ctypes:
-        agendas = [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
 
     return {
         '_id': record.id,
@@ -212,8 +208,7 @@ def brief_bib(record):
         'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
         'title': head or '[No Title]',
         'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
-        'types': '; '.join(ctypes),
-        'agendas': agendas
+        'types': '; '.join(ctypes)
     }
 
 def brief_auth(record):
