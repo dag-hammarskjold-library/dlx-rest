@@ -657,7 +657,7 @@ export let multiplemarcrecordcomponent = {
 
             // refresh
             this.removeRecordFromEditor(jmarc,true);
-            this.displayMarcRecord(jmarc,false, true);
+            this.displayMarcRecord(jmarc,false);
             seen[0].valueSpan.focus();
             seen[0].valueSpan.blur();
 
@@ -766,7 +766,6 @@ export let multiplemarcrecordcomponent = {
 
             this.removeRecordFromEditor(jmarc);
             this.displayMarcRecord(jmarc);
-
             subfield.valueCell.classList.add("unsaved");
             
             this.checkSavedState(jmarc);
@@ -1853,46 +1852,56 @@ export let multiplemarcrecordcomponent = {
             if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
 
             // build the record display
-
             let table = this.buildRecordTable(jmarc,readOnly);
             jmarc.div.appendChild(table); 
             this.selectRecord(jmarc);
             this.currentRecordObjects.push(jmarc);
 
-            // check save state
-            this.checkSavedState(jmarc);
-
-            if (skipSaveDetection === false) {
+            // check save state. the jmarc data being displayed maybe not be saved to the DB.
+            // these checks also happen when triggered by events on the individual elements
+            if (! jmarc.saved) {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "Save Record";
+            
                 // trigger field level unsaved changes detection
                 // preserve scroll location
-                /* Issue 992: This parent function is called on the record when loading the record and
-                   when saving the record. It seems unnecessary to do this check immediately after 
-                   the record is saved, because it shouldn't then have any unsaved changes.
-                   So the proposal is to skip this check when displayMarcRecord() is called from 
-                   the saveRecord() function. */
                 let scrollX = window.scrollX;
                 let scrollY = window.scrollY;
                 let scroll = jmarc.tableBody.scrollTop;
 
-                let tagCount = 1
-                let loopCount = 1
-
                 for (let field of jmarc.getDataFields()) {
-                    field.tagSpan.focus();
-                    field.ind1Span.focus();
-                    field.ind2Span.focus();
+                    // unsaved tag checks
+                    field.tagSpan.classList.remove("invalid");
+                    field.tagSpan.classList.remove("unsaved");
 
-                    let subfieldCount = 1
-
-                    for (let subfield of field.subfields) {
-                        subfield.codeSpan.focus();
-                        subfield.valueSpan.focus();
-                        subfield.valueSpan.blur();
-                        subfieldCount += 1
-                        loopCount += 1
+                    if (! field.tagSpan.innerText.match(/[0-9A-Z]/)) {
+                        field.tagSpan.classList.add("invalid");
+                    } else if (! field.savedState || field.compile().tag !== field.savedState.tag) {
+                        field.tagSpan.classList.add("unsaved")
                     }
-                    tagCount += 1
-                    loopCount += 1
+
+                    // unsaved indicators checks
+                    for (let ind of [0, 1]) {
+                        let cell = ind === 0 ? field.ind1Cell : field.ind2Cell;
+
+                        if (! field.savedState || field.compile().indicators[ind-1] !== field.savedState.indicators[ind-1]) {
+                            cell.classList.add("unsaved");
+                        }
+                    }
+
+                    // unsaved subfields checks
+                    for (let subfield of field.subfields) {
+                        subfield.codeSpan.classList.remove("invalid");
+                        subfield.codeSpan.classList.remove("unsaved");
+
+                        if (! subfield.savedState || subfield.compile().code !== subfield.savedState.code) {
+                            subfield.codeSpan.classList.add("unsaved");
+                        }
+
+                        if (! subfield.savedState || subfield.savedState.value !== subfield.value) {
+                            subfield.valueCell.classList.add("unsaved");
+                        }
+                    }
                 }
 
                 jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
