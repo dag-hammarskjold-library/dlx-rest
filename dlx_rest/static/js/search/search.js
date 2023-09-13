@@ -586,7 +586,7 @@ export let searchcomponent = {
                     e.target.title = "Remove from basket";
                 })
             } else if (e.target.classList.contains("fa-folder-minus")) {
-                await basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', this.myBasket, collection, record_id).then( () => {
+                await basket.deleteItem(this.myBasket, collection, record_id).then( () => {
                     e.target.classList.remove("fa-spinner");
                     e.target.classList.remove("fa-folder-minus");
                     e.target.classList.add("fa-folder-plus");
