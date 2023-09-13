@@ -182,6 +182,9 @@ export let searchcomponent = {
                     <div class="row" style="white-space:nowrap">
                         {{result.second_line}}
                     </div>
+                    <div class="row" v-for="agenda in result.agendas">
+                        <span class="ml-3">{{agenda}}</span>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -417,12 +420,18 @@ export let searchcomponent = {
                 for (let result of jsonData["data"]) {
                     let myResult = { "_id": result["_id"]}
                     if (component.collection == "bibs") {
+                        console.log("this is a bib records, and ...")
                         myResult["first_line"] = result["title"]
                         //.split("::")[result["types"].split("::").length-1]]
 
                         let rtype = result["types"].split("::")
 
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        console.log(this.vcoll)
+                        if (this.vcoll == "089:'B22'") {
+                            console.log("This is a speech record")
+                            myResult["agendas"] = result["agendas"]
+                        }
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
