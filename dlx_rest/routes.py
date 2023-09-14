@@ -58,7 +58,7 @@ def help():
 @app.route('/workform')
 def workform():
     this_prefix = url_for('doc', _external=True)
-    return render_template('workform.html', api_prefix=this_prefix)
+    return render_template('workform.html', api_prefix=this_prefix, title="Workforms")
 
 # Authentication
 @login_manager.user_loader
@@ -506,7 +506,7 @@ def search_records(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
 
 @app.route('/records/<coll>/browse')
 @login_required
