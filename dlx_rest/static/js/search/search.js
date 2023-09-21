@@ -333,7 +333,7 @@ export let searchcomponent = {
             collectionTitle = "votes"
         }
 
-        document.title = document.title + ` ${collectionTitle}`
+        //document.title = document.title + `${title(collectionTitle)}`
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
