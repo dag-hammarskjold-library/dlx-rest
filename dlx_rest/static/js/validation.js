@@ -1489,7 +1489,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a"],
             "isDate": {
                 "a": true
