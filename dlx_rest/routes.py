@@ -559,6 +559,12 @@ def review_auth():
 
     return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths", title="AuthReview")
 
+@app.route('/records/speeches/review')
+@login_required
+def review_speeches():
+    api_prefix = url_for('doc', _external=True)
+    return render_template('review_speeches.html', api_prefix=api_prefix, title="Speech Review")
+
 @app.route('/records/<coll>/<id>', methods=['GET'])
 @login_required
 def get_record_by_id(coll,id):

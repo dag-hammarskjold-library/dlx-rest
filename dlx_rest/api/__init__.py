@@ -28,7 +28,7 @@ from werkzeug import security
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
 
 # Init
 authorizations = {
@@ -193,7 +193,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -238,6 +238,12 @@ class RecordsList(Resource):
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
+        elif fmt == 'brief_speech':
+            tags = ['269', '700', '710', '711', '791', '992']
+           
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+            project = dict.fromkeys(tags, True)
         elif fmt:
             project = {}
         else:
@@ -275,6 +281,10 @@ class RecordsList(Resource):
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
+            data = [make_brief(r) for r in recordset]
+        elif fmt == 'brief_speech':
+            schema_name='api.brieflist'
+            make_brief = brief_speech
             data = [make_brief(r) for r in recordset]
         else:
             schema_name='api.urllist'

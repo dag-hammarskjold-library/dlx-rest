@@ -216,6 +216,18 @@ def brief_bib(record):
         'agendas': agendas
     }
 
+def brief_speech(record):
+    # This is much more specific than the regular search results we're populating with brief_bib and brief_auth
+
+    return {
+        '_id': record.id,
+        'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
+        'symbol': '; '.join(record.get_values('791', 'a')),
+        'speaker': ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']),
+        'country': record.get_value('710', 'a') or record.get_value('711', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a'))
+    }
+
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
