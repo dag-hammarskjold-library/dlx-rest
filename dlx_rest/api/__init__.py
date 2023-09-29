@@ -225,11 +225,11 @@ class RecordsList(Resource):
         # limit  
         limit = int(args.limit or 100)
         
-        if limit > 1000:
-            abort(404, 'Maximum limit is 1000')
-        
         # format
         fmt = args['format'] or None
+
+        if fmt != 'brief_speech' and limit > 1000:
+            abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
             tags = ['191', '245', '269', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
