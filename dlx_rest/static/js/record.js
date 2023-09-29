@@ -1929,7 +1929,6 @@ export let multiplemarcrecordcomponent = {
 
             // update URL with current open records
             let updatedUrl = location.href.replace(/(\?.*$|$)/, `?records=${this.recordlist.join(",")}`).replace("#","");
-            console.log(updatedUrl)
             window.history.replaceState({}, null, updatedUrl);
 
             //////////////////////////////////////////////////////////////////////////////
