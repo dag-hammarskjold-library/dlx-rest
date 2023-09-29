@@ -63,22 +63,24 @@ export let speechreviewcomponent = {
             speeches: [],
             params: {},
             submitted: false,
-            sortColumns: [
-                {column: "symbol", direction: "desc"}
-            ]
+            sortColumns: []
         }
     },
     computed: {
-        sortedSpeeches: function() {
-            return this.speeches.sort((a,b) => {
-                console.log(this.sortColumns.length)
-                if (this.sortColumns.length === 1) {
-                    if (this.sortColumns[0].direction == "asc") {
-                        return a[this.sortColumns[0].column].localeCompare(b[this.sortColumns[0].column]) 
-                    } else { 
-                        return b[this.sortColumns[0].column].localeCompare(a[this.sortColumns[0].column]) 
+        sortedSpeeches: function () {
+            return this.speeches.sort( (a, b) => {
+                for (const i in this.sortColumns) {
+                    const column = this.sortColumns[i].column
+                    const direction = this.sortColumns[i].direction
+                    let comparison = a[column].localeCompare(b[column])
+                    if (direction == "desc") {
+                        comparison *= -1
+                    }
+                    if (comparison !== 0) {
+                        return comparison
                     }
                 }
+                return 0
             })
         }
     },
@@ -96,34 +98,17 @@ export let speechreviewcomponent = {
             })
         },
         processSort: function(e, column, direction) {
-            /*
-            // Figure out if the shift key was pressed with the sort select. If so, add the column to this.sortColumns
-            let sortCharacterization = `${column}${direction}`
+            // First figure out if the shift key was pressed while the sort icon was clicked
             if (e.shiftKey) {
-                // Lock or unlock the column
-                console.log("Toggling lock state")
-                if (this.sortColumns.includes({column: column, direction: direction})) {
-                    this.sortColumns = this.sortColumns.filter(x => x.columnn !== column && x.direction !== direction)
-                } else {
-                    this.sortColumns.push({column: column, direction: direction})
-                }
+                let lockColumns = []
+                // Now figure out if the column is already in this.sortColumns
+                let m = this.sortColumns.some((sc) => sc[column] === column)
+                console.log(m)
+            } else {
+                // Clear this.sortColumns and add only this field
+                this.sortColumns = [{column: column, direction: direction}]
+                console.log(this.sortColumns)
             }
-            console.log(sortCharacterization, this.sortColumns)
-
-            // Now iterate through this.sortColumns if its length is > 0 and apply sorting in order
-
-            // Otherwise just do a simple single column sort
-            if (direction == "asc") {
-                return this.speeches.sort((a,b) => { 
-                    return a[column].localeCompare(b[column]) 
-                })
-            }
-            else {
-                return this.speeches.sort((a,b) => { 
-                    return b[column].localeCompare(a[column]) 
-                })
-            }
-            */
         }
     },
     components: {
