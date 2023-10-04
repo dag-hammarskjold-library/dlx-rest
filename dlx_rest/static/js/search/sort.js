@@ -53,7 +53,10 @@ export let sortcomponent = {
                 vcoll = "votes"
             }
         }
-        let mySortFields = [{'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'}];
+        let mySortFields = [
+            {'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'},
+            {'displayName': 'created', 'searchString': 'created', 'sortDir': 'desc'}
+        ];
         /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
             console.log(vcoll)

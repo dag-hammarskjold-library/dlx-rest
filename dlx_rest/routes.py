@@ -58,7 +58,7 @@ def help():
 @app.route('/workform')
 def workform():
     this_prefix = url_for('doc', _external=True)
-    return render_template('workform.html', api_prefix=this_prefix)
+    return render_template('workform.html', api_prefix=this_prefix, title="Workforms")
 
 # Authentication
 @login_manager.user_loader
@@ -443,7 +443,7 @@ def search_records(coll):
     # Compare the old query with the new query; if the new query is different, reset pagination
     # if old_q contains anything at all, it returns a list, so let's make sure we're checking
     # for the first string in the list entry instead of assuming we got a string.
-    old_q = parse_qs(urlparse(request.referrer).query).get('q', [None])
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
     #print(f'Old: {old_q} | New: {q}')
     if q != old_q[0]:
         start = 1
@@ -465,18 +465,18 @@ def search_records(coll):
         # Regardless of what's in the session already
         session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
         this_v = session[f"sort_{vcoll}"]
-        print(f"Got {this_v} from URL")
+        #print(f"Got {this_v} from URL")
     else:
         # See if something is in the session already
         try:
             # We have session values, so use those
             this_v = session[f"sort_{vcoll}"]
-            print(f"Got {this_v} from session")
+            #print(f"Got {this_v} from session")
             sort = session[f"sort_{vcoll}"]["field"]
             direction = session[f"sort_{vcoll}"]["direction"]
         except KeyError:
             # There is nothing in the session, so fallback to defaults
-            print(f"No sort/dir for {vcoll} found, using defaults.")
+            #print(f"No sort/dir for {vcoll} found, using defaults.")
             sort = "updated"
             direction = "desc"
     
@@ -506,7 +506,7 @@ def search_records(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
 
 @app.route('/records/<coll>/browse')
 @login_required
