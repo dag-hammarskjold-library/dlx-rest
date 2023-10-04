@@ -223,9 +223,11 @@ def brief_speech(record):
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
         'symbol': '; '.join(record.get_values('791', 'a')),
-        'speaker': ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']),
-        'country': record.get_value('710', 'a') or record.get_value('711', 'a'),
-        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a'))
+        'speaker': record.get_value('700', 'a'),
+        'speaker_country': record.get_value('700', 'g'),
+        'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
     }
 
 def brief_auth(record):
