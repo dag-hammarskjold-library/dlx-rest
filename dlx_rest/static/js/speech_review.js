@@ -33,15 +33,19 @@ export let speechreviewcomponent = {
                     <th scope="col">#</th>
                     <th scope="col" @click="processSort($event, 'symbol')">Meeting Record (791)
                         <i data-target="symbol" class="fas fa-sort-alpha-up text-secondary"></i>
+                        <span id="symbol-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'date')">Date (992 or 269)
                         <i data-target="date" class="fas fa-sort-alpha-up text-secondary"></i>
+                        <span id="date-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'speaker')">Speaker (700)
                         <i data-target="speaker" class="fas fa-sort-alpha-up text-secondary"></i>
+                        <span id="speaker-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'country')">Country/Organization (710 or 711)
                         <i data-target="country" class="fas fa-sort-alpha-up text-secondary"></i>
+                        <span id="country-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
                 </tr>
             </thead>
@@ -88,7 +92,7 @@ export let speechreviewcomponent = {
         submitSearch() {
             let q = document.getElementById("speechSearch").value
             let qs = encodeURIComponent(["089:B22",q].join(" AND "))
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${qs}&format=brief_speech&start=1&limit=100000`
+            let search_url = `${this.api_prefix}marc/bibs/records?search=${qs}&format=brief_speech&start=1&limit=1000`
             fetch(search_url).then(response => {
                 response.json().then(jsonData => {
                     this.speeches = jsonData.data
@@ -102,9 +106,12 @@ export let speechreviewcomponent = {
             for (let i of document.getElementsByTagName("i")) {
                 i.classList.replace("text-dark", "text-secondary")
             }
+            // reset badges
+            for (let b of document.getElementsByClassName("badge")) {
+                b.innerText = "0"
+            }
             // reset other variables
-            this.speeches = []
-            this.sortColumns = []
+            //this.sortColumns = []
             let existingColumn = this.sortColumns.find((sc) => sc.column === column)
             if (existingColumn) {
                 if (e.shiftKey) {
@@ -119,6 +126,7 @@ export let speechreviewcomponent = {
                     }
                 } else {                    
                     existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc"
+                    this.sortColumns = [existingColumn]
                 }
             } else {
                 if (e.shiftKey) {
@@ -127,11 +135,16 @@ export let speechreviewcomponent = {
                     this.sortColumns = [{column:column, direction:"asc"}]
                 }
             }
+            var idx = 1
             for (let sc of this.sortColumns) {
                 for (let i of document.getElementsByTagName("i")) {
                     if (i.getAttribute("data-target") == sc.column) {
                         sc.direction === "desc" ? i.classList.replace("fa-sort-alpha-up", "fa-sort-alpha-down") : i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up")
                         i.classList.replace("text-secondary", "text-dark")
+                        let badge = document.getElementById(`${sc.column}-badge`)
+                        console.log(badge)
+                        badge.innerText = idx
+                        idx++
                     }
                 }
             }
