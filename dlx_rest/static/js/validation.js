@@ -1262,7 +1262,7 @@ export const validationData = {
         "793": {
             "name": "Committee name",
             "required": false,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
@@ -1489,7 +1489,7 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a"],
             "isDate": {
                 "a": true
@@ -2842,7 +2842,7 @@ export const validationData = {
         "793": {
             "name": "Committee name",
             "required": false,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
