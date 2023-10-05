@@ -219,6 +219,8 @@ class RecordsList(Resource):
         search = unquote(args.search) if args.search else None
         query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
+        print(query.to_json())
+
         # start
         start = 1 if args.start is None else int(args.start)
           
