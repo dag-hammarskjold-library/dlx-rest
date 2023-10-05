@@ -2,6 +2,7 @@ import { sortcomponent } from "./search/sort.js";
 import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
+import { previewmodal } from "./modals/preview.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -24,8 +25,13 @@ export let speechreviewcomponent = {
         </form>
     </div>
     <div class="col">
+        <div id="results-spinner" class="col d-flex justify-content-center" >
+            <div class="spinner-border" role="status" v-show="showSpinner">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
         <div v-if="submitted">{{speeches.length}} results</div>
-        <div v-if="speeches.length > 0">Sorting:<span class="mx-1" v-for="sc in sortColumns">{{sc.column}}: {{sc.direction}}</span></div>
+        <div v-if="speeches.length > 0">Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span></div>
         <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
             <thead>
                 <tr>
@@ -59,38 +65,51 @@ export let speechreviewcomponent = {
                 <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id">
                     <td><input type="checkbox" :data-recordid="speech._id"></td>
                     <td>{{index + 1}}</td>
-                    <td @click="togglePreview" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
+                    <td @click="togglePreview('bibs',speech._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
                     <td>{{speech.date}}</td>
                     <td>{{speech.speaker}}</td>
                     <td>{{speech.speaker_country}}</td>
                     <td>{{speech.country_org}}</td>
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech.agendas)"></i>
-                        <div :id="'agendas-' + speech._id" class="preview hidden" style="position:absolute;z-index:1;background:rgba(255,255,255,0.95);border: 1px solid black;box-shadow: -1px 2px 2px gray;">
-                            <span v-for="agenda in speech.agendas">{{agenda}}</span>
-                        </div>
                     </td>
                     <td @click="toggleBasket"><i :id="speech._id + '-basket'" class="fas fa-folder-plus"></i></td>
                 </tr>
             </tbody>
         </table>
     </div>
+    <div v-if="showAgendaModal" :agendas="agendas">
+        <div class="modal fade" ref="modal">
+            <div v-for="agenda in agendas">{{agenda}}</div>
+        </div>
+    </div>
+    <previewmodal ref="previewmodal" :api_prefix="api_prefix"></previewmodal>
 </div>`,
     data: function() {
         return {
             speeches: [],
             params: {},
             submitted: false,
-            sortColumns: []
+            sortColumns: [],
+            showAgendaModal: false,
+            showSpinner: false,
+            agendas: []
         }
     },
     computed: {
+        // This function performs multifield sort using the objects stored in the sortColumns array
+        // What goes in the sortColumns array, in what order, and how it gets there is handled by processSort() below
         sortedSpeeches: function () {
             return this.speeches.sort( (a, b) => {
+                // For each object in sortColumns, we want to perform the sort
+                // Each object is a defined column that exists in the incoming data
                 for (const i in this.sortColumns) {
                     const column = this.sortColumns[i].column
                     const direction = this.sortColumns[i].direction
+                    // localeCompare() is the acutal comparison function that performs the sort
+                    // It works on a broad range of text and can sort, e.g., 2 before 10, etc.
                     let comparison = a[column].localeCompare(b[column])
+                    // And finally, this is how we change direction
                     if (direction == "desc") {
                         comparison *= -1
                     }
@@ -104,7 +123,7 @@ export let speechreviewcomponent = {
     },
     mounted: async function () {
         // Set global event listeners
-        // window.addEventListener("click", () => { this.dismissPreview() })
+        //window.addEventListener("click", this.processClick )
         // Figure out the lock state of every record on the page. This is likely to take a while for a long list of records.
         for (let record of this.speeches) {
 
@@ -114,14 +133,15 @@ export let speechreviewcomponent = {
         submitSearch() {
             let q = document.getElementById("speechSearch").value
             let qs = encodeURIComponent(["089:B22",q].join(" AND "))
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${qs}&format=brief_speech&start=1&limit=1000`
+            let search_url = `${this.api_prefix}marc/bibs/records?search=${qs}&format=brief_speech&start=1&limit=50000`
+            this.showSpinner = true
             fetch(search_url).then(response => {
                 response.json().then(jsonData => {
                     this.speeches = jsonData.data
                 }).then( () => {
                     this.submitted = true
                 })
-            })
+            }).then( () => {this.showSpinner = false})
         },
         processSort: function(e, column) {
             // reset sort indicators
@@ -132,10 +152,10 @@ export let speechreviewcomponent = {
             for (let b of document.getElementsByClassName("badge")) {
                 b.innerText = "0"
             }
-            // reset other variables
-            //this.sortColumns = []
+            // Figure out if we already have the indicated column in sortColumns
             let existingColumn = this.sortColumns.find((sc) => sc.column === column)
             if (existingColumn) {
+                // The column exists, but are we sorting it alone?
                 if (e.shiftKey) {
                     let direction = ""
                     existingColumn.direction == "asc" ? direction = "desc" : direction = "asc"
@@ -152,11 +172,14 @@ export let speechreviewcomponent = {
                 }
             } else {
                 if (e.shiftKey) {
+                    // There was no existing column, and we want to add this to our list of columns
                     this.sortColumns.push({column: column, direction: "asc"})
                 } else {
+                    // There was no existing column, and we want to make this our only sort column
                     this.sortColumns = [{column:column, direction:"asc"}]
                 }
             }
+            // Finally, go through the DOM and update the icons and badges according to the contents of sortColumns
             var idx = 1
             for (let sc of this.sortColumns) {
                 for (let i of document.getElementsByTagName("i")) {
@@ -169,19 +192,23 @@ export let speechreviewcomponent = {
                     }
                 }
             }
-            console.log(this.sortColumns)
         },
         toggleBasket: async function (e) {
             console.log("click")
         },
-        togglePreview: async function (e) {
-
+        togglePreview: async function (collection, speechId) {
+            console.log("toggling record preview for",speechId)
+            this.$refs.previewmodal.collection = collection
+            this.$refs.previewmodal.recordId = speechId
+            this.$refs.previewmodal.show()
         },
         toggleAgendas: function (e) {
-            let d = e.target.parentElement.getElementsByTagName("div")[0]
-            d.classList.toggle("hidden")
+            console.log("opening agenda preview")
+            this.agendas = ["foo", "bar"]
+            this.showAgendaModal = true
         },
         dismissPreview: function () {
+            console.log("dismissing previews")
             for (let d of document.getElementsByClassName("preview")) {
                 if (!d.classList.contains("hidden")) {
                     d.classList.toggle("hidden")
@@ -191,6 +218,7 @@ export let speechreviewcomponent = {
     },
     components: {
         'sortcomponent': sortcomponent, 
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'previewmodal': previewmodal
     }
 }
