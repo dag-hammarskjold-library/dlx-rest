@@ -290,7 +290,7 @@ def has_permission(user, action, record, collection):
                 bool_list.append("F")
     else:
         bool_list.append("F")
-    print("boolean list:",bool_list)
+    #print("boolean list:",bool_list)
     if "F" in bool_list:
         return False
     else:

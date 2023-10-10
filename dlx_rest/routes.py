@@ -166,7 +166,7 @@ def create_user():
         user.set_password(password)
         user.username = username
         for role in roles:
-            print(role)
+            #print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -193,7 +193,7 @@ def create_user():
 def update_user(id):
     try:
         user = User.objects.get(id=id)
-        print("default views:", user.default_views)
+        #print("default views:", user.default_views)
     except IndexError:
         flash("The user was not found.")
         return redirect(url_for('list_users'))
@@ -205,7 +205,7 @@ def update_user(id):
     form.views.process_data([v.id for v in user.default_views])
 
     if request.method == 'POST':
-        print(request.form)
+        #print(request.form)
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
         username = request.form.get('username', user.username)
@@ -219,7 +219,7 @@ def update_user(id):
             user.set_password(password)
         user.roles = []
         for role in roles:
-            print(role)
+            #print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -231,7 +231,7 @@ def update_user(id):
             user.default_views.append(v)
         user.updated = datetime.now()
         
-        print(user.__str__())
+        #print(user.__str__())
 
         try:
             user.save(validate=True)
@@ -278,7 +278,7 @@ def create_role():
         role = Role(name=name)
         role.permissions = []
         for permission in permissions:
-            print(permission)
+            #print(permission)
             try:
                 p = Permission.objects.get(action=permission)
                 role.permissions.append(p)
@@ -315,7 +315,7 @@ def update_role(id):
         name = request.form.get('name', role.name)
         permissions = request.form.getlist('permissions')
 
-        print(permissions)
+        #print(permissions)
 
         role.permissions = []
         for permission in permissions:
@@ -326,9 +326,9 @@ def update_role(id):
                 pass
         
         try:
-            print(role.permissions)
+            #print(role.permissions)
             role.save(validate=True)
-            print("I am here")
+            #print("I am here")
             flash("The role was updated successfully.")
             return redirect(url_for('get_roles'), 302)
         except:
@@ -563,7 +563,8 @@ def review_auth():
 @login_required
 def review_speeches():
     api_prefix = url_for('doc', _external=True)
-    return render_template('review_speeches.html', api_prefix=api_prefix, title="Speech Review")
+    q = request.args.get('q')
+    return render_template('review_speeches.html', api_prefix=api_prefix, title="Speech Review", q=q)
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
 @login_required

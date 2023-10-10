@@ -93,7 +93,10 @@ export let speechreviewcomponent = {
             sortColumns: [],
             showAgendaModal: false,
             showSpinner: false,
-            agendas: []
+            agendas: [],
+            qs: ["089:B22"],
+            foundQ: [],
+            myBasket: {}
         }
     },
     computed: {
@@ -121,19 +124,28 @@ export let speechreviewcomponent = {
             })
         }
     },
-    mounted: async function () {
-        // Set global event listeners
-        //window.addEventListener("click", this.processClick )
-        // Figure out the lock state of every record on the page. This is likely to take a while for a long list of records.
-        for (let record of this.speeches) {
-
+    created: function () {
+        this.foundQ = new URLSearchParams(window.location.search).get("q")
+        if (this.foundQ) {
+            this.qs.push(this.foundQ)
         }
+        this.initializeBasket()
+    },
+    mounted: async function () {
+        let searchBox = document.getElementById("speechSearch")
+        searchBox.value = this.foundQ
+        this.submitSearch()
+        
     },
     methods: {
         submitSearch() {
             let q = document.getElementById("speechSearch").value
-            let qs = encodeURIComponent(["089:B22",q].join(" AND "))
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${qs}&format=brief_speech&start=1&limit=50000`
+            //this.qs = encodeURIComponent(["089:B22",q].join(" AND "))
+            if (!this.qs.includes(q)) {
+                this.qs.push(q)
+            }
+            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.qs.join(" AND ")}&format=brief_speech&start=1&limit=50000`
+            let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
             this.showSpinner = true
             fetch(search_url).then(response => {
                 response.json().then(jsonData => {
@@ -141,7 +153,10 @@ export let speechreviewcomponent = {
                 }).then( () => {
                     this.submitted = true
                 })
-            }).then( () => {this.showSpinner = false})
+            }).then( () => {this.showSpinner = false}).then(() => {
+                //window.location.href = ui_url
+                window.history.replaceState({},ui_url)
+            })
         },
         processSort: function(e, column) {
             // reset sort indicators
@@ -214,6 +229,15 @@ export let speechreviewcomponent = {
                     d.classList.toggle("hidden")
                 }
             }
+        },
+        initializeBasket: function () {
+            user.getProfile(this.api_prefix, "my_profile").then( () => {
+                basket.getBasket(this.api_prefix).then(
+                    myBasket => {
+                        this.myBasket = myBasket
+                })
+            })
+            console.log(this.myBasket.data)
         }
     },
     components: {

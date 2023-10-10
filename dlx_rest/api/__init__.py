@@ -798,7 +798,7 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
             record = cls(record_data, auth_control=True)
         except Exception as e:
-            print(record.to_dict())
+            #print(record.to_dict())
             abort(400, str(e))
 
         if not has_permission(user, "updateRecord", record, collection):
@@ -907,9 +907,9 @@ class RecordFieldPlace(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
-        if record.get_field(field_tag, place=field_place) is None:
-            print(record.id)
-            print('???\n' + record.to_mrk())
+        #if record.get_field(field_tag, place=field_place) is None:
+            #print(record.id)
+            #print('???\n' + record.to_mrk())
         
         record.get_field(field_tag, place=field_place) or abort(404)
 
@@ -1588,7 +1588,7 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
-        print(args)
+        #print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1607,7 +1607,7 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
-        print(action)
+        #print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1616,7 +1616,7 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
+                #print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1628,7 +1628,7 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
+                #print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1849,8 +1849,8 @@ class ViewList(Resource):
     def get(self, coll):
         try:
             view_list = RecordView.objects(collection=coll)
-            for v in view_list:
-                print(v.id, v.name)
+            #for v in view_list:
+                #print(v.id, v.name)
         except:
             raise
         
@@ -1886,7 +1886,7 @@ class View(Resource):
     @ns.doc("Get the contents of a record view by collection and id.")
     def get(self, coll, id):
         this_item = RecordView.objects.get(id=id)
-        print(this_item.name)
+        #print(this_item.name)
 
         links = {
             '_self': URL('api_view', coll=coll, id=id).to_str(),
