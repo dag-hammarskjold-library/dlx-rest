@@ -219,8 +219,6 @@ class RecordsList(Resource):
         search = unquote(args.search) if args.search else None
         query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
 
-        print(query.to_json())
-
         # start
         start = 1 if args.start is None else int(args.start)
           
@@ -443,7 +441,8 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
+        from dlx.util import Tokenizer
+        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         
         if Config.TESTING:
@@ -459,30 +458,28 @@ class RecordsListBrowse(Resource):
             )
         
         start, limit = int(args.start), int(args.limit)
-        
-        if Config.TESTING:
-            # old way
-            # new way may not work in tests
-            values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation))
-        else:
-            # new way
-            # remove slash, comma, dash and en dash
-            to_match = value.replace(',', '').replace('-', ' ').replace('–', ' ').replace('/', ' ')
+        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
 
-            values = DB.handle[f'_index_{field}'].aggregate(
-                [
-                    {'$addFields': {'to_sort': {'$replaceAll': {'input': '$_id', 'find': ',', 'replacement': ''}}}},
-                    {'$project': {'_id': 1, '_record_type': 1, 'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '-', 'replacement': ' '}}}},
-                    {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '–', 'replacement': ' '}}}}, # en dash
-                    {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '/', 'replacement': ' '}}}}, # slash
-                    {'$match': {'to_sort': {operator: to_match}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}},
-                    {'$sort': {'to_sort': 1 if args.compare == 'greater' else -1}},
-                    {'$skip': start-1},
-                    {'$limit': limit}
-                ],
-                collation=None if Config.TESTING else collation
-            )
-            values = list(values)
+        ''' 
+        # using an aggregation. this method is slower and requires specifiying all characters to ignore
+        # remove slash, comma, dash and en dash
+        to_match = value.replace(',', '').replace('-', ' ').replace('–', ' ').replace('/', ' ')
+
+        values = DB.handle[f'_index_{field}'].aggregate(
+            [
+                {'$addFields': {'to_sort': {'$replaceAll': {'input': '$_id', 'find': ',', 'replacement': ''}}}},
+                {'$project': {'_id': 1, '_record_type': 1, 'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '-', 'replacement': ' '}}}},
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '–', 'replacement': ' '}}}}, # en dash
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '/', 'replacement': ' '}}}}, # slash
+                {'$match': {'to_sort': {operator: to_match}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}},
+                {'$sort': {'to_sort': 1 if args.compare == 'greater' else -1}},
+                {'$skip': start-1},
+                {'$limit': limit}
+            ],
+            collation=None if Config.TESTING else collation
+        )
+        values = list(values)
+        '''
         
         if args.compare == 'less':
             values = list(reversed(list(values)))
