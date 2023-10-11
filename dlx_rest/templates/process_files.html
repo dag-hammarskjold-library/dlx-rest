@@ -1,49 +1,58 @@
 {% extends 'base.html' %} {% block content %}
 
+<link href="{{url_for('static', filename='css/process_files.css')}}" rel="stylesheet">
+
+
 
   <div class="container mt-4 mb-4 ">
     <br>
     <h4>Upload Files</h4>
     <hr />
 
-    <p>Below are the steps to upload files to the Central Database. After the files are uploaded here, a syncing operation runs and makes them available in UNDL in due time.</p>
+    <p>Below are the steps to upload files to the Central Database. After the files are uploaded, a syncing operation runs and makes them available in UNDL in due time.</p>
     <div class="accordion" id="accordionExample">
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingOne">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-            <strong> Step 1 : Drag and drop or browse to select files to upload. </strong>
+            <strong> Step 1: Select files to upload</strong>
           </button>
         </h2>
         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <p> Please make sure that the filenames adhere to the following conventions:</p>
-            <p>A slash (/) in the symbol is replaced by an underscore(_)</p>
-            <p>Other punctuation/characters/spaces should be the same as they appear in the document symbol</p>
-            <p>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br></p>
-            <p><strong>Example: A_RES_76_1-EN.pdf</strong></p>
+            <ul>
+            <li>An underscore(_) in the filename corresponds to a slash (/) in the symbol</li>
+            <li>Other punctuation/characters/spaces should be the same as they appear in the document symbol</li>
+            <li>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br>
+              Example: A_RES_76_1-EN.pdf</li>
+          </ul>
+          <p><b>Note:</b> There is a <b>1GB</b> limit. Please upload no more than 1GB of files at a time. If you need to upload files larger than this limit, please contact support.</p>
           </div>
         </div>
       </div>
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingTwo">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-            <strong> Step 2 :  After uploading the files you can go through the list of the files: </strong>
+            <strong> Step 2: Go through the list of files</strong>
           </button>
         </h2>
         <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
           <div class="accordion-body">
-            <p>Check the <b>symbol</b> and change it if it was not converted properly. </p>
-            <p>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </p>
-            Select either <b> Keep</b> or <b>Overwrite</b>:<br>
-            Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If file exists, it doesn’t upload it. If file doesn’t exist, it creates it.<br>
-            Overwrite:</b> Select it if you want to replace existing file. If file doesn’t exist, it creates it.
+            <ol>
+            <li>Check the <b>symbol</b> and change it if it was not converted properly. </li>
+            <li>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </li>
+            <li>Select either <b> Keep</b> or <b>Overwrite</b>:<br>
+              <ul>
+              <li><b> Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If the file exists, the system doesn’t re-upload it. If the file doesn’t exist, the system creates it.</li>
+              <li><b>Overwrite:</b> Select it if you want to replace existing file. If the file doesn’t exist, the system creates it.</li></ul>
+          </ol>
           </div>
         </div>
       </div>
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingThree">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-            <strong> Step 3 : After pressing the Process Files button: </strong>
+            <strong> Step 3: Results Page </strong>
           </button>
         </h2>
         <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
@@ -57,13 +66,13 @@
 
 
   
-  <div class="container mt-3 ">
+  <div class="container mt-5 d-flex justify-content-center">
     <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
     <div class="card border-white">
       <div class="card-body">
         <div class="dashed_upload" id="box"> 
           <div class="wrapper">
-            <div class="drop" id="target">
+            <div class="drop d-flex justify-content-center" id="target">
               <div class="cont" >
                 <div class="tit"> Drag &amp; Drop </div>
                   <div class="desc"> or </div>

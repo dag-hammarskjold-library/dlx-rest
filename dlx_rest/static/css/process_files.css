@@ -1,0 +1,89 @@
+/*File CSS*/
+ul{
+  list-style: disc;
+  line-height: 32px;
+}
+
+ol{
+    list-style: decimal;
+    line-height: 32px;
+}
+
+
+.drop {
+    height: 220px;
+    border: 3px dashed #dadfe3;
+    border-radius: 15px;
+    overflow: hidden;
+    text-align: center;
+    background: transparent;
+    -webkit-transition: all 0.5s ease-out;
+    -moz-transition: all 0.5s ease-out;
+    transition: all 0.5s ease-out;
+    margin: 0px auto;
+  }
+
+  .drop .cont {
+    width: 350px; /*500px;*/
+    color: #8e99a5;
+    -webkit-transition: all 0.5s ease-out;
+    -moz-transition: all 0.5s ease-out;
+    transition: all 0.5s ease-out;
+    margin: auto;
+  }
+  
+
+  .drop .cont i {
+    font-size: 40px;
+    color: #787e85;
+    position: relative;
+  }
+  
+  .drop .cont .tit {
+    font-size: 30px;
+    
+    font-weight: 900;
+  }
+  
+  .drop .cont .desc {
+    color: #787e85;
+    font-size: 18px;
+  }
+  
+  .drop .cont .browse {
+    margin: 10px 25%;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: #00c993;
+  }
+  
+  .drop input {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    background: red;
+    opacity: 0;
+    margin: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+  }
+
+  form{
+    width:100%;
+  }
+
+  .card{
+    width:100%;
+  }
+
+  .card-body{
+    padding: 0px !important;
+  }
+
+  .container{
+    padding: 0px !important;
+  }
