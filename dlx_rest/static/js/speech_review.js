@@ -33,7 +33,7 @@ export let speechreviewcomponent = {
         <div v-if="submitted">{{speeches.length}} results</div>
         <div v-if="speeches.length > 0">Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span></div>
         <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
-            <thead>
+            <thead class="prevent-select">
                 <tr>
                     <th scope="col"></th>
                     <th scope="col">#</th>
