@@ -1810,7 +1810,8 @@ export let multiplemarcrecordcomponent = {
             }
 
             this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
-            let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
+            //let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
+            let updatedUrl = location.href.replace(/(\?.*$|$)/, `?records=${this.recordlist.join(",")}`).replace("#","");
             window.history.replaceState({}, null, updatedUrl);
 
             return true
@@ -1927,7 +1928,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             // update URL with current open records
-            let updatedUrl = location.href.replace(/$/, `?records=${this.recordlist.join(",")}`);
+            let updatedUrl = location.href.replace(/(\?.*$|$)/, `?records=${this.recordlist.join(",")}`).replace("#","");
             window.history.replaceState({}, null, updatedUrl);
 
             //////////////////////////////////////////////////////////////////////////////
