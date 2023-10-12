@@ -17,7 +17,7 @@ export let speechreviewcomponent = {
         <form @submit.prevent="submitSearch">
             <label for="speechSearch">Search Speeches</label>
             <div class="input-group mb-3">
-                <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches">
+                <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches" @change="updateQs($event)" :value="foundQ">
                 <div class="input-group-append">
                     <a class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
                 </div>
@@ -73,7 +73,11 @@ export let speechreviewcomponent = {
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech.agendas)"></i>
                     </td>
-                    <td @click="toggleBasket"><i :id="speech._id + '-basket'" class="fas fa-folder-plus"></i></td>
+                    <td @click="toggleBasket">
+                        <i v-if="speech.locked" :id="speech._id + '-basket'" class="fas fa-lock"></i>
+                        <i v-else-if="speech.myBasket" :id="speech._id + '-basket'" class="fas fa-folder-minus"></i>
+                        <i v-else :id="speech._id + '-basket'" class="fas fa-folder-plus"></i>
+                    </td>
                 </tr>
             </tbody>
         </table>
@@ -88,13 +92,13 @@ export let speechreviewcomponent = {
     data: function() {
         return {
             speeches: [],
-            params: {},
             submitted: false,
             sortColumns: [],
             showAgendaModal: false,
             showSpinner: false,
             agendas: [],
-            qs: ["089:B22"],
+            hidden_qs: ["089:B22"],
+            qs: [],
             foundQ: [],
             myBasket: {}
         }
@@ -125,26 +129,25 @@ export let speechreviewcomponent = {
         }
     },
     created: function () {
+        // If we already have search terms (e.g., from the URL), push them to our existing query string
         this.foundQ = new URLSearchParams(window.location.search).get("q")
         if (this.foundQ) {
             this.qs.push(this.foundQ)
         }
-        this.initializeBasket()
-    },
-    mounted: async function () {
-        let searchBox = document.getElementById("speechSearch")
-        searchBox.value = this.foundQ
+        // And submit the search
+        this.showSpinner = false
         this.submitSearch()
-        
     },
     methods: {
+        updateQs(e) {
+            this.qs = [this.hidden_qs, e.target.value].join(" AND ")
+            this.foundQ = e.target.value
+            let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
+            window.history.replaceState({},ui_url)
+        },
         submitSearch() {
-            let q = document.getElementById("speechSearch").value
-            //this.qs = encodeURIComponent(["089:B22",q].join(" AND "))
-            if (!this.qs.includes(q)) {
-                this.qs.push(q)
-            }
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.qs.join(" AND ")}&format=brief_speech&start=1&limit=50000`
+            // Do the search and update this.speeches
+            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.qs}&format=brief_speech&start=1&limit=50000`
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
             this.showSpinner = true
             fetch(search_url).then(response => {
@@ -152,9 +155,15 @@ export let speechreviewcomponent = {
                     this.speeches = jsonData.data
                 }).then( () => {
                     this.submitted = true
+                    for (let s of this.speeches) {
+                        // Is the item locked?
+                        basket.itemLocked(this.api_prefix, "bibs", s._id).then( (lockState) => {
+                            s.locked = lockState.locked
+                            //console.log(s.locked)
+                        })
+                    }
                 })
             }).then( () => {this.showSpinner = false}).then(() => {
-                //window.location.href = ui_url
                 window.history.replaceState({},ui_url)
             })
         },
@@ -230,15 +239,6 @@ export let speechreviewcomponent = {
                 }
             }
         },
-        initializeBasket: function () {
-            user.getProfile(this.api_prefix, "my_profile").then( () => {
-                basket.getBasket(this.api_prefix).then(
-                    myBasket => {
-                        this.myBasket = myBasket
-                })
-            })
-            console.log(this.myBasket.data)
-        }
     },
     components: {
         'sortcomponent': sortcomponent, 
