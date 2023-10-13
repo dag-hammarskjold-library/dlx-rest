@@ -262,8 +262,8 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
-
+        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
+        
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 

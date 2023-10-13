@@ -28,11 +28,9 @@ class Config(object):
         environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
-        #connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
-        connect_string = 'mongodb://undlFilesAdmin:AF04-3DE7-F2EE-871B-5Mj0@18.235.152.183:8080/?authSource=undlFiles'
+        connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
         dbname = 'undlFiles'
-        #ssl = True
-        ssl = False
+        ssl = True
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_QAT' in os.environ:
