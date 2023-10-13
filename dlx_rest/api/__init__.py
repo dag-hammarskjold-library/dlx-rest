@@ -559,18 +559,18 @@ class Record(Resource):
         # check for files
         # todo: get identifier type mapping from config
         files = []
-        symbol = record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')
-        isbn = record.get_value('020', 'a')
-        isbn = isbn.split(' ')[0] if isbn else None # field may have extra text after the isbn
+        symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+        isbns = record.get_values('020', 'a')
+        isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
 
-        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            for idtype in ([symbol, 'symbol'], [isbn, 'isbn']):
-                if idtype[0]:
-                    f = File.latest_by_identifier_language(Identifier(idtype[1], idtype[0]), lang)
-
-                    if f and f not in files:
-                        files.append(f)
-
+        def get_files(id_type, id_value):
+            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+            return list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+        
+        for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
+            for id_value in id_values:
+                files += list(filter(lambda x: x not in files, get_files(id_type, id_value)))
+                
         data = record.to_dict()
         data['created'] = record.created
         data['created_user'] = record.created_user
