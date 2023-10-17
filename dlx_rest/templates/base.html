@@ -133,13 +133,22 @@
                             {% endif %}
                         {% endif %}
                     {% endif %}
+                    
                     {% if current_user.is_authenticated %}                    
                         {% if vcoll=="dashboard01" %}
-                            <li class="nav-item active"><a class="nav-link" href="{{url_for('show_dashboard01')}}">Reports</a></li>
+                        <li class="nav-item active dropdown">
                         {% else %}
-                            <li class="nav-item"><a class="nav-link" href="{{url_for('show_dashboard01')}}">Reports</a></li>
-                        {% endif %}                    
+                        <li class="nav-item dropdown">
+                        {% endif %}
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Reports and Dashboards
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="{{url_for('show_dashboard01')}}">File Upload Dashboard Charts</a>
+                            </div>
+                        </li>                        
                     {% endif %}
+
                     {% if vcoll=="help" %}
                         <li class="nav-item active"><a class="nav-link" href="{{url_for('help')}}">Help</a></li>
                     {% else %}
