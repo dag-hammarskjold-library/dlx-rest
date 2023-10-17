@@ -133,6 +133,13 @@
                             {% endif %}
                         {% endif %}
                     {% endif %}
+                    {% if current_user.is_authenticated %}                    
+                        {% if vcoll=="dashboard01" %}
+                            <li class="nav-item active"><a class="nav-link" href="{{url_for('show_dashboard01')}}">Reports</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link" href="{{url_for('show_dashboard01')}}">Reports</a></li>
+                        {% endif %}                    
+                    {% endif %}
                     {% if vcoll=="help" %}
                         <li class="nav-item active"><a class="nav-link" href="{{url_for('help')}}">Help</a></li>
                     {% else %}
