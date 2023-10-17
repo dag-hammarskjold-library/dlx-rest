@@ -1,14 +1,14 @@
 /*File CSS*/
-ul{
+.ulist{
   list-style: disc;
   line-height: 32px;
 }
 
-ol{
+.olist{
     list-style: decimal;
     line-height: 32px;
 }
-
+   
 
 .drop {
     height: 220px;
@@ -87,3 +87,97 @@ ol{
   .container{
     padding: 0px !important;
   }
+
+  .badge.outlined-primary {
+    border-color: #adb5bd;
+    color: #adb5bd;
+    background-color: transparent;
+  }
+  
+ .disabled-text{ 
+  color: #adb5bd;
+ }
+
+ .rounded-pill{
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    text-align: center;
+ }
+
+ .table td, .table th {
+  vertical-align: middle;
+}
+
+.align-center{
+  text-align: center;
+}
+
+tbody{
+  font-size: 100%;
+}
+
+.form-label{
+  margin-bottom:0px;
+}
+
+.green-button{
+  background-color : green;
+}
+
+.white-button{
+  background-color :#fff;
+}
+
+.white-button:hover {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+  
+/* 
+
+.badge.outlined-primary {
+  border-color: #007bff;
+  color: #007bff;
+  background-color: transparent;
+}
+
+.badge.outlined-secondary {
+  border-color: #323a45;
+  color: #323a45;
+  background-color: transparent;
+}
+
+.badge.outlined-success {
+  border-color: #28a745;
+  color: #28a745;
+  background-color: transparent;
+}
+
+.badge.outlined-warning {
+  border-color: #ffc107;
+  color: #ffc107;
+  background-color: transparent;
+}
+
+.badge.outlined-info {
+  border-color: #29b6f6;
+  color: #29b6f6;
+  background-color: transparent;
+}
+
+.badge.outlined-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+  background-color: transparent;
+}
+
+.badge.outlined-dark {
+  border-color: #000000;
+  color: #000000;
+  background-color: transparent;
+}
+
+*/

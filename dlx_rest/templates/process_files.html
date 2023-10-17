@@ -20,7 +20,7 @@
         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <p> Please make sure that the filenames adhere to the following conventions:</p>
-            <ul>
+            <ul class="ulist">
             <li>An underscore(_) in the filename corresponds to a slash (/) in the symbol</li>
             <li>Other punctuation/characters/spaces should be the same as they appear in the document symbol</li>
             <li>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br>
@@ -28,7 +28,7 @@
           </ul>
           <p><b>Note:</b> There is a <b>1GB</b> limit. Please upload no more than 1GB of files at a time. If you need to upload files larger than this limit, please contact support.</p>
           </div>
-        </div>
+        </div> 
       </div>
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingTwo">
@@ -38,11 +38,11 @@
         </h2>
         <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
           <div class="accordion-body">
-            <ol>
+            <ol class="olist">
             <li>Check the <b>symbol</b> and change it if it was not converted properly. </li>
             <li>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </li>
             <li>Select either <b> Keep</b> or <b>Overwrite</b>:<br>
-              <ul>
+              <ul class="ulist">
               <li><b> Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If the file exists, the system doesn’t re-upload it. If the file doesn’t exist, the system creates it.</li>
               <li><b>Overwrite:</b> Select it if you want to replace existing file. If the file doesn’t exist, the system creates it.</li></ul>
           </ol>
@@ -69,22 +69,20 @@
   <div class="container mt-5 d-flex justify-content-center">
     <form action="{{url_for('process_files')}}" method="POST" enctype="multipart/form-data">
     <div class="card border-white">
-      <div class="card-body">
-        <div class="dashed_upload" id="box"> 
-          <div class="wrapper">
-            <div class="drop d-flex justify-content-center" id="target">
-              <div class="cont" >
-                <div class="tit"> Drag &amp; Drop </div>
-                  <div class="desc"> or </div>
-                    <div class="browse" style="background:#28a745;">Browse</div>
-                    <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <div class="dashed_upload" id="box"> 
+        <div class="wrapper">
+          <div class="drop d-flex justify-content-center" id="target">
+            <div class="cont" >
+              <div class="tit"> Drag &amp; Drop </div>
+                <div class="desc"> or </div>
+                  <div class="browse" style="background:#28a745;">Browse</div>
+                  <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
             </div>
           </div>
+        </div>
+    </div>
+    </div>
+  </div>
                                                
           <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
           <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>

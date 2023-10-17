@@ -203,7 +203,7 @@ div#loading {
   color: white;
   padding: 10px 15px;
   border: none;
-}
+}  
 
 .openbtn:hover {
   background-color: #444;
@@ -257,47 +257,6 @@ button:focus {
   color: #FFFFFF
 }
 
-.badge.outlined-primary {
-  border-color: #007bff;
-  color: #007bff;
-  background-color: transparent;
-}
-
-.badge.outlined-secondary {
-  border-color: #323a45;
-  color: #323a45;
-  background-color: transparent;
-}
-
-.badge.outlined-success {
-  border-color: #28a745;
-  color: #28a745;
-  background-color: transparent;
-}
-
-.badge.outlined-warning {
-  border-color: #ffc107;
-  color: #ffc107;
-  background-color: transparent;
-}
-
-.badge.outlined-info {
-  border-color: #29b6f6;
-  color: #29b6f6;
-  background-color: transparent;
-}
-
-.badge.outlined-danger {
-  border-color: #dc3545;
-  color: #dc3545;
-  background-color: transparent;
-}
-
-.badge.outlined-dark {
-  border-color: #000000;
-  color: #000000;
-  background-color: transparent;
-}
 
 /* styling for the modal */
 
@@ -433,4 +392,4 @@ button:focus {
 @keyframes animatetop {
   from {top:-300px; opacity:0}
   to {top:0; opacity:1}
-}
+} 
