@@ -182,6 +182,9 @@ export let searchcomponent = {
                     <div class="row" style="white-space:nowrap">
                         {{result.second_line}}
                     </div>
+                    <div class="row" v-for="agenda in result.agendas">
+                        <span class="ml-3">{{agenda}}</span>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -333,7 +336,7 @@ export let searchcomponent = {
             collectionTitle = "votes"
         }
 
-        document.title = document.title + ` ${collectionTitle}`
+        //document.title = document.title + `${title(collectionTitle)}`
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
@@ -423,6 +426,9 @@ export let searchcomponent = {
                         let rtype = result["types"].split("::")
 
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        if (this.vcoll == "089:'B22'") {
+                            myResult["agendas"] = result["agendas"]
+                        }
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
