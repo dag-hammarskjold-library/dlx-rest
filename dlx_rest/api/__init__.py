@@ -22,7 +22,7 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.marc.query import Raw
 from dlx.file import File, Identifier
-from werkzeug import security
+from dlx.util import AsciiMap
 
 # internal
 from dlx_rest.config import Config
@@ -262,8 +262,8 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
-
+        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
+        
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 
@@ -441,7 +441,8 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
+        from dlx.util import Tokenizer
+        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         
         if Config.TESTING:
@@ -457,7 +458,28 @@ class RecordsListBrowse(Resource):
             )
         
         start, limit = int(args.start), int(args.limit)
-        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
+
+        ''' 
+        # using an aggregation. this method is slower and requires specifiying all characters to ignore
+        # remove slash, comma, dash and en dash
+        to_match = value.replace(',', '').replace('-', ' ').replace('–', ' ').replace('/', ' ')
+
+        values = DB.handle[f'_index_{field}'].aggregate(
+            [
+                {'$addFields': {'to_sort': {'$replaceAll': {'input': '$_id', 'find': ',', 'replacement': ''}}}},
+                {'$project': {'_id': 1, '_record_type': 1, 'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '-', 'replacement': ' '}}}},
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '–', 'replacement': ' '}}}}, # en dash
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '/', 'replacement': ' '}}}}, # slash
+                {'$match': {'to_sort': {operator: to_match}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}},
+                {'$sort': {'to_sort': 1 if args.compare == 'greater' else -1}},
+                {'$skip': start-1},
+                {'$limit': limit}
+            ],
+            collation=None if Config.TESTING else collation
+        )
+        values = list(values)
+        '''
         
         if args.compare == 'less':
             values = list(reversed(list(values)))
@@ -1116,120 +1138,76 @@ class LookupFieldsList(Resource):
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
     args = reqparse.RequestParser()
-    args.add_argument(
-        'type', 
-        type=str,
-        choices=['partial', 'text'],
-        default='partial',
-        help='The type of lookup to execute (partial string match or text search)'
-    )
-
+    
     @ns.doc(description='Return a list of authorities that match a string value')
     @ns.expect(args)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        codes = filter(lambda x: len(x) == 1, request.args.keys())
-        args = LookupField.args.parse_args()
+        # args are subfield codes
+        codes = list(filter(lambda x: len(x) == 1, request.args.keys()))
+        codes or abort(400, 'Subfield codes required as the URL query parameters')
+        sparams = {}
+        conditions_1, conditions_2, conditions_3 = [], [], []
 
-        if args.type == 'partial':
-            # partial string match
-            conditions_1, conditions_2, conditions_3 = [], [], []
-            sparams = {}
+        for code in codes:
+            val = request.args[code]
+            sparams[code] = val
+            auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
 
-            def process(query, heading_tag, limit):
-                # todo: update subject logical field to heading name change
+            if not auth_tag:
+                continue
+
+            tags = [auth_tag]
+
+            # exact match
+            conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
+            # starts with
+            val_regex_checker = ''
+
+            for char in val:
+                xchars = []
                 
-                auths = list(
-                    # sort by length of subfield array
-                    DB.auths.aggregate(
-                        [
-                            {'$match': dict(query)},
-                            #{'$addFields': {'subfieldsSize': {'$size': f'${heading_tag}.subfields'}}},
-                            {'$project': {'subject': 1, heading_tag: 1, 'subfieldsSize': {'$size': f'${tag}.subfields'}}},
-                            {'$sort': SON([('subfieldsSize', 1), ('subject', 1)])}, # preserve key order using bson
-                            {'$limit': limit}
-                        ],
-                        collation={'locale': 'en', 'strength': 1, 'numericOrdering': True}
-                    )
-                )
+                for k, v in AsciiMap.data.items():
+                    if v.lower() not in ('a', 'e', 'i', 'o', 'u'):
+                        continue
+                        
+                    if k in AsciiMap.multi_byte() or ord(k) > 0x0130: # char 'İ' #int(0x017F): # Latin Extended-A
+                        continue
 
-                return [Auth(x) for x in auths] 
+                    if v.lower() == char.lower():
+                        xchars.append(k)
 
-            # gather conditions
-            for code in codes:
-                val = request.args[code]
-                sparams[code] = val
-                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+                if xchars:
+                    xchars += char.lower() + char.upper()
+                    val_regex_checker += f'[{"".join(xchars)}]'
+                else:
+                    if char.lower() != char.upper():
+                        val_regex_checker += f'[{char.lower() + char.upper()}]'
+                    else:
+                        val_regex_checker += re.escape(char)
 
-                if not auth_tag:
-                    continue
+            conditions_2.append(f'{auth_tag}__{code}:/^{val_regex_checker}/')
+            # free text
+            conditions_3.append(f'{auth_tag}__{code}:{val}')
 
-                tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
-                tag = tags[0]
+        querystring = " AND ".join(conditions_1)
+        query = Query.from_string(querystring)
+        proj = dict.fromkeys(tags, 1)
+        start = int(request.args.get('start', 1))
+        cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
+        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
 
-                # exact match
-                conditions_1.append(Or(*[Condition(tag, {code: val}, record_type='auth') for tag in tags]))
-                # matches start
-                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'^{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
-                # matches anywhere
-                conditions_3.append(Or(*[Condition(tag, {code: Regex(f'{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
-
-            if not sparams:
-                abort(400, 'Request parameters required')
-
-            query = Query(*conditions_1)
-            proj = dict.fromkeys(tags, 1)
-            start = int(request.args.get('start', 1))
-            auths = process(query.compile(), heading_tag=tag, limit=25)
-
-            if len(auths) < 25:
-                query = Query(*conditions_2)
-                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-
-            if len(auths) < 25:
-                query = Query(*conditions_3)
-                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-        elif args.type == 'text':
-            sparams = {}
-            conditions_1, conditions_2, conditions_3 = [], [], []
-
-            for code in codes:
-                val = request.args[code]
-                sparams[code] = val
-                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
-
-                if not auth_tag:
-                    continue
-
-                tags = [auth_tag]
-
-                # exact match
-                conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
-                # starts with
-                conditions_2.append(f'{auth_tag}__{code}:/^{re.escape(val)}/i')
-                # free text
-                conditions_3.append(f'{auth_tag}__{code}:{val}')
-
-            querystring = " AND ".join(conditions_1)
+        if len(auths) < 25:
+            querystring = " AND ".join(conditions_2)
             query = Query.from_string(querystring)
-            proj = dict.fromkeys(tags, 1)
-            start = int(request.args.get('start', 1))
-            cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
-            auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
-            if len(auths) < 25:
-                querystring = " AND ".join(conditions_2)
-                query = Query.from_string(querystring)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-
-            if len(auths) < 25:
-                querystring = " AND ".join(conditions_3)
-                query = Query.from_string(querystring)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        if len(auths) < 25:
+            querystring = " AND ".join(conditions_3)
+            query = Query.from_string(querystring)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         
         processed = []
         
