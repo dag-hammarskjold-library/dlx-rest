@@ -64,7 +64,7 @@ export let batcheditmodal = {
                     </div>
                     <h6 class="pt-1" v-else>These fields:</h6>
                     <div class="row">
-                        <div class="col"><p v-for="field in selectedFields" :key="field.tag">{{field.tag}} {{field.toStr()}}</p></div>
+                        <div class="col"><p v-for="field in selectedFields" :key="field.tag"><i class="fas fa-trash-alt mr-2" @click="removeField(field)" title="Remove field from list."></i>{{field.tag}} {{field.toStr()}}</p></div>
                     </div>
                     <div class="row pt-2">
                         <div class="col">
@@ -147,6 +147,11 @@ export let batcheditmodal = {
             } else {
                 this.selectedRecords.splice(this.selectedRecords.indexOf(record), 1)
             }
+        },
+        removeField(field) {
+            console.log(this.selectedRecords)
+            this.selectedFields.splice(this.selectedFields.indexOf(field), 1)
+            this.$emit('removed-field', {field: field})
         },
         select(event) {
             event.preventDefault()

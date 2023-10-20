@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)" v-on:removed-field="removeBatchEditField($event.field)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -1042,6 +1042,14 @@ export let multiplemarcrecordcomponent = {
 
             // Reinitialize the modal
             this.$refs.batcheditmodal.reinitialize()
+        },
+        removeBatchEditField(field) {
+            // Unselect the field that was selected for batch editing
+            // If the field selector were using a reactive data source, we could just splice it here
+            // and be done with it, but programmatically unchecking it here would require that we 
+            // find the correct field selector on the page and uncheck that. Since we don't have it 
+            // connected to any data source, we have limited options...
+            this.copiedFields.splice(this.copiedFields.indexOf(field), 1)
         },
 
         ///////////////////////////////////////////////////
