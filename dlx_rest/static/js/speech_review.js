@@ -17,7 +17,7 @@ export let speechreviewcomponent = {
         <form @submit.prevent="submitSearch">
             <label for="speechSearch">Search Speeches</label>
             <div class="input-group mb-3">
-                <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches" @change="updateQs($event)" :value="foundQ">
+                <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches" v-model="searchTerm" @keyup="updateSearchQuery">
                 <div class="input-group-append">
                     <a class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
                 </div>
@@ -31,7 +31,14 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <div v-if="submitted">{{speeches.length}} results</div>
-        <div v-if="speeches.length > 0">Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span></div>
+        <div v-if="speeches.length > 0">
+            Select 
+            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+            <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a v-else class="mx-1 result-link disabled" href="#">Send Selected to Basket (limit: 100)</a>
+            <div class="ml-auto">Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span></div>
+        </div>
         <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
             <thead class="prevent-select">
                 <tr>
@@ -41,7 +48,7 @@ export let speechreviewcomponent = {
                         <i data-target="symbol" class="fas fa-sort-alpha-up text-secondary"></i>
                         <span id="symbol-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
-                    <th scope="col" @click="processSort($event, 'date')">Date (992 or 269)
+                    <th scope="col" @click="processSort($event, 'date')">Date (992)
                         <i data-target="date" class="fas fa-sort-alpha-up text-secondary"></i>
                         <span id="date-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
@@ -73,10 +80,10 @@ export let speechreviewcomponent = {
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech.agendas)"></i>
                     </td>
-                    <td @click="toggleBasket">
+                    <td>
                         <i v-if="speech.locked" :id="speech._id + '-basket'" class="fas fa-lock"></i>
-                        <i v-else-if="speech.myBasket" :id="speech._id + '-basket'" class="fas fa-folder-minus"></i>
-                        <i v-else :id="speech._id + '-basket'" class="fas fa-folder-plus"></i>
+                        <i v-else-if="speech.myBasket" :id="speech._id + '-basket'" class="fas fa-folder-minus" @click="toggleBasket($event, speech._id)"></i>
+                        <i v-else :id="speech._id + '-basket'" class="fas fa-folder-plus" @click="toggleBasket($event, speech._id)"></i>
                     </td>
                 </tr>
             </tbody>
@@ -98,9 +105,9 @@ export let speechreviewcomponent = {
             showSpinner: false,
             agendas: [],
             hidden_qs: ["089:B22"],
-            qs: [],
-            foundQ: [],
-            myBasket: {}
+            searchTerm: "",
+            myBasket: {},
+            selectedRecords: []
         }
     },
     computed: {
@@ -129,21 +136,24 @@ export let speechreviewcomponent = {
         }
     },
     created: function () {
-        // If we already have search terms (e.g., from the URL), push them to our existing query string
-        this.foundQ = new URLSearchParams(window.location.search).get("q")
-        if (this.foundQ) {
-            this.qs.push(this.foundQ)
+        const urlParams = new URLSearchParams(window.location.search)
+        const searchQuery = urlParams.get("q")
+        if (searchQuery) {
+            this.searchTerm = searchQuery
+            this.updateSearchQuery()
+            this.submitSearch()
         }
-        // And submit the search
-        this.showSpinner = false
-        this.submitSearch()
+
+        basket.getBasket(this.api_prefix).then( (b) => {
+            this.myBasket = b
+        })
     },
     methods: {
-        updateQs(e) {
-            this.qs = [this.hidden_qs, e.target.value].join(" AND ")
-            this.foundQ = e.target.value
-            let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
-            window.history.replaceState({},ui_url)
+        updateSearchQuery() {
+            const url = new URL(window.location)
+            url.searchParams.set("q", this.searchTerm)
+            this.qs = [this.hidden_qs, this.searchTerm].join(" AND ")
+            window.history.replaceState(null, "", url)
         },
         submitSearch() {
             // Do the search and update this.speeches
@@ -155,17 +165,23 @@ export let speechreviewcomponent = {
                     this.speeches = jsonData.data
                 }).then( () => {
                     this.submitted = true
-                    for (let s of this.speeches) {
-                        // Is the item locked?
-                        basket.itemLocked(this.api_prefix, "bibs", s._id).then( (lockState) => {
-                            s.locked = lockState.locked
-                            //console.log(s.locked)
-                        })
-                    }
                 })
             }).then( () => {this.showSpinner = false}).then(() => {
                 window.history.replaceState({},ui_url)
             })
+        },
+        selectAll() {
+            console.log("selecting all...")
+            for (let i of document.querySelectorAll("input[type=checkbox]")) {
+                i.checked = true
+            }
+            //this.selectedRecords = []
+        },
+        selectNone() {
+            for (let i of document.querySelectorAll("input[type=checkbox]")) {
+                i.checked = false
+            }
+            this.selectedRecords = []
         },
         processSort: function(e, column) {
             // reset sort indicators
@@ -217,8 +233,23 @@ export let speechreviewcomponent = {
                 }
             }
         },
-        toggleBasket: async function (e) {
-            console.log("click")
+        sendToBasket() {
+            //basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+        },
+        toggleBasket: async function (e, speechId) {
+            if (e.target.classList.contains("fa-folder-plus")) {
+                // add to basket
+                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then( () => {
+                    e.target.classList.remove("fa-folder-plus")
+                    e.target.classList.add("fa-folder-minus")
+                })
+            } else {
+                // remove from basket
+                basket.deleteItem(this.myBasket, "bibs", speechId).then( () => {
+                    e.target.classList.remove("fa-folder-minus")
+                    e.target.classList.add("fa-folder-plus")
+                })
+            }
         },
         togglePreview: async function (collection, speechId) {
             console.log("toggling record preview for",speechId)

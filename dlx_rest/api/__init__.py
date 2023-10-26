@@ -214,6 +214,10 @@ class RecordsList(Resource):
         route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+
+        # We can also note some things about the requesting user's basket here, since this route, and all others, require login
+        this_u = User.objects.get(id=current_user['id'])
+        this_basket = Basket.objects(owner=this_u)[0]
         
         # search
         search = unquote(args.search) if args.search else None
@@ -285,7 +289,19 @@ class RecordsList(Resource):
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech
-            data = [make_brief(r) for r in recordset]
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                #print(r.id)
+                this_d["myBasket"] = False
+                
+                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                if len(basket_contains) > 0:
+                    this_d["myBasket"] = True
+                    this_d["locked"] = False
+                data.append(this_d)
+            #print(data)
         else:
             schema_name='api.urllist'
             data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]

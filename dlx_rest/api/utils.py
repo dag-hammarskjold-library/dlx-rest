@@ -227,7 +227,9 @@ def brief_speech(record):
         'speaker_country': record.get_value('700', 'g'),
         'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
         'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
-        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
+        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')],
+        'locked': item_locked("bibs", record.id)["locked"],
+        #'myBasket': False
     }
 
 def brief_auth(record):
