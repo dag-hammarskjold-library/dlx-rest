@@ -152,7 +152,7 @@ export let speechreviewcomponent = {
         updateSearchQuery() {
             const url = new URL(window.location)
             url.searchParams.set("q", this.searchTerm)
-            this.qs = [this.hidden_qs, this.searchTerm].join(" AND ")
+            this.qs = [this.searchTerm, this.hidden_qs].join(" AND ")
             window.history.replaceState(null, "", url)
         },
         submitSearch() {
@@ -234,6 +234,7 @@ export let speechreviewcomponent = {
             }
         },
         sendToBasket() {
+            console.log(this.selectedRecords)
             //basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
         },
         toggleBasket: async function (e, speechId) {
