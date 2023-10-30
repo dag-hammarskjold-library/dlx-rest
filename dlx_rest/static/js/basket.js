@@ -20,7 +20,7 @@ export let basketcomponent = {
                 
                     <a href="#" v-on:click="handleClick($event, record._id, record.collection)" class="list-group-item list-group-item-action" aria-current="true" :id="record.collection + '--' + record._id"s>
                         <div class="d-flex w-100 justify-content-between" >
-                            <small><span style="overflow-x:hidden">{{record.collection}}/{{record._id}}</span></small>
+                            <small><span style="overflow-x:hidden">{{record.vcoll}}/{{record._id}}</span></small>
                             <small><i id="closeRecord" v-on:click="handleClick($event, record._id, record.collection)" class="fas fa-times p-1 record-control" title="Remove record from basket"></i></small>
                         </div>
                         <div style="overflow-x:hidden">
@@ -152,11 +152,22 @@ export let basketcomponent = {
                         }
 
                         data["collection"] = element.collection;
+                        data["vcoll"] = data["collection"]
                         data["_id"] = element.record_id;
                         data["basket_item_id"] = element.url.split('/').pop();
 
                         if (element.collection == "bibs") {
-                            let titleField = item.getField("245") || item.getField("700");
+                            // Get 249 first if it exists, otherwise 245, or finally 700
+                            let titleField = item.getField("249") || item.getField("245") || item.getField("700");
+
+                            // Set the "virtual" collection type: speeches or votes
+                            let rtype = item.getField("089")
+                            if (rtype && rtype.getSubfield("b").value === "B22") {
+                                data["vcoll"] = "speeches"
+                            } else if (rtype && rtype.getSubfield("b").value === "B23") {
+                                data["vcoll"] = "votes"
+                            }
+                            console.log(data["vcoll"])
 
                             if (titleField) {
                                 data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
