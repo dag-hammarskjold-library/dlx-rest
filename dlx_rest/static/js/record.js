@@ -398,9 +398,11 @@ export let multiplemarcrecordcomponent = {
                     if (jmarc.recordId == this.selectedJmarc.recordId) {
                         this.selectedFields.push(field);
                     }
-                    this.copiedFields.push(field);                        
+                    this.copiedFields.push(field);       
+                    field.checked = true                 
                 }
             } else {
+                field.checked = false
                 if (this.copiedFields) {
                     // remove from the list of copied fields
                     // Issue #1147: splice + indexOf has trouble with objects, especially if they have any depth
@@ -409,9 +411,10 @@ export let multiplemarcrecordcomponent = {
                     {
                         this.selectedFields = this.selectedFields.filter(f => f.toStr() !== field.toStr())
                     }
-                   
+                    
                 }
             }
+            console.log(`checked? ${field.checked}`)
         },
         async saveRecord(jmarc, display=true){
             if (jmarc.workformName) {
@@ -1037,8 +1040,16 @@ export let multiplemarcrecordcomponent = {
             this.$refs.batcheditmodal.referringRecord = `${jmarc.collection}/${jmarc.recordId}`
             
             // Get the list of copied fields and send them to the batch edit modal.
-            //this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
-            this.$refs.batcheditmodal.selectedFields = this.copiedFields
+            // this.copiedFields may have fields from more than one record, so let's check only the referring record for checked fields
+            
+            let selectedFields = []
+
+            for (let f of jmarc.fields) {
+                if (f.checked) {
+                    selectedFields.push(f)
+                }
+            }
+            this.$refs.batcheditmodal.selectedFields = selectedFields
 
             // Reinitialize the modal
             this.$refs.batcheditmodal.reinitialize()
