@@ -773,3 +773,9 @@ def update_file():
 
     except Exception as e:
         return e
+
+
+@app.route('/reports/dashboard01', methods=["GET"])
+@login_required
+def show_dashboard01():
+    return render_template('dashboard01.html',vcoll="dashboard01", user=current_user.username)
