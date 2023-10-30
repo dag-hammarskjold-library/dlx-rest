@@ -37,7 +37,10 @@ export let speechreviewcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
             <a v-else class="mx-1 result-link disabled" href="#">Send Selected to Basket (limit: 100)</a>
-            <div class="ml-auto">Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span></div>
+            <br>
+            <div>Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
+            <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?q=089%3A%27B22%27'">Speeches</a>
+            </div>
         </div>
         <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
             <thead class="prevent-select">
@@ -70,7 +73,11 @@ export let speechreviewcomponent = {
             </thead>
             <tbody>
                 <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id">
-                    <td><input type="checkbox" :data-recordid="speech._id"></td>
+                    <td>
+                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
+                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
+                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)">
+                    </td>
                     <td>{{index + 1}}</td>
                     <td @click="togglePreview('bibs',speech._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
                     <td>{{speech.date}}</td>
@@ -97,6 +104,7 @@ export let speechreviewcomponent = {
     <previewmodal ref="previewmodal" :api_prefix="api_prefix"></previewmodal>
 </div>`,
     data: function() {
+        let myUIBase = this.api_prefix.replace('/api/','')
         return {
             speeches: [],
             submitted: false,
@@ -107,7 +115,8 @@ export let speechreviewcomponent = {
             hidden_qs: ["089:B22"],
             searchTerm: "",
             myBasket: {},
-            selectedRecords: []
+            selectedRecords: [],
+            uibase: myUIBase
         }
     },
     computed: {
@@ -170,12 +179,21 @@ export let speechreviewcomponent = {
                 window.history.replaceState({},ui_url)
             })
         },
-        selectAll() {
-            console.log("selecting all...")
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
-                i.checked = true
+        toggleSelect(e) {
+            let recordId = e.target.dataset.recordid
+            if (this.selectedRecords.includes({"collection": "bibs", "record_id": recordId})) {
+                this.selectedRecords.splice(this.selectedRecords.indexOf({"collection": "bibs", "record_id": recordId}),1)
+            } else {
+                this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
             }
-            //this.selectedRecords = []
+            
+        },
+        selectAll() {
+            for (let i of document.querySelectorAll("input[type=checkbox]")) {
+                i.disabled ? i.checked = false : i.checked = true
+                let recordId = i.dataset.recordid
+                this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+            }
         },
         selectNone() {
             for (let i of document.querySelectorAll("input[type=checkbox]")) {
@@ -236,6 +254,14 @@ export let speechreviewcomponent = {
         sendToBasket() {
             console.log(this.selectedRecords)
             //basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then( () => {
+                for (let i of document.getElementsByClassName("fa-folder-plus")) {
+                    if (i.id.split("-")[0] == this.selectedRecords["record_id"]) {
+                        i.classList.remove("fa-folder-plus")
+                        i.classList.add("fa-folder-minus")
+                    }
+                }
+            })
         },
         toggleBasket: async function (e, speechId) {
             if (e.target.classList.contains("fa-folder-plus")) {

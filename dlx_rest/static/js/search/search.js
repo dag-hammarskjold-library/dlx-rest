@@ -154,6 +154,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a v-if="collectionTitle='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'" @click="">Speech Review</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -279,7 +280,8 @@ export let searchcomponent = {
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
             myBasket: {},
-            user: null
+            user: null,
+            collectionTitle: null,
         }
     },
     created: async function() {
@@ -287,7 +289,7 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
-        let collectionTitle = component.collection;
+        this.collectionTitle = component.collection;
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
@@ -328,15 +330,13 @@ export let searchcomponent = {
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
             this.vcoll = "089:'B22'"
-            collectionTitle = "speeches"
+            this.collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
             this.vcoll = "089:'B23'"
-            collectionTitle = "votes"
+            this.collectionTitle = "votes"
         }
-
-        //document.title = document.title + `${title(collectionTitle)}`
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
