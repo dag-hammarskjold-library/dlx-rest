@@ -1726,7 +1726,7 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        #print(item)
+        print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
         #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
@@ -1826,6 +1826,7 @@ class MyBasketItem(Resource):
     @ns.doc("Remove an item from the current user's basket. The item data must be in the body of the request.", security="basic")
     @login_required
     def delete(self, item_id):
+        print("deleting",item_id)
         try:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]

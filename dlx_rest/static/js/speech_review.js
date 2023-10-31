@@ -152,12 +152,14 @@ export let speechreviewcomponent = {
             this.updateSearchQuery()
             this.submitSearch()
         }
-
-        basket.getBasket(this.api_prefix).then( (b) => {
-            this.myBasket = b
-        })
+        this.refreshBasket()
     },
     methods: {
+        refreshBasket() {
+            basket.getBasket(this.api_prefix).then( (b) => {
+                this.myBasket = b
+            })
+        },
         updateSearchQuery() {
             const url = new URL(window.location)
             url.searchParams.set("q", this.searchTerm)
@@ -192,7 +194,9 @@ export let speechreviewcomponent = {
             for (let i of document.querySelectorAll("input[type=checkbox]")) {
                 i.disabled ? i.checked = false : i.checked = true
                 let recordId = i.dataset.recordid
-                this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+                if (i.checked) {
+                    this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+                }
             }
         },
         selectNone() {
@@ -252,31 +256,48 @@ export let speechreviewcomponent = {
             }
         },
         sendToBasket() {
+            /*  
+            Several things need to happen here
+            1. Send all the items to the basket that have checkmarks beside them
+            2. Uncheck the checked items
+            3. Disable the checkbox for each item sent to the basket
+            4. Update the folder icon for each item sent to the basket
+            5. Empty this.selectedRecords
+            */
             console.log(this.selectedRecords)
-            //basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
             basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then( () => {
-                for (let i of document.getElementsByClassName("fa-folder-plus")) {
-                    if (i.id.split("-")[0] == this.selectedRecords["record_id"]) {
-                        i.classList.remove("fa-folder-plus")
-                        i.classList.add("fa-folder-minus")
-                    }
+                for (let record of this.selectedRecords) {
+                    let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
+                    checkbox.checked = false
+                    checkbox.disabled = true
+                    let icon = document.querySelector(`i[id="${record.record_id}-basket"]`)
+                    icon.classList.remove("fa-folder-plus")
+                    icon.classList.add("fa-folder-minus")
                 }
+                this.selectedRecords = []
+                //console.log(this.selectedRecords)
+                this.refreshBasket()
             })
         },
         toggleBasket: async function (e, speechId) {
             if (e.target.classList.contains("fa-folder-plus")) {
                 // add to basket
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then( () => {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then( () => {
+                    let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
+                    checkbox.disabled = true
                     e.target.classList.remove("fa-folder-plus")
                     e.target.classList.add("fa-folder-minus")
                 })
             } else {
                 // remove from basket
-                basket.deleteItem(this.myBasket, "bibs", speechId).then( () => {
+                await basket.deleteItem(this.myBasket, "bibs", speechId).then( () => {
+                    let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
+                    checkbox.disabled = false
                     e.target.classList.remove("fa-folder-minus")
                     e.target.classList.add("fa-folder-plus")
                 })
             }
+            this.refreshBasket()
         },
         togglePreview: async function (collection, speechId) {
             console.log("toggling record preview for",speechId)

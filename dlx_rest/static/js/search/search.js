@@ -579,6 +579,11 @@ export let searchcomponent = {
             }
             return false;
         },
+        refreshBasket() {
+            basket.getBasket(this.api_prefix).then( (b) => {
+                this.myBasket = b
+            })
+        },
         async handleIconClick(e) {
             let collection = e.target.id.split("-")[1]
             let record_id = e.target.id.split("-")[2]
@@ -605,6 +610,7 @@ export let searchcomponent = {
             else {
                 return false
             }
+            this.refreshBasket()
             return true
         },
         toggleAdvancedSearch() {
