@@ -639,7 +639,7 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         case "all":
                             // All of the words in any field
-                            expressions.push(termList.join(" "))
+                            expressions.push(termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
                             break
                         case "exact":
                             // Exact phrase in any field
@@ -671,6 +671,7 @@ export let searchcomponent = {
                             break
                         case "all":
                             // All of the words in any field
+                            termList = (termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
                             expressions.push(`${myField}:${termList.join(" ")}`)
                             break
                         case "exact":
