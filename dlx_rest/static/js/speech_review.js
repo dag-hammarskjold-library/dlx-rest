@@ -3,6 +3,7 @@ import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
 import { previewmodal } from "./modals/preview.js";
+import { agendamodal } from "./modals/agenda.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -35,8 +36,8 @@ export let speechreviewcomponent = {
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
-            <a v-else class="mx-1 result-link disabled" href="#">Send Selected to Basket (limit: 100)</a>
+            <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
+            <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
             <br>
             <div>Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
             <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?q=089%3A%27B22%27'">Speeches</a>
@@ -85,7 +86,7 @@ export let speechreviewcomponent = {
                     <td>{{speech.speaker_country}}</td>
                     <td>{{speech.country_org}}</td>
                     <td title="Toggle Agenda View">
-                        <i class="fas fa-file" @click="toggleAgendas($event, speech.agendas)"></i>
+                        <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
                     </td>
                     <td>
                         <i v-if="speech.locked" :id="speech._id + '-basket'" class="fas fa-lock"></i>
@@ -102,6 +103,7 @@ export let speechreviewcomponent = {
         </div>
     </div>
     <previewmodal ref="previewmodal" :api_prefix="api_prefix"></previewmodal>
+    <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
     data: function() {
         let myUIBase = this.api_prefix.replace('/api/','')
@@ -305,10 +307,11 @@ export let speechreviewcomponent = {
             this.$refs.previewmodal.recordId = speechId
             this.$refs.previewmodal.show()
         },
-        toggleAgendas: function (e) {
+        toggleAgendas: function (e, speechId, agendas) {
             console.log("opening agenda preview")
-            this.agendas = ["foo", "bar"]
-            this.showAgendaModal = true
+            this.$refs.agendamodal.agendas = agendas
+            this.$refs.agendamodal.recordId = speechId
+            this.$refs.agendamodal.showModal = true
         },
         dismissPreview: function () {
             console.log("dismissing previews")
@@ -322,6 +325,7 @@ export let speechreviewcomponent = {
     components: {
         'sortcomponent': sortcomponent, 
         'countcomponent': countcomponent,
-        'previewmodal': previewmodal
+        'previewmodal': previewmodal,
+        'agendamodal': agendamodal
     }
 }
