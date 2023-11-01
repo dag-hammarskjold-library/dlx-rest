@@ -257,8 +257,6 @@ function createFileObjects() {
       i = i + 1;
     }
 
-    // console.log(JSON.stringify(fileObjectArray));
-
     fileObjectArray.forEach((file) => {
     // const fileList = fileOjectArray.map((file) => {
       let fileEntry = document.createElement("tr");

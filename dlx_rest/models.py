@@ -195,7 +195,6 @@ class Basket(Document):
     def remove_item(self, item_id):
         #self.items = list(filter(lambda x: x['collection'] != item['collection'] and x['record_id'] != item['record_id'], self.items))
         this_item = self.get_item_by_id(item_id)
-        print(item_id, this_item)
         if this_item is not None:
             self.items = list(filter(lambda x: x['id'] != item_id, self.items))
             self.save()

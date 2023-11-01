@@ -392,7 +392,6 @@ export let multiplemarcrecordcomponent = {
         },
         toggleSelectField(e, jmarc, field) {
             // We automatically add the contents of a checked field to the copy stack
-            // console.log(`Toggling ${field.toStr()} at ${this.copiedFields.indexOf(field)}`)
             if (e.target.checked) {
                 if (!field.row.className.includes("hidden-field")) {
                     if (jmarc.recordId == this.selectedJmarc.recordId) {
@@ -2097,7 +2096,6 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     jmarc[control["name"]] = controlButton;
                     if (control["name"] == "batchButton") {
-                        console.log("batch button")
                         controlButton.setAttribute("data-toggle", "modal")
                         controlButton.setAttribute("data-target", "#batchActions")
                     }
@@ -2469,7 +2467,6 @@ export let multiplemarcrecordcomponent = {
             // Activate
             // call when user clicks or tabs into tag field
             function tagActivate(e) {
-                //console.log(e)
                 let renderingPolicy = renderingData[jmarc.collection][field.tag];
 
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
@@ -2520,7 +2517,6 @@ export let multiplemarcrecordcomponent = {
 
                     }
                 });
-                //console.log("foo")
             }
             
             // Tag update actions
@@ -3144,7 +3140,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             const observer = new MutationObserver(function() {
-                console.log('callback that runs when observer is triggered');
+
             });
 
             observer.observe(valSpan, {subtree: true, childList: true});

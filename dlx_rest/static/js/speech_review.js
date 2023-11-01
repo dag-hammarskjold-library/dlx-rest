@@ -266,7 +266,6 @@ export let speechreviewcomponent = {
             4. Update the folder icon for each item sent to the basket
             5. Empty this.selectedRecords
             */
-            console.log(this.selectedRecords)
             basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then( () => {
                 for (let record of this.selectedRecords) {
                     let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
@@ -277,7 +276,6 @@ export let speechreviewcomponent = {
                     icon.classList.add("fa-folder-minus")
                 }
                 this.selectedRecords = []
-                //console.log(this.selectedRecords)
                 this.refreshBasket()
             })
         },
@@ -302,19 +300,16 @@ export let speechreviewcomponent = {
             this.refreshBasket()
         },
         togglePreview: async function (collection, speechId) {
-            console.log("toggling record preview for",speechId)
             this.$refs.previewmodal.collection = collection
             this.$refs.previewmodal.recordId = speechId
             this.$refs.previewmodal.show()
         },
         toggleAgendas: function (e, speechId, agendas) {
-            console.log("opening agenda preview")
             this.$refs.agendamodal.agendas = agendas
             this.$refs.agendamodal.recordId = speechId
             this.$refs.agendamodal.showModal = true
         },
         dismissPreview: function () {
-            console.log("dismissing previews")
             for (let d of document.getElementsByClassName("preview")) {
                 if (!d.classList.contains("hidden")) {
                     d.classList.toggle("hidden")

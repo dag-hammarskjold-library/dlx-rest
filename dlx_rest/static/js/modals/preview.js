@@ -52,8 +52,6 @@ export let previewmodal = {
                     // The normal way to set things like this is to use a reactive data property
                     // But we can also just set the innerText to what we get here, which preserves
                     // the newline characters
-                    //this.record = jmarc.toStr()
-                    //console.log(this.record)
                     let previewText = document.getElementById("preview-text")
                     previewText.innerText = jmarc.toStr()
                 }).then( () => {this.showSpinner = false})

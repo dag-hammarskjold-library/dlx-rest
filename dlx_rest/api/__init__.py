@@ -44,7 +44,6 @@ ns = api.namespace('api', description='DLX MARC REST API')
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
-    #print(f"Auth header: {auth_header}")
     if not auth_header:
         return None
 
@@ -296,7 +295,6 @@ class RecordsList(Resource):
             data = []
             for r in recordset:
                 this_d = make_brief(r)
-                #print(r.id)
                 this_d["myBasket"] = False
                 
                 basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
@@ -304,7 +302,6 @@ class RecordsList(Resource):
                     this_d["myBasket"] = True
                     this_d["locked"] = False
                 data.append(this_d)
-            #print(data)
         else:
             schema_name='api.urllist'
             data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
@@ -343,8 +340,6 @@ class RecordsList(Resource):
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
     def post(self, collection):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         cls = ClassDispatch.by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
     
@@ -644,11 +639,7 @@ class Record(Resource):
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @login_required
     def put(self, collection, record_id):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         user = current_user if request_loader(request) is None else request_loader(request)
-        #print(user)
-        #print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         args = Record.args.parse_args()
@@ -839,7 +830,6 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
             record = cls(record_data, auth_control=True)
         except Exception as e:
-            #print(record.to_dict())
             abort(400, str(e))
 
         if not has_permission(user, "updateRecord", record, collection):
@@ -948,9 +938,6 @@ class RecordFieldPlace(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
-        #if record.get_field(field_tag, place=field_place) is None:
-            #print(record.id)
-            #print('???\n' + record.to_mrk())
         
         record.get_field(field_tag, place=field_place) or abort(404)
 
@@ -1427,7 +1414,6 @@ class WorkformsList(Resource):
         # interim implementation
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         workforms = workform_collection.find({})
-        #print(workforms)
         data = [URL('api_workform', collection=collection, workform_name=t['name']).to_str() for t in workforms]
         
         links = {
@@ -1585,7 +1571,6 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
-        #print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1604,7 +1589,6 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
-        #print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1613,7 +1597,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                #print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1625,7 +1608,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                #print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1729,9 +1711,7 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
-        #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
@@ -1742,10 +1722,7 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    #print(lock_status["in"])
                     for losing_basket in Basket.objects(name=lock_status["in"]):
-                        #print(losing_basket)
-
                         losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201
@@ -1800,7 +1777,6 @@ class MyBasketItem(Resource):
             item_data = item_data_raw
             if isinstance(item_data_raw, list):
                 item_data = item_data_raw[0]
-            #print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
@@ -1829,7 +1805,6 @@ class MyBasketItem(Resource):
     @ns.doc("Remove an item from the current user's basket. The item data must be in the body of the request.", security="basic")
     @login_required
     def delete(self, item_id):
-        print("deleting",item_id)
         try:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
@@ -1847,8 +1822,6 @@ class ViewList(Resource):
     def get(self, coll):
         try:
             view_list = RecordView.objects(collection=coll)
-            #for v in view_list:
-                #print(v.id, v.name)
         except:
             raise
         
@@ -1884,7 +1857,6 @@ class View(Resource):
     @ns.doc("Get the contents of a record view by collection and id.")
     def get(self, coll, id):
         this_item = RecordView.objects.get(id=id)
-        #print(this_item.name)
 
         links = {
             '_self': URL('api_view', coll=coll, id=id).to_str(),

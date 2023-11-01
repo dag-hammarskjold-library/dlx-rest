@@ -228,7 +228,6 @@ export let searchcomponent = {
             }
         }
         let myUIBase = this.api_prefix.replace('/api/','');
-        //console.log(this.links)
         return {
             visible: true,
             results: [],
@@ -465,20 +464,15 @@ export let searchcomponent = {
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
                     myProfile => {
-                        //console.log("got my profile")
                         if (myProfile) {
                             component.user = myProfile.data.email;
                         }
                     
                         if (typeof component.user !== "undefined") {
-                            //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
                                     this.myBasket = myBasket
-                                    //console.log(myBasket)
-                                    //console.log("got my basket contents")
                                     for (let result of component.results) {
-                                        //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
 
@@ -643,7 +637,6 @@ export let searchcomponent = {
             }
         },
         submitAdvancedSearch(e) {
-            //console.log(e)
             // Build the URL
             var expressions = []
             var anycount = 0
@@ -657,7 +650,6 @@ export let searchcomponent = {
                 // Next figure out if we're searching in a field or not
                 if (this.advancedParams[`searchField${i}`] == "any" ) {
                     if (term) {
-                        console.log(term)
                         anycount++
                     }
                     // What kind of search are we doing?
@@ -734,7 +726,6 @@ export let searchcomponent = {
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
-                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
                 }
@@ -754,7 +745,6 @@ export let searchcomponent = {
             // ...
 
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
-            //console.log(url)
             window.location = url
         },
         reportError(message) {

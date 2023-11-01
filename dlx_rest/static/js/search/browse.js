@@ -289,7 +289,6 @@ export let browsecomponent = {
                 spinner.remove()
             })
             .catch(error => {
-                console.log(error)
                 let spinner = document.getElementById(url === beforeBrowse ? 'before-spinner' : 'after-spinner');
                 spinner.remove()
             });

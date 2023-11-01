@@ -167,7 +167,6 @@ export let basketcomponent = {
                             } else if (rtype && rtype.getSubfield("b").value === "B23") {
                                 data["vcoll"] = "votes"
                             }
-                            console.log(data["vcoll"])
 
                             if (titleField) {
                                 data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
@@ -204,7 +203,6 @@ export let basketcomponent = {
                     }
                 ).catch(
                     error => {
-                        console.log(error)
                         // alert that debugging is needed
                         this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
                     }
