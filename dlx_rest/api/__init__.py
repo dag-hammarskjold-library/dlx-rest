@@ -216,8 +216,11 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
-        this_u = User.objects.get(id=current_user['id'])
-        this_basket = Basket.objects(owner=this_u)[0]
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            this_basket = Basket.objects(owner=this_u)[0]
+        except TypeError:
+            pass
         
         # search
         search = unquote(args.search) if args.search else None
