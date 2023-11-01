@@ -204,7 +204,7 @@ function createFileObjects() {
   else {
 
     let table = document.createElement("table");
-    table.classList.add("table", "table-sm", "table-hover");
+    table.classList.add("table", "table-sm");
     table.setAttribute("id","table_upload")
     preview.appendChild(table);
     
@@ -216,12 +216,16 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All " , " "];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
       th.textContent = th_txt[t];
 
+      if(th_txt[t]==="Language(s)" || th_txt[t]==="Keep All / Overwrite All "){
+          th.classList.add("align-center");
+      }  
+ 
       // Add the checkbox Overwrite All
       if (th_txt[t]==="Keep All / Overwrite All "){
         let ovrwriteAll = document.createElement("INPUT");
@@ -263,9 +267,9 @@ function createFileObjects() {
       fileEntry.setAttribute("id", file.id);
     
       fileEntry.innerHTML = `
-        <td class="file__filename">${file.filename}</td>
+        <td class="file__filename disabled-text">${file.filename}</td>
         <td class="file__docSymbol" contenteditable="true">${file.docSymbol}</td>
-        <td>
+        <td class="align-center">
            <div>
               <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
               <span class="badge rounded-pill ${file.fr.className} file__FR">FR</span>
@@ -276,7 +280,7 @@ function createFileObjects() {
               <span class="badge rounded-pill ${file.de.className} file__DE">DE</span>
          </div>
         </td>
-        <td>
+        <td class="align-center">
             <div class="row">
               <div class="col">
                 <div class="col form-check col-form-label-sm">
