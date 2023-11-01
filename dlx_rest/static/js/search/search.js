@@ -154,7 +154,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
-            <a v-if="collectionTitle='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'" @click="">Speech Review</a>
+            <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -336,6 +336,7 @@ export let searchcomponent = {
             this.vcoll = "089:'B23'"
             this.collectionTitle = "votes"
         }
+        console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
