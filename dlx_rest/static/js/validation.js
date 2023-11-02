@@ -1492,7 +1492,8 @@ export const validationData = {
             "validSubfields": ["a","b"],
             "defaultSubfields": ["a"],
             "isDate": {
-                "a": true
+                "a": true,
+                "b": true
             },
             "validRegex": {
                 "a": ["^\\d{4}-?\\d{2}-?\\d{2}$"],
