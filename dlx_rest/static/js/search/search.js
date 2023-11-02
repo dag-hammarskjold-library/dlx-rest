@@ -374,34 +374,21 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
-
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
-                } else {
-                    return response.text().then(
-                        text => {
-                            if (response.status === 500) {
-                                throw new Error("Invalid search")
-                            }
-                            text = text.replace(/"message":/, "");
-                            text = text.replace(/[\r\n{}:"]/g, "");
-
-                            throw new Error(text)
+                } else if (response.status === 422) {
+                    return response.json().then(
+                        json => {
+                            throw new Error(json["message"])
                         }
-                    ).catch(
-                        error => {throw error}
                     )
+                } else if (response.status == 422) {
+                    throw new Error("Internal server error");
                 }
             }
-        ).catch(
-            error => {throw error}
         ).then(
             jsonData => {
-                if (! jsonData) {
-                    throw new Error("Invalid search")
-                }
-
                 component.searchTime = (Date.now() - startTime) / 1000;
 
                 let linkKeys = Object.keys(jsonData["_links"]);
@@ -437,17 +424,6 @@ export let searchcomponent = {
                         // not implemented yet
                     }
                     component.results.push(myResult);
-
-                    /*
-                    // add the preview
-                    // too slow for large result lists
-                    Jmarc.apiUrl = component.api_prefix;
-                    Jmarc.get(component.collection, result["_id"])
-                        .then(jmarc => {
-                            console.log(jmarc.toStr());
-                            document.getElementById('link-' + result["_id"]).title = jmarc.toStr()
-                        })
-                    */
                 }
             }
         ).catch(
@@ -460,7 +436,6 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-
         ).then( 
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
@@ -664,7 +639,7 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         case "all":
                             // All of the words in any field
-                            expressions.push(termList.join(" "))
+                            expressions.push(termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
                             break
                         case "exact":
                             // Exact phrase in any field
@@ -696,6 +671,7 @@ export let searchcomponent = {
                             break
                         case "all":
                             // All of the words in any field
+                            termList = (termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
                             expressions.push(`${myField}:${termList.join(" ")}`)
                             break
                         case "exact":
