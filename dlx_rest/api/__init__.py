@@ -20,6 +20,7 @@ from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import InvalidQueryString
 from dlx.marc.query import Raw
 from dlx.file import File, Identifier
 from dlx.util import AsciiMap
@@ -217,7 +218,11 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+
+        try:
+            query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+        except InvalidQueryString as e:
+            abort(422, str(e))
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -369,7 +374,12 @@ class RecordsListCount(Resource):
 
         if args.search:
             search = unquote(args.search)
-            query = Query.from_string(search, record_type=collection[:-1])
+            
+            try:
+                query = Query.from_string(search, record_type=collection[:-1])
+            except InvalidQueryString as e:
+                abort(422, str(e))
+
         else:
             query = {}
         
