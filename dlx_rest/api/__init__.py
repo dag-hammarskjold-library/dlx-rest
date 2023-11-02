@@ -576,14 +576,15 @@ class Record(Resource):
         data['created_user'] = record.created_user
         data['updated'] = record.updated
         data['user'] = record.user
-        data['files'] = [
-            {
+        data['files'] = []
+        for f in files:
+            this_f = {
                 'mimetype': f.mimetype, 
                 'language': f.languages[0].lower(), 
                 'url': URL('api_file_record', record_id=f.id).to_str()
             } 
-            for f in files
-        ]
+            if this_f not in data['files']:
+                data['files'].append(this_f)
 
         meta = {
             'name': 'api_record',
