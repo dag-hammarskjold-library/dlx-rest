@@ -233,7 +233,6 @@ export let batcheditmodal = {
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
-                //console.log(validationFlags)
                 result["invalid"] = false
                 if (validationFlags.length > 0) {
                     // Check if we can save on invalid; see record.js L#443 for comparison
@@ -285,21 +284,16 @@ export let batcheditmodal = {
 
                 for (let field of selectedFields) {
                     for (let targetField of jmarc.fields) {
-                        if (targetField.toStr() == field.toStr()) {
+                        if (targetField.tag == field.tag && targetField.toStr() == field.toStr()) {
                             // delete the field
                             jmarc.deleteField(targetField)
-                            //console.log("deleted the field")
-                            console.log(field.tag, field.toStr())
-                            //result["fields"].push({"field": field.tag, "subfields": subfields, "action": "will be added"})
                             result["fields"].push({"field": field.tag, "subfields":field.subfields, "action": "will be deleted"})
                         }
                     }
-                    //jmarc.deleteField(field.tag)
                     
                 }
 
                 let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
-                //console.log(validationFlags)
                 result["invalid"] = false
                 if (validationFlags.length > 0) {
                     // Check if we can save on invalid; see record.js L#443 for comparison
