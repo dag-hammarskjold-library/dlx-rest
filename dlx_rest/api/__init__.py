@@ -220,6 +220,13 @@ class RecordsList(Resource):
             this_basket = Basket.objects(owner=this_u)[0]
         except TypeError:
             pass
+
+        # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
+        all_basket_objects = []
+        for basket in Basket.objects:
+            for item in basket.items:
+                if item not in all_basket_objects:
+                    all_basket_objects.append(item)
         
         # search
         search = unquote(args.search) if args.search else None
@@ -297,6 +304,12 @@ class RecordsList(Resource):
                 this_d = make_brief(r)
                 this_d["myBasket"] = False
                 
+                # Determine lock status first, then resolve whether the item is in the current user's basket
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    print(lock_status)
+                    this_d["locked"] = True
+
                 basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
                 if len(basket_contains) > 0:
                     this_d["myBasket"] = True

@@ -228,7 +228,9 @@ def brief_speech(record):
         'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
         'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
         'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')],
-        'locked': item_locked("bibs", record.id)["locked"],
+        # This item_locked function is running for each record returned in this API call
+        #'locked': item_locked("bibs", record.id)["locked"],
+        'locked': False,
         #'myBasket': False
     }
 

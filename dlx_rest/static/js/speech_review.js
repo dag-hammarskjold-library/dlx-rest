@@ -31,7 +31,7 @@ export let speechreviewcomponent = {
                 <span class="sr-only">Loading...</span>
             </div>
         </div>
-        <div v-if="submitted">{{speeches.length}} results</div>
+        <div v-if="submitted">{{speeches.length}} results returned in {{searchTime}} seconds</div>
         <div v-if="speeches.length > 0">
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
@@ -118,7 +118,8 @@ export let speechreviewcomponent = {
             searchTerm: "",
             myBasket: {},
             selectedRecords: [],
-            uibase: myUIBase
+            uibase: myUIBase,
+            searchTime: 0
         }
     },
     computed: {
@@ -157,7 +158,7 @@ export let speechreviewcomponent = {
         this.refreshBasket()
     },
     methods: {
-        refreshBasket() {
+        async refreshBasket() {
             basket.getBasket(this.api_prefix).then( (b) => {
                 this.myBasket = b
             })
@@ -172,6 +173,7 @@ export let speechreviewcomponent = {
             // Do the search and update this.speeches
             let search_url = `${this.api_prefix}marc/bibs/records?search=${this.qs}&format=brief_speech&start=1&limit=50000`
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
+            let startTime = Date.now()
             this.showSpinner = true
             fetch(search_url).then(response => {
                 response.json().then(jsonData => {
@@ -181,6 +183,8 @@ export let speechreviewcomponent = {
                 })
             }).then( () => {this.showSpinner = false}).then(() => {
                 window.history.replaceState({},ui_url)
+            }).then( () => {
+                this.searchTime = (Date.now() - startTime) / 1000
             })
         },
         toggleSelect(e) {
