@@ -6,6 +6,7 @@ import boto3
 class Config(object):
     DEBUG = False
     TESTING = False
+    use_atlas_search = False
 
     bucket = 'undl-files'
     
