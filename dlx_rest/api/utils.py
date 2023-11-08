@@ -216,6 +216,24 @@ def brief_bib(record):
         'agendas': agendas
     }
 
+def brief_speech(record):
+    # This is much more specific than the regular search results we're populating with brief_bib and brief_auth
+
+    return {
+        '_id': record.id,
+        'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
+        'symbol': '; '.join(record.get_values('791', 'a')),
+        'speaker': record.get_value('700', 'a'),
+        'speaker_country': record.get_value('700', 'g'),
+        'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')],
+        # This item_locked function is running for each record returned in this API call
+        #'locked': item_locked("bibs", record.id)["locked"],
+        'locked': False,
+        #'myBasket': False
+    }
+
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
@@ -276,7 +294,7 @@ def has_permission(user, action, record, collection):
                 bool_list.append("F")
     else:
         bool_list.append("F")
-    print("boolean list:",bool_list)
+    #print("boolean list:",bool_list)
     if "F" in bool_list:
         return False
     else:

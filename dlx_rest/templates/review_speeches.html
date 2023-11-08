@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% block content %}    
+
+    <div id="speech_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
+        <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
+        <div class="row">
+            <speechreviewcomponent api_prefix="{{api_prefix}}"></speechreviewcomponent>
+        </div>
+    </div>
+
+<script type="module" src="{{url_for('static', filename='js/speech_review_vm.js')}}" ></script>
+
+{% endblock %}
