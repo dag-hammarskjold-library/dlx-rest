@@ -35,6 +35,7 @@ export let searchcomponent = {
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                    <li class="nav-item" @click="toggleSearchType">Enable Atlas Search</li>
                 </ul>
             </div>
         </nav>
@@ -281,6 +282,7 @@ export let searchcomponent = {
             myBasket: {},
             user: null,
             collectionTitle: null,
+            searchType: "community"
         }
     },
     created: async function() {
@@ -522,6 +524,9 @@ export let searchcomponent = {
                 }
                 
             }
+
+            // Set the search type to whatever we've set it to with our toggle 
+            myParams["searchType"] = this.searchType
 
             const qs = Object.keys(myParams)
                 .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
@@ -812,6 +817,10 @@ export let searchcomponent = {
             let toggleButton = document.getElementById("preview-toggle-" + recordId);
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
+        },
+        toggleSearchType() {
+            // toggle the search type
+            console.log("Toggling search type")
         }
     },
     components: {

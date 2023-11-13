@@ -206,6 +206,14 @@ class RecordsList(Resource):
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
+     # This is so we can benchmark the two search formats
+    args.add_argument(
+        'searchType',
+        type=str,
+        choices=['community','atlas'],
+        help='Toggle the search type between Atas and Community',
+        default='community'
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -214,6 +222,11 @@ class RecordsList(Resource):
         route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+
+        if args.get('searchType') == 'community':
+            print("Using Community search type")
+        else:
+            print("Using Atlas search type")
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
         try:
