@@ -154,6 +154,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -227,7 +228,6 @@ export let searchcomponent = {
             }
         }
         let myUIBase = this.api_prefix.replace('/api/','');
-        //console.log(this.links)
         return {
             visible: true,
             results: [],
@@ -279,7 +279,8 @@ export let searchcomponent = {
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
             myBasket: {},
-            user: null
+            user: null,
+            collectionTitle: null,
         }
     },
     created: async function() {
@@ -287,7 +288,7 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
-        let collectionTitle = component.collection;
+        this.collectionTitle = component.collection;
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
@@ -328,15 +329,14 @@ export let searchcomponent = {
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
             this.vcoll = "089:'B22'"
-            collectionTitle = "speeches"
+            this.collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
             this.vcoll = "089:'B23'"
-            collectionTitle = "votes"
+            this.collectionTitle = "votes"
         }
-
-        //document.title = document.title + `${title(collectionTitle)}`
+        console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
@@ -440,20 +440,15 @@ export let searchcomponent = {
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
                     myProfile => {
-                        //console.log("got my profile")
                         if (myProfile) {
                             component.user = myProfile.data.email;
                         }
                     
                         if (typeof component.user !== "undefined") {
-                            //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
                                     this.myBasket = myBasket
-                                    //console.log(myBasket)
-                                    //console.log("got my basket contents")
                                     for (let result of component.results) {
-                                        //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
 
@@ -554,6 +549,11 @@ export let searchcomponent = {
             }
             return false;
         },
+        refreshBasket() {
+            basket.getBasket(this.api_prefix).then( (b) => {
+                this.myBasket = b
+            })
+        },
         async handleIconClick(e) {
             let collection = e.target.id.split("-")[1]
             let record_id = e.target.id.split("-")[2]
@@ -580,6 +580,7 @@ export let searchcomponent = {
             else {
                 return false
             }
+            this.refreshBasket()
             return true
         },
         toggleAdvancedSearch() {
@@ -612,7 +613,6 @@ export let searchcomponent = {
             }
         },
         submitAdvancedSearch(e) {
-            //console.log(e)
             // Build the URL
             var expressions = []
             var anycount = 0
@@ -626,7 +626,6 @@ export let searchcomponent = {
                 // Next figure out if we're searching in a field or not
                 if (this.advancedParams[`searchField${i}`] == "any" ) {
                     if (term) {
-                        console.log(term)
                         anycount++
                     }
                     // What kind of search are we doing?
@@ -704,7 +703,6 @@ export let searchcomponent = {
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
-                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
                 }
@@ -724,7 +722,6 @@ export let searchcomponent = {
             // ...
 
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
-            //console.log(url)
             window.location = url
         },
         reportError(message) {
