@@ -35,7 +35,12 @@ export let searchcomponent = {
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
-                    <li class="nav-item" @click="toggleSearchType">Enable Atlas Search</li>
+                    <li class="nav-item">
+                        <div class="custom-control custom-switch nav-link ml-5">
+                            <input type="checkbox" class="custom-control-input" id="customSwitch1">
+                            <label class="custom-control-label" for="customSwitch1">Use Atlas Search</label>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </nav>
