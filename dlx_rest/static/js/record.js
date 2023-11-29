@@ -978,7 +978,7 @@ export let multiplemarcrecordcomponent = {
             this.displayMarcRecord(jmarc, false);
             this.callChangeStyling("Name your new workform, then click the Save button", "d-flex w-100 alert-warning")
             jmarc.saveButton.onclick = () => {
-                jmarc.saveAsWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
+                jmarc.saveAsWorkform(jmarc.workformName.trim(), jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     this.displayMarcRecord(jmarc, false);
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
