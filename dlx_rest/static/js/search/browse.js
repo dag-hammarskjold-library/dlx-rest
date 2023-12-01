@@ -182,8 +182,8 @@ export let browsecomponent = {
         let matches = window.location.search.match(/type=(\w+)/)
         let recordType = this.recordType;
 
-        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=less&limit=3`
-        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${this.q}&compare=greater&limit=50`
+        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
+        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
 
         document.title = document.title + ` Browse (${this.recordType})`
 
@@ -200,15 +200,15 @@ export let browsecomponent = {
                 let field = searchStr.split(":")[0]; // the logical field that is being browsed on
 
                 if (url === beforeBrowse) {
-                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[0].value}`;
+                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${encodeURIComponent(jsondata.data[0].value)}`;
                 } else {
-                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${jsondata.data[jsondata.data.length-1].value}`;
+                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
                 }
 
                 for (let result of jsondata.data) {
                     // tanslate api search to app search
                     let searchStr = result.search.split('search=')[1];
-                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(searchStr)}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
                     // get the count
@@ -300,7 +300,7 @@ export let browsecomponent = {
             let el = document.getElementById(id)
             let val = el.value
 
-            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${val}&type=${this.recordType}`
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${encodeURIComponent(val)}&type=${this.recordType}`
             if (val) { 
                 history.pushState({}, window.location.href);
                 setTimeout(function(){
@@ -310,7 +310,7 @@ export let browsecomponent = {
         },
         resubmitBrowse(index) {
             let val = document.getElementById("searchAgain").value
-            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${index}?q=${val}&type=${this.recordType}`
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${index}?q=${encodeURIComponent(val)}&type=${this.recordType}`
             history.pushState({}, window.location.href);
             setTimeout(function(){
                 window.location.href=targetUrl;
