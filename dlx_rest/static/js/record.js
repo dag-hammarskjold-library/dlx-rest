@@ -2049,7 +2049,7 @@ export let multiplemarcrecordcomponent = {
                 {"name": "historyButton", "element": "i", "class": "fas fa-history", "title": "History",  "click": "displayHistoryModal","param":jmarc},
                 {"name": "recordViewButton", "element": "i", "class": "fas fa-filter", "title": "Record View",  "click": "displayHistoryModalToGetRecordView","params":{"jmarc": jmarc} },
                 {"name": "saveAsButton", "element": "i", "class": "fas fa-share-square", "title": "Save As Workform" ,"click": "saveToWorkform" },
-                //{"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Actions", "click": "batchEdit"},
+                {"name": "batchButton", "element": "i", "class": "fas fa-tasks", "title": "Batch Actions", "click": "batchEdit"},
                 {"name": "removeButton", "element": "i", "class": "fas fa-window-close float-right", "title": `Close Record`, "click": "userClose"},
             ];
             if (jmarc.workformName) {
