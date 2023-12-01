@@ -1122,7 +1122,7 @@ export class Jmarc {
     	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`)
     	    .join(" AND ");
 
-    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
+    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);
 		let res = await fetch(url);
 		let json = await res.json();
 		let count = json['data'];
@@ -1136,7 +1136,7 @@ export class Jmarc {
 		} else {
 			// other auths that have the same subfield value(s) in the heading, but
 			// could have additional subfields that make it unique
-			let url = Jmarc.apiUrl + "/marc/auths/records?search=" + searchStr + '&limit=' + count;
+			let url = Jmarc.apiUrl + "/marc/auths/records?search=" + encodeURIComponent(searchStr) + '&limit=' + count;
 
 			let matches = await fetch(url)
     	    	.then(response => {
