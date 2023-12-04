@@ -27,6 +27,10 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,
 )
 
+@app.context_processor
+def inject_sentry_url():
+    return dict(sentry_js_url = Config.sentry_js_url)
+
 # dlx connect
 DB.connect(Config.connect_string, database=Config.dbname)
 

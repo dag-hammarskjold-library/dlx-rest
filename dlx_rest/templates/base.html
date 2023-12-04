@@ -27,6 +27,12 @@
     <!-- Font awesome link -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
 
+    <!-- Sentry for JS -->
+    <script
+        src="{{sentry_js_url}}"
+        crossorigin="anonymous"
+    ></script>
+
     <!-- Vue local source -->
     <script src="{{url_for('static', filename='js/vue/vue2.js')}}"></script>
     <script src="{{url_for('static', filename='js/vue/vuex.js')}}"></script>
@@ -36,12 +42,6 @@
 
     <!-- Bootstrap local source -->
     <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
-
-    <!-- Sentry for JS -->
-    <script
-        src="{{}}""
-        crossorigin="anonymous"
-    ></script>
 
     <style>
         .bd-placeholder-img {
