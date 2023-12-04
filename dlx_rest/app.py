@@ -15,21 +15,26 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
-# Sentry setup
-sentry_sdk.init(
-    dsn=Config.sentry_dsn,
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
-)
+try: 
+    sentry_dsn = Config.sentry_dsn
+    # Sentry setup
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        # We recommend adjusting this value in production.
+        profiles_sample_rate=1.0,
+    )
 
-@app.context_processor
-def inject_sentry_url():
-    return dict(sentry_js_url = Config.sentry_js_url)
+    @app.context_processor
+    def inject_sentry_url():
+        return dict(sentry_js_url = Config.sentry_js_url)
+except AttributeError:
+    pass
+
 
 # dlx connect
 DB.connect(Config.connect_string, database=Config.dbname)
