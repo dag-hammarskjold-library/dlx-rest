@@ -182,8 +182,8 @@ export let browsecomponent = {
         let matches = window.location.search.match(/type=(\w+)/)
         let recordType = this.recordType;
 
-        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
-        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${this.recordType}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
+        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${encodeURIComponent(this.recordType)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
+        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${encodeURIComponent(this.recordType)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
 
         document.title = document.title + ` Browse (${this.recordType})`
 
@@ -200,9 +200,9 @@ export let browsecomponent = {
                 let field = searchStr.split(":")[0]; // the logical field that is being browsed on
 
                 if (url === beforeBrowse) {
-                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${encodeURIComponent(jsondata.data[0].value)}`;
+                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${encodeURIComponent(this.recordType)}&q=${encodeURIComponent(jsondata.data[0].value)}`;
                 } else {
-                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${this.recordType}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
+                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${encodeURIComponent(this.recordType)}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
                 }
 
                 for (let result of jsondata.data) {
