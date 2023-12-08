@@ -638,7 +638,7 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         case "all":
                             // All of the words in any field
-                            expressions.push(termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
+                            expressions.push(termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" ")) // enclose these in double quotes so they aren't intrepreted as operators
                             break
                         case "exact":
                             // Exact phrase in any field
@@ -646,7 +646,7 @@ export let searchcomponent = {
                             break
                         case "partial":
                             // Partial phrase in any field
-                            expressions.push(`"${termList.join(" ")}"`)
+                            expressions.push(`"${termList.join(" ")}"`) // enclose in double quotes
                             break
                         case "regex":
                             // This can't be done like this on MDB, so we should disable the option
@@ -662,24 +662,24 @@ export let searchcomponent = {
                     // To do: add a flag for case insensitive search
                     switch(this.advancedParams[`searchType${i}`]) {
                         case "any":
-                            // Any of the words in any field
+                            // Any of the words in the given field
                             for (let term of termList) {
                                 myExpr.push(`${myField}:${term}`)
                             }
                             expressions.push(myExpr.join(" OR "))
                             break
                         case "all":
-                            // All of the words in any field
-                            termList = (termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" "))
+                            // All of the words in the given field
+                            termList = termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')) // enclose these in double quotes so they aren't intrepreted as operators
                             expressions.push(`${myField}:${termList.join(" ")}`)
                             break
                         case "exact":
-                            // Exact phrase in any field
+                            // Exact phrase in the given field
                             expressions.push(`${myField}:'${termList.join(" ")}'`)
                             break
                         case "partial":
-                            // Partial phrase in any field
-                            expressions.push(`${myField}:"${termList.join(" ")}"`)
+                            // Partial phrase in the given field
+                            expressions.push(`${myField}:"${termList.join(" ")}"`) // enclose in double quotes
                             break
                         case "regex":
                             // Regular expression; this probably needs additional validation to make sure it IS a regex
