@@ -1,7 +1,7 @@
 export let advancedsearchform = {
     props: ["collection", "api_prefix"],
     template: `
-    <div id="advanced-search" class="row pt-2" style="display:none">
+    <div id="advanced-search" class="row pt-2">
         <div class="input-group mb-3">
             <div class="input-group-prepend">
                 <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
@@ -70,4 +70,34 @@ export let advancedsearchform = {
         </div>
         <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
     </div>`,
+    data: function() {
+        return {
+            advancedParams: {
+                'searchType1': 'all',
+                'searchTerm1': null,
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchTerm2': null,
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchTerm3': null,
+                'searchField3': 'any'
+            },
+            searchFields: [],
+            searchTypes: [
+                {'name': 'All of the words:', 'value': 'all'},
+                {'name': 'Any of the words:', 'value': 'any'},
+                {'name': 'Exact phrase:', 'value': 'exact'},
+                {'name': 'Partial phrase:', 'value': 'partial'},
+                {'name': 'Regular expression:', 'value': 'regex'},
+            ],
+        }
+    },
+    methods: {
+        submitAdvancedSearch(e) {
+            return true
+        }
+    }
 }
