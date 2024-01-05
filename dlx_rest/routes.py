@@ -437,6 +437,76 @@ def search_records(coll):
 
     session.permanent = True
 
+    vcoll = coll
+    #if coll == "speeches":
+    #    coll = "bibs"
+
+    #print(coll)
+
+    sort =  request.args.get('sort')
+    direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+
+    if sort and direction:
+        # Regardless of what's in the session already
+        session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
+        this_v = session[f"sort_{vcoll}"]
+    else:
+        # See if something is in the session already
+        try:
+            # We have session values, so use those
+            this_v = session[f"sort_{vcoll}"]
+            sort = session[f"sort_{vcoll}"]["field"]
+            direction = session[f"sort_{vcoll}"]["direction"]
+        except KeyError:
+            # There is nothing in the session, so fallback to defaults
+            sort = "updated"
+            direction = "desc"
+    
+    # TODO dlx "query analyzer" to characterize the search string and sort accordingly
+    terms = re.split(' *(AND|OR|NOT) +', q)
+        
+    for term in (filter(None, terms)):
+        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT'):
+            if re.match('[A-z]+/', term) and len(terms) == 1:
+                # TODO "looks like symbol" util function
+                q = f'symbol:{term.upper()}*'
+
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+
+    # todo: get all from dlx config
+    # Sets the list of logical field indexes that should appear in advanced search
+    if vcoll == 'speeches':
+        index_list = json.dumps(['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+    elif vcoll == 'votes':
+        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
+    else:
+        logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
+        fields = list(logical_fields.keys())
+        
+        for f in filter(lambda x: x in fields, ('notes', 'speaker', 'country_org')):
+            fields.remove(f)
+
+        index_list = json.dumps(fields)
+
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
+
+
+'''
+def _search_records(coll):
+    api_prefix = url_for('doc', _external=True)
+    limit = request.args.get('limit', 25)
+    start = request.args.get('start', 1)
+    q = request.args.get('q', '')
+
+    # Compare the old query with the new query; if the new query is different, reset pagination
+    # if old_q contains anything at all, it returns a list, so let's make sure we're checking
+    # for the first string in the list entry instead of assuming we got a string.
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
+    if q != old_q[0]:
+        start = 1
+
+    session.permanent = True
+
     # Move vcoll variable here so we can use it in the session 
     # to review
     vcoll = coll
@@ -491,6 +561,7 @@ def search_records(coll):
         index_list = json.dumps(fields)
 
     return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
+'''
 
 @app.route('/records/<coll>/browse')
 @login_required

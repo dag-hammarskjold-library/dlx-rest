@@ -5,6 +5,7 @@ import user from "../api/user.js"
 import { previewmodal } from "../modals/preview.js"
 import { simplesearchform } from "./simplesearch.js"
 import { advancedsearchform } from "./advancedsearch.js"
+import { searchresults } from "./results.js"
 
 export let searchcomponent = {
     props: {
@@ -27,8 +28,12 @@ export let searchcomponent = {
                 </ul>
             </div>
         </nav>
-        <div v-if="showAdvanced"><advancedsearchform :collection="collection" :api_prefix="api_prefix" ref="advanced-search-form"></advancedsearchform></div>
-        <div v-else><simplesearchform :collection="collection" :api_prefix="api_prefix" ref="simple-search-form" v-on:cancel="cancelSearch"></simplesearchform></div>
+        <div v-if="showAdvanced"><advancedsearchform :collection="collection" :api_prefix="api_prefix" ref="advanced-search-form" v-on:submit="submitSearch"></advancedsearchform></div>
+        <div v-else><simplesearchform :collection="collection" :api_prefix="api_prefix" ref="simple-search-form" v-on:cancel="cancelSearch" v-on:submit="submitSearch"></simplesearchform></div>
+        <!-- <pagination></pagination> -->
+        <div v-if="results.length > 0"><searchresults :collection="collection" :api_prefix="api_prefix" :results="results"></searchresults></div>
+        <!-- <pagination></pagination> -->
+
     </div>`,
     data: function() {
         let myUIBase = this.api_prefix.replace('/api/','')
@@ -43,11 +48,21 @@ export let searchcomponent = {
             uibase: myUIBase,
             searchTime: 0,
             showAdvanced: false,
+            actualCollection: this.collection
         }
     },
     created: function () {
         const urlParams = new URLSearchParams(window.location.search)
         const searchQuery = urlParams.get("q")
+        if (this.collection == "auths") {
+            this.hidden_qs = []
+        } else if (this.collection == "speeches") {
+            this.hidden_qs = ["089:'B22'"]
+            this.actualCollection = "bibs"
+        } else if (this.collection == "votes") {
+            this.hidden_qs = ["089:'B23'"]
+            this.actualCollection = "bibs"
+        }
         if (searchQuery) {
             this.searchTerm = searchQuery
             this.updateSearchQuery()
@@ -70,7 +85,7 @@ export let searchcomponent = {
         submitSearch() {
             // Do the search and update this.speeches
             // Can we channel both advanced search and simple search into this?
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${encodeURIComponent(this.qs)}&format=brief`
+            let search_url = `${this.api_prefix}marc/${this.actualCollection}/records?search=${encodeURIComponent(this.qs)}&format=brief`
             console.log(search_url)
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
             let startTime = Date.now()
@@ -97,6 +112,7 @@ export let searchcomponent = {
     },
     components: {
         "simplesearchform": simplesearchform,
-        "advancedsearchform": advancedsearchform
+        "advancedsearchform": advancedsearchform,
+        "searchresults": searchresults
     }
 }
