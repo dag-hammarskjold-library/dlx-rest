@@ -1,7 +1,7 @@
 export let advancedsearchform = {
     props: ["collection", "api_prefix"],
     template: `
-    <div id="advanced-search" class="row pt-2">
+    <div id="advanced-search" class="row pt-2" @keyup="updateParentSearchQuery">
         <div class="input-group mb-3">
             <div class="input-group-prepend">
                 <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
@@ -96,6 +96,18 @@ export let advancedsearchform = {
         }
     },
     methods: {
+        updateParentSearchQuery(e) {
+            console.log(e.target)
+            this.$parent.searchTerm = this.advancedParams.searchTerm1
+            this.$parent.updateSearchQuery()
+        },
+        parseAdvancedSearchTerms() {
+            let parsedSearchTerms = ""
+            for (let i of ["1", "2", "3"]) {
+
+            }
+            return parsedSearchTerms
+        },
         submitAdvancedSearch(e) {
             return true
         }
