@@ -31,3 +31,16 @@ div.hidden {
     -ms-user-select: none; /* IE 10 and IE 11 */
     user-select: none; /* Standard syntax */
 }
+
+.modal {
+    display: block !important;
+}
+
+.modal-dialog {
+    overflow-y: initial !important;
+}
+
+.modal-body {
+    height: 80vh;
+    overflow-y: auto;
+}
