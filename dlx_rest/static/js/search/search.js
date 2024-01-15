@@ -108,7 +108,7 @@ export let searchcomponent = {
             actualCollection: this.collection,
             start: 0,
             end: 0,
-            resultcount: 0,
+            resultcount: 0, // the total number of records, not just those on the screen now
             next: null,
             prev: null,
             maxTime: 2000,
@@ -163,11 +163,6 @@ export let searchcomponent = {
                 this.searchTime = (Date.now() - startTime) / 1000
                 this.showSpinner = false
             })
-
-            // Removed
-            // then( () => {this.showSpinner = false}).then(() => {
-            //    window.history.replaceState({},ui_url)
-            //}).
 
             // Now do the total result count
             this.showCountSpinner = true

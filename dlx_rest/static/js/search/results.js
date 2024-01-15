@@ -1,5 +1,7 @@
 import { previewmodal } from "../modals/preview.js"
 import { countcomponent } from "./count.js"
+import user from "../api/user.js"
+import basket from "../api/basket.js"
 
 export let searchresults = {
     props: {
@@ -49,7 +51,7 @@ export let searchresults = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x fa-folder-plus" data-toggle="tooltip" title="Add to your basket" @click="toggleBasket"></i></a>
                     </div>
                 </div>
             </div>
@@ -60,7 +62,9 @@ export let searchresults = {
     data: function () {
         let myUIBase = this.api_prefix.replace('/api/','')
         return {
-            uibase: myUIBase
+            uibase: myUIBase,
+            user: null,
+            myBasket: null
         }
     },
     computed: {
@@ -94,12 +98,54 @@ export let searchresults = {
             return parsedResultSet
         }
     },
+    mounted: function () {
+        // Iterate through loaded results and determine whether they're in myBasket or not
+        user.getProfile(this.api_prefix, "my_profile").then( myProfile => {
+            // necessary?
+            if (myProfile) {
+                this.user = myProfile.data.email
+            } 
+            basket.getBasket(this.api_prefix).then( myBasket => {
+                this.myBasket = myBasket
+                for (let result of this.results) {
+                    let myId = `icon-${this.collection}-${result._id}`
+                    let iconEl = document.getElementById(myId)
+
+                    let myCheckboxId = `input-${this.collection}-${result._id}`
+                    let inputEl = document.getElementById(myCheckboxId)
+
+                    iconEl.classList.remove('fa-folder-plus')
+                
+                    if (this.basketContains(myBasket, this.collection, result._id)) {
+                        iconEl.classList.add("fa-folder-minus")
+                        iconEl.classList.add("text-muted")
+                        iconEl.title = "Remove from basket"
+                    } else {
+                        iconEl.classList.add('fa-folder-plus')
+                        iconEl.title = "Add to basket"
+                        inputEl.disabled = false
+                    }
+                }
+            })
+        })
+    },
     methods: {
         togglePreview: async function (collection, recordId) {
             this.$refs.previewmodal.collection = collection == "auths" ? collection : "bibs"
             this.$refs.previewmodal.recordId = recordId
             this.$refs.previewmodal.show()
         },
+        basketContains(basketContents, collection, record_id) {
+            for (let item of basketContents) {
+                if (item.collection == collection && item.record_id == record_id) {
+                    return true
+                }
+            }
+            return false
+        },
+        toggleBasket(collection, record_id) {
+            return true
+        }
     },
     components: {
         "countcomponent": countcomponent,
