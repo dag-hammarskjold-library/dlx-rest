@@ -449,7 +449,7 @@ def search_records(coll):
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
 
     # Should set a default ...
-    search_type = request.args.get('searchType', 'community')
+    engine = request.args.get('engine', 'community')
 
     if sort and direction:
         # Regardless of what's in the session already
@@ -476,7 +476,7 @@ def search_records(coll):
                 # TODO "looks like symbol" util function
                 q = f'symbol:{term.upper()}*'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, searchType=search_type, _external=True, format='brief')
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, engine=engine, _external=True, format='brief')
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search

@@ -37,7 +37,7 @@ export let searchcomponent = {
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                     <li class="nav-item">
                         <div class="custom-control custom-switch nav-link ml-5">
-                            <input type="checkbox" class="custom-control-input" id="customSwitch1">
+                            <input type="checkbox" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
                             <label class="custom-control-label" for="customSwitch1">Use Atlas Search</label>
                         </div>
                     </li>
@@ -287,7 +287,7 @@ export let searchcomponent = {
             myBasket: {},
             user: null,
             collectionTitle: null,
-            searchType: "community"
+            engine: "community"
         }
     },
     created: async function() {
@@ -531,7 +531,7 @@ export let searchcomponent = {
             }
 
             // Set the search type to whatever we've set it to with our toggle 
-            myParams["searchType"] = this.searchType
+            myParams["engine"] = this.engine
 
             const qs = Object.keys(myParams)
                 .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
@@ -823,9 +823,10 @@ export let searchcomponent = {
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
         },
-        toggleSearchType() {
+        toggleEngine(e) {
             // toggle the search type
-            console.log("Toggling search type")
+            console.log("Toggling search engine")
+            this.engine = e.target.checked ? "atlas" : "community"
         }
     },
     components: {

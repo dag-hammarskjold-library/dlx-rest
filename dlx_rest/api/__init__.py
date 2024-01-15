@@ -208,7 +208,7 @@ class RecordsList(Resource):
     )
      # This is so we can benchmark the two search formats
     args.add_argument(
-        'searchType',
+        'engine',
         type=str,
         choices=['community','atlas'],
         help='Toggle the search type between Atas and Community',
@@ -223,7 +223,7 @@ class RecordsList(Resource):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
 
-        if args.get('searchType') == 'community':
+        if args.get('engine') == 'community':
             print("Using Community search type")
         else:
             print("Using Atlas search type")
