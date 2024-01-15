@@ -29,7 +29,7 @@ class Config(object):
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
-        dbname = 'undlFiles'
+        dbname = 'dev_undlFiles'
         ssl = True
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
