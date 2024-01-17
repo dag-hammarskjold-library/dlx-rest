@@ -120,13 +120,11 @@ export let authreviewcomponent = {
                 myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
             }
         }
-        console.log(myProps["search"])
 
         // Get the date string we want to display
         let updated = myProps["search"].split(/updated(>|<|=)/)[2].split(" ")[0]
         
         let myUIBase = this.api_prefix.replace('/api/','');
-        //console.log(this.links)
         return {
             visible: true,
             results: [],
@@ -273,19 +271,14 @@ export let authreviewcomponent = {
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
                     myProfile => {
-                        //console.log("got my profile")
                         if (myProfile) {
                             component.user = myProfile.data.email;
                         }
                     
                         if (typeof component.user !== "undefined") {
-                            //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
-                                    //console.log(myBasket)
-                                    //console.log("got my basket contents")
                                     for (let result of component.results) {
-                                        //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
                                     
@@ -317,7 +310,6 @@ export let authreviewcomponent = {
 
                                         iconEl.addEventListener("click", function() {
                                             if (iconEl.classList.contains("fa-folder-plus")) {
-                                                //console.log("We're trying to create something.")
                                                 basket.getBasket(component.api_prefix)
                                                 iconEl.classList.add("fa-spinner");
                                                 // we can run an add
@@ -331,13 +323,11 @@ export let authreviewcomponent = {
                                                     }
                                                 )
                                             } else if (iconEl.classList.contains("fa-folder-minus")) {
-                                                //console.log("We're trying to delete something.")
                                                 basket.getBasket(component.api_prefix)
                                                 iconEl.classList.add("fa-spinner");
                                                 // we can run a deletion
                                                 basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
                                                     function() {
-                                                        //console.log("But did we do it?")
                                                         iconEl.classList.remove("fa-spinner");
                                                         iconEl.classList.remove("fa-folder-minus");
                                                         iconEl.classList.add("fa-folder-plus");
@@ -469,7 +459,6 @@ export let authreviewcomponent = {
                 // Next figure out if we're searching in a field or not
                 if (this.advancedParams[`searchField${i}`] == "any" ) {
                     if (term) {
-                        console.log(term)
                         anycount++
                     }
                     // What kind of search are we doing?
@@ -546,7 +535,6 @@ export let authreviewcomponent = {
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
-                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
                 }
@@ -599,7 +587,6 @@ export let authreviewcomponent = {
             }
                 
             myParams["search"] = newSearchParams.join(" ")
-            console.log(myParams)
         
             const qs = Object.keys(myParams)
                 .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)

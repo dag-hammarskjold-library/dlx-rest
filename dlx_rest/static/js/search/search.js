@@ -154,6 +154,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -169,13 +170,21 @@ export let searchcomponent = {
                     </div>
                 </div>
                 <div class="col-sm-9 px-4">
-                    <div class="row" style="overflow-x:hidden">
+                    <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
                         <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
+                    <div v-else class="row" style="flex-wrap:inherit">
+                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
+                    </div>
                     <div class="row" style="white-space:nowrap">
                         {{result.second_line}}
+                    </div>
+                    <div class="row" v-for="agenda in result.agendas">
+                        <span class="ml-3">{{agenda}}</span>
                     </div>
                 </div>
                 <div class="col-sm-1">
@@ -219,7 +228,6 @@ export let searchcomponent = {
             }
         }
         let myUIBase = this.api_prefix.replace('/api/','');
-        //console.log(this.links)
         return {
             visible: true,
             results: [],
@@ -271,7 +279,8 @@ export let searchcomponent = {
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
             myBasket: {},
-            user: null
+            user: null,
+            collectionTitle: null,
         }
     },
     created: async function() {
@@ -279,7 +288,7 @@ export let searchcomponent = {
     },
     mounted: async function() {
         let component = this;
-        let collectionTitle = component.collection;
+        this.collectionTitle = component.collection;
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
@@ -320,15 +329,14 @@ export let searchcomponent = {
         // todo: remove the type cretieria from the search input; update criteria
         if (this.params.search.includes("089:'B22'")) {
             this.vcoll = "089:'B22'"
-            collectionTitle = "speeches"
+            this.collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
         if (this.params.search.includes("089:'B23'")) {
             this.vcoll = "089:'B23'"
-            collectionTitle = "votes"
+            this.collectionTitle = "votes"
         }
-
-        document.title = document.title + ` ${collectionTitle}`
+        console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
@@ -366,34 +374,21 @@ export let searchcomponent = {
         
         fetch(this.search_url, this.abortController).then(
             response => {
-
                 if (response.ok) {
                     document.getElementById("results-spinner").remove();
                     return response.json();
-                } else {
-                    return response.text().then(
-                        text => {
-                            if (response.status === 500) {
-                                throw new Error("Invalid search")
-                            }
-                            text = text.replace(/"message":/, "");
-                            text = text.replace(/[\r\n{}:"]/g, "");
-
-                            throw new Error(text)
+                } else if (response.status === 422) {
+                    return response.json().then(
+                        json => {
+                            throw new Error(json["message"])
                         }
-                    ).catch(
-                        error => {throw error}
                     )
+                } else if (response.status == 422) {
+                    throw new Error("Internal server error");
                 }
             }
-        ).catch(
-            error => {throw error}
         ).then(
             jsonData => {
-                if (! jsonData) {
-                    throw new Error("Invalid search")
-                }
-
                 component.searchTime = (Date.now() - startTime) / 1000;
 
                 let linkKeys = Object.keys(jsonData["_links"]);
@@ -418,6 +413,9 @@ export let searchcomponent = {
                         let rtype = result["types"].split("::")
 
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        if (this.vcoll == "089:'B22'") {
+                            myResult["agendas"] = result["agendas"]
+                        }
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
                         myResult["second_line"] = result["alt"]
@@ -426,17 +424,6 @@ export let searchcomponent = {
                         // not implemented yet
                     }
                     component.results.push(myResult);
-
-                    /*
-                    // add the preview
-                    // too slow for large result lists
-                    Jmarc.apiUrl = component.api_prefix;
-                    Jmarc.get(component.collection, result["_id"])
-                        .then(jmarc => {
-                            console.log(jmarc.toStr());
-                            document.getElementById('link-' + result["_id"]).title = jmarc.toStr()
-                        })
-                    */
                 }
             }
         ).catch(
@@ -449,25 +436,19 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-
         ).then( 
             () => {
                 user.getProfile(component.api_prefix, 'my_profile').then(
                     myProfile => {
-                        //console.log("got my profile")
                         if (myProfile) {
                             component.user = myProfile.data.email;
                         }
                     
                         if (typeof component.user !== "undefined") {
-                            //console.log("this user is not undefined")
                             basket.getBasket(component.api_prefix).then(
                                 myBasket => {
                                     this.myBasket = myBasket
-                                    //console.log(myBasket)
-                                    //console.log("got my basket contents")
                                     for (let result of component.results) {
-                                        //console.log("processing result")
                                         let myId = `icon-${component.collection}-${result._id}`;
                                         let iconEl = document.getElementById(myId);
 
@@ -568,6 +549,11 @@ export let searchcomponent = {
             }
             return false;
         },
+        refreshBasket() {
+            basket.getBasket(this.api_prefix).then( (b) => {
+                this.myBasket = b
+            })
+        },
         async handleIconClick(e) {
             let collection = e.target.id.split("-")[1]
             let record_id = e.target.id.split("-")[2]
@@ -581,7 +567,7 @@ export let searchcomponent = {
                     e.target.title = "Remove from basket";
                 })
             } else if (e.target.classList.contains("fa-folder-minus")) {
-                await basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', this.myBasket, collection, record_id).then( () => {
+                await basket.deleteItem(this.myBasket, collection, record_id).then( () => {
                     e.target.classList.remove("fa-spinner");
                     e.target.classList.remove("fa-folder-minus");
                     e.target.classList.add("fa-folder-plus");
@@ -594,6 +580,7 @@ export let searchcomponent = {
             else {
                 return false
             }
+            this.refreshBasket()
             return true
         },
         toggleAdvancedSearch() {
@@ -626,7 +613,6 @@ export let searchcomponent = {
             }
         },
         submitAdvancedSearch(e) {
-            //console.log(e)
             // Build the URL
             var expressions = []
             var anycount = 0
@@ -640,7 +626,6 @@ export let searchcomponent = {
                 // Next figure out if we're searching in a field or not
                 if (this.advancedParams[`searchField${i}`] == "any" ) {
                     if (term) {
-                        console.log(term)
                         anycount++
                     }
                     // What kind of search are we doing?
@@ -653,7 +638,7 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         case "all":
                             // All of the words in any field
-                            expressions.push(termList.join(" "))
+                            expressions.push(termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')).join(" ")) // enclose these in double quotes so they aren't intrepreted as operators
                             break
                         case "exact":
                             // Exact phrase in any field
@@ -661,7 +646,7 @@ export let searchcomponent = {
                             break
                         case "partial":
                             // Partial phrase in any field
-                            expressions.push(`"${termList.join(" ")}"`)
+                            expressions.push(`"${termList.join(" ")}"`) // enclose in double quotes
                             break
                         case "regex":
                             // This can't be done like this on MDB, so we should disable the option
@@ -677,23 +662,24 @@ export let searchcomponent = {
                     // To do: add a flag for case insensitive search
                     switch(this.advancedParams[`searchType${i}`]) {
                         case "any":
-                            // Any of the words in any field
+                            // Any of the words in the given field
                             for (let term of termList) {
                                 myExpr.push(`${myField}:${term}`)
                             }
                             expressions.push(myExpr.join(" OR "))
                             break
                         case "all":
-                            // All of the words in any field
+                            // All of the words in the given field
+                            termList = termList.map(x => x.replace(/(AND|OR|NOT)/, '"$1"')) // enclose these in double quotes so they aren't intrepreted as operators
                             expressions.push(`${myField}:${termList.join(" ")}`)
                             break
                         case "exact":
-                            // Exact phrase in any field
+                            // Exact phrase in the given field
                             expressions.push(`${myField}:'${termList.join(" ")}'`)
                             break
                         case "partial":
-                            // Partial phrase in any field
-                            expressions.push(`${myField}:"${termList.join(" ")}"`)
+                            // Partial phrase in the given field
+                            expressions.push(`${myField}:"${termList.join(" ")}"`) // enclose in double quotes
                             break
                         case "regex":
                             // Regular expression; this probably needs additional validation to make sure it IS a regex
@@ -717,7 +703,6 @@ export let searchcomponent = {
             for (let i in expressions) {
                 let j = parseInt(i)+1
                 let accessor = `searchConnector${j.toString()}`
-                //console.log(i, expressions[i], accessor, this.advancedParams[accessor])
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
                 }
@@ -737,7 +722,6 @@ export let searchcomponent = {
             // ...
 
             let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
-            //console.log(url)
             window.location = url
         },
         reportError(message) {

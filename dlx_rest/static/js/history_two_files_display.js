@@ -121,7 +121,6 @@ let doubleRecordDisplay = {
                           }
                       } 
                       vm.records.push(myRecord)
-                      console.log(myRecord)
                     }
             }
           }

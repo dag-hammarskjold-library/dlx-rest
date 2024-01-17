@@ -58,7 +58,7 @@ def help():
 @app.route('/workform')
 def workform():
     this_prefix = url_for('doc', _external=True)
-    return render_template('workform.html', api_prefix=this_prefix)
+    return render_template('workform.html', api_prefix=this_prefix, title="Workforms")
 
 # Authentication
 @login_manager.user_loader
@@ -166,7 +166,6 @@ def create_user():
         user.set_password(password)
         user.username = username
         for role in roles:
-            print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -193,7 +192,6 @@ def create_user():
 def update_user(id):
     try:
         user = User.objects.get(id=id)
-        print("default views:", user.default_views)
     except IndexError:
         flash("The user was not found.")
         return redirect(url_for('list_users'))
@@ -205,7 +203,6 @@ def update_user(id):
     form.views.process_data([v.id for v in user.default_views])
 
     if request.method == 'POST':
-        print(request.form)
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
         username = request.form.get('username', user.username)
@@ -219,7 +216,6 @@ def update_user(id):
             user.set_password(password)
         user.roles = []
         for role in roles:
-            print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -231,8 +227,6 @@ def update_user(id):
             user.default_views.append(v)
         user.updated = datetime.now()
         
-        print(user.__str__())
-
         try:
             user.save(validate=True)
             flash("The user was updated successfully.")
@@ -278,7 +272,6 @@ def create_role():
         role = Role(name=name)
         role.permissions = []
         for permission in permissions:
-            print(permission)
             try:
                 p = Permission.objects.get(action=permission)
                 role.permissions.append(p)
@@ -315,8 +308,6 @@ def update_role(id):
         name = request.form.get('name', role.name)
         permissions = request.form.getlist('permissions')
 
-        print(permissions)
-
         role.permissions = []
         for permission in permissions:
             try:
@@ -326,9 +317,7 @@ def update_role(id):
                 pass
         
         try:
-            print(role.permissions)
             role.save(validate=True)
-            print("I am here")
             flash("The role was updated successfully.")
             return redirect(url_for('get_roles'), 302)
         except:
@@ -434,7 +423,6 @@ def get_index_list(record_type):
 @app.route('/records/<coll>/search')
 @login_required
 def search_records(coll):
-    #print(session.get('_id')) # Returns id if authenticated, or None if not.
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
@@ -443,8 +431,7 @@ def search_records(coll):
     # Compare the old query with the new query; if the new query is different, reset pagination
     # if old_q contains anything at all, it returns a list, so let's make sure we're checking
     # for the first string in the list entry instead of assuming we got a string.
-    old_q = parse_qs(urlparse(request.referrer).query).get('q', [None])
-    #print(f'Old: {old_q} | New: {q}')
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
     if q != old_q[0]:
         start = 1
 
@@ -465,18 +452,15 @@ def search_records(coll):
         # Regardless of what's in the session already
         session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
         this_v = session[f"sort_{vcoll}"]
-        print(f"Got {this_v} from URL")
     else:
         # See if something is in the session already
         try:
             # We have session values, so use those
             this_v = session[f"sort_{vcoll}"]
-            print(f"Got {this_v} from session")
             sort = session[f"sort_{vcoll}"]["field"]
             direction = session[f"sort_{vcoll}"]["direction"]
         except KeyError:
             # There is nothing in the session, so fallback to defaults
-            print(f"No sort/dir for {vcoll} found, using defaults.")
             sort = "updated"
             direction = "desc"
     
@@ -506,7 +490,7 @@ def search_records(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
 
 @app.route('/records/<coll>/browse')
 @login_required
@@ -559,6 +543,13 @@ def review_auth():
 
     return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths", title="AuthReview")
 
+@app.route('/records/speeches/review')
+@login_required
+def review_speeches():
+    api_prefix = url_for('doc', _external=True)
+    q = request.args.get('q')
+    return render_template('review_speeches.html', api_prefix=api_prefix, title="Speech Review", q=q)
+
 @app.route('/records/<coll>/<id>', methods=['GET'])
 @login_required
 def get_record_by_id(coll,id):
@@ -585,8 +576,6 @@ def upload_files():
 @requires_permission('createFile')
 def process_files():
     S3.connect(bucket=Config.bucket)
-
-    #print(Config.environment)
     
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
@@ -780,3 +769,8 @@ def update_file():
 def import_marc():
     this_prefix = url_for('doc', _external=True)
     return render_template('import_marc.html', api_prefix=this_prefix)
+
+@app.route('/reports/dashboard01', methods=["GET"])
+@login_required
+def show_dashboard01():
+    return render_template('dashboard01.html',vcoll="dashboard01", user=current_user.username)

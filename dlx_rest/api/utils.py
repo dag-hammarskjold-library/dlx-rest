@@ -192,8 +192,8 @@ def brief_bib(record):
     
     if record.get_value('245', 'a'):
         head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
-    elif record.get_value('700', 'a') or record.get_value('710', 'a'):
-        head, member = ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']), record.get_value('710', 'a')
+    elif record.get_value('700', 'a') or record.get_value('710', 'a') or record.get_value('711', 'a'):
+        head, member = ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']), record.get_value('710', 'a') or record.get_value('711', 'a')
         
         if head and member:
             head += f' ({member})'
@@ -201,14 +201,37 @@ def brief_bib(record):
             head = member
     else:
         head = None
+    
+    agendas = []
+    if "Speeches" in ctypes:
+        agendas = [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
 
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
         'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
         'title': head or '[No Title]',
-        'date': record.get_value('269', 'a'),
-        'types': '; '.join(ctypes)
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'types': '; '.join(ctypes),
+        'agendas': agendas
+    }
+
+def brief_speech(record):
+    # This is much more specific than the regular search results we're populating with brief_bib and brief_auth
+
+    return {
+        '_id': record.id,
+        'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
+        'symbol': '; '.join(record.get_values('791', 'a')),
+        'speaker': record.get_value('700', 'a'),
+        'speaker_country': record.get_value('700', 'g'),
+        'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')],
+        # This item_locked function is running for each record returned in this API call
+        #'locked': item_locked("bibs", record.id)["locked"],
+        'locked': False,
+        #'myBasket': False
     }
 
 def brief_auth(record):
@@ -271,7 +294,7 @@ def has_permission(user, action, record, collection):
                 bool_list.append("F")
     else:
         bool_list.append("F")
-    print("boolean list:",bool_list)
+    #print("boolean list:",bool_list)
     if "F" in bool_list:
         return False
     else:

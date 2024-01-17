@@ -1262,7 +1262,7 @@ export const validationData = {
         "793": {
             "name": "Committee name",
             "required": false,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
@@ -1489,13 +1489,15 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a"],
+            "validSubfields": ["a","b"],
             "defaultSubfields": ["a"],
             "isDate": {
-                "a": true
+                "a": true,
+                "b": true
             },
             "validRegex": {
-                "a": ["^\\d{4}-?\\d{2}-?\\d{2}$"]
+                "a": ["^\\d{4}-?\\d{2}-?\\d{2}$"],
+                "b": ["^\\d{4}-?\\d{2}-?\\d{2}$"]
             }
         },
         "993": {
@@ -1715,7 +1717,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a","g"],
             "defaultSubfields": ["a"],
-            "validRegex": {"g": ["^\\(.*[^\\)]\\)$"]}
+            "validRegex": {"g": ["^\\(.*[^\\)]\\){1,2}$"]}    // See issue #1191; need at least one, up to 2 closing parentheses?
         },
         "110": {
             "name": "Heading - corporate name",
@@ -2322,7 +2324,7 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"],
-            "validStrings": { "a": ["DHL","GEN","DHC"]},
+            "validStrings": { "a": ["DHL"]},
             "saveActions": {"100:* OR 110:* OR 111:* OR 130:* OR 150:* OR 151:* OR 190:* OR 191:*": {"a": "DHL"}}
         },
         "915": {
@@ -2690,7 +2692,7 @@ export const validationData = {
         "791": {
             "name": "UN resolution/meeting record symbol",
             "required": true,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
@@ -2841,7 +2843,7 @@ export const validationData = {
         "793": {
             "name": "Committee name",
             "required": false,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],

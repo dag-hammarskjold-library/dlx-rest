@@ -53,10 +53,12 @@ export let sortcomponent = {
                 vcoll = "votes"
             }
         }
-        let mySortFields = [{'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'}];
+        let mySortFields = [
+            {'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'},
+            {'displayName': 'created', 'searchString': 'created', 'sortDir': 'desc'}
+        ];
         /* Once we have more fields to use for sorting, we can add them here */
         if (this.collection == "bibs") {
-            console.log(vcoll)
             if (vcoll == "bibs") {
                 mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
                 mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
@@ -100,7 +102,6 @@ export let sortcomponent = {
                 if (!el_href2.includes("&direction")) {
                     el_href2 += `&direction=${el.getAttribute("data-defaultSortDir")}`
                 }
-                console.log("hrefs", el_href1, el_href2)
                 el.href = el_href2
             } else {
                 el.href = this.rebuildUrl(el.id, el.getAttribute("data-searchString"));

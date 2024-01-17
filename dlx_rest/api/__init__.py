@@ -20,15 +20,16 @@ from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import InvalidQueryString
 from dlx.marc.query import Raw
 from dlx.file import File, Identifier
-from werkzeug import security
+from dlx.util import AsciiMap
 
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
 
 # Init
 authorizations = {
@@ -44,7 +45,6 @@ ns = api.namespace('api', description='DLX MARC REST API')
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
-    #print(f"Auth header: {auth_header}")
     if not auth_header:
         return None
 
@@ -183,7 +183,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
+        choices=['relevance', 'updated', 'created', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -193,7 +193,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -214,10 +214,28 @@ class RecordsList(Resource):
         route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+
+        # We can also note some things about the requesting user's basket here, since this route, and all others, require login
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            this_basket = Basket.objects(owner=this_u)[0]
+        except TypeError:
+            pass
+
+        # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
+        all_basket_objects = []
+        for basket in Basket.objects:
+            for item in basket.items:
+                if item not in all_basket_objects:
+                    all_basket_objects.append(item)
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+
+        try:
+            query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+        except InvalidQueryString as e:
+            abort(422, str(e))
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -225,16 +243,22 @@ class RecordsList(Resource):
         # limit  
         limit = int(args.limit or 100)
         
-        if limit > 1000:
-            abort(404, 'Maximum limit is 1000')
-        
         # format
         fmt = args['format'] or None
+
+        if fmt != 'brief_speech' and limit > 1000:
+            abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
-            tags = ['191', '245', '269', '700', '710', '791', '989'] if collection == 'bibs' \
+            tags = ['191', '245', '269', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
                 else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
             
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+            project = dict.fromkeys(tags, True)
+        elif fmt == 'brief_speech':
+            tags = ['269', '700', '710', '711', '791', '991', '992']
+           
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
@@ -262,8 +286,8 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None
-
+        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
+        
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
 
@@ -276,6 +300,26 @@ class RecordsList(Resource):
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
             data = [make_brief(r) for r in recordset]
+        elif fmt == 'brief_speech':
+            schema_name='api.brieflist'
+            make_brief = brief_speech
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                this_d["myBasket"] = False
+                
+                # Determine lock status first, then resolve whether the item is in the current user's basket
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    print(lock_status)
+                    this_d["locked"] = True
+
+                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                if len(basket_contains) > 0:
+                    this_d["myBasket"] = True
+                    this_d["locked"] = False
+                data.append(this_d)
         else:
             schema_name='api.urllist'
             data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
@@ -314,8 +358,6 @@ class RecordsList(Resource):
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
     def post(self, collection):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         cls = ClassDispatch.by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
     
@@ -369,7 +411,12 @@ class RecordsListCount(Resource):
 
         if args.search:
             search = unquote(args.search)
-            query = Query.from_string(search, record_type=collection[:-1])
+            
+            try:
+                query = Query.from_string(search, record_type=collection[:-1])
+            except InvalidQueryString as e:
+                abort(422, str(e))
+
         else:
             query = {}
         
@@ -441,7 +488,8 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
-        query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
+        from dlx.util import Tokenizer
+        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         
         if Config.TESTING:
@@ -457,7 +505,28 @@ class RecordsListBrowse(Resource):
             )
         
         start, limit = int(args.start), int(args.limit)
-        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
+
+        ''' 
+        # using an aggregation. this method is slower and requires specifiying all characters to ignore
+        # remove slash, comma, dash and en dash
+        to_match = value.replace(',', '').replace('-', ' ').replace('–', ' ').replace('/', ' ')
+
+        values = DB.handle[f'_index_{field}'].aggregate(
+            [
+                {'$addFields': {'to_sort': {'$replaceAll': {'input': '$_id', 'find': ',', 'replacement': ''}}}},
+                {'$project': {'_id': 1, '_record_type': 1, 'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '-', 'replacement': ' '}}}},
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '–', 'replacement': ' '}}}}, # en dash
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '/', 'replacement': ' '}}}}, # slash
+                {'$match': {'to_sort': {operator: to_match}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}},
+                {'$sort': {'to_sort': 1 if args.compare == 'greater' else -1}},
+                {'$skip': start-1},
+                {'$limit': limit}
+            ],
+            collation=None if Config.TESTING else collation
+        )
+        values = list(values)
+        '''
         
         if args.compare == 'less':
             values = list(reversed(list(values)))
@@ -537,31 +606,32 @@ class Record(Resource):
         # check for files
         # todo: get identifier type mapping from config
         files = []
-        symbol = record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')
-        isbn = record.get_value('020', 'a')
-        isbn = isbn.split(' ')[0] if isbn else None # field may have extra text after the isbn
+        symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+        isbns = record.get_values('020', 'a')
+        isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
 
-        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            for idtype in ([symbol, 'symbol'], [isbn, 'isbn']):
-                if idtype[0]:
-                    f = File.latest_by_identifier_language(Identifier(idtype[1], idtype[0]), lang)
-
-                    if f and f not in files:
-                        files.append(f)
-
+        def get_files(id_type, id_value):
+            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+            return list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+        
+        for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
+            for id_value in id_values:
+                files += list(filter(lambda x: x not in files, get_files(id_type, id_value)))
+                
         data = record.to_dict()
         data['created'] = record.created
         data['created_user'] = record.created_user
         data['updated'] = record.updated
         data['user'] = record.user
-        data['files'] = [
-            {
+        data['files'] = []
+        for f in files:
+            this_f = {
                 'mimetype': f.mimetype, 
                 'language': f.languages[0].lower(), 
                 'url': URL('api_file_record', record_id=f.id).to_str()
             } 
-            for f in files
-        ]
+            if this_f not in data['files']:
+                data['files'].append(this_f)
 
         meta = {
             'name': 'api_record',
@@ -593,11 +663,7 @@ class Record(Resource):
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @login_required
     def put(self, collection, record_id):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         user = current_user if request_loader(request) is None else request_loader(request)
-        #print(user)
-        #print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         args = Record.args.parse_args()
@@ -788,7 +854,6 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
             record = cls(record_data, auth_control=True)
         except Exception as e:
-            print(record.to_dict())
             abort(400, str(e))
 
         if not has_permission(user, "updateRecord", record, collection):
@@ -897,9 +962,6 @@ class RecordFieldPlace(Resource):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
-        if record.get_field(field_tag, place=field_place) is None:
-            print(record.id)
-            print('???\n' + record.to_mrk())
         
         record.get_field(field_tag, place=field_place) or abort(404)
 
@@ -1116,120 +1178,76 @@ class LookupFieldsList(Resource):
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
     args = reqparse.RequestParser()
-    args.add_argument(
-        'type', 
-        type=str,
-        choices=['partial', 'text'],
-        default='partial',
-        help='The type of lookup to execute (partial string match or text search)'
-    )
-
+    
     @ns.doc(description='Return a list of authorities that match a string value')
     @ns.expect(args)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        codes = filter(lambda x: len(x) == 1, request.args.keys())
-        args = LookupField.args.parse_args()
+        # args are subfield codes
+        codes = list(filter(lambda x: len(x) == 1, request.args.keys()))
+        codes or abort(400, 'Subfield codes required as the URL query parameters')
+        sparams = {}
+        conditions_1, conditions_2, conditions_3 = [], [], []
 
-        if args.type == 'partial':
-            # partial string match
-            conditions_1, conditions_2, conditions_3 = [], [], []
-            sparams = {}
+        for code in codes:
+            val = request.args[code]
+            sparams[code] = val
+            auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
 
-            def process(query, heading_tag, limit):
-                # todo: update subject logical field to heading name change
+            if not auth_tag:
+                continue
+
+            tags = [auth_tag]
+
+            # exact match
+            conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
+            # starts with
+            val_regex_checker = ''
+
+            for char in val:
+                xchars = []
                 
-                auths = list(
-                    # sort by length of subfield array
-                    DB.auths.aggregate(
-                        [
-                            {'$match': dict(query)},
-                            #{'$addFields': {'subfieldsSize': {'$size': f'${heading_tag}.subfields'}}},
-                            {'$project': {'subject': 1, heading_tag: 1, 'subfieldsSize': {'$size': f'${tag}.subfields'}}},
-                            {'$sort': SON([('subfieldsSize', 1), ('subject', 1)])}, # preserve key order using bson
-                            {'$limit': limit}
-                        ],
-                        collation={'locale': 'en', 'strength': 1, 'numericOrdering': True}
-                    )
-                )
+                for k, v in AsciiMap.data.items():
+                    if v.lower() not in ('a', 'e', 'i', 'o', 'u'):
+                        continue
+                        
+                    if k in AsciiMap.multi_byte() or ord(k) > 0x0130: # char 'İ' #int(0x017F): # Latin Extended-A
+                        continue
 
-                return [Auth(x) for x in auths] 
+                    if v.lower() == char.lower():
+                        xchars.append(k)
 
-            # gather conditions
-            for code in codes:
-                val = request.args[code]
-                sparams[code] = val
-                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+                if xchars:
+                    xchars += char.lower() + char.upper()
+                    val_regex_checker += f'[{"".join(xchars)}]'
+                else:
+                    if char.lower() != char.upper():
+                        val_regex_checker += f'[{char.lower() + char.upper()}]'
+                    else:
+                        val_regex_checker += re.escape(char)
 
-                if not auth_tag:
-                    continue
+            conditions_2.append(f'{auth_tag}__{code}:/^{val_regex_checker}/')
+            # free text
+            conditions_3.append(f'{auth_tag}__{code}:{val}')
 
-                tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
-                tag = tags[0]
+        querystring = " AND ".join(conditions_1)
+        query = Query.from_string(querystring)
+        proj = dict.fromkeys(tags, 1)
+        start = int(request.args.get('start', 1))
+        cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
+        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
 
-                # exact match
-                conditions_1.append(Or(*[Condition(tag, {code: val}, record_type='auth') for tag in tags]))
-                # matches start
-                conditions_2.append(Or(*[Condition(tag, {code: Regex(f'^{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
-                # matches anywhere
-                conditions_3.append(Or(*[Condition(tag, {code: Regex(f'{re.escape(val)}', 'i')}, record_type='auth') for tag in tags]))
-
-            if not sparams:
-                abort(400, 'Request parameters required')
-
-            query = Query(*conditions_1)
-            proj = dict.fromkeys(tags, 1)
-            start = int(request.args.get('start', 1))
-            auths = process(query.compile(), heading_tag=tag, limit=25)
-
-            if len(auths) < 25:
-                query = Query(*conditions_2)
-                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-
-            if len(auths) < 25:
-                query = Query(*conditions_3)
-                more = process(query.compile(), heading_tag=tag, limit=25-len(auths))
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-        elif args.type == 'text':
-            sparams = {}
-            conditions_1, conditions_2, conditions_3 = [], [], []
-
-            for code in codes:
-                val = request.args[code]
-                sparams[code] = val
-                auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
-
-                if not auth_tag:
-                    continue
-
-                tags = [auth_tag]
-
-                # exact match
-                conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
-                # starts with
-                conditions_2.append(f'{auth_tag}__{code}:/^{re.escape(val)}/i')
-                # free text
-                conditions_3.append(f'{auth_tag}__{code}:{val}')
-
-            querystring = " AND ".join(conditions_1)
+        if len(auths) < 25:
+            querystring = " AND ".join(conditions_2)
             query = Query.from_string(querystring)
-            proj = dict.fromkeys(tags, 1)
-            start = int(request.args.get('start', 1))
-            cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
-            auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
-            if len(auths) < 25:
-                querystring = " AND ".join(conditions_2)
-                query = Query.from_string(querystring)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
-
-            if len(auths) < 25:
-                querystring = " AND ".join(conditions_3)
-                query = Query.from_string(querystring)
-                more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-                auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+        if len(auths) < 25:
+            querystring = " AND ".join(conditions_3)
+            query = Query.from_string(querystring)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         
         processed = []
         
@@ -1420,7 +1438,6 @@ class WorkformsList(Resource):
         # interim implementation
         workform_collection = DB.handle[f'{collection}_templates'] # todo: change name in dlx
         workforms = workform_collection.find({})
-        #print(workforms)
         data = [URL('api_workform', collection=collection, workform_name=t['name']).to_str() for t in workforms]
         
         links = {
@@ -1578,7 +1595,6 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
-        print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1597,7 +1613,6 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
-        print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1606,7 +1621,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1618,7 +1632,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1722,9 +1735,7 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        #print(item)
         lock_status = item_locked(item['collection'], item['record_id'])
-        #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
@@ -1735,10 +1746,7 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    #print(lock_status["in"])
                     for losing_basket in Basket.objects(name=lock_status["in"]):
-                        #print(losing_basket)
-
                         losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201
@@ -1793,7 +1801,6 @@ class MyBasketItem(Resource):
             item_data = item_data_raw
             if isinstance(item_data_raw, list):
                 item_data = item_data_raw[0]
-            #print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
@@ -1839,8 +1846,6 @@ class ViewList(Resource):
     def get(self, coll):
         try:
             view_list = RecordView.objects(collection=coll)
-            for v in view_list:
-                print(v.id, v.name)
         except:
             raise
         
@@ -1876,7 +1881,6 @@ class View(Resource):
     @ns.doc("Get the contents of a record view by collection and id.")
     def get(self, coll, id):
         this_item = RecordView.objects.get(id=id)
-        print(this_item.name)
 
         links = {
             '_self': URL('api_view', coll=coll, id=id).to_str(),

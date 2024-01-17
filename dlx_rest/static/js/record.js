@@ -397,19 +397,23 @@ export let multiplemarcrecordcomponent = {
                     if (jmarc.recordId == this.selectedJmarc.recordId) {
                         this.selectedFields.push(field);
                     }
-                    this.copiedFields.push(field);                        
+                    this.copiedFields.push(field);       
+                    field.checked = true                 
                 }
             } else {
+                field.checked = false
                 if (this.copiedFields) {
                     // remove from the list of copied fields
-                    this.copiedFields.splice(this.copiedFields.indexOf(field, 1))
+                    // Issue #1147: splice + indexOf has trouble with objects, especially if they have any depth
+                    this.copiedFields = this.copiedFields.filter(f => f.toStr() !== field.toStr())
                     if (jmarc.recordId==this.selectedJmarc.recordId)
                     {
-                        this.selectedFields.splice(this.selectedFields.indexOf(field, 1))
+                        this.selectedFields = this.selectedFields.filter(f => f.toStr() !== field.toStr())
                     }
-                   
+                    
                 }
             }
+            console.log(`checked? ${field.checked}`)
         },
         async saveRecord(jmarc, display=true){
             if (jmarc.workformName) {
@@ -460,10 +464,14 @@ export let multiplemarcrecordcomponent = {
 
                 // dupe auth check
                 if (jmarc.collection === "auths") {
+                    // new records do not have an ID yet
+                    let isNewRecord = jmarc.recordId ? false : true;
                     let headingField = jmarc.fields.filter(x => x.tag.match(/^1/))[0];
-                    let previous = new Jmarc(jmarc.collection).parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0];
+                    // previous saved state, if any
+                    let previous = new Jmarc(jmarc.collection).parse(jmarc.savedState).fields.filter(x => x.tag.match(/^1/))[0]
+                    let previousToStr = previous ? previous.toStr() : '';
 
-                    if (headingField && headingField.toStr() !== previous.toStr()) { 
+                    if (headingField && isNewRecord || (headingField.toStr() !== previousToStr)) { 
                         // wait for the result
                         let inUse = await jmarc.authHeadingInUse().catch(error => {
                             this.callChangeStyling(error, "d-flex w-100 alert-danger");
@@ -518,7 +526,7 @@ export let multiplemarcrecordcomponent = {
                     this.removeRecordFromEditor(jmarc,true); // div element is stored as a property of the jmarc object
                     
                     if (display) {
-                        jmarc = this.displayMarcRecord(returnedJmarc, false);
+                        jmarc = this.displayMarcRecord(returnedJmarc, false, true);
                         this.checkSavedState(jmarc)
                     }
                     
@@ -760,7 +768,6 @@ export let multiplemarcrecordcomponent = {
 
             this.removeRecordFromEditor(jmarc);
             this.displayMarcRecord(jmarc);
-
             subfield.valueCell.classList.add("unsaved");
             
             this.checkSavedState(jmarc);
@@ -1032,8 +1039,16 @@ export let multiplemarcrecordcomponent = {
             this.$refs.batcheditmodal.referringRecord = `${jmarc.collection}/${jmarc.recordId}`
             
             // Get the list of copied fields and send them to the batch edit modal.
-            //this.$refs.batcheditmodal.updateSelectedFields(this.copiedFields)
-            this.$refs.batcheditmodal.selectedFields = this.copiedFields
+            // this.copiedFields may have fields from more than one record, so let's check only the referring record for checked fields
+            
+            let selectedFields = []
+
+            for (let f of jmarc.fields) {
+                if (f.checked) {
+                    selectedFields.push(f)
+                }
+            }
+            this.$refs.batcheditmodal.selectedFields = selectedFields
 
             // Reinitialize the modal
             this.$refs.batcheditmodal.reinitialize()
@@ -1805,12 +1820,13 @@ export let multiplemarcrecordcomponent = {
             }
 
             this.recordlist.splice(this.recordlist.indexOf(`${jmarc.collection}/${jmarc.recordId}`), 1);
-            let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
+            //let updatedUrl = location.href.replace(/\/editor.*/, `/editor?${this.recordList ? 'records=' : ''}${this.recordlist.join(",")}`);
+            let updatedUrl = location.href.replace(/(\?.*$|$)/, `?records=${this.recordlist.join(",")}`).replace("#","");
             window.history.replaceState({}, null, updatedUrl);
 
             return true
         },
-        displayMarcRecord(jmarc, readOnly) {
+        displayMarcRecord(jmarc, readOnly, skipSaveDetection=false) {
             let component = this;
             let myDivId;
 
@@ -1847,38 +1863,64 @@ export let multiplemarcrecordcomponent = {
             if (selectedItem) selectedItem.setAttribute("style", "background-color: #d5e1f5;");
 
             // build the record display
-
             let table = this.buildRecordTable(jmarc,readOnly);
             jmarc.div.appendChild(table); 
             this.selectRecord(jmarc);
             this.currentRecordObjects.push(jmarc);
 
-            // check save state
-            this.checkSavedState(jmarc);
+            // check save state. the jmarc data being displayed maybe not be saved to the DB.
+            // these checks also happen when triggered by events on the individual elements
+            if (! jmarc.saved) {
+                jmarc.saveButton.classList.add("text-danger");
+                jmarc.saveButton.title = "Save Record";
+            
+                // trigger field level unsaved changes detection
+                // preserve scroll location
+                let scrollX = window.scrollX;
+                let scrollY = window.scrollY;
+                let scroll = jmarc.tableBody.scrollTop;
 
-            // trigger field level unsaved changes detection
-            // preserve scroll location
-            let scrollX = window.scrollX;
-            let scrollY = window.scrollY;
-            let scroll = jmarc.tableBody.scrollTop;
+                for (let field of jmarc.getDataFields()) {
+                    // unsaved tag checks
+                    field.tagSpan.classList.remove("invalid");
+                    field.tagSpan.classList.remove("unsaved");
 
-            for (let field of jmarc.getDataFields()) {
-                field.tagSpan.focus();
-                field.ind1Span.focus();
-                field.ind2Span.focus();
+                    if (! field.tagSpan.innerText.match(/[0-9A-Z]/)) {
+                        field.tagSpan.classList.add("invalid");
+                    } else if (! field.savedState || field.compile().tag !== field.savedState.tag) {
+                        field.tagSpan.classList.add("unsaved")
+                    }
 
-                for (let subfield of field.subfields) {
-                    subfield.codeSpan.focus();
-                    subfield.valueSpan.focus();
-                    subfield.valueSpan.blur();
+                    // unsaved indicators checks
+                    for (let ind of [0, 1]) {
+                        let cell = ind === 0 ? field.ind1Cell : field.ind2Cell;
+
+                        if (! field.savedState || field.compile().indicators[ind-1] !== field.savedState.indicators[ind-1]) {
+                            cell.classList.add("unsaved");
+                        }
+                    }
+
+                    // unsaved subfields checks
+                    for (let subfield of field.subfields) {
+                        subfield.codeSpan.classList.remove("invalid");
+                        subfield.codeSpan.classList.remove("unsaved");
+
+                        if (! subfield.savedState || subfield.compile().code !== subfield.savedState.code) {
+                            subfield.codeSpan.classList.add("unsaved");
+                        }
+
+                        if (! subfield.savedState || subfield.savedState.value !== subfield.value) {
+                            subfield.valueCell.classList.add("unsaved");
+                        }
+                    }
                 }
+
+                jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
+                jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
+
+                jmarc.tableBody.scrollTop = scroll;
+                window.scrollTo(scrollX, scrollY);
             }
-
-            jmarc.getDataFields()[0].subfields[0].valueSpan.focus();
-            jmarc.getDataFields()[0].subfields[0].valueSpan.blur();
-
-            jmarc.tableBody.scrollTop = scroll;
-            window.scrollTo(scrollX, scrollY);
 
             // trigger validation warnings
             this.validationWarnings(jmarc);
@@ -1896,7 +1938,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             // update URL with current open records
-            let updatedUrl = location.href.replace(/\/editor.*/, `/editor?records=${this.recordlist.join(",")}`);
+            let updatedUrl = location.href.replace(/(\?.*$|$)/, `?records=${this.recordlist.join(",")}`).replace("#","");
             window.history.replaceState({}, null, updatedUrl);
 
             //////////////////////////////////////////////////////////////////////////////
@@ -2065,7 +2107,6 @@ export let multiplemarcrecordcomponent = {
                     controlButton.title = control["title"];
                     jmarc[control["name"]] = controlButton;
                     if (control["name"] == "batchButton") {
-                        console.log("batch button")
                         controlButton.setAttribute("data-toggle", "modal")
                         controlButton.setAttribute("data-target", "#batchActions")
                     }
@@ -2436,7 +2477,7 @@ export let multiplemarcrecordcomponent = {
 
             // Activate
             // call when user clicks or tabs into tag field
-            function tagActivate() {
+            function tagActivate(e) {
                 let renderingPolicy = renderingData[jmarc.collection][field.tag];
 
                 if (renderingPolicy && renderingPolicy["editable"] === false) {
@@ -3110,7 +3151,7 @@ export let multiplemarcrecordcomponent = {
             }
 
             const observer = new MutationObserver(function() {
-                console.log('callback that runs when observer is triggered');
+
             });
 
             observer.observe(valSpan, {subtree: true, childList: true});
