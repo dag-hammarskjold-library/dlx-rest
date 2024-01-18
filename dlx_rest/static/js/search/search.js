@@ -162,12 +162,15 @@ export let searchcomponent = {
                     <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
                 </div>
                 <div>
-                    <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
+                    <i :id="'preview-toggle-' + result._id"  class="fas fa-eye preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
                     <div :id="'preview-' + result._id" class="record-preview hidden">
                         <span class="record-preview-id">{{result._id}}</span>
                         </br>
                         <span :id="'preview-text-' + result._id" class="preview-text"></span>
                     </div>
+                </div>
+                <div class="col-sm" v-if="collection === 'bibs'">
+                    <i :id="'view-file-' + result._id"  class="fas fa-file view-file" v-on:click="openFile($event, result._id)" title="view file"></i>
                 </div>
                 <div class="col-sm-9 px-4">
                     <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
@@ -308,6 +311,9 @@ export let searchcomponent = {
             }
         });
 
+        // remove file buttons if no files found
+
+
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
         
@@ -404,6 +410,8 @@ export let searchcomponent = {
                 if (component.links._next) {
                     component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
                 }
+
+                // process each result
                 for (let result of jsonData["data"]) {
                     let myResult = { "_id": result["_id"]}
                     if (component.collection == "bibs") {
@@ -424,6 +432,17 @@ export let searchcomponent = {
                         // not implemented yet
                     }
                     component.results.push(myResult);
+
+                    // remove file view icon if no files exist for the record
+                    if (component.collection == "bibs") {
+                        Jmarc.get(this.collection, result["_id"])
+                            .then(jmarc => {
+                                // bottleneck?
+                                if (jmarc.files) {
+                                    console.log(jmarc.files)
+                                }
+                        })
+                    }
                 }
             }
         ).catch(
@@ -810,8 +829,16 @@ export let searchcomponent = {
             let preview = document.getElementById("preview-" + recordId);
             preview.classList.add("hidden");
             let toggleButton = document.getElementById("preview-toggle-" + recordId);
-            toggleButton.className = "fas fa-file preview-toggle";
+            toggleButton.className = "fas fa-eye preview-toggle";
             toggleButton.title = "preview record";
+        },
+        openFile(event, recordId) {
+            // use the ID to get the jmarc record
+            Jmarc.get(this.collection, recordId)
+                .then(jmarc => {
+                    console.log(jmarc.files)
+                    // todo: open the files(s?)
+                })
         }
     },
     components: {
