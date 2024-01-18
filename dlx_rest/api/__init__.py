@@ -605,33 +605,34 @@ class Record(Resource):
         
         # check for files
         # todo: get identifier type mapping from config
-        files = []
-        symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
-        isbns = record.get_values('020', 'a')
-        isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+        files_data = []
 
-        def get_files(id_type, id_value):
-            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-            return list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-        
-        for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
-            for id_value in id_values:
-                files += list(filter(lambda x: x not in files, get_files(id_type, id_value)))
+        if collection == 'bibs':
+            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+            isbns = record.get_values('020', 'a')
+            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+            all_files = []
+            
+            for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
+                for id_value in id_values:
+                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+                    
+            files_data = [
+                {
+                    'mimetype': f.mimetype, 
+                    'language': f.languages[0].lower(), 
+                    'url': URL('api_file_record', record_id=f.id).to_str()
+                } for f in all_files
+            ]
                 
         data = record.to_dict()
         data['created'] = record.created
         data['created_user'] = record.created_user
         data['updated'] = record.updated
         data['user'] = record.user
-        data['files'] = []
-        for f in files:
-            this_f = {
-                'mimetype': f.mimetype, 
-                'language': f.languages[0].lower(), 
-                'url': URL('api_file_record', record_id=f.id).to_str()
-            } 
-            if this_f not in data['files']:
-                data['files'].append(this_f)
+        data['files'] = files_data
 
         meta = {
             'name': 'api_record',
