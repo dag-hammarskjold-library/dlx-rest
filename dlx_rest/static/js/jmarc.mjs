@@ -699,22 +699,84 @@ export class Jmarc {
         return true;
     }
 
-	static async from_mrk(mrk, collection) {
+	/* This is the pyhton method
+	@classmethod
+    def from_mrk(cls, string, auth_control=True):
+        self = cls()
+
+        for line in filter(None, string.split('\n')):
+            match = re.match(r'=(\w{3})  (.*)', line)            
+            tag, rest = match.group(1), match.group(2)
+            if tag == 'LDR': tag = '000'
+
+            if tag[:2] == '00':
+                field = Controlfield(tag, rest)
+            else:
+                ind1, ind2 = [x.replace('\\', ' ') for x in rest[:2]]
+                field = Datafield(record_type=cls.record_type, tag=tag, ind1=ind1, ind2=ind2)
+                fallback = {}
+                ambiguous = []
+
+                for chunk in filter(None, rest[2:].split('$')):
+                    code, value = chunk[0], chunk[1:]
+
+                    try:
+                        field.set(code, value, place='+', auth_control=auth_control)
+                    except(AmbiguousAuthValue):
+                        fallback[code] = value
+                        ambiguous.append(Literal(code, value))
+
+                if fallback and len(fallback) > 1:
+                    xrefs = Auth.xlookup_multi(tag, ambiguous, record_type=cls.record_type)
+                    
+                    if xrefs:
+                        if len(xrefs) == 1:
+                            for code in fallback.keys():
+                                field.set(code, xrefs[0], place='+')
+                    elif len(xrefs) > 1:
+                        raise AmbiguousAuthValue('bib', field.tag, '*', str(fallback))
+
+            self.fields.append(field)
+
+        return self
+		*/
+
+	static async from_mrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
 		for (let line of mrk.split("\n")) {
 			let match = line.match(/=(\w{3})  (.*)/)
-			tag = match[0]
-			rest = match[1]
-
-			if (tag == 'LDR') { tag = '000' }
-			let field = jmarc.createField(tag)
-			if (tag.substring(0,1) == '00') {
-				// Controlfield
+			if (match != null){
+				let tag = match[1]
+				let rest = match[2]
+				//console.log(match, tag, rest)
+				if (tag == 'LDR') { 
+					tag = '000' 
+				}
+				console.log(tag, rest)
 				let field = jmarc.createField(tag)
-			} else {
-				// Datafield
+				//console.log("Type", field.constructor.name)
+				if (field instanceof BibDataField || field instanceof AuthDataField) {
+					let indicators = rest.substring(0,2).replace(/\\/g, " ")
+					jmarc.indicators = [indicators.charAt(0), indicators.charAt(1)]
+					for (let subfield of rest.substring(2, rest.length).split("$")) {
+						let code = subfield.substring(0,1)
+						let value = subfield.substring(1, subfield.length)
+						
+						if (code.length > 0 && value.length > 0) {
+							console.log("\t", code, value)
+							field.subfields.push(field.createSubfield(code, value))
+						}
+						
+					}
+				} else {
+					//console.log("Must be a control field")
+					field.value = rest
+				}
 			}
 		}
+
+		console.log(jmarc)
+		return jmarc
 	}
     
     async post() {

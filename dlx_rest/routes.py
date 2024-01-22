@@ -765,7 +765,7 @@ def update_file():
 
 @app.route('/import')
 @login_required
-@requires_permission('importMarc')
+#@requires_permission('importMarc')
 def import_marc():
     this_prefix = url_for('doc', _external=True)
     return render_template('import_marc.html', api_prefix=this_prefix)

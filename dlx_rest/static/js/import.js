@@ -1,4 +1,5 @@
 import { Jmarc } from './jmarc.mjs'
+import { previewmodal } from './modals/preview.js'
 
 export let importcomponent = {
     props: ["api_prefix"],
@@ -22,11 +23,12 @@ export let importcomponent = {
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col">
                         <h4>Record: (id)</h4>
-                        <pre><small>{{record.replace(/(\\$[a-z0-9])/g, " $1 ").replace(/\\\\/g, "_")}}</small></pre>
+                        
                     </div>
                 </div>
             </div>
         </div>
+        <previewmodal :api_prefix="api_prefix" collection_name="Bibs"></previewmodal>
     </div>`,
     data: function () { 
         console.log(this.api_prefix)
@@ -37,8 +39,12 @@ export let importcomponent = {
             accept: ".mrk, .xml",
             fileList: [],
             records: [],
-            review: false
+            review: false,
+            showPreviewModal: false
         }
+    },
+    created: function () {
+        Jmarc.apiUrl = this.api_prefix
     },
     methods: {
         handleChange: function () {
@@ -80,13 +86,25 @@ export let importcomponent = {
             this.review = true
             const reader = new FileReader()
             let fileText = ""
-            reader.onload = (res) => {
-                this.records = res.target.result.split("\r\s*\n")
-            }
             reader.readAsText(file)
+            reader.onload = (res) => {
+                console.log("Loading")
+                for (let r of res.target.result.split("\r\s*\n")) {
+                    console.log(r)
+                    let jmarc = new Jmarc("bibs")
+                    let parsed = Jmarc.from_mrk(r, "bibs")
+                    console.log(parsed)
+                    this.records.push(parsed)
+                }
+                console.log(this.records)
+            }
+            
         },
         submit(records) {
             /* loop through the valid records and submit each one to the endpoint */
         }
+    },
+    components: {
+        "previewmodal": previewmodal
     }
 }
