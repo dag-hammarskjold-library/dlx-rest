@@ -424,7 +424,7 @@ def get_index_list(record_type):
 @login_required
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
-    limit = request.args.get('limit', 25)
+    limit = request.args.get('limit', 250)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
