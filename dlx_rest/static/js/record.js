@@ -700,7 +700,13 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
-                   
+
+            // prevent auth controlled subfield from being deleted (issue 1259)
+            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                this.callChangeStyling("Can't delete authority controlled subfield", "d-flex w-100 alert-danger");
+                return
+            }
+
             // Remove the subfield from the field
             field.deleteSubfield(subfield);
             // Remove the subfield row from the table
