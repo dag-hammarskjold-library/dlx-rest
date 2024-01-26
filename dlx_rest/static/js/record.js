@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -1762,6 +1762,8 @@ export let multiplemarcrecordcomponent = {
                 if (selectedItem) selectedItem.setAttribute("style", "background-color:white;");
             }
             
+            // clear copied fields on close
+            this.copiedFields = []
 
             // clear the entries for the undoredo vectors
             if (keepDataInVector==false) { 
