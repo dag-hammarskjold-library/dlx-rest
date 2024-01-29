@@ -754,7 +754,6 @@ export class Jmarc {
 				}
 				console.log(tag, rest)
 				let field = jmarc.createField(tag)
-				//console.log("Type", field.constructor.name)
 				if (field instanceof BibDataField || field instanceof AuthDataField) {
 					let indicators = rest.substring(0,2).replace(/\\/g, " ")
 					jmarc.indicators = [indicators.charAt(0), indicators.charAt(1)]
@@ -763,16 +762,25 @@ export class Jmarc {
 						let value = subfield.substring(1, subfield.length)
 						
 						if (code.length > 0 && value.length > 0) {
-							console.log("\t", code, value)
-							field.subfields.push(field.createSubfield(code, value))
+							console.log("\t", "code: ", code, "value: ", value)
+							let newSub = field.createSubfield(code)
+							newSub.value = value
+							field.subfields.push(newSub)
+							if (tag in authMap[collection] && newSub.code in authMap[collection][tag]) {
+								field.lookup().then( (choices) => {
+									console.log("\t", "choices: ", choices)
+								})
+								
+							}
+							field.validate()
 						}
-						
 					}
 				} else {
 					//console.log("Must be a control field")
 					field.value = rest
 				}
 			}
+			//jmarc.validate()
 		}
 
 		console.log(jmarc)
