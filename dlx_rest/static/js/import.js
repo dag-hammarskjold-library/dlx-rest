@@ -22,7 +22,7 @@ export let importcomponent = {
                 <div class="row" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col">
-                        <h4>Record: (id)</h4>
+                        <p>{{record.toStr()}} <a class="btn btn-primary" @click="submit(record)">Submit</a></p>
                         
                     </div>
                 </div>
@@ -88,20 +88,18 @@ export let importcomponent = {
             let fileText = ""
             reader.readAsText(file)
             reader.onload = (res) => {
-                console.log("Loading")
                 for (let r of res.target.result.split("\r\s*\n")) {
-                    console.log(r)
-                    let jmarc = new Jmarc("bibs")
-                    let parsed = Jmarc.from_mrk(r, "bibs")
-                    console.log(parsed)
-                    this.records.push(parsed)
+                    Jmarc.from_mrk(r, "bibs").then( (jmarc) => {
+                        //jmarc.validate()
+                        this.records.push(jmarc)
+                    })
                 }
-                console.log(this.records)
             }
             
         },
-        submit(records) {
-            /* loop through the valid records and submit each one to the endpoint */
+        submit(record) {
+            console.log(record)
+            record.post()
         }
     },
     components: {
