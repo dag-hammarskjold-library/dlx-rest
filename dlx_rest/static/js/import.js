@@ -1,5 +1,4 @@
 import { Jmarc } from './jmarc.mjs'
-import { previewmodal } from './modals/preview.js'
 
 export let importcomponent = {
     props: ["api_prefix"],
@@ -19,19 +18,31 @@ export let importcomponent = {
         </div>
         <div class="row">
             <div class="container">
+                <div class="row">
+                    <div v-if="records.length > 0" class="col alert alert-warning">
+                        Records that can be imported with no issue: {{records.length - issues}}/{{records.length}}
+                        <br/>
+                        Records that have issues: {{issues}}/{{records.length}}
+                    </div>
+                </div>
                 <div class="row" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col">
-                        <p>{{record.toStr()}} <a class="btn btn-primary" @click="submit(record)">Submit</a></p>
-                        
+                        <div v-if="record['validationErrors'].length > 0" class="alert alert-danger">
+                            <p v-for="flag in record['validationErrors']">{{flag.message}}</p>
+                        </div>
+                        <pre>{{record['jmarc'].toStr()}}</pre>
                     </div>
+                    <div class="col">
+                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit(record)">Submit</a>
+                        <span v-else>Submitted as {{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
+                    </div>
+                    <hr/>
                 </div>
             </div>
         </div>
-        <previewmodal :api_prefix="api_prefix" collection_name="Bibs"></previewmodal>
     </div>`,
     data: function () { 
-        console.log(this.api_prefix)
         return {
             // Setting the import type here lets us expand this later
             importType: "records",
@@ -40,7 +51,8 @@ export let importcomponent = {
             fileList: [],
             records: [],
             review: false,
-            showPreviewModal: false
+            showPreviewModal: false,
+            issues: 0
         }
     },
     created: function () {
@@ -82,27 +94,36 @@ export let importcomponent = {
             (this.records) and show validation errors, as well as an import 
             button.
             */
-            //console.log("Got",file)
             this.review = true
             const reader = new FileReader()
             let fileText = ""
             reader.readAsText(file)
             reader.onload = (res) => {
-                for (let r of res.target.result.split("\r\s*\n")) {
+                for (let r of res.target.result.split(/[\r\n]{2,}/)) {
                     Jmarc.from_mrk(r, "bibs").then( (jmarc) => {
                         //jmarc.validate()
-                        this.records.push(jmarc)
+                        let validationErrors = jmarc.validationWarnings()
+                        if (validationErrors.length > 0) {
+                            this.issues += 1
+                        }
+                        //console.log(validationErrors)
+                        this.records.push({"jmarc": jmarc, "mrk": r, "validationErrors": validationErrors})
                     })
                 }
             }
             
         },
         submit(record) {
-            console.log(record)
-            record.post()
+            //console.log(record['mrk'])
+            let binary = new Blob([record['mrk']])
+            let jmarc = record['jmarc']
+            jmarc.post_mrk(binary).then(
+                response => {
+                    //console.log(response.collection, response.recordId)
+                    jmarc.recordId = response.recordId
+                    return response
+                }
+            )
         }
-    },
-    components: {
-        "previewmodal": previewmodal
     }
 }

@@ -699,48 +699,6 @@ export class Jmarc {
         return true;
     }
 
-	/* This is the pyhton method
-	@classmethod
-    def from_mrk(cls, string, auth_control=True):
-        self = cls()
-
-        for line in filter(None, string.split('\n')):
-            match = re.match(r'=(\w{3})  (.*)', line)            
-            tag, rest = match.group(1), match.group(2)
-            if tag == 'LDR': tag = '000'
-
-            if tag[:2] == '00':
-                field = Controlfield(tag, rest)
-            else:
-                ind1, ind2 = [x.replace('\\', ' ') for x in rest[:2]]
-                field = Datafield(record_type=cls.record_type, tag=tag, ind1=ind1, ind2=ind2)
-                fallback = {}
-                ambiguous = []
-
-                for chunk in filter(None, rest[2:].split('$')):
-                    code, value = chunk[0], chunk[1:]
-
-                    try:
-                        field.set(code, value, place='+', auth_control=auth_control)
-                    except(AmbiguousAuthValue):
-                        fallback[code] = value
-                        ambiguous.append(Literal(code, value))
-
-                if fallback and len(fallback) > 1:
-                    xrefs = Auth.xlookup_multi(tag, ambiguous, record_type=cls.record_type)
-                    
-                    if xrefs:
-                        if len(xrefs) == 1:
-                            for code in fallback.keys():
-                                field.set(code, xrefs[0], place='+')
-                    elif len(xrefs) > 1:
-                        raise AmbiguousAuthValue('bib', field.tag, '*', str(fallback))
-
-            self.fields.append(field)
-
-        return self
-		*/
-
 	static async from_mrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
 		for (let line of mrk.split("\n")) {
@@ -762,9 +720,7 @@ export class Jmarc {
 						if (code.length > 0 && value.length > 0) {
 							let newSub = field.createSubfield(code)
 							newSub.value = value
-							field.subfields.push(newSub)
-							// Try to get an xref
-							
+							field.subfields.push(newSub)							
 						}
 					}
 				} else {
@@ -818,6 +774,39 @@ export class Jmarc {
 				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
+		    error => { throw new Error(error) }
+		)
+	}
+
+	async post_mrk(content) {
+		let savedResponse
+		const formData = new FormData()
+		return fetch (
+			this.collectionUrl + '/records?format=mrk',
+			{
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: content
+			}
+		).then (
+			response => {
+				savedResponse = response
+				return response.json()
+			}
+		).then (
+			json => {
+				//console.log(json)
+				if (savedResponse.status != 201) {
+					throw new Error(json['message'])
+				}
+
+				this.url = json['result'];
+				this.recordId = parseInt(this.url.split('/').slice(-1));
+				this.updateSavedState();
+				
+				return Jmarc.get(this.collection, this.recordId)
+			}
+		).catch (
 		    error => { throw new Error(error) }
 		)
 	}
