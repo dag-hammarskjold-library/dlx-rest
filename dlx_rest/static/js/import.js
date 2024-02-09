@@ -31,11 +31,11 @@ export let importcomponent = {
                         <div v-if="record['validationErrors'].length > 0" class="alert alert-danger">
                             <p v-for="flag in record['validationErrors']">{{flag.message}}</p>
                         </div>
-                        <pre>{{record['jmarc'].toStr()}}</pre>
+                        <div><pre>{{record['jmarc'].toStr()}}</pre></div>
                     </div>
-                    <div class="col">
-                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit(record)">Submit</a>
-                        <span v-else>Submitted as {{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
+                    <div class="col-sm-3">
+                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
+                        <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
                     </div>
                     <hr/>
                 </div>
@@ -52,11 +52,13 @@ export let importcomponent = {
             records: [],
             review: false,
             showPreviewModal: false,
-            issues: 0
+            issues: 0,
+            uiBase: ""
         }
     },
     created: function () {
         Jmarc.apiUrl = this.api_prefix
+        this.uiBase = this.api_prefix.replace("/api", "")
     },
     methods: {
         handleChange: function () {
@@ -102,24 +104,26 @@ export let importcomponent = {
                 for (let r of res.target.result.split(/[\r\n]{2,}/)) {
                     Jmarc.from_mrk(r, "bibs").then( (jmarc) => {
                         //jmarc.validate()
-                        let validationErrors = jmarc.validationWarnings()
+                        let validationErrors = jmarc.allValidationWarnings()
                         if (validationErrors.length > 0) {
                             this.issues += 1
                         }
                         //console.log(validationErrors)
-                        this.records.push({"jmarc": jmarc, "mrk": r, "validationErrors": validationErrors})
+                        if (jmarc.fields.length > 0) {
+                            this.records.push({"jmarc": jmarc, "mrk": r, "validationErrors": validationErrors})
+                        }
                     })
                 }
             }
             
         },
-        submit(record) {
-            //console.log(record['mrk'])
+        submit(e, record) {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
+            // Only allow one click, so we don't accidentally post multiple records
+            e.target.classList.add("disabled")            
             jmarc.post_mrk(binary).then(
                 response => {
-                    //console.log(response.collection, response.recordId)
                     jmarc.recordId = response.recordId
                     return response
                 }
