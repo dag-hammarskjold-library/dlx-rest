@@ -3406,7 +3406,7 @@ function keyupAuthLookup(event) {
 
     if (event.type === "input") {
         if (dropdown && dropdown.list) {
-            // the drodpwn list is being navigated. not sure why it triggers the inupt event
+            // the dropdown list is being navigated. not sure why it triggers the inupt event
             return
         }
 
@@ -3504,8 +3504,11 @@ function keyupAuthLookup(event) {
             }
         )
     });
- 
-    if (subfield.value) {
+    
+    const inFieldCodes = field.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    if (subfield.value || (authControlledCodes.length > 1 && authControlledCodes.every(x => inFieldCodes.includes(x)))) {
         subfield.timer = setTimeout(
             function () {
                 let dropdown = document.createElement("div");
