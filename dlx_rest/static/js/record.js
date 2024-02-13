@@ -415,7 +415,7 @@ export let multiplemarcrecordcomponent = {
             }
             console.log(`checked? ${field.checked}`)
         },
-        async saveRecord(jmarc, display=true){
+        async saveRecord(jmarc, display=true) {
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -423,6 +423,18 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
+                // prevent save if any auth controlled subfields are blank
+                for (let field of jmarc.getDataFields()) {
+                    for (let subfield of field.subfields) {
+                        if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                            if (! subfield.xref) {
+                                this.callChangeStyling("Can't save blank authority-controlled subfield", "d-flex w-100 alert-danger")
+                                return
+                            }
+                        }
+                    }
+                }
+
                 // get rid of empty fields and validate
                 let flags = jmarc.validationWarnings();
                 
