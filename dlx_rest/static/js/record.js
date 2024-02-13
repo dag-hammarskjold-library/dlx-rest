@@ -3372,6 +3372,19 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.xrefCell.append(xrefLink); 
     }
 
+    // remove any existing auth controlled subfields that aren't in the new selection
+    const inChoiceCodes = choice.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    for (const subfield of field.subfields) {
+        if (authControlledCodes.includes(subfield.code) && ! inChoiceCodes.includes(subfield.code)) {
+            // Remove the subfield from the field
+            field.deleteSubfield(subfield);
+            // Remove the subfield row from the table
+            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+        }
+    }
+
     // trigger unsaved changes detection and update events
     field.ind1Span.focus();
     field.ind2Span.focus();
