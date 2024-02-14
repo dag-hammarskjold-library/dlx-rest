@@ -25,19 +25,41 @@ export let importcomponent = {
                         Records that have issues: {{issues}}/{{records.length}}
                     </div>
                 </div>
-                <div class="row" v-for="record in records">
+                <div class="row py-2 border-bottom">
+                    
+                    <div v-if="records.length > 0" class="col">
+                        <form class="form-inline">
+                            <span class="mr-4">Select <a href="#">All</a> | <a href="#">None</a></span>
+                            <div class="input-group">
+                                <div class="input-group-prepend"><div class="input-group-text"><i class="fas fa-filter mr-2"></i></div></div>
+                                <input class="form-control" type="text" @keyup="filterView($event)" placeholder="Comma separated list of fields to filter">
+                            </div>
+                            <span class="ml-auto">{{records.length}} records</span>
+                        </form>
+                    </div>
+                </div>
+                <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
-                    <div class="col">
+                    <div class="col-sm-1"><input type="checkbox"></div>
+                    <div class="col-sm-9">
                         <div v-if="record['validationErrors'].length > 0" class="alert alert-danger">
-                            <p v-for="flag in record['validationErrors']">{{flag.message}}</p>
+                            <div v-for="flag in record['validationErrors']">{{flag.message}}</div>
                         </div>
                         <div><pre>{{record['jmarc'].toStr()}}</pre></div>
+                        <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                            <span v-for="subfield in field.subfields">
+                                <code>\${{subfield.code}}</code>{{subfield.value}}
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-sm-3">
-                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
-                        <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
+                    <div class="col-sm-2">
+                        <div v-if="record['fatalErrors'] === false">
+                            <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
+                            <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
+                        </div>
+                        <div v-else>Cannot import records with fatal errors</div>
                     </div>
-                    <hr/>
                 </div>
             </div>
         </div>
@@ -74,8 +96,6 @@ export let importcomponent = {
         handleDragEnter: function (event) {
             event.preventDefault()
             if (!event.currentTarget.classList.contains('bg-dark')) {
-                //event.currentTarget.classList.remove('bg-gray-100');
-                //event.currentTarget.classList.add('bg-green-300');
                 event.currentTarget.classList.add("bg-dark")
             }
         },
@@ -101,16 +121,23 @@ export let importcomponent = {
             let fileText = ""
             reader.readAsText(file)
             reader.onload = (res) => {
-                for (let r of res.target.result.split(/[\r\n]{2,}/)) {
-                    Jmarc.from_mrk(r, "bibs").then( (jmarc) => {
-                        //jmarc.validate()
-                        let validationErrors = jmarc.allValidationWarnings()
-                        if (validationErrors.length > 0) {
-                            this.issues += 1
-                        }
-                        //console.log(validationErrors)
+                for (let mrk of res.target.result.split(/[\r\n]{2,}/)) {
+                    Jmarc.from_mrk(mrk, "bibs").then( (jmarc) => {
+                        // The only classes of validation errors we care about are:
+                        // 1. Is there a duplicate symbol? If so, prevent import.
+                        // 2. Do all the auth controlled fields match existing auth 
+                        //    records? If not, import and create the auth records...
+                        let validationErrors = jmarc.allValidationWarnings().filter((x) => !x.message.includes("indicators"))
+                        let fatalErrors = false
                         if (jmarc.fields.length > 0) {
-                            this.records.push({"jmarc": jmarc, "mrk": r, "validationErrors": validationErrors})
+                            jmarc.symbolInUse().then( symbolInUse => {
+                                if (symbolInUse) {
+                                    this.issues += 1
+                                    validationErrors.push({"message": "Duplicate Symbol Error: The symbol for this record is already in use."})
+                                    fatalErrors = true
+                                }
+                            })
+                            this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors})
                         }
                     })
                 }
@@ -128,6 +155,29 @@ export let importcomponent = {
                     return response
                 }
             )
+        },
+        filterView(e) {
+            let values = [e.target.value]
+            // Empty the array if the input is empty, otherwise we get an empty string in the array
+            if (e.target.value.length == 0) {
+                values = []
+            }
+            // Split the input value if it includes a comma
+            if (e.target.value.includes(",")) {
+                values = e.target.value.split(",")
+            }
+            for (let el of document.getElementsByClassName("field")) {
+                let found = values.find((v) => el.dataset.tag.startsWith(v))
+                if (e.target.value > 0 || values.length > 0){
+                    if (!found) {
+                        el.style.display = "none"
+                    } else {
+                        el.style.display = ""
+                    }
+                } else {
+                    el.style.display = ""
+                }
+            }
         }
     }
 }

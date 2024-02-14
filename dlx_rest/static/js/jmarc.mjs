@@ -1175,6 +1175,28 @@ export class Jmarc {
 		return flags.flat()
 	}
 
+	async symbolInUse() {
+		// Determine if a symbol is already being used.
+		if (this.collection !== "bibs") return
+		
+		// There should be only one field?
+		let symbolField = (this.fields.filter(x => ['191','791'].includes(x.tag)) || [null])[0]
+		if (! symbolField) return
+
+		let searchStr = `symbol:/^${symbolField.getSubfield("a").value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+	
+		let url = Jmarc.apiUrl + "/marc/bibs/records/count?search=" + searchStr
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 0) {
+			return false
+		} else {
+			return true
+		}
+	}
+
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return
 
