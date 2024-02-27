@@ -699,7 +699,7 @@ export class Jmarc {
         return true;
     }
 
-	static async from_mrk(mrk, collection="bibs") {
+	static async fromMrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
 		for (let line of mrk.split("\n")) {
 			let match = line.match(/=(\w{3})  (.*)/)
@@ -714,13 +714,14 @@ export class Jmarc {
 					let indicators = rest.substring(0,2).replace(/\\/g, " ")
 					jmarc.indicators = [indicators.charAt(0), indicators.charAt(1)]
 					for (let subfield of rest.substring(2, rest.length).split("$")) {
-						let code = subfield.substring(0,1)
-						let value = subfield.substring(1, subfield.length)
-						
-						if (code.length > 0 && value.length > 0) {
-							let newSub = field.createSubfield(code)
-							newSub.value = value
-							field.subfields.push(newSub)							
+						if (subfield.length > 0) {
+							let code = subfield.substring(0,1)
+							let value = subfield.substring(1, subfield.length)
+							
+							if (code.length > 0 && value.length > 0) {
+								let newSub = field.createSubfield(code)
+								newSub.value = value						
+							}
 						}
 					}
 				} else {
@@ -729,7 +730,6 @@ export class Jmarc {
 			}
 		}
 
-		//console.log(jmarc)
 		return jmarc
 	}
     

@@ -25,27 +25,33 @@ export let importcomponent = {
                         Records that have issues: {{issues}}/{{records.length}}
                     </div>
                 </div>
-                <div class="row py-2 border-bottom">
-                    
-                    <div v-if="records.length > 0" class="col">
-                        <form class="form-inline">
-                            <span class="mr-4">Select <a href="#">All</a> | <a href="#">None</a></span>
+                <div v-if="records.length > 0" class="row py-2 border-bottom">
+                    <div class="col-sm-2">Select <a href="#">All</a> | <a href="#">None</a></div>
+                    <div class="col">    
+                        <form class="form">
                             <div class="input-group">
                                 <div class="input-group-prepend"><div class="input-group-text"><i class="fas fa-filter mr-2"></i></div></div>
                                 <input class="form-control" type="text" @keyup="filterView($event)" placeholder="Comma separated list of fields to filter">
                             </div>
-                            <span class="ml-auto">{{records.length}} records</span>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="customSwitch1" @change="showErrors = !showErrors">
+                                <label class="custom-control-label" for="customSwitch1">Show Errors</label>
+                            </div>
+                            
                         </form>
                     </div>
+                    <div class="col-sm-2">{{records.length}} records</div>
                 </div>
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1"><input type="checkbox"></div>
                     <div class="col-sm-9">
-                        <div v-if="record['validationErrors'].length > 0" class="alert alert-danger">
+                        <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-danger">
                             <div v-for="flag in record['validationErrors']">{{flag.message}}</div>
                         </div>
-                        <div><pre>{{record['jmarc'].toStr()}}</pre></div>
+                        <!-- use this for debugging
+                        <div><pre>{{record['mrk']}}</pre></div>
+                        -->
                         <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
                             <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
                             <span v-for="subfield in field.subfields">
@@ -54,11 +60,8 @@ export let importcomponent = {
                         </div>
                     </div>
                     <div class="col-sm-2">
-                        <div v-if="record['fatalErrors'] === false">
-                            <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
-                            <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
-                        </div>
-                        <div v-else>Cannot import records with fatal errors</div>
+                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
+                        <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
                     </div>
                 </div>
             </div>
@@ -75,7 +78,8 @@ export let importcomponent = {
             review: false,
             showPreviewModal: false,
             issues: 0,
-            uiBase: ""
+            uiBase: "",
+            showErrors: false
         }
     },
     created: function () {
@@ -122,21 +126,46 @@ export let importcomponent = {
             reader.readAsText(file)
             reader.onload = (res) => {
                 for (let mrk of res.target.result.split(/[\r\n]{2,}/)) {
-                    Jmarc.from_mrk(mrk, "bibs").then( (jmarc) => {
+                    Jmarc.fromMrk(mrk, "bibs").then( jmarc => {
                         // The only classes of validation errors we care about are:
-                        // 1. Is there a duplicate symbol? If so, prevent import.
+                        // 1. Is there a duplicate symbol? If so, warn but allow import.
                         // 2. Do all the auth controlled fields match existing auth 
-                        //    records? If not, import and create the auth records...
+                        //    records? If not, error and prevent import.
                         let validationErrors = jmarc.allValidationWarnings().filter((x) => !x.message.includes("indicators"))
                         let fatalErrors = false
                         if (jmarc.fields.length > 0) {
                             jmarc.symbolInUse().then( symbolInUse => {
                                 if (symbolInUse) {
                                     this.issues += 1
-                                    validationErrors.push({"message": "Duplicate Symbol Error: The symbol for this record is already in use."})
+                                    validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
                                     fatalErrors = true
                                 }
                             })
+                            /* This is supposed to check to see if you have unmatched or ambiguous authorities,
+                               which prevents import because it will cause an error. It's not *quite* doing what
+                               it's intended to do, because it fails to match on existing authorities unless 
+                               they are single field, single word matches 
+                            for (let field of jmarc.fields) {
+                                let auth = jmarc.authMap[field.tag]
+                                if (auth) {
+                                    let headingTag = Object.values(auth)[0] 
+                                    let thisAuth = new Jmarc("auths")
+                                    let newField = thisAuth.createField(headingTag)
+                                    for (let subfield of field.subfields) {
+                                        if (Object.keys(auth).includes(subfield.code)) {
+                                            let newSub = newField.createSubfield(subfield.code)
+                                            newSub.value = subfield.value
+                                        }
+                                    }
+                                    thisAuth.authHeadingInUse().then( authHeadingInUse => {
+                                        console.log(thisAuth, authHeadingInUse)
+                                        if (!authHeadingInUse) {
+                                            validationErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()} has an unmatched or ambiguous authority value. Create the authority record or edit this record before importing.`})
+                                        }
+                                    })
+                                }   
+                            }
+                            */
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors})
                         }
                     })
