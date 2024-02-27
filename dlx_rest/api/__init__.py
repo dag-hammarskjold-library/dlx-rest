@@ -263,7 +263,7 @@ class RecordsList(Resource):
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
-            project = {}
+            project = None
         else:
             project = {'_id': 1}
           
@@ -290,7 +290,7 @@ class RecordsList(Resource):
         
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-
+        
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
@@ -419,7 +419,7 @@ class RecordsListCount(Resource):
 
         else:
             query = {}
-        
+
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
             'related': {
