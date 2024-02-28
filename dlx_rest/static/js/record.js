@@ -3313,8 +3313,8 @@ export let multiplemarcrecordcomponent = {
 }
 
 function selectAuthority(component, subfield, choice) {
-//    let component = event.currentTarget.eventParams[0];
-//    let subfield = event.currentTarget.eventParams[1];
+    // let component = event.currentTarget.eventParams[0];
+    // let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
 
@@ -3330,6 +3330,13 @@ function selectAuthority(component, subfield, choice) {
     }
 
     for (let choiceSubfield of choice.subfields) {
+        // skip this subfield if it is not configured to be auth controlled
+        const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+        if (! authControlledCodes.includes(choiceSubfield.code)) {
+            continue
+        }
+
         let currentSubfield = field.getSubfield(choiceSubfield.code);
         
         if (typeof currentSubfield === "undefined") {
@@ -3405,6 +3412,7 @@ function keyupAuthLookup(event) {
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
     addButton.addEventListener("click", async function() {
+        // creates the new authority
         subfield.xrefCell.innerHTML = null;
         let spinner = document.createElement("i");
         spinner.className = "fa fa-spinner";
