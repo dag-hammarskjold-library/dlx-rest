@@ -3018,6 +3018,9 @@ export let multiplemarcrecordcomponent = {
                     valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
                     valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
 
+                    // strip "control" characters
+                    valSpan.innerText = valSpan.innerText.replace(/[\u0000-\u001F]/g, "");
+
                     // do the update and checks
                     updateSubfieldValue();
                 });
