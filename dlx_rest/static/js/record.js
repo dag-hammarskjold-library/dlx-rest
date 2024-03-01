@@ -415,7 +415,7 @@ export let multiplemarcrecordcomponent = {
             }
             console.log(`checked? ${field.checked}`)
         },
-        async saveRecord(jmarc, display=true){
+        async saveRecord(jmarc, display=true) {
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -423,6 +423,18 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
+                // prevent save if any auth controlled subfields are blank
+                for (let field of jmarc.getDataFields()) {
+                    for (let subfield of field.subfields) {
+                        if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                            if (! subfield.xref) {
+                                this.callChangeStyling("Can't save blank authority-controlled subfield", "d-flex w-100 alert-danger")
+                                return
+                            }
+                        }
+                    }
+                }
+
                 // get rid of empty fields and validate
                 let flags = jmarc.validationWarnings();
                 
@@ -3367,6 +3379,19 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.xrefCell.append(xrefLink); 
     }
 
+    // remove any existing auth controlled subfields that aren't in the new selection
+    const inChoiceCodes = choice.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    for (const subfield of field.subfields) {
+        if (authControlledCodes.includes(subfield.code) && ! inChoiceCodes.includes(subfield.code)) {
+            // Remove the subfield from the field
+            field.deleteSubfield(subfield);
+            // Remove the subfield row from the table
+            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+        }
+    }
+
     // trigger unsaved changes detection and update events
     field.ind1Span.focus();
     field.ind2Span.focus();
@@ -3388,7 +3413,7 @@ function keyupAuthLookup(event) {
 
     if (event.type === "input") {
         if (dropdown && dropdown.list) {
-            // the drodpwn list is being navigated. not sure why it triggers the inupt event
+            // the dropdown list is being navigated. not sure why it triggers the inupt event
             return
         }
 
@@ -3487,8 +3512,11 @@ function keyupAuthLookup(event) {
             }
         )
     });
- 
-    if (subfield.value) {
+    
+    const inFieldCodes = field.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    if (subfield.value || (authControlledCodes.length > 1 && inFieldCodes.every(x => authControlledCodes.includes(x)))) {
         subfield.timer = setTimeout(
             function () {
                 let dropdown = document.createElement("div");
