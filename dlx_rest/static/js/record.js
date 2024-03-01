@@ -3516,7 +3516,7 @@ function keyupAuthLookup(event) {
     const inFieldCodes = field.subfields.map(x => x.code);
     const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
 
-    if (subfield.value || (authControlledCodes.length > 1 && authControlledCodes.every(x => inFieldCodes.includes(x)))) {
+    if (subfield.value || (authControlledCodes.length > 1 && inFieldCodes.every(x => authControlledCodes.includes(x)))) {
         subfield.timer = setTimeout(
             function () {
                 let dropdown = document.createElement("div");
