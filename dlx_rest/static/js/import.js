@@ -144,7 +144,7 @@ export let importcomponent = {
                             /* This is supposed to check to see if you have unmatched or ambiguous authorities,
                                which prevents import because it will cause an error. It's not *quite* doing what
                                it's intended to do, because it fails to match on existing authorities unless 
-                               they are single field, single word matches 
+                               they are single field, single word matches */
                             for (let field of jmarc.fields) {
                                 let auth = jmarc.authMap[field.tag]
                                 if (auth) {
@@ -165,7 +165,7 @@ export let importcomponent = {
                                     })
                                 }   
                             }
-                            */
+                            /* */
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors})
                         }
                     })

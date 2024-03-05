@@ -768,6 +768,7 @@ def update_file():
 #@requires_permission('importMarc')
 def import_marc():
     this_prefix = url_for('doc', _external=True)
+    print(this_prefix)
     return render_template('import_marc.html', api_prefix=this_prefix)
 
 @app.route('/reports/dashboard01', methods=["GET"])
