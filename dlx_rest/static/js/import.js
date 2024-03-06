@@ -157,9 +157,8 @@ export let importcomponent = {
                                             newSub.value = subfield.value
                                         }
                                     }
-                                    thisAuth.authHeadingInUse().then( authHeadingInUse => {
-                                        console.log(thisAuth, authHeadingInUse)
-                                        if (!authHeadingInUse) {
+                                    thisAuth.authExists().then( authExists => {
+                                        if (!authExists) {
                                             validationErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()} has an unmatched or ambiguous authority value. Create the authority record or edit this record before importing.`})
                                         }
                                     })

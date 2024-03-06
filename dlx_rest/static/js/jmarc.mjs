@@ -1197,6 +1197,35 @@ export class Jmarc {
 		}
 	}
 
+	async authExists() {
+		/*
+		Similar to authHeadingInUse, but doesn't care about returning ambiguous results.
+
+		We want this to evaluate to true, but don't need regex since we already have 
+		other ways to force exact matching.
+		*/
+		if (this.collection !== "auths") return
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+		
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ")
+
+		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 1) {
+			return true
+		} else {
+			return false
+		}
+	}
+
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return
 
@@ -1208,7 +1237,7 @@ export class Jmarc {
     	    headingField.subfields
 			// regex ensures exact match
 			// there is no builtin method to escape regex in JS?
-    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`)
+    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()\\/|[\]\\]/g, "\\$&")}$/`)
     	    .join(" AND ");
 
     	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
