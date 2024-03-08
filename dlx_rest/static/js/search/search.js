@@ -186,6 +186,9 @@ export let searchcomponent = {
                     <div class="row" v-for="agenda in result.agendas">
                         <span class="ml-3">{{agenda}}</span>
                     </div>
+                    <div class="row" v-for="v in result.f596">
+                        <span class="ml-3">{{v}}</span>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
