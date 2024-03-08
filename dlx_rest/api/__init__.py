@@ -257,7 +257,7 @@ class RecordsList(Resource):
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
-            tags = ['269', '700', '710', '711', '791', '991', '992']
+            tags = ['269', '569', '700', '710', '711', '791', '991', '992']
            
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
