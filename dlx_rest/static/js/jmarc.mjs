@@ -1117,9 +1117,9 @@ export class Jmarc {
 		
 		let searchStr = 
     	    headingField.subfields
-			// regex ensures exact match
-			// there is no builtin method to escape regex in JS?
-    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`)
+			// regex ensures exact match since db collation may be set to case-insenstive
+			// there is no builtin method to escape regex in JS? https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()\\/|[\]\\]/g, "\\$&")}$/`)
     	    .join(" AND ");
 
     	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
