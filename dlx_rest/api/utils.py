@@ -237,12 +237,22 @@ def brief_speech(record):
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
+    alt_field = '; '.join(record.get_values(alt_tag))
+
+    if record.heading_field.tag == '191':
+        f491 = '; '.join(record.get_values('491','a','b','c','d'))
+        f591 = '; '.join(record.get_values('591','a','b','c','d'))
+        heading_alt_ary = []
+        for f in [f491, f591]:
+            if len(f) > 0:
+                heading_alt_ary.append(f)
+        alt_field = '; '.join(heading_alt_ary)
 
     return {
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
-        'alt': '; '.join(record.get_values(alt_tag, 'a')),
+        'alt': alt_field,
         'heading_tag': record.heading_field.tag
     }
 
