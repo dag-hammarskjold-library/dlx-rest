@@ -206,8 +206,7 @@ def brief_bib(record):
     f596 = []
     if "Speeches" in ctypes:
         agendas = [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
-        f596 = '; '.join(record.get_values('596','a'))
-        print(f596)
+        f596 = [' '.join(field.get_values('a')) for field in record.get_fields('596')]
 
     return {
         '_id': record.id,

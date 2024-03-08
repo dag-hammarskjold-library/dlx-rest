@@ -186,8 +186,8 @@ export let searchcomponent = {
                     <div class="row" v-for="agenda in result.agendas">
                         <span class="ml-3">{{agenda}}</span>
                     </div>
-                    <div class="row" v-for="v in result.f596">
-                        <span class="ml-3">{{v}}</span>
+                    <div class="row" v-for="val in result.f596">
+                        <span class="ml-3">{{val}}</span>
                     </div>
                 </div>
                 <div class="col-sm-1">
@@ -418,6 +418,7 @@ export let searchcomponent = {
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
+                            myResult["f596"] = result["f596"]
                         }
                     } else if (component.collection == "auths") {
                         myResult["first_line"] = result["heading"]
