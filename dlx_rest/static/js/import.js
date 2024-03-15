@@ -44,10 +44,15 @@ export let importcomponent = {
                 </div>
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
-                    <div class="col-sm-1"><input type="checkbox"></div>
+                    <div class="col-sm-1">
+                        <input v-if="record['fatalErrors'].length == 0" type="checkbox">
+                    </div>
                     <div class="col-sm-9">
-                        <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-danger">
+                        <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-warning">
                             <div v-for="flag in record['validationErrors']">{{flag.message}}</div>
+                        </div>
+                        <div v-if="showErrors && record['fatalErrors'].length > 0" class="alert alert-danger">
+                            <div v-for="flag in record['fatalErrors']">{{flag.message}}</div>
                         </div>
                         <!-- use this for debugging
                         <div><pre>{{record['mrk']}}</pre></div>
@@ -60,8 +65,9 @@ export let importcomponent = {
                         </div>
                     </div>
                     <div class="col-sm-2">
-                        <a v-if="record['jmarc'].recordId == undefined" class="btn btn-primary" @click="submit($event, record)">Import</a>
-                        <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span>
+                        <a v-if="record['jmarc'].recordId == undefined && record['fatalErrors'] == 0" class="btn btn-primary" @click="submit($event, record)">Import</a>
+                        <a v-if="record['fatalErrors'].length > 0" class="btn btn-primary disabled">Cannot Import</a>
+                        <!-- <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span> -->
                     </div>
                 </div>
             </div>
@@ -131,14 +137,14 @@ export let importcomponent = {
                         // 1. Is there a duplicate symbol? If so, warn but allow import.
                         // 2. Do all the auth controlled fields match existing auth 
                         //    records? If not, error and prevent import.
-                        let validationErrors = jmarc.allValidationWarnings().filter((x) => !x.message.includes("indicators"))
-                        let fatalErrors = false
+                        //let validationErrors = jmarc.allValidationWarnings().filter((x) => !x.message.includes("indicators"))
+                        let validationErrors = []
+                        let fatalErrors = []
                         if (jmarc.fields.length > 0) {
                             jmarc.symbolInUse().then( symbolInUse => {
                                 if (symbolInUse) {
                                     this.issues += 1
                                     validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
-                                    fatalErrors = true
                                 }
                             })
                             /* This is supposed to check to see if you have unmatched or ambiguous authorities,
@@ -159,13 +165,14 @@ export let importcomponent = {
                                     }
                                     thisAuth.authExists().then( authExists => {
                                         if (!authExists) {
-                                            validationErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()} has an unmatched or ambiguous authority value. Create the authority record or edit this record before importing.`})
+                                            fatalErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()} has an unmatched or ambiguous authority value. Create the authority record or edit this record before importing.`})
                                         }
                                     })
                                 }   
                             }
                             /* */
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors})
+                            //console.log(fatalErrors)
                         }
                     })
                 }
