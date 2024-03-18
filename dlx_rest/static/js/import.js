@@ -4,7 +4,7 @@ export let importcomponent = {
     props: ["api_prefix"],
     template: `
     <div id="foo" class="container">
-        <div v-if="!review">
+        <div v-if="state == 'init'">
             <h4>Import Records</h4>
             <div @drop.prevent @dragover.prevent @click="handleClick">
                 <div class="text-center" @dragenter="handleDragEnter" @dragleave="handleDragLeave" @drop="handleDrop" style="border: 3px dashed #dadfe3; border-radius: 15px;">
@@ -16,7 +16,7 @@ export let importcomponent = {
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div class="row" v-if="state == 'preview'">
             <div class="container">
                 <div class="row">
                     <div v-if="records.length > 0" class="col alert alert-warning">
@@ -26,7 +26,7 @@ export let importcomponent = {
                     </div>
                 </div>
                 <div v-if="records.length > 0" class="row py-2 border-bottom">
-                    <div class="col-sm-2">Select <a href="#">All</a> | <a href="#">None</a></div>
+                    <div class="col-sm-2">Select <a href="#" @click="selectAll">All</a> | <a href="#"@click="selectNone">None</a></div>
                     <div class="col">    
                         <form class="form">
                             <div class="input-group">
@@ -45,7 +45,7 @@ export let importcomponent = {
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1">
-                        <input v-if="record['fatalErrors'].length == 0" type="checkbox">
+                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox">
                     </div>
                     <div class="col-sm-9">
                         <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-warning">
@@ -64,12 +64,12 @@ export let importcomponent = {
                             </span>
                         </div>
                     </div>
-                    <div class="col-sm-2">
-                        <a v-if="record['jmarc'].recordId == undefined && record['fatalErrors'] == 0" class="btn btn-primary" @click="submit($event, record)">Import</a>
-                        <a v-if="record['fatalErrors'].length > 0" class="btn btn-primary disabled">Cannot Import</a>
-                        <!-- <span v-else>Imported: {{uiBase}}/editor?records={{record['jmarc'].collection}}/{{record['jmarc'].recordId}}</span> -->
-                    </div>
                 </div>
+            </div>
+        </div>
+        <div v-if="state == 'review'">
+            <div v-for="record in records">
+                <div v-if="record.id">{{record.id}}</div>
             </div>
         </div>
     </div>`,
@@ -81,7 +81,7 @@ export let importcomponent = {
             accept: ".mrk, .xml",
             fileList: [],
             records: [],
-            review: false,
+            state: "init",
             showPreviewModal: false,
             issues: 0,
             uiBase: "",
@@ -126,7 +126,7 @@ export let importcomponent = {
             (this.records) and show validation errors, as well as an import 
             button.
             */
-            this.review = true
+            this.state = "preview"
             const reader = new FileReader()
             let fileText = ""
             reader.readAsText(file)
@@ -178,6 +178,16 @@ export let importcomponent = {
                 }
             }
             
+        },
+        selectAll() {
+            for (let el of document.getElementsByClassName("checkbox")) {
+                el.checked = true
+            }
+        },
+        selectNone() {
+            for (let el of document.getElementsByClassName("checkbox")) {
+                el.checked = false
+            }
         },
         submit(e, record) {
             let binary = new Blob([record['mrk']])
