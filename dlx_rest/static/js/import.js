@@ -4,19 +4,21 @@ export let importcomponent = {
     props: ["api_prefix"],
     template: `
     <div id="foo" class="container">
+        <h4>Import Records</h4>
         <div v-if="state == 'init'">
-            <h4>Import Records</h4>
+            <h5>Select Files</h5>
             <div @drop.prevent @dragover.prevent @click="handleClick">
                 <div class="text-center" @dragenter="handleDragEnter" @dragleave="handleDragLeave" @drop="handleDrop" style="border: 3px dashed #dadfe3; border-radius: 15px;">
                     <h4 class="text-uppercase text-secondary mt-2" style="pointer-events:none;">Drag and Drop</h4>
                     <p class="text-center" style="pointer-events:none;">or</p>
-                    <p class="text-center" style="pointer-events:none;"><a class="btn btn-success text-light">Click here to browse</a></p>
+                    <p class="text-center" style="pointer-events:none;"><button type="button" class="btn btn-success text-light">Click here to browse</button></p>
                     <input v-if="importType == 'records'" id="import" ref="import" type="file" style="opacity: 0; pointer-events:none;" @change="handleChange" :accept="accept" />
                     <input v-else id="import" ref="import" type="file" multiple="" style="opacity: 0; pointer-events:none;" @change="handleChange" :accept="accept" />
                 </div>
             </div>
         </div>
-        <div class="row" v-if="state == 'preview'">
+        <div v-if="state == 'preview'">
+            <h5>Preview</h5>
             <div class="container">
                 <div class="row">
                     <div v-if="records.length > 0" class="col alert alert-warning">
@@ -45,7 +47,7 @@ export let importcomponent = {
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1">
-                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox">
+                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="record.checked = !record.checked">
                     </div>
                     <div class="col-sm-9">
                         <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-warning">
@@ -65,11 +67,18 @@ export let importcomponent = {
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="ml-auto mb-4">
+                        <button type="button" class="btn btn-secondary" @click="records = []; state = 'init'">Start Over</button>
+                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div v-if="state == 'review'">
+            <h5>Review</h5>
             <div v-for="record in records">
-                <div v-if="record.id">{{record.id}}</div>
+                <div v-if="record.jmarc.recordId">{{record.jmarc.recordId}}</div>
             </div>
         </div>
     </div>`,
@@ -171,7 +180,7 @@ export let importcomponent = {
                                 }   
                             }
                             /* */
-                            this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors})
+                            this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
                             //console.log(fatalErrors)
                         }
                     })
@@ -180,26 +189,38 @@ export let importcomponent = {
             
         },
         selectAll() {
-            for (let el of document.getElementsByClassName("checkbox")) {
-                el.checked = true
+            for (let record of this.records) {
+                if (record.fatalErrors.length == 0) {
+                    record.checked = true
+                }
             }
         },
         selectNone() {
-            for (let el of document.getElementsByClassName("checkbox")) {
-                el.checked = false
+            for (let record of this.records) {
+                record.checked = false
             }
         },
-        submit(e, record) {
+        submitSelected() {
+            this.state = "review"
+            for (let record of this.records) {
+                if (record.checked) {
+                    console.log("Submitting record...")
+                    this.submit(record)
+                }
+            }
+        },
+        submit(record) {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
             // Only allow one click, so we don't accidentally post multiple records
-            e.target.classList.add("disabled")            
+            //e.target.classList.add("disabled")            
             jmarc.post_mrk(binary).then(
                 response => {
                     jmarc.recordId = response.recordId
                     return response
                 }
             )
+            return 0
         },
         filterView(e) {
             let values = [e.target.value]
