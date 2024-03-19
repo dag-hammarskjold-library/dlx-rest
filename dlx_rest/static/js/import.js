@@ -90,7 +90,7 @@ export let importcomponent = {
             <h5>Review</h5>
             <div v-for="record in records">
                 <div v-if="record.jmarc.recordId">
-                    <a href="">{{record.jmarc.recordId}}</a><br>
+                    Imported record ID: <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a><br>
                     <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
                         <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
                         <span v-for="subfield in field.subfields">
@@ -99,6 +99,7 @@ export let importcomponent = {
                     </div>
                 </div>
             </div>
+            <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
         </div>
     </div>`,
     data: function () { 
