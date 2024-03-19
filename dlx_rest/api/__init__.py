@@ -617,9 +617,11 @@ class Record(Resource):
             symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
             isbns = record.get_values('020', 'a')
             isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+            # Get files by original URI which was logged in the Archive-It system
+            uris = record.get_values('561', 'u')
             all_files = []
             
-            for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
+            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
                 for id_value in id_values:
                     langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
                     this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))

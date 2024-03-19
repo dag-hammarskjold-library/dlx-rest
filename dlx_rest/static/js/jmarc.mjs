@@ -324,7 +324,7 @@ export class DataField {
 	
 	async lookup() {
 		let collection = this instanceof BibDataField ? "bibs" : "auths";
-		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${x.code}=${x.value}`}).join("&");
+		let lookupString = this.subfields.filter(x => x.value).map(x => {return `${encodeURIComponent(x.code)}=${encodeURIComponent(x.value)}`}).join("&");
 		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
 
 		// determine the lookup type
@@ -1235,12 +1235,12 @@ export class Jmarc {
 		
 		let searchStr = 
     	    headingField.subfields
-			// regex ensures exact match
-			// there is no builtin method to escape regex in JS?
+			// regex ensures exact match since db collation may be set to case-insenstive
+			// there is no builtin method to escape regex in JS? https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
     	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()\\/|[\]\\]/g, "\\$&")}$/`)
     	    .join(" AND ");
 
-    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + searchStr;
+    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);
 		let res = await fetch(url);
 		let json = await res.json();
 		let count = json['data'];
@@ -1254,7 +1254,7 @@ export class Jmarc {
 		} else {
 			// other auths that have the same subfield value(s) in the heading, but
 			// could have additional subfields that make it unique
-			let url = Jmarc.apiUrl + "/marc/auths/records?search=" + searchStr + '&limit=' + count;
+			let url = Jmarc.apiUrl + "/marc/auths/records?search=" + encodeURIComponent(searchStr) + '&limit=' + encodeURIComponent(count);
 
 			let matches = await fetch(url)
     	    	.then(response => {
