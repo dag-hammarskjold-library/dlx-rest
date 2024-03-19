@@ -7,6 +7,16 @@ export let importcomponent = {
         <h4>Import Records</h4>
         <div v-if="state == 'init'">
             <h5>Select Files</h5>
+            <p>Ensure that all records in the file are of the same type (bibs or auths).</p>
+            <div class="row mb-2">
+                <div class="col">
+                    Select Collection:
+                    <select class="form-select" aria-label="Set Collection" @change="setCollection">
+                        <option value="bibs">Bibs</option>
+                        <option value="auths">Auths</option>
+                    </select>
+                </div>
+            </div>
             <div @drop.prevent @dragover.prevent @click="handleClick">
                 <div class="text-center" @dragenter="handleDragEnter" @dragleave="handleDragLeave" @drop="handleDrop" style="border: 3px dashed #dadfe3; border-radius: 15px;">
                     <h4 class="text-uppercase text-secondary mt-2" style="pointer-events:none;">Drag and Drop</h4>
@@ -22,9 +32,10 @@ export let importcomponent = {
             <div class="container">
                 <div class="row">
                     <div v-if="records.length > 0" class="col alert alert-warning">
-                        Records that can be imported with no issue: {{records.length - issues}}/{{records.length}}
-                        <br/>
-                        Records that have issues: {{issues}}/{{records.length}}
+                        Target collection: {{collection}} <br>
+                        Records detected: {{records.length}} <br>
+                        Records with fatal errors preventing import: {{unimportableRecords}}<br>
+                        Invalid records that can still be imported: {{invalidRecords}}
                     </div>
                 </div>
                 <div v-if="records.length > 0" class="row py-2 border-bottom">
@@ -42,7 +53,7 @@ export let importcomponent = {
                             
                         </form>
                     </div>
-                    <div class="col-sm-2">{{records.length}} records</div>
+                    <div class="col-sm-2">{{records.length}} {{this.collection.replace("s","")}} record(s)</div>
                 </div>
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
@@ -69,7 +80,7 @@ export let importcomponent = {
                 </div>
                 <div class="row">
                     <div class="ml-auto mb-4">
-                        <button type="button" class="btn btn-secondary" @click="records = []; state = 'init'">Start Over</button>
+                        <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
                         <button type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
                     </div>
                 </div>
@@ -78,7 +89,15 @@ export let importcomponent = {
         <div v-if="state == 'review'">
             <h5>Review</h5>
             <div v-for="record in records">
-                <div v-if="record.jmarc.recordId">{{record.jmarc.recordId}}</div>
+                <div v-if="record.jmarc.recordId">
+                    <a href="">{{record.jmarc.recordId}}</a><br>
+                    <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                        <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                        <span v-for="subfield in field.subfields">
+                            <code>\${{subfield.code}}</code>{{subfield.value}}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>`,
@@ -89,6 +108,7 @@ export let importcomponent = {
             // And choose different kinds of uploads we want to accept
             accept: ".mrk, .xml",
             fileList: [],
+            collection: "bibs",
             records: [],
             state: "init",
             showPreviewModal: false,
@@ -101,7 +121,36 @@ export let importcomponent = {
         Jmarc.apiUrl = this.api_prefix
         this.uiBase = this.api_prefix.replace("/api", "")
     },
+    computed: {
+        unimportableRecords: function () {
+            let count = 0
+            for (let record of this.records) {
+                if (record.fatalErrors.length > 0) {
+                    count = count + 1
+                }
+            }
+            return count
+        },
+        invalidRecords: function () {
+            let count = 0
+            for (let record of this.records) {
+                if (record.validationErrors.length > 0 && record.fatalErrors.length === 0) {
+                    count = count + 1
+                }
+            }
+            return count
+        }
+    },
     methods: {
+        reinitApp: function () {
+            this.records = []
+            this.showErrors=false
+            this.state = 'init'
+            this.collection = "bibs"
+        },
+        setCollection: function (e) {
+            this.collection = e.target.value
+        },
         handleChange: function () {
             // This replaces the list of files each time. It would be better to concatenate...
             this.fileList = [...this.$refs.import.files]
@@ -130,10 +179,8 @@ export let importcomponent = {
         parse(file) {
             /* 
             Take the file and split it, in case it contains multiple records,
-            then attempt to validate the MARC using either jmarc.mjs (preferred)
-            OR dlx (via the dlx_rest API). Display the results onscreen 
-            (this.records) and show validation errors, as well as an import 
-            button.
+            then check if all authorities exist and that it's not a duplicate
+            symbol.
             */
             this.state = "preview"
             const reader = new FileReader()
@@ -141,12 +188,11 @@ export let importcomponent = {
             reader.readAsText(file)
             reader.onload = (res) => {
                 for (let mrk of res.target.result.split(/[\r\n]{2,}/)) {
-                    Jmarc.fromMrk(mrk, "bibs").then( jmarc => {
+                    Jmarc.fromMrk(mrk, this.collection).then( jmarc => {
                         // The only classes of validation errors we care about are:
                         // 1. Is there a duplicate symbol? If so, warn but allow import.
                         // 2. Do all the auth controlled fields match existing auth 
                         //    records? If not, error and prevent import.
-                        //let validationErrors = jmarc.allValidationWarnings().filter((x) => !x.message.includes("indicators"))
                         let validationErrors = []
                         let fatalErrors = []
                         if (jmarc.fields.length > 0) {
@@ -156,10 +202,6 @@ export let importcomponent = {
                                     validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
                                 }
                             })
-                            /* This is supposed to check to see if you have unmatched or ambiguous authorities,
-                               which prevents import because it will cause an error. It's not *quite* doing what
-                               it's intended to do, because it fails to match on existing authorities unless 
-                               they are single field, single word matches */
                             for (let field of jmarc.fields) {
                                 let auth = jmarc.authMap[field.tag]
                                 if (auth) {
@@ -179,9 +221,7 @@ export let importcomponent = {
                                     })
                                 }   
                             }
-                            /* */
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
-                            //console.log(fatalErrors)
                         }
                     })
                 }
