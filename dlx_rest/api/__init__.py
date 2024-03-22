@@ -250,14 +250,14 @@ class RecordsList(Resource):
             abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
-            tags = ['191', '245', '269', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
+            tags = ['191', '245', '269', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
                 else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
-            tags = ['269', '700', '710', '711', '791', '991', '992']
+            tags = ['269', '596', '700', '710', '711', '791', '991', '992']
            
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
