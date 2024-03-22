@@ -3,6 +3,7 @@ import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
+import { exportmodal } from "../modals/export.js";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -155,6 +156,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
             <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+            <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i></a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
@@ -215,6 +217,7 @@ export let searchcomponent = {
                 <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
+        <exportmodal ref="exportmodal" :links="this.links.format"></exportmodal>
     </div>`,
     data: function () {
         let myParams = this.search_url.split("?")[1];
@@ -812,10 +815,15 @@ export let searchcomponent = {
             let toggleButton = document.getElementById("preview-toggle-" + recordId);
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
+        },
+        showExportModal() {
+            console.log(this.links.format)
+            this.$refs.exportmodal.show()
         }
     },
     components: {
         'sortcomponent': sortcomponent, 
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'exportmodal': exportmodal
     }
 }
