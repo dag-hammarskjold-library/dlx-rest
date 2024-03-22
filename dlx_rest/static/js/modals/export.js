@@ -19,6 +19,14 @@ export let exportmodal = {
                         <span class="sr-only">Loading...</span>
                     </div>
                 </div>
+              <div class="container" id="format-select">
+                Select format
+                <ul class="list-group list-group-horizontal-sm">
+                  <li class="list-group-item">CSV</li>
+                  <li class="list-group-item">MRK</li>
+                  <li class="list-group-item">XML</li>
+                </ul>
+              </div>
               <div id="preview-text" class="modal-body"></div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" @click="showModal = false">Close</button>
