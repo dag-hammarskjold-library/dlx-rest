@@ -698,6 +698,40 @@ export class Jmarc {
         }
         return true;
     }
+
+	static async fromMrk(mrk, collection="bibs") {
+		let jmarc = new Jmarc(collection)
+		for (let line of mrk.split("\n")) {
+			let match = line.match(/=(\w{3})  (.*)/)
+			if (match != null){
+				let tag = match[1]
+				let rest = match[2]
+				if (tag == 'LDR') { 
+					tag = '000' 
+				}
+				let field = jmarc.createField(tag)
+				if (field instanceof BibDataField || field instanceof AuthDataField) {
+					let indicators = rest.substring(0,2).replace(/\\/g, " ")
+					jmarc.indicators = [indicators.charAt(0), indicators.charAt(1)]
+					for (let subfield of rest.substring(2, rest.length).split("$")) {
+						if (subfield.length > 0) {
+							let code = subfield.substring(0,1)
+							let value = subfield.substring(1, subfield.length)
+							
+							if (code.length > 0 && value.length > 0) {
+								let newSub = field.createSubfield(code)
+								newSub.value = value						
+							}
+						}
+					}
+				} else {
+					field.value = rest
+				}
+			}
+		}
+
+		return jmarc
+	}
     
     async post() {
 		if (this.recordId) {
@@ -740,6 +774,39 @@ export class Jmarc {
 				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
+		    error => { throw new Error(error) }
+		)
+	}
+
+	async post_mrk(content) {
+		let savedResponse
+		const formData = new FormData()
+		return fetch (
+			this.collectionUrl + '/records?format=mrk',
+			{
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: content
+			}
+		).then (
+			response => {
+				savedResponse = response
+				return response.json()
+			}
+		).then (
+			json => {
+				//console.log(json)
+				if (savedResponse.status != 201) {
+					throw new Error(json['message'])
+				}
+
+				this.url = json['result'];
+				this.recordId = parseInt(this.url.split('/').slice(-1));
+				this.updateSavedState();
+				
+				return Jmarc.get(this.collection, this.recordId)
+			}
+		).catch (
 		    error => { throw new Error(error) }
 		)
 	}
@@ -1106,6 +1173,57 @@ export class Jmarc {
 		});
 
 		return flags.flat()
+	}
+
+	async symbolInUse() {
+		// Determine if a symbol is already being used.
+		if (this.collection !== "bibs") return
+		
+		// There should be only one field?
+		let symbolField = (this.fields.filter(x => ['191','791'].includes(x.tag)) || [null])[0]
+		if (! symbolField) return
+
+		let searchStr = `symbol:/^${symbolField.getSubfield("a").value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+	
+		let url = Jmarc.apiUrl + "/marc/bibs/records/count?search=" + searchStr
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 0) {
+			return false
+		} else {
+			return true
+		}
+	}
+
+	async authExists() {
+		/*
+		Similar to authHeadingInUse, but doesn't care about returning ambiguous results.
+
+		We want this to evaluate to true, but don't need regex since we already have 
+		other ways to force exact matching.
+		*/
+		if (this.collection !== "auths") return
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+		
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ")
+
+		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 1) {
+			return true
+		} else {
+			return false
+		}
 	}
 
 	async authHeadingInUse() {

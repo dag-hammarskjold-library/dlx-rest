@@ -364,13 +364,19 @@ class RecordsList(Resource):
         user = current_user if request_loader(request) is None else request_loader(request)
 
         if args.format == 'mrk':
-            
             record = cls.from_mrk(request.data.decode())
             if not has_permission(user, "createRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:    
-                record.commit(user=user.username)
+                result = record.commit(user=user.username)
+
+                if result:
+                    data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                    return data, 201
+                else:
+                    abort(500, 'POST request failed for unknown reasons')
+            
             except Exception as e:
                 abort(400, str(e))
         else:
