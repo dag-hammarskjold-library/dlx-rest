@@ -22,12 +22,16 @@ export let exportmodal = {
               <div class="container" id="format-select">
                 Select format
                 <ul class="list-group list-group-horizontal-sm">
-                  <li class="list-group-item">CSV</li>
-                  <li class="list-group-item">MRK</li>
-                  <li class="list-group-item">XML</li>
+                  <li class="list-group-item"><a @click="setFormat('csv')">CSV</a></li>
+                  <li class="list-group-item"><a @click="setFormat('mrk')">MRK</a></li>
+                  <li class="list-group-item"><a @click="setFormat('xml')">XML</a></li>
                 </ul>
               </div>
-              <div id="preview-text" class="modal-body"></div>
+              <div id="preview-text" class="modal-body">
+                <div v-for="record in results">
+                  {{record.toString()}}
+                </div>
+              </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" @click="showModal = false">Close</button>
               </div>
@@ -39,29 +43,23 @@ export let exportmodal = {
   </div>`,
     data: function() {
         return {
-            collection: null,
-            recordId: null,
             showModal: false,
-            record: null,
-            showSpinner: false
+            showSpinner: false,
+            selectedExportUrl: this["links"],
+            results: []
         }
     },
     methods: {
         show: async function() {
-            Jmarc.apiUrl = this.api_prefix
-            if (this.collection && this.recordId) {
-                this.showSpinner = true
-                Jmarc.get(this.collection, this.recordId).then(jmarc => {
-                    // The normal way to set things like this is to use a reactive data property
-                    // But we can also just set the innerText to what we get here, which preserves
-                    // the newline characters
-                    let previewText = document.getElementById("preview-text")
-                    previewText.innerText = jmarc.toStr()
-                }).then( () => {this.showSpinner = false})
-            } else {
-                this.showModal = false
-            }
             this.showModal = true
+        },
+        setFormat(format) {
+          let exportUrl = this["links"][format.toUpperCase()]
+          let previewUrl = this["links"]["brief"].replace(/\&limit=\d{1,3}/, "&limit=5")
+          fetch(previewUrl).then(response => response.json().then( jsonData => {
+            console.log(jsonData)
+            this.results = jsonData.data
+          }))
         }
     }
 }
