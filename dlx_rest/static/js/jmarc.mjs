@@ -147,6 +147,41 @@ export class Subfield {
 
 		return flags
 	}
+
+	async detectAndSetXref() {
+		/* Tries to look up and set the subfield xref given the subfield value.
+		Sets xref to an error object if the xref is not found or ambiguous */
+
+		const field = this.parentField;
+		const jmarc = field.parentRecord;
+		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
+
+		if (isAuthorityControlled) {
+			const searchStr = 
+				field.subfields
+				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
+				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
+				.join(" AND ");
+
+			const xref = await fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
+				.then(response => response.json())
+				.then(json => {
+					const recordsList = json['data'];
+					
+					if (recordsList.length === 0) {
+						return new Error("Unmatched heading")
+					} else if (recordsList.length > 1) {
+						return new Error("Ambiguous heading")
+					} else {
+						// the xref
+						return json['data']['_id']
+					}
+				}).catch(error => {throw error})
+
+			this.xref = xref
+			return xref
+		}
+	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -701,31 +736,35 @@ export class Jmarc {
 
 	static async fromMrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
+
 		for (let line of mrk.split("\n")) {
 			let match = line.match(/=(\w{3})  (.*)/)
+			
 			if (match != null){
 				let tag = match[1]
 				let rest = match[2]
 				if (tag == 'LDR') { 
 					tag = '000' 
 				}
-				let field = jmarc.createField(tag)
-				if (field instanceof BibDataField || field instanceof AuthDataField) {
+
+				let field = jmarc.createField(tag);
+				if (field instanceof(ControlField)) {
+					field.value = rest;
+					continue
+				} else {
 					let indicators = rest.substring(0,2).replace(/\\/g, " ")
-					jmarc.indicators = [indicators.charAt(0), indicators.charAt(1)]
+					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
 					for (let subfield of rest.substring(2, rest.length).split("$")) {
 						if (subfield.length > 0) {
 							let code = subfield.substring(0,1)
 							let value = subfield.substring(1, subfield.length)
-							
 							if (code.length > 0 && value.length > 0) {
 								let newSub = field.createSubfield(code)
-								newSub.value = value						
+								newSub.value = value
+								await newSub.detectAndSetXref();
 							}
 						}
 					}
-				} else {
-					field.value = rest
 				}
 			}
 		}
@@ -774,39 +813,6 @@ export class Jmarc {
 				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
-		    error => { throw new Error(error) }
-		)
-	}
-
-	async post_mrk(content) {
-		let savedResponse
-		const formData = new FormData()
-		return fetch (
-			this.collectionUrl + '/records?format=mrk',
-			{
-				method: 'POST',
-				headers: {'Content-Type': 'application/json'},
-				body: content
-			}
-		).then (
-			response => {
-				savedResponse = response
-				return response.json()
-			}
-		).then (
-			json => {
-				//console.log(json)
-				if (savedResponse.status != 201) {
-					throw new Error(json['message'])
-				}
-
-				this.url = json['result'];
-				this.recordId = parseInt(this.url.split('/').slice(-1));
-				this.updateSavedState();
-				
-				return Jmarc.get(this.collection, this.recordId)
-			}
-		).catch (
 		    error => { throw new Error(error) }
 		)
 	}

@@ -196,34 +196,28 @@ export let importcomponent = {
                         //    records? If not, error and prevent import.
                         let validationErrors = []
                         let fatalErrors = []
+                        
                         if (jmarc.fields.length > 0) {
                             jmarc.symbolInUse().then( symbolInUse => {
                                 if (symbolInUse) {
                                     this.issues += 1
                                     validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
                                 }
-                            })
-                            for (let field of jmarc.fields) {
-                                let auth = jmarc.authMap[field.tag]
-                                if (auth) {
-                                    let headingTag = Object.values(auth)[0] 
-                                    let thisAuth = new Jmarc("auths")
-                                    let newField = thisAuth.createField(headingTag)
-                                    for (let subfield of field.subfields) {
-                                        if (Object.keys(auth).includes(subfield.code)) {
-                                            let newSub = newField.createSubfield(subfield.code)
-                                            newSub.value = subfield.value
-                                        }
+                            });
+
+                            for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                                for (let subfield of field.subfields.filter(x => 'xref' in x)) {
+                                    if (subfield.xref instanceof Error) {
+                                        // unresolved xrefs are set to an Error object
+                                        fatalErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()}`})
                                     }
-                                    thisAuth.authExists().then( authExists => {
-                                        if (!authExists) {
-                                            fatalErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()} has an unmatched or ambiguous authority value. Create the authority record or edit this record before importing.`})
-                                        }
-                                    })
-                                }   
+                                }
                             }
+
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
                         }
+                    }).catch(error => {
+                        throw error
                     })
                 }
             }
@@ -250,18 +244,12 @@ export let importcomponent = {
                 }
             }
         },
-        submit(record) {
+        async submit(record) {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
             // Only allow one click, so we don't accidentally post multiple records
             //e.target.classList.add("disabled")            
-            jmarc.post_mrk(binary).then(
-                response => {
-                    jmarc.recordId = response.recordId
-                    return response
-                }
-            )
-            return 0
+            return jmarc.post()
         },
         filterView(e) {
             let values = [e.target.value]
