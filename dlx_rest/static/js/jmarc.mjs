@@ -157,6 +157,8 @@ export class Subfield {
 		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
 
 		if (isAuthorityControlled) {
+			
+
 			const searchStr = 
 				field.subfields
 				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
@@ -173,8 +175,9 @@ export class Subfield {
 					} else if (recordsList.length > 1) {
 						return new Error("Ambiguous heading")
 					} else {
-						// the xref
-						return json['data']['_id']
+						// get the xref from the URL
+						const parts = recordsList[0].split("/");
+						return parts[parts.length - 1]
 					}
 				}).catch(error => {throw error})
 
@@ -238,7 +241,7 @@ export class DataField {
 					this.parentRecord.deleteField(this);
 				}
             } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
-                throw new Error("Invalid authority-controlled value")
+                throw new Error(`Invalid authority-controlled value: ${this.tag} ${subfield.code} ${subfield.value}`)
             }
         }
 	}

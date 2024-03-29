@@ -250,6 +250,10 @@ export let importcomponent = {
             // Only allow one click, so we don't accidentally post multiple records
             //e.target.classList.add("disabled")            
             return jmarc.post()
+                .catch(error => {
+                    // may need some user notifcation here?
+                    throw error
+            })
         },
         filterView(e) {
             let values = [e.target.value]
