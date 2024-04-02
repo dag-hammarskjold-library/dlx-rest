@@ -147,6 +147,44 @@ export class Subfield {
 
 		return flags
 	}
+
+	async detectAndSetXref() {
+		/* Tries to look up and set the subfield xref given the subfield value.
+		Sets xref to an error object if the xref is not found or ambiguous */
+
+		const field = this.parentField;
+		const jmarc = field.parentRecord;
+		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
+
+		if (isAuthorityControlled) {
+			
+
+			const searchStr = 
+				field.subfields
+				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
+				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
+				.join(" AND ");
+
+			const xref = await fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
+				.then(response => response.json())
+				.then(json => {
+					const recordsList = json['data'];
+					
+					if (recordsList.length === 0) {
+						return new Error("Unmatched heading")
+					} else if (recordsList.length > 1) {
+						return new Error("Ambiguous heading")
+					} else {
+						// get the xref from the URL
+						const parts = recordsList[0].split("/");
+						return parts[parts.length - 1]
+					}
+				}).catch(error => {throw error})
+
+			this.xref = xref
+			return xref
+		}
+	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -203,7 +241,7 @@ export class DataField {
 					this.parentRecord.deleteField(this);
 				}
             } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
-                throw new Error("Invalid authority-controlled value")
+                throw new Error(`Invalid authority-controlled value: ${this.tag} ${subfield.code} ${subfield.value}`)
             }
         }
 	}
@@ -698,6 +736,44 @@ export class Jmarc {
         }
         return true;
     }
+
+	static async fromMrk(mrk, collection="bibs") {
+		let jmarc = new Jmarc(collection)
+
+		for (let line of mrk.split("\n")) {
+			let match = line.match(/=(\w{3})  (.*)/)
+			
+			if (match != null){
+				let tag = match[1]
+				let rest = match[2]
+				if (tag == 'LDR') { 
+					tag = '000' 
+				}
+
+				let field = jmarc.createField(tag);
+				if (field instanceof(ControlField)) {
+					field.value = rest;
+					continue
+				} else {
+					let indicators = rest.substring(0,2).replace(/\\/g, " ")
+					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
+					for (let subfield of rest.substring(2, rest.length).split("$")) {
+						if (subfield.length > 0) {
+							let code = subfield.substring(0,1)
+							let value = subfield.substring(1, subfield.length)
+							if (code.length > 0 && value.length > 0) {
+								let newSub = field.createSubfield(code)
+								newSub.value = value
+								await newSub.detectAndSetXref();
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return jmarc
+	}
     
     async post() {
 		if (this.recordId) {
@@ -1106,6 +1182,57 @@ export class Jmarc {
 		});
 
 		return flags.flat()
+	}
+
+	async symbolInUse() {
+		// Determine if a symbol is already being used.
+		if (this.collection !== "bibs") return
+		
+		// There should be only one field?
+		let symbolField = (this.fields.filter(x => ['191','791'].includes(x.tag)) || [null])[0]
+		if (! symbolField) return
+
+		let searchStr = `symbol:/^${symbolField.getSubfield("a").value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+	
+		let url = Jmarc.apiUrl + "/marc/bibs/records/count?search=" + searchStr
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 0) {
+			return false
+		} else {
+			return true
+		}
+	}
+
+	async authExists() {
+		/*
+		Similar to authHeadingInUse, but doesn't care about returning ambiguous results.
+
+		We want this to evaluate to true, but don't need regex since we already have 
+		other ways to force exact matching.
+		*/
+		if (this.collection !== "auths") return
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+		
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ")
+
+		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 1) {
+			return true
+		} else {
+			return false
+		}
 	}
 
 	async authHeadingInUse() {
