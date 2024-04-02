@@ -157,32 +157,31 @@ export class Subfield {
 		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
 
 		if (isAuthorityControlled) {
-			
-
 			const searchStr = 
 				field.subfields
 				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
 				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
 				.join(" AND ");
 
-			const xref = await fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
+			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
 				.then(response => response.json())
 				.then(json => {
 					const recordsList = json['data'];
+					let xref;
 					
 					if (recordsList.length === 0) {
-						return new Error("Unmatched heading")
+						xref = new Error("Unmatched heading")
 					} else if (recordsList.length > 1) {
-						return new Error("Ambiguous heading")
+						xref = new Error("Ambiguous heading")
 					} else {
 						// get the xref from the URL
 						const parts = recordsList[0].split("/");
-						return parts[parts.length - 1]
+						xref = parts[parts.length - 1];
 					}
-				}).catch(error => {throw error})
 
-			this.xref = xref
-			return xref
+					this.xref = xref;
+					return xref
+				}).catch(error => {throw error})
 		}
 	}
 }
@@ -739,6 +738,7 @@ export class Jmarc {
 
 	static async fromMrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
+		const promises = [];
 
 		for (let line of mrk.split("\n")) {
 			let match = line.match(/=(\w{3})  (.*)/)
@@ -757,6 +757,7 @@ export class Jmarc {
 				} else {
 					let indicators = rest.substring(0,2).replace(/\\/g, " ")
 					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
+
 					for (let subfield of rest.substring(2, rest.length).split("$")) {
 						if (subfield.length > 0) {
 							let code = subfield.substring(0,1)
@@ -764,13 +765,18 @@ export class Jmarc {
 							if (code.length > 0 && value.length > 0) {
 								let newSub = field.createSubfield(code)
 								newSub.value = value
-								await newSub.detectAndSetXref();
+								promises.push(newSub.detectAndSetXref());
 							}
 						}
 					}
+
+					
 				}
 			}
 		}
+
+		// wait until all the xrefs have been set
+		await Promise.all(promises);
 
 		return jmarc
 	}

@@ -38,6 +38,7 @@ export let importcomponent = {
                         Invalid records that can still be imported: {{invalidRecords}}
                     </div>
                 </div>
+                <div v-if="records.length === 0" class="fa fa-spinner fa-5x fa-pulse"></div>
                 <div v-if="records.length > 0" class="row py-2 border-bottom">
                     <div class="col-sm-2">Select <a href="#" @click="selectAll">All</a> | <a href="#"@click="selectNone">None</a></div>
                     <div class="col">    
@@ -209,7 +210,7 @@ export let importcomponent = {
                                 for (let subfield of field.subfields.filter(x => 'xref' in x)) {
                                     if (subfield.xref instanceof Error) {
                                         // unresolved xrefs are set to an Error object
-                                        fatalErrors.push({"message": `Fatal: ${field.tag} ${field.toStr()}`})
+                                        fatalErrors.push({"message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}`})
                                     }
                                 }
                             }
