@@ -188,7 +188,7 @@ export let importcomponent = {
             let fileText = ""
             reader.readAsText(file)
             reader.onload = (res) => {
-                for (let mrk of res.target.result.split(/[\r\n]{2,}/)) {
+                for (let mrk of res.target.result.split(/(\r\n *\r\n|\n *\n)/)) {
                     Jmarc.fromMrk(mrk, this.collection).then( jmarc => {
                         // The only classes of validation errors we care about are:
                         // 1. Is there a duplicate symbol? If so, warn but allow import.

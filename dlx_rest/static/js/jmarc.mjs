@@ -740,7 +740,7 @@ export class Jmarc {
 	static async fromMrk(mrk, collection="bibs") {
 		let jmarc = new Jmarc(collection)
 
-		for (let line of mrk.split("\n")) {
+		for (let line of mrk.split(/(\r\n|\n)/)) {
 			let match = line.match(/=(\w{3})  (.*)/)
 			
 			if (match != null){
