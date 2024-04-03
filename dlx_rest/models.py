@@ -164,7 +164,10 @@ class Basket(Document):
         return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
 
     def add_item(self, item):
-        existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
+        existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == (item['record_id']), self.items))
+        
+        #print('--> '+ str(list(existing_item)))
+
         if len(existing_item) == 0:
             ulid = ULID()
             item['id'] = str(ulid.to_uuid())

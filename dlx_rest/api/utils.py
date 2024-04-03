@@ -5,6 +5,7 @@ DLX REST API utilities
 import requests, json, jsonschema
 from copy import deepcopy
 from datetime import datetime, timezone
+from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
@@ -260,14 +261,15 @@ def brief_auth(record):
     }
 
 def item_locked(collection, record_id):
-    for basket in Basket.objects:
-        try:
-            lock = list(filter(lambda x: x['record_id'] == str(record_id) and x['collection'] == collection, basket.items))
-            return {"locked": True, "in": basket.name, "by": basket.owner.email, "item_id": lock[0]['id']}
-        except IndexError:
-            pass
+    basket = DB.handle["basket"].find_one({"items.collection": collection, "items.record_id": str(record_id)})
 
-    return {"locked": False}
+    #print(list(DB.handle['basket'].find({})))
+
+    if basket:    
+        owner = DB.handle["user"].find_one({"_id": basket["owner"]})
+        return {"locked": True, "in": basket["name"], "by": owner["email"], "item_id": str(record_id)}
+    else:
+        return {"locked": False}
 
 '''
 This is a first draft of a granular permission adjudication system. 

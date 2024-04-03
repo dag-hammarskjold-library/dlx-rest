@@ -763,6 +763,8 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
     assert res.status_code == 201
 
+    print('??? ' + str(list(DB.handle.list_collection_names())))
+
     # GET the basket again. Now it should have one item.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
@@ -780,6 +782,7 @@ def test_api_userbasket(client, default_users, users, marc):
     assert data['data']['record_id'] == '1'
 
     # Try to POST a duplicate. This shoudl fail silently, and the basket should still contain only one item.
+    print(list(DB.handle['basket'].find({})))
     res = client.post("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"}, data=json.dumps(payload))
     assert res.status_code == 200
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
