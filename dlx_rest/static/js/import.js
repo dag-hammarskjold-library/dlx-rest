@@ -33,7 +33,10 @@ export let importcomponent = {
                 <div class="row">
                     <div v-if="records.length > 0" class="col alert alert-warning">
                         Target collection: {{collection}} <br>
-                        Records detected: {{records.length}} <br>
+                        Records detected: {{records.length}} 
+                        <i v-if="detectedSpinner" class="fa fa-spinner fa-pulse"></i> 
+                        <i v-else class="fa fa-check"></i>
+                        <br>
                         Records with fatal errors preventing import: {{unimportableRecords}}<br>
                         Invalid records that can still be imported: {{invalidRecords}}
                     </div>
@@ -116,7 +119,8 @@ export let importcomponent = {
             showPreviewModal: false,
             issues: 0,
             uiBase: "",
-            showErrors: false
+            showErrors: false,
+            detectedSpinner: false
         }
     },
     created: function () {
@@ -188,16 +192,18 @@ export let importcomponent = {
             const reader = new FileReader()
             let fileText = ""
             reader.readAsText(file)
+            const promises = []
+            this.detectedSpinner = true
             reader.onload = (res) => {
                 for (let mrk of res.target.result.split(/[\r\n]{2,}/)) {
-                    Jmarc.fromMrk(mrk, this.collection).then( jmarc => {
+                    let promise = Jmarc.fromMrk(this.collection, mrk).then( jmarc => {
                         // The only classes of validation errors we care about are:
                         // 1. Is there a duplicate symbol? If so, warn but allow import.
                         // 2. Do all the auth controlled fields match existing auth 
                         //    records? If not, error and prevent import.
                         let validationErrors = []
                         let fatalErrors = []
-                        
+
                         if (jmarc.fields.length > 0) {
                             jmarc.symbolInUse().then( symbolInUse => {
                                 if (symbolInUse) {
@@ -220,7 +226,11 @@ export let importcomponent = {
                     }).catch(error => {
                         throw error
                     })
+
+                    promises.push(promise)
                 }
+
+                Promise.all(promises).then(x => this.detectedSpinner = false)
             }
             
         },
