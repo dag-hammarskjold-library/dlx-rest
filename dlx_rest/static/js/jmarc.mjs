@@ -419,7 +419,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required")};
+        if (! collection) {throw new Error("Collection required (\"bibs\" or \"auths\")")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -736,7 +736,11 @@ export class Jmarc {
         return true;
     }
 
-	static async fromMrk(mrk, collection="bibs") {
+	static async fromMrk(collection, mrk) {
+		if (! ["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
+
 		let jmarc = new Jmarc(collection)
 		const promises = [];
 
@@ -769,8 +773,6 @@ export class Jmarc {
 							}
 						}
 					}
-
-					
 				}
 			}
 		}
@@ -1193,23 +1195,23 @@ export class Jmarc {
 	async symbolInUse() {
 		// Determine if a symbol is already being used.
 		if (this.collection !== "bibs") return
-		
-		// There should be only one field?
-		let symbolField = (this.fields.filter(x => ['191','791'].includes(x.tag)) || [null])[0]
-		if (! symbolField) return
 
-		let searchStr = `symbol:/^${symbolField.getSubfield("a").value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+		let inUse = false;
+
+		for (const tag of ['191', '791']) {
+			// only look in same symbol fields in other records
+			for (const field of this.getFields(tag)) {
+				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
+				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
+				const res = await fetch(url);
+				const json = await res.json();
+				const results = json['data'];
 	
-		let url = Jmarc.apiUrl + "/marc/bibs/records/count?search=" + searchStr
-		let res = await fetch(url)
-		let json = await res.json()
-		let count = json['data']
-
-		if (count === 0) {
-			return false
-		} else {
-			return true
+				if (results.length > 0) inUse = true
+			}
 		}
+		
+		return inUse
 	}
 
 	async authExists() {
