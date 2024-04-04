@@ -1745,10 +1745,9 @@ class MyBasketRecord(Resource):
         if "override" in item.keys():
             override = item["override"]
 
-        #print(list(DB.handle['basket'].find({})))
-
         lock_status = item_locked(item['collection'], item['record_id'])
         this_u = User.objects.get(id=current_user.id)
+        
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
                 # It's locked, but by the current user

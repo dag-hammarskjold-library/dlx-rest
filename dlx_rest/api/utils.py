@@ -9,7 +9,7 @@ from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
-from dlx_rest.models import Basket
+from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
 
@@ -261,15 +261,24 @@ def brief_auth(record):
     }
 
 def item_locked(collection, record_id):
-    basket = DB.handle["basket"].find_one({"items.collection": collection, "items.record_id": str(record_id)})
-
-    #print(list(DB.handle['basket'].find({})))
+    # mongoengine _get_collection method allows regular pymongo queries 
+    basket = Basket._get_collection().find_one({"items.collection": collection, "items.record_id": str(record_id)})
 
     if basket:    
-        owner = DB.handle["user"].find_one({"_id": basket["owner"]})
-        return {"locked": True, "in": basket["name"], "by": owner["email"], "item_id": str(record_id)}
+        owner = User._get_collection().find_one({"_id": basket["owner"]})
+        return {"locked": True, "in": basket["name"], "by": owner["email"], "item_id": basket["items"][0]['id']}
     else:
         return {"locked": False}
+
+    # old
+    for basket in Basket.objects:
+        try:
+            lock = list(filter(lambda x: x['record_id'] == str(record_id) and x['collection'] == collection, basket.items))
+            return {"locked": True, "in": basket.name, "by": basket.owner.email, "item_id": lock[0]['id']}
+        except IndexError:
+            pass
+
+    return {"locked": False}
 
 '''
 This is a first draft of a granular permission adjudication system. 

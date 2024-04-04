@@ -166,9 +166,7 @@ class Basket(Document):
     def add_item(self, item):
         existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == (item['record_id']), self.items))
         
-        #print('--> '+ str(list(existing_item)))
-
-        if len(existing_item) == 0:
+        if not existing_item:
             ulid = ULID()
             item['id'] = str(ulid.to_uuid())
             self.items.append(item)
