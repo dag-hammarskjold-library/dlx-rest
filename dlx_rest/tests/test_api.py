@@ -1,5 +1,4 @@
 import io, os
-from time import sleep
 os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest, json, re
