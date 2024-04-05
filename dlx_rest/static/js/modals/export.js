@@ -1,7 +1,11 @@
 import { Jmarc } from "../jmarc.mjs"
 
 export let exportmodal = {
-    props: ["links"],
+    props: {
+        links: {
+            type: Object
+        }
+    },
     template: `<div v-if="showModal">
     <transition name="modal">
       <div class="modal-mask">
@@ -22,9 +26,9 @@ export let exportmodal = {
               <div class="container" id="format-select">
                 Select format
                 <ul class="list-group list-group-horizontal-sm">
-                  <li class="list-group-item"><a @click="setFormat('csv')">CSV</a></li>
-                  <li class="list-group-item"><a @click="setFormat('mrk')">MRK</a></li>
-                  <li class="list-group-item"><a @click="setFormat('xml')">XML</a></li>
+                  <li class="list-group-item"><a href="#" @click="setFormat('csv')">CSV</a></li>
+                  <li class="list-group-item"><a href="#" @click="setFormat('mrk')">MRK</a></li>
+                  <li class="list-group-item"><a href="#" @click="setFormat('xml')">XML</a></li>
                 </ul>
               </div>
               <div id="preview-text" class="modal-body">
@@ -45,7 +49,7 @@ export let exportmodal = {
         return {
             showModal: false,
             showSpinner: false,
-            selectedExportUrl: this["links"],
+            selectedExportUrl: null,
             results: []
         }
     },
@@ -54,12 +58,31 @@ export let exportmodal = {
             this.showModal = true
         },
         setFormat(format) {
-          let exportUrl = this["links"][format.toUpperCase()]
-          let previewUrl = this["links"]["brief"].replace(/\&limit=\d{1,3}/, "&limit=5")
-          fetch(previewUrl).then(response => response.json().then( jsonData => {
-            console.log(jsonData)
-            this.results = jsonData.data
-          }))
+          this.selectedExportUrl = this.links.format[format.toUpperCase()]
+          this.submitExport(format)
+        },
+        setOutputFields(fields) {
+            if (this.selectedExportUrl) {
+                this.selectedExportUrl = `${this.selectedExportUrl}&of=${encodeURIComponent(fields)}`
+            }
+        },
+        submitExport(format) {
+            fetch(this.selectedExportUrl).then( response => {
+                response.blob().then( blob => {
+                    this.download(blob, `export.${format}`)
+                })
+            })
+        },
+        download(blob, filename) {
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.style.display = "none"
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            window.URL.revokeObjectURL(url)
         }
     }
 }

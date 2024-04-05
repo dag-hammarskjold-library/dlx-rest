@@ -217,7 +217,7 @@ export let searchcomponent = {
                 <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
-        <exportmodal ref="exportmodal" :links="this.links.format"></exportmodal>
+        <exportmodal ref="exportmodal" :links="this.links"></exportmodal>
     </div>`,
     data: function () {
         let myParams = this.search_url.split("?")[1];
@@ -339,7 +339,7 @@ export let searchcomponent = {
             this.vcoll = "089:'B23'"
             this.collectionTitle = "votes"
         }
-        console.log(this.collectionTitle)
+        //console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;
@@ -817,7 +817,7 @@ export let searchcomponent = {
             toggleButton.title = "preview record";
         },
         showExportModal() {
-            console.log(this.links.format)
+            //console.log(this.links.format)
             this.$refs.exportmodal.show()
         }
     },
