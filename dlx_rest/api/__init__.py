@@ -20,7 +20,7 @@ from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
-from dlx.marc.query import InvalidQueryString
+from dlx.marc.query import InvalidQueryString, AtlasQuery
 from dlx.marc.query import Raw
 from dlx.file import File, Identifier
 from dlx.util import AsciiMap
@@ -223,9 +223,11 @@ class RecordsList(Resource):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
 
+        engine = "community"
         if args.get('engine') == 'community':
             print("Using Community search type")
         else:
+            engine = "atlas"
             print("Using Atlas search type")
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
@@ -245,10 +247,16 @@ class RecordsList(Resource):
         # search
         search = unquote(args.search) if args.search else None
 
-        try:
-            query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
-        except InvalidQueryString as e:
-            abort(422, str(e))
+        if engine == "community":
+            try:
+                query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+            except InvalidQueryString as e:
+                abort(422, str(e))
+        elif engine == "atlas":
+            try:
+                query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+            except InvalidQueryString as e:
+                abort(422, str(e))
 
         # start
         start = 1 if args.start is None else int(args.start)
