@@ -77,14 +77,14 @@
                         <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     {% endif %}
                     {% if vcoll=="speeches" %}
-                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
                     {% endif %}
                     {% if vcoll == "votes" %}
-                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
                     {% endif %}
                     <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
                     {% if vcoll=="auths" %}

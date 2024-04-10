@@ -330,16 +330,15 @@ export let searchcomponent = {
             //this.searchFields = this.bibSearchFields
         }
         // todo: remove the type cretieria from the search input; update criteria
-        if (this.params.search.includes("089:'B22'")) {
+        if (this.params.subtype === "speech") {
             this.vcoll = "089:'B22'"
             this.collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
-        if (this.params.search.includes("089:'B23'")) {
+        if (this.params.subtype === "vote") {
             this.vcoll = "089:'B23'"
             this.collectionTitle = "votes"
         }
-        console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;

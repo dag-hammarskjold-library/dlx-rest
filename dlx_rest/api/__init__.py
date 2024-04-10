@@ -201,10 +201,16 @@ class RecordsList(Resource):
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
+    #args.add_argument(
+    #    'browse', 
+    #    type=str, 
+    #    help='Consult documentation for query syntax' # todo
+    #)
     args.add_argument(
-        'browse', 
-        type=str, 
-        help='Consult documentation for query syntax' # todo
+        'subtype',
+        type=str,
+        #choices=['default', 'speech', 'vote'],
+        #default='default'
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
@@ -219,8 +225,8 @@ class RecordsList(Resource):
         try:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
-        except TypeError:
-            pass
+        except TypeError as e:
+            raise e
 
         # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
         all_basket_objects = []
@@ -236,7 +242,14 @@ class RecordsList(Resource):
             query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
         except InvalidQueryString as e:
             abort(422, str(e))
-
+   
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
+     
         # start
         start = 1 if args.start is None else int(args.start)
           
@@ -286,8 +299,8 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
-        
+        collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
+
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
@@ -332,17 +345,17 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
-                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
+                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
+                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
@@ -422,9 +435,13 @@ class RecordsListCount(Resource):
                 query = Query.from_string(search, record_type=collection[:-1])
             except InvalidQueryString as e:
                 abort(422, str(e))
-
         else:
-            query = {}
+            query = Query(Raw({}))
+
+        if args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
 
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
@@ -439,7 +456,7 @@ class RecordsListCount(Resource):
             data = cls().handle.count_documents(
                 query.compile(),
                 # collation is not implemented in mongomock
-                collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                collation=DlxConfig.marc_index_default_collation if Config.TESTING == False else None,
                 maxTimeMS=Config.MAX_QUERY_TIME
             )
         else:
@@ -502,13 +519,7 @@ class RecordsListBrowse(Resource):
             # collation is not implemented in mongomock
             collation = None
         else:
-            collation = Collation(
-                locale='en', 
-                strength=1,
-                #alternate='shifted',
-                #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
-                numericOrdering=True
-            )
+            collation = DlxConfig.marc_index_default_collation
         
         start, limit = int(args.start), int(args.limit)
         values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
@@ -537,8 +548,6 @@ class RecordsListBrowse(Resource):
         if args.compare == 'less':
             values = list(reversed(list(values)))
 
-        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
-
         data = [
             {
                 'value': x['_id'],
@@ -546,12 +555,14 @@ class RecordsListBrowse(Resource):
                     'api_records_list', 
                     collection=collection,
                     # todo: make record type serachable by query string instead of useing type codes
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.type
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.type
                 ).to_str()
             } for x in values
         ]

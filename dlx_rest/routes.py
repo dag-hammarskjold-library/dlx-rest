@@ -432,6 +432,7 @@ def search_records(coll):
     # if old_q contains anything at all, it returns a list, so let's make sure we're checking
     # for the first string in the list entry instead of assuming we got a string.
     old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
+    
     if q != old_q[0]:
         start = 1
 
@@ -440,13 +441,15 @@ def search_records(coll):
     # Move vcoll variable here so we can use it in the session 
     # to review
     vcoll = coll
-    if "B22" in q:
+    
+    if request.args.get('subtype') == 'speech':
         vcoll = "speeches"
-    if "B23" in q:
+    elif request.args.get('subtype') == 'vote':
         vcoll = "votes"
 
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    subtype  = request.args.get('subtype')
 
     if sort and direction:
         # Regardless of what's in the session already
@@ -473,7 +476,7 @@ def search_records(coll):
                 # TODO "looks like symbol" util function
                 q = f'symbol:{term.upper()}*'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief', subtype=subtype)
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
