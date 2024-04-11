@@ -222,11 +222,11 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
-        try:
+        if not current_user.is_anonymous:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
-        except TypeError as e:
-            raise e
+        else:
+            this_basket = None
 
         # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
         all_basket_objects = []
