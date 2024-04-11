@@ -204,8 +204,7 @@ class RecordsList(Resource):
     args.add_argument(
         'subtype',
         type=str,
-        choices=['default', 'speech', 'vote', 'all', ''],
-        #default='default'
+        choices=['default', 'speech', 'vote', 'all', '']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
@@ -431,9 +430,11 @@ class RecordsListCount(Resource):
             except InvalidQueryString as e:
                 abort(422, str(e))
         else:
-            query = Query(Raw({}))
+            query = Query()
 
-        if args.subtype:
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
             query.add_condition(Raw({'_record_type': args.subtype}))
         else:
             query.add_condition(Raw({'_record_type': 'default'}))
@@ -447,7 +448,7 @@ class RecordsListCount(Resource):
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
-        if query:
+        if query.conditions:
             data = cls().handle.count_documents(
                 query.compile(),
                 # collation is not implemented in mongomock
@@ -490,7 +491,7 @@ class RecordsListBrowse(Resource):
     args.add_argument(
         'subtype',
         type=str, 
-        choices=['deafult', 'speech', 'vote']
+        choices=['default', 'speech', 'vote']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
