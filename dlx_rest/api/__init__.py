@@ -487,7 +487,7 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        match = re.match('^(\\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
