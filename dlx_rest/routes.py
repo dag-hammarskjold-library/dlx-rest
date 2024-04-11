@@ -514,7 +514,7 @@ def browse(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'), title=f'Browse ({request.args.get("type")})')
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", subtype=request.args.get('subtype'), title=f'Browse ({request.args.get("subtype")})')
 
 @app.route('/records/<coll>/browse/<index>')
 @login_required
@@ -522,7 +522,7 @@ def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
     
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", subtype=request.args.get('subtype'))
 
 @app.route('/records/auths/review')
 @login_required

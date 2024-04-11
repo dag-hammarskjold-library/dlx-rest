@@ -201,15 +201,10 @@ class RecordsList(Resource):
         type=str, 
         help='Consult documentation for query syntax' # todo
     )
-    #args.add_argument(
-    #    'browse', 
-    #    type=str, 
-    #    help='Consult documentation for query syntax' # todo
-    #)
     args.add_argument(
         'subtype',
         type=str,
-        #choices=['default', 'speech', 'vote'],
+        choices=['default', 'speech', 'vote', 'all', ''],
         #default='default'
     )
     
@@ -493,9 +488,9 @@ class RecordsListBrowse(Resource):
         default=10,
     )
     args.add_argument(
-        'type',
+        'subtype',
         type=str, 
-        choices=['bib', 'speech', 'vote', 'auth']
+        choices=['deafult', 'speech', 'vote']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
@@ -512,7 +507,7 @@ class RecordsListBrowse(Resource):
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
         from dlx.util import Tokenizer
-        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
+        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.subtype if args.subtype else 'default'}
         numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
         
         if Config.TESTING:
@@ -556,13 +551,13 @@ class RecordsListBrowse(Resource):
                     collection=collection,
                     # todo: make record type serachable by query string instead of useing type codes
                     search=f'{field}:\'{x.get("_id")}\'',
-                    subtype=args.type
+                    subtype=args.subtype
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
                     search=f'{field}:\'{x.get("_id")}\'',
-                    subtype=args.type
+                    subtype=args.subtype
                 ).to_str()
             } for x in values
         ]
