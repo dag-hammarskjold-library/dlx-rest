@@ -479,7 +479,7 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        match = re.match('^(\\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
@@ -1712,8 +1712,10 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
+
         lock_status = item_locked(item['collection'], item['record_id'])
         this_u = User.objects.get(id=current_user.id)
+        
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
                 # It's locked, but by the current user

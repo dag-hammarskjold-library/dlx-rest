@@ -5,10 +5,11 @@ DLX REST API utilities
 import requests, json, jsonschema
 from copy import deepcopy
 from datetime import datetime, timezone
+from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
-from dlx_rest.models import Basket
+from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
 
@@ -260,6 +261,16 @@ def brief_auth(record):
     }
 
 def item_locked(collection, record_id):
+    # mongoengine _get_collection method allows regular pymongo queries 
+    basket = Basket._get_collection().find_one({"items.collection": collection, "items.record_id": str(record_id)})
+
+    if basket:    
+        owner = User._get_collection().find_one({"_id": basket["owner"]})
+        return {"locked": True, "in": basket["name"], "by": owner["email"], "item_id": basket["items"][0]['id']}
+    else:
+        return {"locked": False}
+
+    # old
     for basket in Basket.objects:
         try:
             lock = list(filter(lambda x: x['record_id'] == str(record_id) and x['collection'] == collection, basket.items))
