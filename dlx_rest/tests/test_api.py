@@ -744,14 +744,12 @@ def test_api_userbasket(client, default_users, users, marc):
     # Get the current user's basket, which should be created if it doesn't exist
     username = default_users['admin']['email']
     password = default_users['admin']['password']
-    
     credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # GET the basket. It should have zero items.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)
-    #print(data)
     assert data['_meta']['returns'] == f'{API}/schemas/api.basket'
     assert len(data['data']['items']) == 0
 
@@ -766,7 +764,6 @@ def test_api_userbasket(client, default_users, users, marc):
     # GET the basket again. Now it should have one item.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
-    #print(data)
     assert len(data['data']['items']) == 1
 
     # GET the basket item. Its collection and record_id should match what we POSTed.
@@ -775,7 +772,6 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)
-    #print(data)
     assert data['data']['collection'] == 'bibs'
     assert data['data']['record_id'] == '1'
 
@@ -784,7 +780,6 @@ def test_api_userbasket(client, default_users, users, marc):
     assert res.status_code == 200
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
-    #print(data)
     assert len(data['data']['items']) == 1
 
     # Now DELETE the item from the basket and verify the basket contains zero items.

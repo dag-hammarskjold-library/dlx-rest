@@ -127,8 +127,14 @@
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                           <a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a>
                           <a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a>
+                          <a class="dropdown-item" href="{{url_for('import_marc')}}">Import Records</a>
                         </div>
                     </li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.has_permission('importMarc') %}
+                            <li class="nav-item active"><a class="nav-link" href="{{url_for('import_marc')}}">Import</a></li>
+                        {% endif %}
+                    {% endif %}
                     {% if current_user.is_authenticated %}
                         {% if current_user.has_permission('updateRecord') %}
                             {% if vcoll=="editor" %}

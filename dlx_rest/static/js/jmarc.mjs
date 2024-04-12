@@ -147,6 +147,43 @@ export class Subfield {
 
 		return flags
 	}
+
+	async detectAndSetXref() {
+		/* Tries to look up and set the subfield xref given the subfield value.
+		Sets xref to an error object if the xref is not found or ambiguous */
+
+		const field = this.parentField;
+		const jmarc = field.parentRecord;
+		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
+
+		if (isAuthorityControlled) {
+			const searchStr = 
+				field.subfields
+				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
+				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
+				.join(" AND ");
+
+			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
+				.then(response => response.json())
+				.then(json => {
+					const recordsList = json['data'];
+					let xref;
+					
+					if (recordsList.length === 0) {
+						xref = new Error("Unmatched heading")
+					} else if (recordsList.length > 1) {
+						xref = new Error("Ambiguous heading")
+					} else {
+						// get the xref from the URL
+						const parts = recordsList[0].split("/");
+						xref = parts[parts.length - 1];
+					}
+
+					this.xref = xref;
+					return xref
+				}).catch(error => {throw error})
+		}
+	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -203,7 +240,7 @@ export class DataField {
 					this.parentRecord.deleteField(this);
 				}
             } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
-                throw new Error("Invalid authority-controlled value")
+                throw new Error(`Invalid authority-controlled value: ${this.tag} ${subfield.code} ${subfield.value}`)
             }
         }
 	}
@@ -382,7 +419,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required")};
+        if (! collection) {throw new Error("Collection required (\"bibs\" or \"auths\")")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -698,6 +735,53 @@ export class Jmarc {
         }
         return true;
     }
+
+	static async fromMrk(collection, mrk) {
+		if (! ["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
+
+		let jmarc = new Jmarc(collection)
+		const promises = [];
+
+		for (let line of mrk.split(/(\r\n|\n)/)) {
+			let match = line.match(/=(\w{3})  (.*)/)
+			
+			if (match != null){
+				let tag = match[1]
+				let rest = match[2]
+				if (tag == 'LDR') { 
+					tag = '000' 
+				}
+
+				let field = jmarc.createField(tag);
+				if (field instanceof(ControlField)) {
+					field.value = rest;
+					continue
+				} else {
+					let indicators = rest.substring(0,2).replace(/\\/g, " ")
+					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
+
+					for (let subfield of rest.substring(2, rest.length).split("$")) {
+						if (subfield.length > 0) {
+							let code = subfield.substring(0,1)
+							let value = subfield.substring(1, subfield.length)
+							if (code.length > 0 && value.length > 0) {
+								let newSub = field.createSubfield(code)
+								newSub.value = value
+								promises.push(newSub.detectAndSetXref());
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// wait until all the xrefs have been set
+		await Promise.all(promises);
+
+		return jmarc
+	}
     
     async post() {
 		if (this.recordId) {
@@ -1106,6 +1190,57 @@ export class Jmarc {
 		});
 
 		return flags.flat()
+	}
+
+	async symbolInUse() {
+		// Determine if a symbol is already being used.
+		if (this.collection !== "bibs") return
+
+		let inUse = false;
+
+		for (const tag of ['191', '791']) {
+			// only look in same symbol fields in other records
+			for (const field of this.getFields(tag)) {
+				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
+				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
+				const res = await fetch(url);
+				const json = await res.json();
+				const results = json['data'];
+	
+				if (results.length > 0) inUse = true
+			}
+		}
+		
+		return inUse
+	}
+
+	async authExists() {
+		/*
+		Similar to authHeadingInUse, but doesn't care about returning ambiguous results.
+
+		We want this to evaluate to true, but don't need regex since we already have 
+		other ways to force exact matching.
+		*/
+		if (this.collection !== "auths") return
+		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
+
+		if (! headingField) return
+		
+		let searchStr = 
+    	    headingField.subfields
+    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+    	    .join(" AND ")
+
+		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
+		let res = await fetch(url)
+		let json = await res.json()
+		let count = json['data']
+
+		if (count === 1) {
+			return true
+		} else {
+			return false
+		}
 	}
 
 	async authHeadingInUse() {
