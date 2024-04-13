@@ -210,8 +210,6 @@ class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
     def get(self, collection):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
 
@@ -329,7 +327,7 @@ class RecordsList(Resource):
                 data.append(this_d)
         else:
             schema_name='api.urllist'
-            data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
+            data = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in recordset]
             
         new_direction = 'desc' if args.direction in (None, 'asc') else 'asc'
         
@@ -500,7 +498,7 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        match = re.match('^(\\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
@@ -768,8 +766,6 @@ Recommendation: Deprecate these API routes.
 class RecordFieldsList(Resource):
     @ns.doc(description='Return a list of the fields in the record with the given record ID')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
@@ -788,7 +784,7 @@ class RecordFieldsList(Resource):
                 )
         
         links = {
-            '_self': URL('api_record_fields_list', **route_params).to_str(),
+            '_self': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
@@ -811,9 +807,6 @@ class RecordFieldsList(Resource):
 class RecordFieldPlaceList(Resource):
     @ns.doc(description='Return a list of the instances of the field in the record')
     def get(self, collection, record_id, field_tag):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         places = len(list(record.get_fields(field_tag)))
@@ -821,11 +814,11 @@ class RecordFieldPlaceList(Resource):
         
         for place in range(0, places):
             field_places.append(
-                URL('api_record_field_place', field_place=place, **route_params).to_str()
+                URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=place).to_str()
             )
         
         links = {
-            '_self': URL('api_record_field_place_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_list', collection=collection, record_id=record_id, field_tag=field_tag).to_str(),
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
@@ -899,9 +892,6 @@ class RecordFieldPlaceList(Resource):
 class RecordFieldPlace(Resource):
     @ns.doc(description='Return the field at the given place in the record')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -910,9 +900,9 @@ class RecordFieldPlace(Resource):
         links = {
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                'subfields': URL('api_record_field_place_subfield_list', **route_params).to_str()
+                'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             },
-            '_self': URL('api_record_field_place', **route_params).to_str(),
+            '_self': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
         }
         
         meta = {
@@ -1000,9 +990,6 @@ class RecordFieldPlace(Resource):
 class RecordFieldPlaceSubfieldList(Resource):
     @ns.doc(description='Return a list of the subfields in the field')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -1010,25 +997,20 @@ class RecordFieldPlaceSubfieldList(Resource):
         subfields, seen, place = [], {}, 0
         
         for sub in field.subfields:
-            new_route_params = copy(route_params)
-            new_route_params['subfield_code'] = sub.code
-            
             if sub.code in seen:
                 place += 1
             else:
                 place = 0
                 seen[sub.code] = True
-            
-            new_route_params['subfield_place'] = place
 
             subfields.append(
-                URL('api_record_field_subfield_value', subfield_place=place, subfield_code=sub.code, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_place=place, subfield_code=sub.code).to_str()
             )
             
         links = {
-            '_self': URL('api_record_field_place_subfield_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
             'related': {
-                'field': URL('api_record_field_place', **route_params).to_str()
+                'field': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place,).to_str()
             }
         }
 
@@ -1049,9 +1031,6 @@ class RecordFieldPlaceSubfieldList(Resource):
 class RecordFieldPlaceSubfieldPlaceList(Resource):
     @ns.doc(description='Return a list of the subfields with the given code')
     def get(self, collection, record_id, field_tag, field_place, subfield_code):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -1062,11 +1041,11 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         
         for place in range(0, len(list(subfields))):
             subfield_places.append(
-                URL('api_record_field_subfield_value', subfield_place=place, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str()
             )
         
         links = {
-            '_self':  URL('api_record_field_place_subfield_place_list', **route_params).to_str(),
+            '_self':  URL('api_record_field_place_subfield_place_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str(),
             'related': {
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             }
@@ -1090,15 +1069,12 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 class RecordFieldSubfieldValue(Resource):
     @ns.doc(description='Return the value of the subfield')
     def get(self, collection, record_id, field_tag, field_place, subfield_code, subfield_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         value = record.get_value(field_tag, subfield_code, address=[field_place, subfield_place]) or abort(404)
         
         links = {
-            '_self': URL('api_record_field_subfield_value', **route_params).to_str(),
+            '_self': URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=subfield_place).to_str(),
             'related': {
                 #'record':URL('api_record', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id,field_tag=field_tag, field_place=field_place).to_str()
@@ -1119,9 +1095,6 @@ class RecordFieldSubfieldValue(Resource):
 class RecordSubfieldsList(Resource):
     @ns.doc(description='Return a list of all the subfields in the record with the given record')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -1143,16 +1116,17 @@ class RecordSubfieldsList(Resource):
                     subfields.append(
                         URL(
                             'api_record_field_subfield_value',
+                            collection=collection,
+                            record_id=record_id,
                             field_tag=field.tag,
                             field_place=field_place,
                             subfield_code=subfield.code,
-                            subfield_place=subfield_place,
-                            **route_params
+                            subfield_place=subfield_place
                         ).to_str()
                     )
                     
         links = {
-            '_self': URL('api_record_subfields_list', **route_params).to_str(),
+            '_self': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
             }
@@ -1751,8 +1725,10 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
+
         lock_status = item_locked(item['collection'], item['record_id'])
         this_u = User.objects.get(id=current_user.id)
+        
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
                 # It's locked, but by the current user

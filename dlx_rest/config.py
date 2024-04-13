@@ -14,7 +14,7 @@ class Config(object):
         connect_string = 'mongomock://localhost'
         TESTING = True
         LOGIN_DISABLED = True
-        dbname = 'dlx'
+        dbname = 'testing'
         ssl = False
         sync_log_collection = 'sync_log'
     elif 'DLX_REST_LOCAL' in os.environ:

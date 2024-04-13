@@ -157,32 +157,31 @@ export class Subfield {
 		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
 
 		if (isAuthorityControlled) {
-			
-
 			const searchStr = 
 				field.subfields
 				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
 				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
 				.join(" AND ");
 
-			const xref = await fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
+			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
 				.then(response => response.json())
 				.then(json => {
 					const recordsList = json['data'];
+					let xref;
 					
 					if (recordsList.length === 0) {
-						return new Error("Unmatched heading")
+						xref = new Error("Unmatched heading")
 					} else if (recordsList.length > 1) {
-						return new Error("Ambiguous heading")
+						xref = new Error("Ambiguous heading")
 					} else {
 						// get the xref from the URL
 						const parts = recordsList[0].split("/");
-						return parts[parts.length - 1]
+						xref = parts[parts.length - 1];
 					}
-				}).catch(error => {throw error})
 
-			this.xref = xref
-			return xref
+					this.xref = xref;
+					return xref
+				}).catch(error => {throw error})
 		}
 	}
 }
@@ -420,7 +419,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required")};
+        if (! collection) {throw new Error("Collection required (\"bibs\" or \"auths\")")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -737,10 +736,15 @@ export class Jmarc {
         return true;
     }
 
-	static async fromMrk(mrk, collection="bibs") {
-		let jmarc = new Jmarc(collection)
+	static async fromMrk(collection, mrk) {
+		if (! ["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
 
-		for (let line of mrk.split("\n")) {
+		let jmarc = new Jmarc(collection)
+		const promises = [];
+
+		for (let line of mrk.split(/(\r\n|\n)/)) {
 			let match = line.match(/=(\w{3})  (.*)/)
 			
 			if (match != null){
@@ -757,6 +761,7 @@ export class Jmarc {
 				} else {
 					let indicators = rest.substring(0,2).replace(/\\/g, " ")
 					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
+
 					for (let subfield of rest.substring(2, rest.length).split("$")) {
 						if (subfield.length > 0) {
 							let code = subfield.substring(0,1)
@@ -764,13 +769,16 @@ export class Jmarc {
 							if (code.length > 0 && value.length > 0) {
 								let newSub = field.createSubfield(code)
 								newSub.value = value
-								await newSub.detectAndSetXref();
+								promises.push(newSub.detectAndSetXref());
 							}
 						}
 					}
 				}
 			}
 		}
+
+		// wait until all the xrefs have been set
+		await Promise.all(promises);
 
 		return jmarc
 	}
@@ -1187,23 +1195,23 @@ export class Jmarc {
 	async symbolInUse() {
 		// Determine if a symbol is already being used.
 		if (this.collection !== "bibs") return
-		
-		// There should be only one field?
-		let symbolField = (this.fields.filter(x => ['191','791'].includes(x.tag)) || [null])[0]
-		if (! symbolField) return
 
-		let searchStr = `symbol:/^${symbolField.getSubfield("a").value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+		let inUse = false;
+
+		for (const tag of ['191', '791']) {
+			// only look in same symbol fields in other records
+			for (const field of this.getFields(tag)) {
+				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
+				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
+				const res = await fetch(url);
+				const json = await res.json();
+				const results = json['data'];
 	
-		let url = Jmarc.apiUrl + "/marc/bibs/records/count?search=" + searchStr
-		let res = await fetch(url)
-		let json = await res.json()
-		let count = json['data']
-
-		if (count === 0) {
-			return false
-		} else {
-			return true
+				if (results.length > 0) inUse = true
+			}
 		}
+		
+		return inUse
 	}
 
 	async authExists() {
