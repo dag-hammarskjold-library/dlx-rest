@@ -342,9 +342,9 @@ class RecordsList(Resource):
             '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
             'format': {
                 'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype, **route_params).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
