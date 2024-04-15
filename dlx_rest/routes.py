@@ -501,9 +501,9 @@ def browse(coll):
     api_prefix = url_for('doc', _external=True)
 
     # todo: get all from dlx config
-    if request.args.get('type') == 'speech':
+    if request.args.get('subtype') == 'speech':
         index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'country_org', 'bib_creator'])
-    elif request.args.get('type') == 'vote':
+    elif request.args.get('subtype') == 'vote':
         index_list = json.dumps(['symbol', 'body', 'agenda', 'related_docs', 'bib_creator'])
     else:
         logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")

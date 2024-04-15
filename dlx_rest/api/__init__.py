@@ -505,10 +505,17 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
+        args.subtype = args.subtype or 'default'
+        #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
-        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.subtype if args.subtype else 'default'}
-        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
+        #query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, subq}
+        query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
+        query['$and'].append({'_record_type': args.subtype})
         
+        if args.subtype == 'default': 
+            # browse index documents might have more than one subtype
+            query['$and'] += [{'_record_type': {'$ne': 'speech'}}, {'_record_type': {'$ne': 'vote'}}]
+
         if Config.TESTING:
             # collation is not implemented in mongomock
             collation = None
@@ -516,7 +523,13 @@ class RecordsListBrowse(Resource):
             collation = DlxConfig.marc_index_default_collation
         
         start, limit = int(args.start), int(args.limit)
-        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
+        values = list(DB.handle[f'_index_{field}'].find(
+            query, 
+            skip=start-1, 
+            limit=limit, 
+            sort=[('text', direction)], 
+            collation=collation)
+        )
 
         ''' 
         # using an aggregation. this method is slower and requires specifiying all characters to ignore
@@ -740,6 +753,9 @@ class Record(Resource):
                     basket.remove_item(basket_item['id'])
                 except IndexError:
                     pass
+
+                #if basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id)):
+                #       basket.remove_item(basket_item['id'])
 
             return Response(status=204)
         else:
