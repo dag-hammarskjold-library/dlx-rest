@@ -23,21 +23,29 @@ export let exportmodal = {
                         <span class="sr-only">Loading...</span>
                     </div>
                 </div>
-              <div class="container" id="format-select">
-                Select format
-                <ul class="list-group list-group-horizontal-sm">
-                  <li class="list-group-item"><a href="#" @click="setFormat('csv')">CSV</a></li>
-                  <li class="list-group-item"><a href="#" @click="setFormat('mrk')">MRK</a></li>
-                  <li class="list-group-item"><a href="#" @click="setFormat('xml')">XML</a></li>
-                </ul>
-              </div>
+              
               <div id="preview-text" class="modal-body">
-                <div v-for="record in results">
-                  {{record.toString()}}
+                <div class="container" id="format-select">
+                  Select format: 
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
+                    <label class="form-check-label" for="inlineRadio1">CSV</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2" @click="setFormat('mrk')" checked>
+                    <label class="form-check-label" for="inlineRadio2">MRK</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="option3" @click="setFormat('xml')">
+                    <label class="form-check-label" for="inlineRadio3">XML</label>
+                  </div>
+                  <br/>
+                  Output Fields: <input type="text" @keyup="setOutputFields($event)">
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" @click="showModal = false">Close</button>
+                <button type="button" class="btn btn-primary" @click="submitExport">Submit</button>
+                <button type="button" class="btn btn-danger" @click="showModal = false">Close</button>
               </div>
             </div>
           </div>
@@ -49,27 +57,32 @@ export let exportmodal = {
         return {
             showModal: false,
             showSpinner: false,
-            selectedExportUrl: null,
-            results: []
+            selectedFormat: 'mrk',
+            selectedFields: null,
+            selectedExportUrl: null
         }
     },
     methods: {
         show: async function() {
             this.showModal = true
+            this.setFormat('mrk')
         },
         setFormat(format) {
+          this.selectedFormat = format
           this.selectedExportUrl = this.links.format[format.toUpperCase()]
-          this.submitExport(format)
         },
-        setOutputFields(fields) {
-            if (this.selectedExportUrl) {
-                this.selectedExportUrl = `${this.selectedExportUrl}&of=${encodeURIComponent(fields)}`
-            }
+        setOutputFields(e) {
+            this.selectedFields = e.target.value
+            let url = new URL(this.selectedExportUrl)
+            let search = new URLSearchParams(url.search)
+            search.set("of", e.target.value)
+            url.search = search
+            this.selectedExportUrl = url
         },
-        submitExport(format) {
+        submitExport() {
             fetch(this.selectedExportUrl).then( response => {
                 response.blob().then( blob => {
-                    this.download(blob, `export.${format}`)
+                    this.download(blob, `export.${this.selectedFormat}`)
                 })
             })
         },
