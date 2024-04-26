@@ -18,8 +18,7 @@ const userCheckboxesContainer = document.getElementById('userCheckboxes');
     // Create or update the dashboard with the selected user filters
 
 const chart = sdk.createDashboard({
-    dashboardId: dashboardId,// ~REPLACE~ with the  ID from your Embed Chart dialog.
-  height: "7000px"  ,
+    dashboardId: dashboardId,// ~REPLACE~ with the  ID from your Embed Chart dialog. 
  filter: { user: { $in: selectedUsers} }            
   // Additional options go here 
 });  
