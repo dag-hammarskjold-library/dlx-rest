@@ -31,6 +31,12 @@
     <!-- Font awesome link -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
 
+    <!-- Sentry for JS -->
+    <script
+        src="{{sentry_js_url}}"
+        crossorigin="anonymous"
+    ></script>
+
     <!-- Vue local source -->
     <script src="{{url_for('static', filename='js/vue/vue2.js')}}"></script>
     <script src="{{url_for('static', filename='js/vue/vuex.js')}}"></script>
@@ -44,7 +50,6 @@
    
 
    <script  type="module" src="{{url_for('static', filename='js/charts.js')}}"></script>
-
 
 
 
@@ -132,8 +137,14 @@
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                           <a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a>
                           <a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a>
+                          <a class="dropdown-item" href="{{url_for('import_marc')}}">Import Records</a>
                         </div>
                     </li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.has_permission('importMarc') %}
+                            <li class="nav-item active"><a class="nav-link" href="{{url_for('import_marc')}}">Import</a></li>
+                        {% endif %}
+                    {% endif %}
                     {% if current_user.is_authenticated %}
                         {% if current_user.has_permission('updateRecord') %}
                             {% if vcoll=="editor" %}

@@ -763,6 +763,13 @@ def update_file():
     except Exception as e:
         return e
 
+@app.route('/import')
+@login_required
+#@requires_permission('importMarc')
+def import_marc():
+    this_prefix = url_for('doc', _external=True)
+    print(this_prefix)
+    return render_template('import_marc.html', api_prefix=this_prefix)
 
 @app.route('/reports/dashboard02', methods=["GET"])
 @login_required
@@ -772,4 +779,4 @@ def show_dashboard02():
 @app.route('/reports/dashboard03', methods=["GET"])
 @login_required
 def show_dashboard03():   
-    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)    
+    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)
