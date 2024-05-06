@@ -206,9 +206,11 @@ export let browsecomponent = {
                 }
 
                 for (let result of jsondata.data) {
+                    console.log(result.search)
                     // tanslate api search to app search
                     let searchStr = result.search.split('search=')[1];
-                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(searchStr)}`;
+                    // If we urlencode this searchStr, we end up breaking the browse list results. 
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${searchStr}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
                     // get the count
