@@ -189,6 +189,7 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f596">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                    <div class="row" v-for="f in result.files">{{f}}</div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
