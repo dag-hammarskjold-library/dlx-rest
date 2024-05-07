@@ -210,10 +210,9 @@ def brief_bib(record):
         f596 = [' '.join(field.get_values('a')) for field in record.get_fields('596')]
 
     # Get the list of files
-    files = []
-    if record.files:
-        files = record.files
-
+    files = record.files()
+    print(files)
+        
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
@@ -223,7 +222,7 @@ def brief_bib(record):
         'types': '; '.join(ctypes),
         'agendas': agendas,
         'f596': f596,
-        'files': list(files)
+        'files': files
     }
 
 def brief_speech(record):
