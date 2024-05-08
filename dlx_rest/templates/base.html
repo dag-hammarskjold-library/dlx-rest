@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" class="h-100">
 
+<!--<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.6.0/stitch.js"></script> -->
+<script src="https://unpkg.com/@mongodb-js/charts-embed-dom@3.2.1/dist/charts-embed-dom.umd.min.js"></script>
+<script src="https://unpkg.com/@mongodb-js/charts-embed-dom"></script>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -8,6 +11,7 @@
     <title>{{title|title}}</title>
 
     <!-- Customize CSS -->
+    <link href="{{url_for('static', filename='css/charts.css')}}" rel="stylesheet">
     <link href="{{url_for('static', filename='css/style.css')}}" rel="stylesheet">
     <link href="{{url_for('static', filename='css/record.css')}}" rel="stylesheet">
     <link href="{{url_for('static', filename='css/search.css')}}" rel="stylesheet">
@@ -41,7 +45,13 @@
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 
     <!-- Bootstrap local source -->
-    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script> 
+
+   
+
+   <script  type="module" src="{{url_for('static', filename='js/charts.js')}}"></script>
+
+
 
     <style>
         .bd-placeholder-img {
@@ -140,18 +150,19 @@
                     {% endif %}
                     
                     {% if current_user.is_authenticated %}                    
-                        {% if vcoll=="dashboard01" %}
+                        {% if vcoll=="dashboard02" or vcoll=="dashboard03"%}  
                         <li class="nav-item active dropdown">
-                        {% else %}
+                        {% else %}  
                         <li class="nav-item dropdown">
-                        {% endif %}
+                        {% endif %}    
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Reports and Dashboards
                             </a>
-                            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="{{url_for('show_dashboard01')}}">File Upload Dashboard Charts</a>
-                            </div>
-                        </li>                        
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdown"> 
+                            <a class="dropdown-item" href="{{url_for('show_dashboard02')}}">File Upload Dashboard Charts</a>       
+                            <a class="dropdown-item" href="{{url_for('show_dashboard03')}}">IMU KPIs</a>   
+                            </div> 
+                        </li>                          
                     {% endif %}
 
                     {% if vcoll=="help" %}
@@ -173,6 +184,7 @@
                 </ul>
             </div>
         </nav>
+        <div id="chart"></div>  
     </header>
 
     <main role="main" class="flex-shrink-0">
@@ -186,7 +198,7 @@
             {% block content %} {% endblock %}
 
 
-    </main>
+    </main> 
 </body>
-
+  
 </html>

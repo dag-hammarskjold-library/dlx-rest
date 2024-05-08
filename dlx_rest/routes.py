@@ -764,7 +764,12 @@ def update_file():
         return e
 
 
-@app.route('/reports/dashboard01', methods=["GET"])
+@app.route('/reports/dashboard02', methods=["GET"])
 @login_required
-def show_dashboard01():
-    return render_template('dashboard01.html',vcoll="dashboard01", user=current_user.username)
+def show_dashboard02():
+    return render_template('dashboard02.html',vcoll="dashboard02", user=current_user.username, users=User.objects)     
+ 
+@app.route('/reports/dashboard03', methods=["GET"])
+@login_required
+def show_dashboard03():   
+    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)
