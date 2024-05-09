@@ -432,6 +432,7 @@ def search_records(coll):
     # if old_q contains anything at all, it returns a list, so let's make sure we're checking
     # for the first string in the list entry instead of assuming we got a string.
     old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
+    
     if q != old_q[0]:
         start = 1
 
@@ -440,13 +441,15 @@ def search_records(coll):
     # Move vcoll variable here so we can use it in the session 
     # to review
     vcoll = coll
-    if "B22" in q:
+    
+    if request.args.get('subtype') == 'speech':
         vcoll = "speeches"
-    if "B23" in q:
+    elif request.args.get('subtype') == 'vote':
         vcoll = "votes"
 
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    subtype  = request.args.get('subtype')
 
     if sort and direction:
         # Regardless of what's in the session already
@@ -473,7 +476,7 @@ def search_records(coll):
                 # TODO "looks like symbol" util function
                 q = f'symbol:{term.upper()}*'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief', subtype=subtype)
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
@@ -498,9 +501,9 @@ def browse(coll):
     api_prefix = url_for('doc', _external=True)
 
     # todo: get all from dlx config
-    if request.args.get('type') == 'speech':
+    if request.args.get('subtype') == 'speech':
         index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'country_org', 'bib_creator'])
-    elif request.args.get('type') == 'vote':
+    elif request.args.get('subtype') == 'vote':
         index_list = json.dumps(['symbol', 'body', 'agenda', 'related_docs', 'bib_creator'])
     else:
         logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
@@ -511,7 +514,7 @@ def browse(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'), title=f'Browse ({request.args.get("type")})')
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", subtype=request.args.get('subtype'), title=f'Browse ({request.args.get("subtype")})')
 
 @app.route('/records/<coll>/browse/<index>')
 @login_required
@@ -519,7 +522,7 @@ def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
     
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", subtype=request.args.get('subtype'))
 
 @app.route('/records/auths/review')
 @login_required
