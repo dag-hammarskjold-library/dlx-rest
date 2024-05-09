@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
-from dlx.marc import Bib, BibSet, Auth, AuthSet
+from dlx.marc import Bib, BibSet, Auth, AuthSet, File, Identifier
 from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
@@ -210,8 +210,26 @@ def brief_bib(record):
         f596 = [' '.join(field.get_values('a')) for field in record.get_fields('596')]
 
     # Get the list of files
-    files = record.files()
-    print(files)
+    symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+    isbns = record.get_values('020', 'a')
+    isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+    # Get files by original URI which was logged in the Archive-It system
+    uris = record.get_values('561', 'u')
+    all_files = []
+    
+    for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
+        for id_value in id_values:
+            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+            this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+            all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+            
+    files_data = [
+        {
+            'mimetype': f.mimetype, 
+            'language': f.languages[0].lower(), 
+            'url': URL('api_file_record', record_id=f.id).to_str()
+        } for f in all_files
+    ]
         
     return {
         '_id': record.id,
@@ -222,7 +240,7 @@ def brief_bib(record):
         'types': '; '.join(ctypes),
         'agendas': agendas,
         'f596': f596,
-        'files': files
+        'files': files_data
     }
 
 def brief_speech(record):
