@@ -28,7 +28,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
-            <div class="row"><h3>Browsing {{subtype}}/{{index}} at {{q}}</h3></div>
+            <div class="row"><h3>Browsing {{displaySubtype}}/{{index}} at {{q}}</h3></div>
             <div class="row">
                 <form>
                 <div class="form-group">
@@ -122,7 +122,7 @@ export let browsecomponent = {
             </nav>
         </div>
         <div v-else>
-        <div class="row"><h3>Browsing {{subtype}}</h3></div>
+        <div class="row"><h3>Browsing {{displaySubtype}}</h3></div>
             <div class="col pt-2 m-auto" style="background-color:white;">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -151,6 +151,11 @@ export let browsecomponent = {
     data: function () {
         Jmarc.apiUrl = this.api_prefix;
         let baseUrl = this.api_prefix.replace("/api", "");
+
+        let displaySubtype = window.location.search.match(/subtype=(\w+)/)[1]
+        if (displaySubtype == "default") {
+            displaySubtype = this.collection
+        }
         
         return {
             results_before: [],
@@ -161,6 +166,7 @@ export let browsecomponent = {
             indexListJson: null,
             base_url: baseUrl,
             subtype: window.location.search.match(/subtype=(\w+)/)[1],
+            displaySubtype: displaySubtype,
             user: null,
             myBasket: {}
         }
@@ -185,7 +191,7 @@ export let browsecomponent = {
         let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
         let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
 
-        document.title = document.title + ` Browse (${this.subtype})`
+        document.title = document.title + ` Browse (${this.displaySubtype})`
 
         for (let url of [beforeBrowse, afterBrowse]) {
             let resultsList = url === beforeBrowse ? this.results_before : this.results_after;
