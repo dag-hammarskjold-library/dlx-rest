@@ -3601,7 +3601,7 @@ function keyupAuthLookup(event) {
                         item.className = "list-group-item";
                         item.value = JSON.stringify(choice.compile()); // option value has to be a string?
                        
-                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
+                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>&nbsp;");
                        
                         item.addEventListener("mouseover", function () {
                             if (dropdown.list) {
