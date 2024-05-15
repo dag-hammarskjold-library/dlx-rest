@@ -475,7 +475,7 @@ def search_records(coll):
         if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT'):
             if re.match('[A-z]+/', term) and len(terms) == 1:
                 # TODO "looks like symbol" util function
-                q = f'symbol:{term.upper()}*'
+                q = f'symbol:{term.upper()}'
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief', subtype=subtype)
 
