@@ -6,6 +6,7 @@ import dlx
 from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
 from datetime import datetime, timedelta
+import datetime as dt
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
@@ -525,7 +526,8 @@ def browse_list(coll, index):
 @login_required
 @requires_permission("reviewAuths")
 def review_auth():
-    min_date = "2022-03-01"
+    # min_date = "2022-03-01"
+    min_date = dt.date.today() - dt.timedelta(days=7)
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
@@ -764,7 +766,12 @@ def update_file():
         return e
 
 
-@app.route('/reports/dashboard01', methods=["GET"])
+@app.route('/reports/dashboard02', methods=["GET"])
 @login_required
-def show_dashboard01():
-    return render_template('dashboard01.html',vcoll="dashboard01", user=current_user.username)
+def show_dashboard02():
+    return render_template('dashboard02.html',vcoll="dashboard02", user=current_user.username, users=User.objects)     
+ 
+@app.route('/reports/dashboard03', methods=["GET"])
+@login_required
+def show_dashboard03():   
+    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)
