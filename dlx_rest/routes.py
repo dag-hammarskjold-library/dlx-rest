@@ -752,21 +752,19 @@ def update_file():
     docsymbol = request.form.get('docsymbol')
     lang = request.form.getlist('lang')
 
-    try:
-        response = DB.files.update_one(
-	        {'_id': record_id, 
-	        "identifiers.type": "symbol"}, 
-	        { '$set': { 
-	            "identifiers.$.value": docsymbol,
-	            "languages": lang
-                } 
-            }
-        )
-        
-        return "Record updated."
+    f = DB.files.find_one({'_id': record_id})
+    url = f['uri']
 
-    except Exception as e:
-        return e
+    File.import_from_url(
+        'https://' + url, 
+        identifiers=[Identifier('symbol', docsymbol)],
+        languages=lang,
+        mimetype=f['mimetype'],
+        source=f['source'],
+        overwrite=True
+    )
+
+    return "Record updated."
 
 @app.route('/import')
 @login_required
