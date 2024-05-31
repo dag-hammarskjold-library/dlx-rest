@@ -7,7 +7,6 @@ from dlx.marc import BibSet, Bib, AuthSet, Auth, Datafield
 from dlx.file import File, Identifier, S3
 from dlx_rest.app import app
 from dlx_rest.config import Config
-from moto import mock_s3
 from base64 import b64encode
 
 API = 'http://localhost/api'
