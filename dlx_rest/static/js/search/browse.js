@@ -207,7 +207,10 @@ export let browsecomponent = {
 
                 for (let result of jsondata.data) {
                     // tanslate api search to app search
-                    let searchStr = result.search.split('search=')[1];
+                    // encodeURIComponent is too aggressive and encodes the + sign that indicates a space
+                    // so the workaround is to replace the plus sign that came from the searchStr with a 
+                    // space, then re-encode. 
+                    let searchStr = result.search.split('search=')[1].replace(/\+/g, ' ');
                     let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(searchStr)}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
