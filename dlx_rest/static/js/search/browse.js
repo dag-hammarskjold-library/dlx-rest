@@ -210,9 +210,9 @@ export let browsecomponent = {
                     let qstr = result.search.split("?")[1];
                     let params = new URLSearchParams(qstr);
                     let search = params.get("search");
-                    let subtype = params.get("subtype");
+                    //let subtype = params.get("subtype");
                     //subtype = ["bib", "auth"].includes(subtype) ? "default" : subtype;
-                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(search)}&subtype=${subtype}`;
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(search)}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
                     // get the count
