@@ -1580,9 +1580,20 @@ export let multiplemarcrecordcomponent = {
                         firstDiv.style.border = "none"
                         firstDiv.style.width= "auto"
 
+                          let options = {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "numeric",
+                            second: "numeric",
+                            timeZoneName: "short"
+                          }
+
                         // adding the contents to the div
                         let tmpDate = new Date(element.updated);
-                        !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate} </strong> , user : ${element.user} `
+                        !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate.toLocaleString("en-US", options)} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate.toLocaleString("en-US", options)} </strong> , user : ${element.user} `
 
                         // adding some events on mouverover / mouseout to change background color
                         firstDiv.addEventListener("mouseover",()=>{
@@ -2184,10 +2195,23 @@ export let multiplemarcrecordcomponent = {
                 auditSpan.className = "small mx-2"
                 auditCell.appendChild(auditSpan)
 
+                let options = {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "numeric",
+                    second: "numeric",
+                    timeZoneName: "short"
+                  }
+
+                let updated = new Date(jmarc.updated)
+
                 if (jmarc.user) {
-                    auditCell.innerText = `Last updated ${jmarc.updated} by ${jmarc.user}`
+                    auditCell.innerText = `Last updated ${updated.toLocaleString("en-US", options)} by ${jmarc.user}`
                 } else {
-                    auditCell.innerText = `Last updated ${jmarc.updated} by system import`
+                    auditCell.innerText = `Last updated ${updated.toLocaleString("en-US", options)} by system import`
                 }
             }
  
@@ -3577,7 +3601,7 @@ function keyupAuthLookup(event) {
                         item.className = "list-group-item";
                         item.value = JSON.stringify(choice.compile()); // option value has to be a string?
                        
-                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
+                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>&nbsp;");
                        
                         item.addEventListener("mouseover", function () {
                             if (dropdown.list) {

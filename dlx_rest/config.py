@@ -73,7 +73,7 @@ class Config(object):
         sentry_dsn = client.get_parameter(Name='sentry_dsn_prod')['Parameter']['Value']
         sentry_js_url = client.get_parameter(Name='sentry_me_js_prod')['Parameter']['Value']
         dbname = 'undlFiles'
-        ssl = False
+        ssl = True
         sync_log_collection = 'dlx_dl_log'
     else:
         raise Exception('One of the environment variables "DLX_REST_TESTING", "DLX_REST_DEV", "DLX_REST_QAT", "DLX_REST_UAT", or "DLX_REST_PRODUCTION" must return a true value in order to initialize the runtime environment')

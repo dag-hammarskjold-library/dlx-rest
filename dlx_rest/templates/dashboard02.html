@@ -1,0 +1,19 @@
+{% extends 'base.html' %} {% block content %}
+<!--<iframe style="background: #F1F5F4;border: none;border-radius: 2px;box-shadow: 0 2px 10px 0 rgba(70, 76, 79, .2);width: 100vw;height: 100vh;"  src="https://charts.mongodb.com/charts-training-pbwup/embed/dashboards?id=0ae04d70-0d73-4333-a4e8-ee3df7b7d2e7&theme=light&autoRefresh=true&maxDataAge=3600&showTitleAndDesc=false&scalingWidth=fixed&scalingHeight=fixed"></iframe>-->
+<!-- <iframe style="background: #F1F5F4;border: none;border-radius: 2px;box-shadow: 0 2px 10px 0 rgba(70, 76, 79, .2);width: 100vw;height: 100vh;"  src="https://charts.mongodb.com/charts-project-0-vbkva/embed/dashboards?id=17551364-0269-4112-bec8-0661a55ea9c0&theme=light&autoRefresh=true&maxDataAge=3600&showTitleAndDesc=false&scalingWidth=fixed&scalingHeight=fixed"></iframe> -->
+
+<div id="parent-container">
+<div id="userCheckboxes">
+  <label>Select Users:</label>
+{% for user in users %}
+<div class="checkbox-container">
+    <input type="checkbox" id={{user.username}} value={{user.username}}>
+    <label for={{user.username}}>{{user.username}}</label>
+  </div> 
+{% endfor %}
+</div>
+
+ 
+  <div id="dashboard"></div>
+</div>
+{% endblock %}   
