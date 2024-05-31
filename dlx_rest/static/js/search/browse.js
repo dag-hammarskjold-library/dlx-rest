@@ -207,11 +207,12 @@ export let browsecomponent = {
 
                 for (let result of jsondata.data) {
                     // tanslate api search to app search
-                    // encodeURIComponent is too aggressive and encodes the + sign that indicates a space
-                    // so the workaround is to replace the plus sign that came from the searchStr with a 
-                    // space, then re-encode. 
-                    let searchStr = result.search.split('search=')[1].replace(/\+/g, ' ');
-                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(searchStr)}`;
+                    let qstr = result.search.split("?")[1];
+                    let params = new URLSearchParams(qstr);
+                    let search = params.get("search");
+                    let subtype = params.get("subtype");
+                    //subtype = ["bib", "auth"].includes(subtype) ? "default" : subtype;
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(search)}&subtype=${subtype}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
                     // get the count
