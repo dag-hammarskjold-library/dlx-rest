@@ -1,0 +1,17 @@
+#parent-container{
+
+    display: flex;
+
+} 
+
+#userCheckboxes{
+
+    width:15%; 
+    padding-left: 20px;
+} 
+
+#dashboard{
+
+    width:85%   
+
+}

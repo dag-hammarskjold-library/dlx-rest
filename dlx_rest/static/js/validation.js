@@ -497,7 +497,11 @@ export const validationData = {
                     "B25",
                     "B26",
                     "B27",
-                    "B28",
+                    "B28", 
+                    "B29", 
+                    "B30", 
+                    "B31",
+                    "B32",
                     "C01",
                     "C02",
                     "C08"
@@ -1469,6 +1473,10 @@ export const validationData = {
                 "089__b:B21 OR 191__a:*/NGO/*": {"a": "Documents and Publications", "b": "NGO Written Statements"},
                 "191__a:*/PET/*": {"a": "Documents and Publications", "b": "Petitions"},
                 "089__b:B24": {"a": "Documents and Publications", "b": "Concluding Observations and Recommendations"},
+                "089__b:B29": {"a": "Images and sound", "b": "Images"},
+                "089__b:B30": {"a": "Images and sound", "b": "Video"},
+                "089__b:B31": {"a": "Images and sound", "b": "Images"},
+                "089__b:B32": {"a": "Datasets"},
                 "NOT 989:*": {"a": "Documents and Publications"}
             }
         },
