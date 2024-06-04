@@ -28,8 +28,8 @@ export let exportmodal = {
                 <div class="container" id="format-select">
                   Select format: 
                   <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
-                    <label class="form-check-label" for="inlineRadio1">CSV</label>
+                    <input disabled class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
+                    <label class="form-check-label text-muted" for="inlineRadio1">CSV</label>
                   </div>
                   <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2" @click="setFormat('mrk')" checked>
@@ -40,7 +40,8 @@ export let exportmodal = {
                     <label class="form-check-label" for="inlineRadio3">XML</label>
                   </div>
                   <br/>
-                  Output Fields: <input type="text" @keyup="setOutputFields($event)">
+                  <span class="text-muted">Output Fields: </span>
+                  <input disabled type="text" placeholder="not implemented yet" @keyup="setOutputFields($event)">
                 </div>
               </div>
               <div class="modal-footer">
