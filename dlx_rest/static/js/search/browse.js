@@ -207,8 +207,12 @@ export let browsecomponent = {
 
                 for (let result of jsondata.data) {
                     // tanslate api search to app search
-                    let searchStr = result.search.split('search=')[1];
-                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(searchStr)}`;
+                    let qstr = result.search.split("?")[1];
+                    let params = new URLSearchParams(qstr);
+                    let search = params.get("search");
+                    //let subtype = params.get("subtype");
+                    //subtype = ["bib", "auth"].includes(subtype) ? "default" : subtype;
+                    let searchUrl = `${this.base_url}/records/${this.collection}/search?q=${encodeURIComponent(search)}`;
                     resultsList.push({'value': result.value, 'url': searchUrl});
                     
                     // get the count
