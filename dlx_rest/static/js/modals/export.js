@@ -26,11 +26,7 @@ export let exportmodal = {
               
               <div id="preview-text" class="modal-body">
                 <div class="container" id="format-select">
-                  Select format: 
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
-                    <label class="form-check-label" for="inlineRadio1">CSV</label>
-                  </div>
+                  Select format:
                   <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2" @click="setFormat('mrk')" checked>
                     <label class="form-check-label" for="inlineRadio2">MRK</label>
@@ -39,13 +35,21 @@ export let exportmodal = {
                     <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="option3" @click="setFormat('xml')">
                     <label class="form-check-label" for="inlineRadio3">XML</label>
                   </div>
+                  <div class="form-check form-check-inline">
+                    <input disabled class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
+                    <label class="form-check-label text-muted" for="inlineRadio1">CSV</label>
+                  </div>
                   <br/>
-                  Output Fields: <input type="text" @keyup="setOutputFields($event)">
+                  <span class="text-muted">Output Fields: </span>
+                  <input disabled type="text" placeholder="not implemented yet" @keyup="setOutputFields($event)">
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-primary" @click="submitExport">Submit</button>
-                <button type="button" class="btn btn-danger" @click="showModal = false">Close</button>
+                <a :href="selectedExportUrl" :download="'export.' + selectedFormat">
+                  <button type="button" class="btn btn-primary">Submit</button>
+                </a>
+                <!-- <button type="button" class="btn btn-primary" @click="submitExport">Submit</button> -->
+                <!-- <button type="button" class="btn btn-danger" @click="showModal = false">Close</button> -->
               </div>
             </div>
           </div>
@@ -79,7 +83,7 @@ export let exportmodal = {
             url.search = search
             this.selectedExportUrl = url
         },
-        submitExport() {
+        /* submitExport() {
             fetch(this.selectedExportUrl).then( response => {
                 response.blob().then( blob => {
                     this.download(blob, `export.${this.selectedFormat}`)
@@ -96,6 +100,6 @@ export let exportmodal = {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
-        }
+        } */
     }
 }
