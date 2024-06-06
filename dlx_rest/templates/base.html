@@ -87,14 +87,14 @@
                         <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     {% endif %}
                     {% if vcoll=="speeches" %}
-                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B22'")}}">Speeches</a></li>
                     {% endif %}
                     {% if vcoll == "votes" %}
-                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', q="089:'B23'")}}">Votes</a></li>
                     {% endif %}
                     <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
                     {% if vcoll=="auths" %}
@@ -119,10 +119,10 @@
                           Browse
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', subtype='default')}}">Bibs</a>
-                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', subtype='speech')}}">Speeches</a>
-                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', subtype='vote')}}">Votes</a>
-                          <a class="dropdown-item" href="{{url_for('browse', coll='auths', subtype='default')}}">Auths</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='bib')}}">Bibs</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='speech')}}">Speeches</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='bibs', type='vote')}}">Votes</a>
+                          <a class="dropdown-item" href="{{url_for('browse', coll='auths', type='auth')}}">Auths</a>
                         </div>
                     </li>
 

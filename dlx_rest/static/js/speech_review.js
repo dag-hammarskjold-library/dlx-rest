@@ -40,7 +40,7 @@ export let speechreviewcomponent = {
             <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
             <br>
             <div>Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
-            <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?subtype=speech'">Speeches</a>
+            <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?q=089%3A%27B22%27'">Speeches</a>
             </div>
         </div>
         <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
@@ -114,6 +114,7 @@ export let speechreviewcomponent = {
             showAgendaModal: false,
             showSpinner: false,
             agendas: [],
+            hidden_qs: ["089:B22"],
             searchTerm: "",
             myBasket: {},
             selectedRecords: [],
@@ -165,11 +166,12 @@ export let speechreviewcomponent = {
         updateSearchQuery() {
             const url = new URL(window.location)
             url.searchParams.set("q", this.searchTerm)
+            this.qs = [this.searchTerm, this.hidden_qs].join(" AND ")
             window.history.replaceState(null, "", url)
         },
         submitSearch() {
             // Do the search and update this.speeches
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=1&limit=50000`
+            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.qs}&format=brief_speech&start=1&limit=50000`
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
             let startTime = Date.now()
             this.showSpinner = true
