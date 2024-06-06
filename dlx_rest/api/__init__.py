@@ -202,9 +202,9 @@ class RecordsList(Resource):
         help='Consult documentation for query syntax' # todo
     )
     args.add_argument(
-        'browse', 
-        type=str, 
-        help='Consult documentation for query syntax' # todo
+        'subtype',
+        type=str,
+        choices=['default', 'speech', 'vote', 'all', '']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
@@ -214,11 +214,11 @@ class RecordsList(Resource):
         args = RecordsList.args.parse_args()
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
-        try:
+        if not current_user.is_anonymous:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
-        except TypeError:
-            pass
+        else:
+            this_basket = None
 
         # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
         all_basket_objects = []
@@ -234,7 +234,14 @@ class RecordsList(Resource):
             query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
         except InvalidQueryString as e:
             abort(422, str(e))
-
+   
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
+     
         # start
         start = 1 if args.start is None else int(args.start)
           
@@ -284,8 +291,8 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
-        
+        collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
+
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
@@ -340,7 +347,7 @@ class RecordsList(Resource):
                 'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
@@ -362,13 +369,19 @@ class RecordsList(Resource):
         user = current_user if request_loader(request) is None else request_loader(request)
 
         if args.format == 'mrk':
-            
             record = cls.from_mrk(request.data.decode())
             if not has_permission(user, "createRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:    
-                record.commit(user=user.username)
+                result = record.commit(user=user.username)
+
+                if result:
+                    data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                    return data, 201
+                else:
+                    abort(500, 'POST request failed for unknown reasons')
+            
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -414,9 +427,15 @@ class RecordsListCount(Resource):
                 query = Query.from_string(search, record_type=collection[:-1])
             except InvalidQueryString as e:
                 abort(422, str(e))
-
         else:
-            query = {}
+            query = Query()
+
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
 
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
@@ -427,11 +446,11 @@ class RecordsListCount(Resource):
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
-        if query:
+        if query.conditions:
             data = cls().handle.count_documents(
                 query.compile(),
                 # collation is not implemented in mongomock
-                collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                collation=DlxConfig.marc_index_default_collation if Config.TESTING == False else None,
                 maxTimeMS=Config.MAX_QUERY_TIME
             )
         else:
@@ -468,9 +487,9 @@ class RecordsListBrowse(Resource):
         default=10,
     )
     args.add_argument(
-        'type',
+        'subtype',
         type=str, 
-        choices=['bib', 'speech', 'vote', 'auth']
+        choices=['default', 'speech', 'vote']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
@@ -486,24 +505,31 @@ class RecordsListBrowse(Resource):
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
+        args.subtype = args.subtype or 'default'
+        #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
-        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
-        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
+        #query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, subq}
+        query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
+        query['$and'].append({'_record_type': args.subtype})
         
+        if args.subtype == 'default': 
+            # browse index documents might have more than one subtype
+            query['$and'] += [{'_record_type': {'$ne': 'speech'}}, {'_record_type': {'$ne': 'vote'}}]
+
         if Config.TESTING:
             # collation is not implemented in mongomock
             collation = None
         else:
-            collation = Collation(
-                locale='en', 
-                strength=1,
-                #alternate='shifted',
-                #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
-                numericOrdering=True
-            )
+            collation = DlxConfig.marc_index_default_collation
         
         start, limit = int(args.start), int(args.limit)
-        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
+        values = list(DB.handle[f'_index_{field}'].find(
+            query, 
+            skip=start-1, 
+            limit=limit, 
+            sort=[('text', direction)], 
+            collation=collation)
+        )
 
         ''' 
         # using an aggregation. this method is slower and requires specifiying all characters to ignore
@@ -529,8 +555,6 @@ class RecordsListBrowse(Resource):
         if args.compare == 'less':
             values = list(reversed(list(values)))
 
-        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
-
         data = [
             {
                 'value': x['_id'],
@@ -538,12 +562,14 @@ class RecordsListBrowse(Resource):
                     'api_records_list', 
                     collection=collection,
                     # todo: make record type serachable by query string instead of useing type codes
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str()
             } for x in values
         ]
@@ -727,6 +753,9 @@ class Record(Resource):
                     basket.remove_item(basket_item['id'])
                 except IndexError:
                     pass
+
+                #if basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id)):
+                #       basket.remove_item(basket_item['id'])
 
             return Response(status=204)
         else:

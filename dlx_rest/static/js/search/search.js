@@ -109,8 +109,8 @@ export let searchcomponent = {
         </div>
         <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
-                <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :aria-label="'Search ' + collection + ' collection'" :value="params.search">
-                <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" :placeholder="'Search ' + collection + ' collection'" aria-label="Search this collection">
+                <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search" :value="params.search">
+                <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search" aria-label="Search">
                 <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
                 <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
                 <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
@@ -330,16 +330,15 @@ export let searchcomponent = {
             //this.searchFields = this.bibSearchFields
         }
         // todo: remove the type cretieria from the search input; update criteria
-        if (this.params.search.includes("089:'B22'")) {
+        if (this.params.subtype === "speech") {
             this.vcoll = "089:'B22'"
             this.collectionTitle = "speeches"
         }
         // todo: remove the type cretieria from the search input, update criteria
-        if (this.params.search.includes("089:'B23'")) {
+        if (this.params.subtype === "vote") {
             this.vcoll = "089:'B23'"
             this.collectionTitle = "votes"
         }
-        console.log(this.collectionTitle)
 
         let myEnd = component.params.start + component.params.limit -1;
         component.end = myEnd;

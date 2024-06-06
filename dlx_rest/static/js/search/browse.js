@@ -28,7 +28,7 @@ export let browsecomponent = {
     template: `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
-            <div class="row"><h3>Browsing {{recordType}}/{{index}} at {{q}}</h3></div>
+            <div class="row"><h3>Browsing {{displaySubtype}}/{{index}} at {{q}}</h3></div>
             <div class="row">
                 <form>
                 <div class="form-group">
@@ -122,7 +122,7 @@ export let browsecomponent = {
             </nav>
         </div>
         <div v-else>
-        <div class="row"><h3>Browsing {{recordType}}</h3></div>
+        <div class="row"><h3>Browsing {{displaySubtype}}</h3></div>
             <div class="col pt-2 m-auto" style="background-color:white;">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -151,6 +151,11 @@ export let browsecomponent = {
     data: function () {
         Jmarc.apiUrl = this.api_prefix;
         let baseUrl = this.api_prefix.replace("/api", "");
+
+        let displaySubtype = window.location.search.match(/subtype=(\w+)/)[1]
+        if (displaySubtype == "default") {
+            displaySubtype = this.collection
+        }
         
         return {
             results_before: [],
@@ -160,7 +165,8 @@ export let browsecomponent = {
             prev: null,
             indexListJson: null,
             base_url: baseUrl,
-            recordType: window.location.search.match(/type=(\w+)/)[1],
+            subtype: window.location.search.match(/subtype=(\w+)/)[1],
+            displaySubtype: displaySubtype,
             user: null,
             myBasket: {}
         }
@@ -179,13 +185,13 @@ export let browsecomponent = {
         }
 
         // todo
-        let matches = window.location.search.match(/type=(\w+)/)
-        let recordType = this.recordType;
+        let matches = window.location.search.match(/subtype=(\w+)/)
+        let subtype = this.subtype;
 
-        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${encodeURIComponent(this.recordType)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
-        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?type=${encodeURIComponent(this.recordType)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
+        let beforeBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=less&limit=3`
+        let afterBrowse = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=greater&limit=50`
 
-        document.title = document.title + ` Browse (${this.recordType})`
+        document.title = document.title + ` Browse (${this.displaySubtype})`
 
         for (let url of [beforeBrowse, afterBrowse]) {
             let resultsList = url === beforeBrowse ? this.results_before : this.results_after;
@@ -200,9 +206,9 @@ export let browsecomponent = {
                 let field = searchStr.split(":")[0]; // the logical field that is being browsed on
 
                 if (url === beforeBrowse) {
-                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?type=${encodeURIComponent(this.recordType)}&q=${encodeURIComponent(jsondata.data[0].value)}`;
+                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?subtype=${encodeURIComponent(this.subtype)}&q=${encodeURIComponent(jsondata.data[0].value)}`;
                 } else {
-                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?type=${encodeURIComponent(this.recordType)}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
+                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?subtype=${encodeURIComponent(this.subtype)}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
                 }
 
                 for (let result of jsondata.data) {
@@ -304,7 +310,7 @@ export let browsecomponent = {
             let el = document.getElementById(id)
             let val = el.value
 
-            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${encodeURIComponent(val)}&type=${this.recordType}`
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${encodeURIComponent(val)}&subtype=${this.subtype}`
             if (val) { 
                 history.pushState({}, window.location.href);
                 setTimeout(function(){
@@ -314,7 +320,7 @@ export let browsecomponent = {
         },
         resubmitBrowse(index) {
             let val = document.getElementById("searchAgain").value
-            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${index}?q=${encodeURIComponent(val)}&type=${this.recordType}`
+            let targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${index}?q=${encodeURIComponent(val)}&subtype=${this.subtype}`
             history.pushState({}, window.location.href);
             setTimeout(function(){
                 window.location.href=targetUrl;

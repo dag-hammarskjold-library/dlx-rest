@@ -1,0 +1,9 @@
+{% extends 'base.html' %} {% block content %} 
+<div>
+    <div id="import_marc"  v-show="true" class="d-flex w-100">
+        
+        <importcomponent api_prefix="{{api_prefix}}"></importcomponent>
+    </div>
+</div>
+    <script type="module" src="{{url_for('static', filename='js/vm_import.js')}}"></script>
+{% endblock %}
