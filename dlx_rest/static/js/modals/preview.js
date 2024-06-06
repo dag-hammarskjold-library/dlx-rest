@@ -5,10 +5,6 @@ export let previewmodal = {
         api_prefix: {
             type: String,
             required: true
-        },
-        collection_name: {
-          type: String,
-          required: true
         }
     },
     template: `<div v-if="showModal">
@@ -18,7 +14,7 @@ export let previewmodal = {
           <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">{{collection_name}} / {{recordId}}</h5>
+                <h5 class="modal-title">Speeches / {{recordId}}</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true" @click="showModal = false">&times;</span>
                 </button>

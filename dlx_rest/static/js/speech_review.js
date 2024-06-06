@@ -102,7 +102,7 @@ export let speechreviewcomponent = {
             <div v-for="agenda in agendas">{{agenda}}</div>
         </div>
     </div>
-    <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Speeches"></previewmodal>
+    <previewmodal ref="previewmodal" :api_prefix="api_prefix"></previewmodal>
     <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
     data: function() {

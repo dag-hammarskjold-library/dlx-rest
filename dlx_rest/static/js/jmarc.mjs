@@ -147,43 +147,6 @@ export class Subfield {
 
 		return flags
 	}
-
-	async detectAndSetXref() {
-		/* Tries to look up and set the subfield xref given the subfield value.
-		Sets xref to an error object if the xref is not found or ambiguous */
-
-		const field = this.parentField;
-		const jmarc = field.parentRecord;
-		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
-
-		if (isAuthorityControlled) {
-			const searchStr = 
-				field.subfields
-				.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
-				.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
-				.join(" AND ");
-
-			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
-				.then(response => response.json())
-				.then(json => {
-					const recordsList = json['data'];
-					let xref;
-					
-					if (recordsList.length === 0) {
-						xref = new Error("Unmatched heading")
-					} else if (recordsList.length > 1) {
-						xref = new Error("Ambiguous heading")
-					} else {
-						// get the xref from the URL
-						const parts = recordsList[0].split("/");
-						xref = parts[parts.length - 1];
-					}
-
-					this.xref = xref;
-					return xref
-				}).catch(error => {throw error})
-		}
-	}
 }
 
 class LinkedSubfield extends Subfield {
@@ -240,7 +203,7 @@ export class DataField {
 					this.parentRecord.deleteField(this);
 				}
             } else if (this.tag in amap && subfield.code in amap[this.tag] && ! subfield.xref) {
-                throw new Error(`Invalid authority-controlled value: ${this.tag} ${subfield.code} ${subfield.value}`)
+                throw new Error("Invalid authority-controlled value")
             }
         }
 	}
@@ -735,6 +698,7 @@ export class Jmarc {
         }
         return true;
     }
+<<<<<<< HEAD
 
 	static async fromMrk(collection, mrk) {
 		if (! ["bibs", "auths"].includes(collection)) {
@@ -782,6 +746,8 @@ export class Jmarc {
 
 		return jmarc
 	}
+=======
+>>>>>>> parent of fde5c5a (Add UI for uploading MARC records (#1377))
     
     async post() {
 		if (this.recordId) {
@@ -1192,6 +1158,7 @@ export class Jmarc {
 		return flags.flat()
 	}
 
+<<<<<<< HEAD
 	async symbolInUse() {
 		// Determine if a symbol is already being used.
 		if (this.collection !== "bibs") return
@@ -1243,6 +1210,8 @@ export class Jmarc {
 		}
 	}
 
+=======
+>>>>>>> parent of fde5c5a (Add UI for uploading MARC records (#1377))
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return
 
