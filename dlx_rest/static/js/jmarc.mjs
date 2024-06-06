@@ -708,7 +708,7 @@ export class Jmarc {
 		let jmarc = new Jmarc(collection)
 		const promises = [];
 
-		for (let line of mrk.split(/(\r\n|\n)/)) {
+		for (let line of mrk.split("\n")) {
 			let match = line.match(/=(\w{3})  (.*)/)
 			
 			if (match != null){
