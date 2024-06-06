@@ -382,7 +382,7 @@ export class Jmarc {
 		if (! Jmarc.apiUrl) {throw new Error("Jmarc.apiUrl must be set")};
 		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
 		
-        if (! collection) {throw new Error("Collection required (\"bibs\" or \"auths\")")};
+        if (! collection) {throw new Error("Collection required")};
 		this.collection = collection;
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
@@ -698,56 +698,6 @@ export class Jmarc {
         }
         return true;
     }
-<<<<<<< HEAD
-
-	static async fromMrk(collection, mrk) {
-		if (! ["bibs", "auths"].includes(collection)) {
-			throw new Error("First argument must be \"bibs\" or \"auths\"")
-		}
-
-		let jmarc = new Jmarc(collection)
-		const promises = [];
-
-		for (let line of mrk.split("\n")) {
-			let match = line.match(/=(\w{3})  (.*)/)
-			
-			if (match != null){
-				let tag = match[1]
-				let rest = match[2]
-				if (tag == 'LDR') { 
-					tag = '000' 
-				}
-
-				let field = jmarc.createField(tag);
-				if (field instanceof(ControlField)) {
-					field.value = rest;
-					continue
-				} else {
-					let indicators = rest.substring(0,2).replace(/\\/g, " ")
-					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
-
-					for (let subfield of rest.substring(2, rest.length).split("$")) {
-						if (subfield.length > 0) {
-							let code = subfield.substring(0,1)
-							let value = subfield.substring(1, subfield.length)
-							if (code.length > 0 && value.length > 0) {
-								let newSub = field.createSubfield(code)
-								newSub.value = value
-								promises.push(newSub.detectAndSetXref());
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// wait until all the xrefs have been set
-		await Promise.all(promises);
-
-		return jmarc
-	}
-=======
->>>>>>> parent of fde5c5a (Add UI for uploading MARC records (#1377))
     
     async post() {
 		if (this.recordId) {
@@ -1158,60 +1108,6 @@ export class Jmarc {
 		return flags.flat()
 	}
 
-<<<<<<< HEAD
-	async symbolInUse() {
-		// Determine if a symbol is already being used.
-		if (this.collection !== "bibs") return
-
-		let inUse = false;
-
-		for (const tag of ['191', '791']) {
-			// only look in same symbol fields in other records
-			for (const field of this.getFields(tag)) {
-				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
-				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
-				const res = await fetch(url);
-				const json = await res.json();
-				const results = json['data'];
-	
-				if (results.length > 0) inUse = true
-			}
-		}
-		
-		return inUse
-	}
-
-	async authExists() {
-		/*
-		Similar to authHeadingInUse, but doesn't care about returning ambiguous results.
-
-		We want this to evaluate to true, but don't need regex since we already have 
-		other ways to force exact matching.
-		*/
-		if (this.collection !== "auths") return
-		let headingField = (this.fields.filter(x => x.tag.match(/^1/)) || [null])[0];
-
-		if (! headingField) return
-		
-		let searchStr = 
-    	    headingField.subfields
-    	    .map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
-    	    .join(" AND ")
-
-		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
-		let res = await fetch(url)
-		let json = await res.json()
-		let count = json['data']
-
-		if (count === 1) {
-			return true
-		} else {
-			return false
-		}
-	}
-
-=======
->>>>>>> parent of fde5c5a (Add UI for uploading MARC records (#1377))
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return
 
