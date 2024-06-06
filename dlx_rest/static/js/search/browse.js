@@ -151,11 +151,6 @@ export let browsecomponent = {
     data: function () {
         Jmarc.apiUrl = this.api_prefix;
         let baseUrl = this.api_prefix.replace("/api", "");
-
-        let displaySubtype = window.location.search.match(/subtype=(\w+)/)[1]
-        if (displaySubtype == "default") {
-            displaySubtype = this.collection
-        }
         
         return {
             results_before: [],
