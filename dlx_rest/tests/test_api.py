@@ -3,11 +3,10 @@ os.environ['DLX_REST_TESTING'] = 'True'
 
 import pytest, json, re
 from dlx import DB
-from dlx.marc import Bib, Auth, Datafield
+from dlx.marc import BibSet, Bib, AuthSet, Auth, Datafield
 from dlx.file import File, Identifier, S3
 from dlx_rest.app import app
 from dlx_rest.config import Config
-from moto import mock_s3
 from base64 import b64encode
 
 API = 'http://localhost/api'
@@ -60,7 +59,6 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
     bibGE.set('245', 'a', 'AAA')
     bibGE.set('040', 'a', 'SzGeBNU')
     
-
     # NY Auth Record
     authNY = Auth()
     authNY.set('100', 'a', 'Heading')
@@ -194,7 +192,6 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         for i in (1, 2):
             assert f'{API}/marc/{col}/records/{i}' in data['data']
 
-    
         # search
         res = client.get(f'{API}/marc/{col}/records?search=title:\'AAA\'')
         data = check_response(res)
@@ -206,17 +203,24 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         res = client.get(f'{API}/marc/{col}/records?sort=title&direction=asc')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.urllist'
-        
-        # Not sure why this is being tested
-        #if col == 'bibs':
-        #    assert '/records/3' in data['data'][0]
-            
+         
         # format
-        for fmt in ['mrk', 'xml']:
-            res = client.get(f'{API}/marc/{col}/records?format={fmt}')
-            assert type(res.data) == bytes
-            assert type(res.data.decode()) == str
-            
+        MarcSet = BibSet if col == 'bibs' else AuthSet
+
+        res = client.get(f'{API}/marc/{col}/records?format=mrk')
+        assert type(res.data) == bytes
+        data = res.data.decode()
+        assert type(data) == str
+        batch = MarcSet.from_mrk(data)
+        assert len(batch.records[0].fields) > 0
+
+        res = client.get(f'{API}/marc/{col}/records?format=xml')
+        assert type(res.data) == bytes
+        data = res.data.decode()
+        assert type(data) == str
+        batch = MarcSet.from_xml(data)
+        assert len(batch.records[0].fields) > 0
+    
         res = client.get(f'{API}/marc/{col}/records?format=brief')
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
@@ -739,14 +743,12 @@ def test_api_userbasket(client, default_users, users, marc):
     # Get the current user's basket, which should be created if it doesn't exist
     username = default_users['admin']['email']
     password = default_users['admin']['password']
-    
     credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     # GET the basket. It should have zero items.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)
-    #print(data)
     assert data['_meta']['returns'] == f'{API}/schemas/api.basket'
     assert len(data['data']['items']) == 0
 
@@ -761,7 +763,6 @@ def test_api_userbasket(client, default_users, users, marc):
     # GET the basket again. Now it should have one item.
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
-    #print(data)
     assert len(data['data']['items']) == 1
 
     # GET the basket item. Its collection and record_id should match what we POSTed.
@@ -770,7 +771,6 @@ def test_api_userbasket(client, default_users, users, marc):
     res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)
-    #print(data)
     assert data['data']['collection'] == 'bibs'
     assert data['data']['record_id'] == '1'
 
@@ -779,7 +779,6 @@ def test_api_userbasket(client, default_users, users, marc):
     assert res.status_code == 200
     res = client.get("/api/userprofile/my_profile/basket", headers={"Authorization": f"Basic {credentials}"})
     data = json.loads(res.data)
-    #print(data)
     assert len(data['data']['items']) == 1
 
     # Now DELETE the item from the basket and verify the basket contains zero items.

@@ -4,7 +4,7 @@ os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
 from datetime import datetime
-from moto import mock_s3
+from moto import mock_aws
 from dlx import DB
 from dlx.marc import Bib, Auth
 from dlx.file import File, Identifier, S3
@@ -295,7 +295,7 @@ def marc():
      
 @pytest.fixture 
 def files():
-    with mock_s3():
+    with mock_aws():
         S3.connect(bucket='mock_bucket')
         S3.client.create_bucket(Bucket=S3.bucket)
         

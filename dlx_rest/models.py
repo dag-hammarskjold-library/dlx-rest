@@ -161,11 +161,15 @@ class Basket(Document):
         return this_item
 
     def get_item_by_coll_and_rid(self, collection, record_id):
-        return list(filter(lambda x: x['record_id'] == record_id and x['collection'] == collection, self.items))[0]
+        basket = Basket.objects(__raw__={"items.collection": collection, "items.record_id": str(record_id)}).first()
+        
+        if basket:
+            return next(filter(lambda x: x['collection'] == collection and x['record_id'] == record_id, basket.items), None)
 
     def add_item(self, item):
-        existing_item = list(filter(lambda x: x['collection'] == item['collection'] and x['record_id'] == item['record_id'], self.items))
-        if len(existing_item) == 0:
+        existing_item = Basket._get_collection().find_one({"items.collection": item['collection'], "items.record_id": item['record_id']})
+        
+        if not existing_item:
             ulid = ULID()
             item['id'] = str(ulid.to_uuid())
             self.items.append(item)

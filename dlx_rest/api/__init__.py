@@ -202,9 +202,9 @@ class RecordsList(Resource):
         help='Consult documentation for query syntax' # todo
     )
     args.add_argument(
-        'browse', 
-        type=str, 
-        help='Consult documentation for query syntax' # todo
+        'subtype',
+        type=str,
+        choices=['default', 'speech', 'vote', 'all', '']
     )
      # This is so we can benchmark the two search formats
     args.add_argument(
@@ -218,8 +218,6 @@ class RecordsList(Resource):
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
     def get(self, collection):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
 
@@ -231,11 +229,11 @@ class RecordsList(Resource):
             print("Using Atlas search type")
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
-        try:
+        if not current_user.is_anonymous:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
-        except TypeError:
-            pass
+        else:
+            this_basket = None
 
         # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
         all_basket_objects = []
@@ -247,6 +245,13 @@ class RecordsList(Resource):
         # search
         search = unquote(args.search) if args.search else None
 
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
+            
         if engine == "community":
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
@@ -271,20 +276,20 @@ class RecordsList(Resource):
             abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
-            tags = ['191', '245', '269', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
-                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
+            tags = ['191', '245', '269', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
-            tags = ['269', '700', '710', '711', '791', '991', '992']
+            tags = ['269', '596', '700', '710', '711', '791', '991', '992']
            
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt:
-            project = {}
+            project = None
         else:
             project = {'_id': 1}
           
@@ -307,11 +312,11 @@ class RecordsList(Resource):
             sort = None
 
         # collation is not implemented in mongomock
-        collation = Collation(locale='en', strength=1, numericOrdering=True) # if Config.TESTING == False else None
-        
+        collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
+
         # exec query
         recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-
+        
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(), mimetype='text/xml')
@@ -343,7 +348,7 @@ class RecordsList(Resource):
                 data.append(this_d)
         else:
             schema_name='api.urllist'
-            data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
+            data = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in recordset]
             
         new_direction = 'desc' if args.direction in (None, 'asc') else 'asc'
         
@@ -353,17 +358,17 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
-                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
@@ -385,13 +390,19 @@ class RecordsList(Resource):
         user = current_user if request_loader(request) is None else request_loader(request)
 
         if args.format == 'mrk':
-            
             record = cls.from_mrk(request.data.decode())
             if not has_permission(user, "createRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:    
-                record.commit(user=user.username)
+                result = record.commit(user=user.username)
+
+                if result:
+                    data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                    return data, 201
+                else:
+                    abort(500, 'POST request failed for unknown reasons')
+            
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -437,10 +448,16 @@ class RecordsListCount(Resource):
                 query = Query.from_string(search, record_type=collection[:-1])
             except InvalidQueryString as e:
                 abort(422, str(e))
-
         else:
-            query = {}
-        
+            query = Query()
+
+        if args.subtype == 'all':
+            pass
+        elif args.subtype:
+            query.add_condition(Raw({'_record_type': args.subtype}))
+        else:
+            query.add_condition(Raw({'_record_type': 'default'}))
+
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
             'related': {
@@ -450,11 +467,11 @@ class RecordsListCount(Resource):
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
-        if query:
+        if query.conditions:
             data = cls().handle.count_documents(
                 query.compile(),
                 # collation is not implemented in mongomock
-                collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                collation=DlxConfig.marc_index_default_collation if Config.TESTING == False else None,
                 maxTimeMS=Config.MAX_QUERY_TIME
             )
         else:
@@ -491,9 +508,9 @@ class RecordsListBrowse(Resource):
         default=10,
     )
     args.add_argument(
-        'type',
+        'subtype',
         type=str, 
-        choices=['bib', 'speech', 'vote', 'auth']
+        choices=['default', 'speech', 'vote']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
@@ -502,31 +519,38 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        match = re.match('^(\\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
         direction = DESC if args.compare == 'less' else ASC
+        args.subtype = args.subtype or 'default'
+        #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
-        query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
-        numeric_fields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
+        #query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, subq}
+        query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
+        query['$and'].append({'_record_type': args.subtype})
         
+        if args.subtype == 'default': 
+            # browse index documents might have more than one subtype
+            query['$and'] += [{'_record_type': {'$ne': 'speech'}}, {'_record_type': {'$ne': 'vote'}}]
+
         if Config.TESTING:
             # collation is not implemented in mongomock
             collation = None
         else:
-            collation = Collation(
-                locale='en', 
-                strength=1,
-                #alternate='shifted',
-                #maxVariable='space' if field in numeric_fields else 'punct', # ignore punct unless sort is numeric
-                numericOrdering=True
-            )
+            collation = DlxConfig.marc_index_default_collation
         
         start, limit = int(args.start), int(args.limit)
-        values = list(DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('text', direction)], collation=collation))
+        values = list(DB.handle[f'_index_{field}'].find(
+            query, 
+            skip=start-1, 
+            limit=limit, 
+            sort=[('text', direction)], 
+            collation=collation)
+        )
 
         ''' 
         # using an aggregation. this method is slower and requires specifiying all characters to ignore
@@ -552,8 +576,6 @@ class RecordsListBrowse(Resource):
         if args.compare == 'less':
             values = list(reversed(list(values)))
 
-        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
-
         data = [
             {
                 'value': x['_id'],
@@ -561,12 +583,14 @@ class RecordsListBrowse(Resource):
                     'api_records_list', 
                     collection=collection,
                     # todo: make record type serachable by query string instead of useing type codes
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str()
             } for x in values
         ]
@@ -626,33 +650,36 @@ class Record(Resource):
         
         # check for files
         # todo: get identifier type mapping from config
-        files = []
-        symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
-        isbns = record.get_values('020', 'a')
-        isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+        files_data = []
 
-        def get_files(id_type, id_value):
-            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-            return list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-        
-        for id_type, id_values in {'symbol': symbols, 'isbn': isbns}.items():
-            for id_value in id_values:
-                files += list(filter(lambda x: x not in files, get_files(id_type, id_value)))
+        if collection == 'bibs':
+            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+            isbns = record.get_values('020', 'a')
+            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+            # Get files by original URI which was logged in the Archive-It system
+            uris = record.get_values('561', 'u')
+            all_files = []
+            
+            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
+                for id_value in id_values:
+                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+                    
+            files_data = [
+                {
+                    'mimetype': f.mimetype, 
+                    'language': f.languages[0].lower(), 
+                    'url': URL('api_file_record', record_id=f.id).to_str()
+                } for f in all_files
+            ]
                 
         data = record.to_dict()
         data['created'] = record.created
         data['created_user'] = record.created_user
         data['updated'] = record.updated
         data['user'] = record.user
-        data['files'] = []
-        for f in files:
-            this_f = {
-                'mimetype': f.mimetype, 
-                'language': f.languages[0].lower(), 
-                'url': URL('api_file_record', record_id=f.id).to_str()
-            } 
-            if this_f not in data['files']:
-                data['files'].append(this_f)
+        data['files'] = files_data
 
         meta = {
             'name': 'api_record',
@@ -748,6 +775,9 @@ class Record(Resource):
                 except IndexError:
                     pass
 
+                #if basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id)):
+                #       basket.remove_item(basket_item['id'])
+
             return Response(status=204)
         else:
             abort(500)
@@ -773,8 +803,6 @@ Recommendation: Deprecate these API routes.
 class RecordFieldsList(Resource):
     @ns.doc(description='Return a list of the fields in the record with the given record ID')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
@@ -793,7 +821,7 @@ class RecordFieldsList(Resource):
                 )
         
         links = {
-            '_self': URL('api_record_fields_list', **route_params).to_str(),
+            '_self': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
@@ -816,9 +844,6 @@ class RecordFieldsList(Resource):
 class RecordFieldPlaceList(Resource):
     @ns.doc(description='Return a list of the instances of the field in the record')
     def get(self, collection, record_id, field_tag):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         places = len(list(record.get_fields(field_tag)))
@@ -826,11 +851,11 @@ class RecordFieldPlaceList(Resource):
         
         for place in range(0, places):
             field_places.append(
-                URL('api_record_field_place', field_place=place, **route_params).to_str()
+                URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=place).to_str()
             )
         
         links = {
-            '_self': URL('api_record_field_place_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_list', collection=collection, record_id=record_id, field_tag=field_tag).to_str(),
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
@@ -904,9 +929,6 @@ class RecordFieldPlaceList(Resource):
 class RecordFieldPlace(Resource):
     @ns.doc(description='Return the field at the given place in the record')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -915,9 +937,9 @@ class RecordFieldPlace(Resource):
         links = {
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                'subfields': URL('api_record_field_place_subfield_list', **route_params).to_str()
+                'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             },
-            '_self': URL('api_record_field_place', **route_params).to_str(),
+            '_self': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
         }
         
         meta = {
@@ -1005,9 +1027,6 @@ class RecordFieldPlace(Resource):
 class RecordFieldPlaceSubfieldList(Resource):
     @ns.doc(description='Return a list of the subfields in the field')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -1015,25 +1034,20 @@ class RecordFieldPlaceSubfieldList(Resource):
         subfields, seen, place = [], {}, 0
         
         for sub in field.subfields:
-            new_route_params = copy(route_params)
-            new_route_params['subfield_code'] = sub.code
-            
             if sub.code in seen:
                 place += 1
             else:
                 place = 0
                 seen[sub.code] = True
-            
-            new_route_params['subfield_place'] = place
 
             subfields.append(
-                URL('api_record_field_subfield_value', subfield_place=place, subfield_code=sub.code, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_place=place, subfield_code=sub.code).to_str()
             )
             
         links = {
-            '_self': URL('api_record_field_place_subfield_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
             'related': {
-                'field': URL('api_record_field_place', **route_params).to_str()
+                'field': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place,).to_str()
             }
         }
 
@@ -1054,9 +1068,6 @@ class RecordFieldPlaceSubfieldList(Resource):
 class RecordFieldPlaceSubfieldPlaceList(Resource):
     @ns.doc(description='Return a list of the subfields with the given code')
     def get(self, collection, record_id, field_tag, field_place, subfield_code):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -1067,11 +1078,11 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         
         for place in range(0, len(list(subfields))):
             subfield_places.append(
-                URL('api_record_field_subfield_value', subfield_place=place, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str()
             )
         
         links = {
-            '_self':  URL('api_record_field_place_subfield_place_list', **route_params).to_str(),
+            '_self':  URL('api_record_field_place_subfield_place_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str(),
             'related': {
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             }
@@ -1095,15 +1106,12 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 class RecordFieldSubfieldValue(Resource):
     @ns.doc(description='Return the value of the subfield')
     def get(self, collection, record_id, field_tag, field_place, subfield_code, subfield_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         value = record.get_value(field_tag, subfield_code, address=[field_place, subfield_place]) or abort(404)
         
         links = {
-            '_self': URL('api_record_field_subfield_value', **route_params).to_str(),
+            '_self': URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=subfield_place).to_str(),
             'related': {
                 #'record':URL('api_record', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id,field_tag=field_tag, field_place=field_place).to_str()
@@ -1124,9 +1132,6 @@ class RecordFieldSubfieldValue(Resource):
 class RecordSubfieldsList(Resource):
     @ns.doc(description='Return a list of all the subfields in the record with the given record')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -1148,16 +1153,17 @@ class RecordSubfieldsList(Resource):
                     subfields.append(
                         URL(
                             'api_record_field_subfield_value',
+                            collection=collection,
+                            record_id=record_id,
                             field_tag=field.tag,
                             field_place=field_place,
                             subfield_code=subfield.code,
-                            subfield_place=subfield_place,
-                            **route_params
+                            subfield_place=subfield_place
                         ).to_str()
                     )
                     
         links = {
-            '_self': URL('api_record_subfields_list', **route_params).to_str(),
+            '_self': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
             }
@@ -1756,8 +1762,10 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
+
         lock_status = item_locked(item['collection'], item['record_id'])
         this_u = User.objects.get(id=current_user.id)
+        
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
                 # It's locked, but by the current user
