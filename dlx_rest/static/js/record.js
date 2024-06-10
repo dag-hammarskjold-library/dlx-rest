@@ -77,7 +77,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -415,7 +415,7 @@ export let multiplemarcrecordcomponent = {
             }
             console.log(`checked? ${field.checked}`)
         },
-        async saveRecord(jmarc, display=true){
+        async saveRecord(jmarc, display=true) {
             if (jmarc.workformName) {
                 jmarc.saveWorkform(jmarc.workformName, jmarc.workformDescription).then( () => {
                     this.removeRecordFromEditor(jmarc); // div element is stored as a property of the jmarc object
@@ -423,6 +423,18 @@ export let multiplemarcrecordcomponent = {
                     this.callChangeStyling(`Workform ${jmarc.collection}/workforms/${jmarc.workformName} saved.`, "d-flex w-100 alert-success")
                 });
             } else if (! jmarc.saved) {
+                // prevent save if any auth controlled subfields are blank
+                for (let field of jmarc.getDataFields()) {
+                    for (let subfield of field.subfields) {
+                        if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                            if (! subfield.xref) {
+                                this.callChangeStyling("Can't save blank authority-controlled subfield", "d-flex w-100 alert-danger")
+                                return
+                            }
+                        }
+                    }
+                }
+
                 // get rid of empty fields and validate
                 let flags = jmarc.validationWarnings();
                 
@@ -700,7 +712,13 @@ export let multiplemarcrecordcomponent = {
                 this.callChangeStyling("No subfield selected", "d-flex w-100 alert-danger")
                 return 
             }
-                   
+
+            // prevent auth controlled subfield from being deleted (issue 1259)
+            if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                this.callChangeStyling("Can't delete authority controlled subfield", "d-flex w-100 alert-danger");
+                return
+            }
+
             // Remove the subfield from the field
             field.deleteSubfield(subfield);
             // Remove the subfield row from the table
@@ -1562,9 +1580,20 @@ export let multiplemarcrecordcomponent = {
                         firstDiv.style.border = "none"
                         firstDiv.style.width= "auto"
 
+                          let options = {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "numeric",
+                            second: "numeric",
+                            timeZoneName: "short"
+                          }
+
                         // adding the contents to the div
                         let tmpDate = new Date(element.updated);
-                        !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate} </strong> , user : ${element.user} `
+                        !(element.user) ? firstDiv.innerHTML= `<strong> ${tmpDate.toLocaleString("en-US", options)} </strong>` : firstDiv.innerHTML= `<strong> ${tmpDate.toLocaleString("en-US", options)} </strong> , user : ${element.user} `
 
                         // adding some events on mouverover / mouseout to change background color
                         firstDiv.addEventListener("mouseover",()=>{
@@ -1762,6 +1791,8 @@ export let multiplemarcrecordcomponent = {
                 if (selectedItem) selectedItem.setAttribute("style", "background-color:white;");
             }
             
+            // clear copied fields on close
+            this.copiedFields = []
 
             // clear the entries for the undoredo vectors
             if (keepDataInVector==false) { 
@@ -2164,10 +2195,23 @@ export let multiplemarcrecordcomponent = {
                 auditSpan.className = "small mx-2"
                 auditCell.appendChild(auditSpan)
 
+                let options = {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "numeric",
+                    second: "numeric",
+                    timeZoneName: "short"
+                  }
+
+                let updated = new Date(jmarc.updated)
+
                 if (jmarc.user) {
-                    auditCell.innerText = `Last updated ${jmarc.updated} by ${jmarc.user}`
+                    auditCell.innerText = `Last updated ${updated.toLocaleString("en-US", options)} by ${jmarc.user}`
                 } else {
-                    auditCell.innerText = `Last updated ${jmarc.updated} by system import`
+                    auditCell.innerText = `Last updated ${updated.toLocaleString("en-US", options)} by system import`
                 }
             }
  
@@ -2998,6 +3042,9 @@ export let multiplemarcrecordcomponent = {
                     valSpan.innerText = valSpan.innerText.replace(/\r?\n|\r/g, " ");
                     valSpan.innerText = valSpan.innerText.replace(/ {2,}/g, " ");
 
+                    // strip "control" characters
+                    valSpan.innerText = valSpan.innerText.replace(/[\u0000-\u001F]/g, "");
+
                     // do the update and checks
                     updateSubfieldValue();
                 });
@@ -3305,8 +3352,8 @@ export let multiplemarcrecordcomponent = {
 }
 
 function selectAuthority(component, subfield, choice) {
-//    let component = event.currentTarget.eventParams[0];
-//    let subfield = event.currentTarget.eventParams[1];
+    // let component = event.currentTarget.eventParams[0];
+    // let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
 
@@ -3322,6 +3369,13 @@ function selectAuthority(component, subfield, choice) {
     }
 
     for (let choiceSubfield of choice.subfields) {
+        // skip this subfield if it is not configured to be auth controlled
+        const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+        if (! authControlledCodes.includes(choiceSubfield.code)) {
+            continue
+        }
+
         let currentSubfield = field.getSubfield(choiceSubfield.code);
         
         if (typeof currentSubfield === "undefined") {
@@ -3352,6 +3406,19 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.xrefCell.append(xrefLink); 
     }
 
+    // remove any existing auth controlled subfields that aren't in the new selection
+    const inChoiceCodes = choice.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    for (const subfield of field.subfields) {
+        if (authControlledCodes.includes(subfield.code) && ! inChoiceCodes.includes(subfield.code)) {
+            // Remove the subfield from the field
+            field.deleteSubfield(subfield);
+            // Remove the subfield row from the table
+            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+        }
+    }
+
     // trigger unsaved changes detection and update events
     field.ind1Span.focus();
     field.ind2Span.focus();
@@ -3373,7 +3440,7 @@ function keyupAuthLookup(event) {
 
     if (event.type === "input") {
         if (dropdown && dropdown.list) {
-            // the drodpwn list is being navigated. not sure why it triggers the inupt event
+            // the dropdown list is being navigated. not sure why it triggers the inupt event
             return
         }
 
@@ -3397,6 +3464,7 @@ function keyupAuthLookup(event) {
     addButton.className = "fas fa-solid fa-plus float-left mr-2 create-authority";
 
     addButton.addEventListener("click", async function() {
+        // creates the new authority
         subfield.xrefCell.innerHTML = null;
         let spinner = document.createElement("i");
         spinner.className = "fa fa-spinner";
@@ -3471,8 +3539,11 @@ function keyupAuthLookup(event) {
             }
         )
     });
- 
-    if (subfield.value) {
+    
+    const inFieldCodes = field.subfields.map(x => x.code);
+    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+
+    if (subfield.value || (authControlledCodes.length > 1 && inFieldCodes.every(x => authControlledCodes.includes(x)))) {
         subfield.timer = setTimeout(
             function () {
                 let dropdown = document.createElement("div");
@@ -3530,7 +3601,7 @@ function keyupAuthLookup(event) {
                         item.className = "list-group-item";
                         item.value = JSON.stringify(choice.compile()); // option value has to be a string?
                        
-                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>");
+                        item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>&nbsp;");
                        
                         item.addEventListener("mouseover", function () {
                             if (dropdown.list) {
