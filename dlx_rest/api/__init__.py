@@ -255,6 +255,8 @@ class RecordsList(Resource):
                 
                 if hasattr(query, 'match'):
                     if query.match:
+                        # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                        query.match.conditions = [*query.match.conditions] 
                         query.match.conditions.append(type_condition)
                     else:
                         query.match = Query(type_condition)
@@ -263,7 +265,9 @@ class RecordsList(Resource):
             except InvalidQueryString as e:
                 abort(422, str(e))
         else:
-            query = Query({})
+            query = Query({}) 
+
+        print(query.compile())
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -453,6 +457,8 @@ class RecordsListCount(Resource):
 
                     if hasattr(query, 'match'):
                         if query.match:
+                            # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                            query.match.conditions = [*query.match.conditions] 
                             query.match.conditions.append(type_condition)
                         else:
                             query.match = Query(type_condition)
