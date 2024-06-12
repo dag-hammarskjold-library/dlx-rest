@@ -37,7 +37,8 @@ export let searchcomponent = {
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                     <li class="nav-item">
                         <div class="custom-control custom-switch nav-link ml-5">
-                            <input type="checkbox" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
+                            <input v-if="params.engine === 'atlas'" type="checkbox" checked="true" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
+                            <input v-else type="checkbox" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
                             <label class="custom-control-label" for="customSwitch1">Use Atlas Search</label>
                         </div>
                     </li>
@@ -380,7 +381,7 @@ export let searchcomponent = {
                 }
             }
         );
-        
+
         fetch(this.search_url, this.abortController).then(
             response => {
                 if (response.ok) {
@@ -829,7 +830,8 @@ export let searchcomponent = {
         toggleEngine(e) {
             // toggle the search type
             console.log("Toggling search engine")
-            this.engine = e.target.checked ? "atlas" : "community"
+            this.params.engine = e.target.checked ? "atlas" : "community"
+            this.rebuildUrl("engine", this.engine) 
         }
     },
     components: {

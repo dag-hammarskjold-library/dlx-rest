@@ -14,7 +14,6 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo import ReplaceOne, ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
 from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
@@ -221,13 +220,6 @@ class RecordsList(Resource):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
 
-        engine = "community"
-        if args.get('engine') == 'community':
-            print("Using Community search type")
-        else:
-            engine = "atlas"
-            print("Using Atlas search type")
-
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
         if not current_user.is_anonymous:
             this_u = User.objects.get(id=current_user['id'])
@@ -244,24 +236,38 @@ class RecordsList(Resource):
         
         # search
         search = unquote(args.search) if args.search else None
-
-        if args.subtype == 'all':
-            pass
-        elif args.subtype:
-            query.add_condition(Raw({'_record_type': args.subtype}))
-        else:
-            query.add_condition(Raw({'_record_type': 'default'}))
+        # subtype
+        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
             
-        if engine == "community":
+        if args.engine in (None, "community"):
+            print("Using Community search type")
+
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+                query.conditions.append(type_condition)
             except InvalidQueryString as e:
                 abort(422, str(e))
-        elif engine == "atlas":
+        elif args.engine == "atlas":
+            print("Using Atlas search type")
+
             try:
                 query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+                
+                if hasattr(query, 'match'):
+                    if query.match:
+                        # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                        query.match.conditions = [*query.match.conditions] 
+                        query.match.conditions.append(type_condition)
+                    else:
+                        query.match = Query(type_condition)
+                else:
+                    query.match = type_condition
             except InvalidQueryString as e:
                 abort(422, str(e))
+        else:
+            query = Query({}) 
+
+        print(query.compile())
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -294,28 +300,22 @@ class RecordsList(Resource):
             project = {'_id': 1}
           
         # sort
-        sort_by = args.get('sort')
+        sort_by = args.get('sort') or 'updated'
         sort_by = 'subject' if sort_by == 'heading' else sort_by
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
-        
-        if sort_by == 'relevance':
-            project['score'] = {'$meta': 'textScore'}
-            sort = [('score', {'$meta': 'textScore'})]
-        elif sort_by:
-            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
-            # only include results with the sorted field. otherwise, records with the field missing will be the first results
-            # TODO review
-            #query.add_condition(Raw({sort_by: {'$exists': True}}))
-            pass
-        else:
-            sort = None
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
         # exec query
-        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
+        if isinstance(query, AtlasQuery):
+            pipeline = query.compile()
+            pipeline += [{'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}}, {'$skip': start-1}, {'$limit': limit}]
+            recordset = cls.from_aggregation(pipeline, collation=collation)
+        else:
+            sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
+            recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
         # process
         if fmt == 'xml':
@@ -440,24 +440,51 @@ class RecordsListCount(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
 
         if args.search:
             search = unquote(args.search)
-            
-            try:
-                query = Query.from_string(search, record_type=collection[:-1])
-            except InvalidQueryString as e:
-                abort(422, str(e))
-        else:
-            query = Query()
 
-        if args.subtype == 'all':
-            pass
-        elif args.subtype:
-            query.add_condition(Raw({'_record_type': args.subtype}))
-        else:
-            query.add_condition(Raw({'_record_type': 'default'}))
+            if args.engine == "community":
+                try:
+                    query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+                    query.conditions.append(type_condition)
+                except InvalidQueryString as e:
+                    abort(422, str(e))
+            elif args.engine == "atlas":
+                try:
+                    query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
 
+                    if hasattr(query, 'match'):
+                        if query.match:
+                            # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                            query.match.conditions = [*query.match.conditions] 
+                            query.match.conditions.append(type_condition)
+                        else:
+                            query.match = Query(type_condition)
+                    else:
+                        query.match = type_condition
+
+                except InvalidQueryString as e:
+                    abort(422, str(e))
+        else: 
+            query = Query(type_condition)
+        
+        if query:
+            if isinstance(query, AtlasQuery):
+                pipeline = query.compile()
+                pipeline.append({'$count': 'count'})
+                data = list(cls().handle.aggregate(pipeline))[0]['count']
+            else:
+                data = cls().handle.count_documents(
+                    query.compile(),
+                    # collation is not implemented in mongomock
+                    collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                    maxTimeMS=Config.MAX_QUERY_TIME
+                )
+        else:
+            data = cls().handle.estimated_document_count()
+        
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
             'related': {
@@ -466,16 +493,6 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        
-        if query.conditions:
-            data = cls().handle.count_documents(
-                query.compile(),
-                # collation is not implemented in mongomock
-                collation=DlxConfig.marc_index_default_collation if Config.TESTING == False else None,
-                maxTimeMS=Config.MAX_QUERY_TIME
-            )
-        else:
-            data = cls().handle.estimated_document_count()
 
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
@@ -525,7 +542,7 @@ class RecordsListBrowse(Resource):
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
-        direction = DESC if args.compare == 'less' else ASC
+        direction = 1 if args.compare == 'less' else -1
         args.subtype = args.subtype or 'default'
         #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
@@ -1262,18 +1279,18 @@ class LookupField(Resource):
         proj = dict.fromkeys(tags, 1)
         start = int(request.args.get('start', 1))
         cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
-        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln))
+        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', 1)]), collation=cln))
 
         if len(auths) < 25:
             querystring = " AND ".join(conditions_2)
             query = Query.from_string(querystring)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
             auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
         if len(auths) < 25:
             querystring = " AND ".join(conditions_3)
             query = Query.from_string(querystring)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
             auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         
         processed = []
