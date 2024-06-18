@@ -3,8 +3,8 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
     <form class="form-inline mr-auto col-lg-10" action="{{url_for('search_records', coll=coll)}}">
         {% if q %}
-        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search {{coll}} collection" value="{{q}}"> {% else %}
-        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search {{coll}} collection" aria-label="Search this collection"> {% endif %}
+        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search" value="{{q}}"> {% else %}
+        <input id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search" aria-label="Search"> {% endif %}
         <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
     </form>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>

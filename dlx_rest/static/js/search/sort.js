@@ -45,11 +45,11 @@ export let sortcomponent = {
                     this.isFreeText = true
                 }
             }
-            if (this.params.search.includes("089:'B22'")) {
+            if (this.params.subtype === "speech") {
                 vcoll = "speeches"
             }
             // todo: remove the type cretieria from the search input, update criteria
-            if (this.params.search.includes("089:'B23'")) {
+            if (this.params.subtype === "vote") {
                 vcoll = "votes"
             }
         }
