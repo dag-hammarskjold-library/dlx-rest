@@ -1,3 +1,4 @@
+// Only here for spacing. We can remove this when we do other refactoring.
 export let sidebarcomponent = {
     props: ['sbtype'],
     template: ` 
