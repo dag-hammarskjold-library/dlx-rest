@@ -5,7 +5,7 @@
 import { Jmarc } from "./jmarc.mjs";
 import { headercomponent } from "./header.js";
 import { basketcomponent } from "./basket.js";
-import { multiplemarcrecordcomponent } from "./record.js";
+import { multiplemarcrecordcomponent } from "./record_stage.js";
 import { messagecomponent } from "./messagebar.js";
 import { modalmergecomponent } from "./merge.js";
 import { selectworkform } from "./modals/select_workform.js";

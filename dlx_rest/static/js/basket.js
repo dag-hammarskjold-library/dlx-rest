@@ -1,14 +1,8 @@
-/////////////////////////////////////////////////////////////////
-// BASKET COMPONENT
 
-import { Jmarc } from "./jmarc.mjs";
-import basket from "./api/basket.js";
-import { multiplemarcrecordcomponent } from "./record.js";
 
-/////////////////////////////////////////////////////////////////
 export let basketcomponent = {
-    props: ["api_prefix", "basket_id"],
-    template: ` 
+    props: ["api_prefix"],
+    template: `
     <div class="col-sm-2" id="app0" style="background-color:white;">
         <div class="mt-1" style="overflow-y: scroll; min-height:650px;">
             <div class="col">
@@ -40,24 +34,38 @@ export let basketcomponent = {
     `,
     data: function () {
         return {
-          visible: true,
-          basketItems: [],
-          recordDisplayed:[]    
+            basketItems: [
+                /*
+                data["collection"] = element.collection;
+                        data["vcoll"] = data["collection"]
+                        data["_id"] = element.record_id;
+                        data["basket_item_id"] = element.url.split('/').pop();
+                */
+               {
+                "collection": "bibs",
+                "vcoll": "bibs",
+                "_id": "1373986"
+               }
+            ]
         }
+    },
+    created: function () {
+        this.getBasket()
     },
     computed: {
         sortedBasket: function () {
             return this.basketItems.sort((a,b) => { return a.basket_item_id.localeCompare(b.basket_item_id) })
         }
     },
-    created: async function () {
-        this.$root.$refs.basketcomponent = this;
-        this.buildBasket();
-    },
-    mounted: async function() {
-      this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
-    },
     methods: {
+        async getBasket() {
+            const url = `${this.api_prefix}userprofile/my_profile/basket`
+            fetch(url).then( response => {
+                response.json().then( jsonData => {
+                    console.log(jsonData.data)
+                })
+            })
+        },
         handleClick(e, record_id, collection) {
             if (e.srcElement.id == "closeRecord") {
                 e.stopPropagation()
@@ -66,155 +74,8 @@ export let basketcomponent = {
                 this.displayRecord(record_id, collection)
             }
         },
-        removeRecordFromRecordDisplayed(recordToDelete){
-            const index = this.recordDisplayed.indexOf(recordToDelete);
-            if (index > -1) {
-                // remove from the basket
-                this.recordDisplayed.splice(index, 1);
-            }
-        },
-        async displayRecord(myRecord, myCollection) {
-            // Check if the record is already displayed
-            const len = this.recordDisplayed.length;
-
-            if (this.editor.currentRecordObjects.filter(x => x.collection == myCollection && x.recordId == myRecord).length > 0) {
-                // the record is already open
-                //this.callChangeStyling("Record already open", "d-flex w-100 alert-danger")
-                return
-            }
-
-            if (this.editor.currentRecordObjects.length === 2) {
-                /*
-                This block handles the case where there are already two records on the screen when a new record is selected.
-                Originally, the behavior was to alert the user to remove a record first, but this has been changed to close 
-                the second record and open the new record. There are other options, but we can wait for user feedback.
-                */
-                // this.callChangeStyling("Please remove one record from the editor!!!", "d-flex w-100 alert-warning")
-                // attempt to close the second record 
-                let toRemove = this.editor.currentRecordObjects[1];
-                if (! this.editor.userClose(toRemove)) return // the close may have been cancelled by the user
-            }   
-            
-            this.editor.recordlist.push(`${myCollection}/${myRecord}`);
-            
-            Jmarc.get(myCollection, myRecord).then(
-                jmarc => {
-                    if (this.editor.displayMarcRecord(jmarc)) {
-                        // add record displayed
-                        this.recordDisplayed.push(jmarc.recordId)
-                        // this.forceUpdate()
-                        this.callChangeStyling("Record added to the editor", "d-flex w-100 alert-success")
-                    } else {
-                        // the record did not display for some reason
-                        this.editor.recordlist.splice(this.editor.recordlist.indexOf(`${myCollection}/${myRecord}`), 1);
-                    }
-                }
-            )
-        },
-        callChangeStyling(myText, myStyle) {
-            this.$root.$refs.messagecomponent.changeStyling(myText, myStyle)
-        },
-        async removeRecordFromList(collection, record_id) {
-            
-            let el = document.getElementById(`${collection}--${record_id}`)
-            const myBasket = await basket.getBasket(this.api_prefix, "userprofile/my_profile/basket");
-            const deleted = await basket.deleteItem(myBasket, collection, record_id);
-
-            if (deleted) {
-                // remove the record from the editor stage (if the record is displayed)
-                this.editor.displayedJmarcObject.forEach((item)=>{
-                    if (item.recordId===parseInt(record_id)) { 
-                        this.editor.userClose(item) }
-                    }
-                )
-
-                el.parentElement.remove();
-                this.callChangeStyling("Record removed from basket", "d-flex w-100 alert-success");
-                return true;
-            }
-        },
         async clearBasket() {
-            basket.clearItems(this.api_prefix, "userprofile/my_profile/basket").then(() => {
-                this.rebuildBasket()
-            })
+            this.basketItems = []
         },
-        async buildBasket() {
-            const myBasket = await basket.getBasket(this.api_prefix);
-
-            for (let element of myBasket) {
-                let data = {};
-
-                basket.getItem(this.api, element.collection, element.record_id).then(
-                    item => {
-                        if (typeof item === "undefined") {
-                            basket.deleteItem(myBasket, element.collection, element.record_id);
-                            return
-                        }
-
-                        data["collection"] = element.collection;
-                        data["vcoll"] = data["collection"]
-                        data["_id"] = element.record_id;
-                        data["basket_item_id"] = element.url.split('/').pop();
-
-                        if (element.collection == "bibs") {
-                            // Get 249 first if it exists, otherwise 245, or finally 700
-                            let titleField = item.getField("249") || item.getField("245") || item.getField("700");
-
-                            // Set the "virtual" collection type: speeches or votes
-                            let rtype = item.getField("089")
-                            if (rtype && rtype.getSubfield("b").value === "B22") {
-                                data["vcoll"] = "speeches"
-                            } else if (rtype && rtype.getSubfield("b").value === "B23") {
-                                data["vcoll"] = "votes"
-                            }
-
-                            if (titleField) {
-                                data["title"] = titleField.getSubfield("a") ? titleField.getSubfield("a").value || "[No Title]" : "[No Title]"
-                            } else {
-                                data["title"] = "[No Title]"
-                            }
-
-                            let symbolFields = item.getFields("191").length > 0 ? item.getFields("191") 
-                                : item.getFields("791").length > 0 ? item.getFields("791")
-                                : []
-
-                            data["symbol"] = symbolFields.map(x => {return x.getSubfield("a") ? x.getSubfield("a").value : null}).filter(x => !!x).join("; ");
-                        } else if (element.collection == "auths") {
-                            let headingField;
-
-                            for (let _ of ["100", "110", "111", "130", "150", "190", "191"]) {
-                                if (item.getField(_)) {
-                                    headingField = item.getField(_)
-                                }
-                            }
-                            
-                            if (headingField) {
-                                let text = [];
-
-                                for (let _ of ["a", "b", "c", "d"]) {
-                                    text.push(headingField.getSubfield(_) ? headingField.getSubfield(_).value : "")
-                                }
-
-                                data["title"] = text.join(" ")
-                            }
-                        }
-
-                        this.basketItems.push(data);
-                    }
-                ).catch(
-                    error => {
-                        // alert that debugging is needed
-                        this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
-                    }
-                )
-            }
-
-            return true
-        },
-        async rebuildBasket() {
-            const myBasket = await basket.getBasket(this.api_prefix);
-            this.basketItems = [];
-            this.buildBasket();
-        }
     }
 }
