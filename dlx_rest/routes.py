@@ -33,6 +33,12 @@ def make_sesion_permanent():
     if Config.TESTING:
         app.permanent_session_lifetime = timedelta(seconds=5)
 
+# Put some configs into the routes for debug purposes
+return_configs = {
+    "env": Config.environment,
+    "ver": Config.VERSION
+}
+
 # Main app routes
 @app.route('/')
 def index():
@@ -137,6 +143,12 @@ def admin_index():
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
+
+@app.route('/admin/debug')
+@login_required
+@requires_permission('readAdmin')
+def get_debug():
+    return jsonify(return_configs)
 
 # Users Admin
 # Not sure if we should make any of this available to the API
