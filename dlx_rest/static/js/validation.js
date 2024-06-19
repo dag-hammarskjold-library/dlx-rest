@@ -1386,7 +1386,7 @@ export const validationData = {
                 "191__b:E/* OR 791__b:E*": {"a": "Economic and Social Council", "b": null, "c": null},
                 "191:/^A\\/([1-9]|DEC|RES|BUR|PV|INF|SR|ES-|S-)/ OR 791:/^A\\/([1-9]|DEC|RES|BUR|PV|INF|SR|ES-|S-)/": {"a": "General Assembly", "b": "General Assembly Plenary", "c": null},
                 "710:/UN\\. General Assembly.*(1st|First) Committee/ OR 191:/A\\/C\\.1\\// OR 791:/A\\/C\\.1\\//": {"a": "General Assembly", "c": null, "b": "1st Committee"},
-                "710:/UN\\. General Assembly.*(2nd|Second) Committee/ OR 191:/A\\/C\\.2\\//": {"a": "General Assembly", "b": "2nd Committee", "c": null},
+                "710:/UN\\. General Assembly.*(2nd|Second) Committee/ OR 191:/A\\/C\\.2\\// OR 791:/A\\/C\\.2\\//": {"a": "General Assembly", "b": "2nd Committee", "c": null},
                 "710:/UN\\. General Assembly.*(3rd|Third) Committee/ OR 191:/A\\/C\\.3\\// OR 791:/A\\/C\\.3\\//": {"a": "General Assembly", "c": null, "b": "3rd Committee"},
                 "191:/A\\/(C\\.4|SPC)\\// OR 791:/A\\/(C\\.4|SPC)\\// OR 710:/UN\\. General Assembly.*(4th|Fourth|Special.?Political.*) Committee/": {"a": "General Assembly", "b": "4th Committee", "c": null},
                 "710:/UN\\. General Assembly.*(5th|Fifth) Committee/ OR 191:/A\\/C\\.5\\// OR 791:/A\\/C\\.5\\//": {"b": "5th Committee", "c": null, "a": "General Assembly"},
