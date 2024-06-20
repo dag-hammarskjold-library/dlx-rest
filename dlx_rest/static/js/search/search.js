@@ -189,6 +189,9 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f596">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                    <div class="row" v-for="val in result.f520" style="white-space:nowrap">
+                        <span class="ml-3">{{val}}</span>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -415,6 +418,7 @@ export let searchcomponent = {
                         let rtype = result["types"].split("::")
 
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        myResult["f520"] = result["f520"]
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
                             myResult["f596"] = result["f596"]
