@@ -40,8 +40,8 @@ export let exportmodal = {
                     <label class="form-check-label" for="inlineRadio1">CSV</label>
                   </div>
                   <br/>
-                  <span class="text-muted">Output Fields: </span>
-                  <input type="text" placeholder="not implemented yet" @keyup="setOutputFields($event)">
+                  <span>Output Fields: </span>
+                  <input type="text" placeholder="comma separated list of fields (tags only)" @keyup="setOutputFields($event)">
                 </div>
               </div>
               <div class="modal-footer">
