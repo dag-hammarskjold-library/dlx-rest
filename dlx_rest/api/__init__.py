@@ -193,7 +193,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief', 'brief_speech'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'csv', 'tsv', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -301,6 +301,10 @@ class RecordsList(Resource):
             return Response(recordset.to_xml(), mimetype='text/xml')
         elif fmt == 'mrk':
             return Response(recordset.to_mrk(), mimetype='text/plain')
+        elif fmt == 'csv':
+            return Response(recordset.to_csv(), mimetype='text/mrk')
+        elif fmt == 'tsv':
+            return Response(recordset.to_csv(), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
@@ -345,6 +349,8 @@ class RecordsList(Resource):
                 'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
