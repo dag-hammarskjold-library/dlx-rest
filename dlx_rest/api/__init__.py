@@ -276,7 +276,7 @@ class RecordsList(Resource):
             project = None
             output_fields = args.get("of")
             if output_fields is not None:
-                tags = output_fields.split(',')
+                tags = [f.strip() for  f in output_fields.split(',')]
                 # make sure logical fields are available for sorting
                 tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
                 project = dict.fromkeys(tags, True)
@@ -318,7 +318,7 @@ class RecordsList(Resource):
         elif fmt == 'csv':
             return Response(recordset.to_csv(), mimetype='text/csv')
         elif fmt == 'tsv':
-            return Response(recordset.to_csv(), mimetype='text/tab-separated-values')
+            return Response(recordset.to_tsv(), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
