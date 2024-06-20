@@ -206,6 +206,11 @@ class RecordsList(Resource):
         type=str,
         choices=['default', 'speech', 'vote', 'all', '']
     )
+    args.add_argument(
+        'of',
+        type=str,
+        help='Comma separated list of fields you want returned (e.g., for export)'
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -267,6 +272,15 @@ class RecordsList(Resource):
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
+        elif fmt in ['mrk', 'xml', 'csv']:
+            project = None
+            output_fields = args.get("of")
+            if output_fields is not None:
+                tags = output_fields.split(',')
+                # make sure logical fields are available for sorting
+                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+                project = dict.fromkeys(tags, True)
+            
         elif fmt:
             project = None
         else:

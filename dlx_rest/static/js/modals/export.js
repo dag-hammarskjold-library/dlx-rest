@@ -41,7 +41,7 @@ export let exportmodal = {
                   </div>
                   <br/>
                   <span class="text-muted">Output Fields: </span>
-                  <input disabled type="text" placeholder="not implemented yet" @keyup="setOutputFields($event)">
+                  <input type="text" placeholder="not implemented yet" @keyup="setOutputFields($event)">
                 </div>
               </div>
               <div class="modal-footer">
