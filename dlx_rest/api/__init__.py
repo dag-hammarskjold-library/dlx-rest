@@ -193,7 +193,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief', 'brief_speech'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'csv', 'tsv', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -205,6 +205,11 @@ class RecordsList(Resource):
         'subtype',
         type=str,
         choices=['default', 'speech', 'vote', 'all', '']
+    )
+    args.add_argument(
+        'of',
+        type=str,
+        help='Comma separated list of fields you want returned (e.g., for export)'
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
@@ -267,6 +272,15 @@ class RecordsList(Resource):
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
+        elif fmt in ['mrk', 'xml', 'csv']:
+            project = None
+            output_fields = args.get("of")
+            if output_fields is not None:
+                tags = [f.strip() for  f in output_fields.split(',')]
+                # make sure logical fields are available for sorting
+                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+                project = dict.fromkeys(tags, True)
+            
         elif fmt:
             project = None
         else:
@@ -301,6 +315,10 @@ class RecordsList(Resource):
             return Response(recordset.to_xml(), mimetype='text/xml')
         elif fmt == 'mrk':
             return Response(recordset.to_mrk(), mimetype='text/plain')
+        elif fmt == 'csv':
+            return Response(recordset.to_csv(), mimetype='text/csv')
+        elif fmt == 'tsv':
+            return Response(recordset.to_tsv(), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
@@ -345,6 +363,7 @@ class RecordsList(Resource):
                 'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
