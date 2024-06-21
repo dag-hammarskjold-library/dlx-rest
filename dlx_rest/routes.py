@@ -464,6 +464,9 @@ def search_records(coll):
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
     subtype  = request.args.get('subtype')
 
+    # Should set a default ...
+    engine = request.args.get('engine', 'community')
+
     if sort and direction:
         # Regardless of what's in the session already
         session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
@@ -489,7 +492,7 @@ def search_records(coll):
                 # TODO "looks like symbol" util function
                 q = f'symbol:"{term.upper()}"'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief', subtype=subtype)
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, engine=engine, _external=True, format='brief', subtype=subtype)
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
