@@ -79,7 +79,7 @@ export let exportmodal = {
             this.selectedFields = e.target.value
             let url = new URL(this.selectedExportUrl)
             let search = new URLSearchParams(url.search)
-            search.set("of", e.target.value)
+            search.set("fields", e.target.value)
             url.search = search
             this.selectedExportUrl = url
         },

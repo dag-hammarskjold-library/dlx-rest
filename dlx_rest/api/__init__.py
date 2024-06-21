@@ -207,7 +207,7 @@ class RecordsList(Resource):
         choices=['default', 'speech', 'vote', 'all', '']
     )
     args.add_argument(
-        'of',
+        'fields',
         type=str,
         help='Comma separated list of fields you want returned (e.g., for export)'
     )
@@ -274,7 +274,7 @@ class RecordsList(Resource):
             project = dict.fromkeys(tags, True)
         elif fmt in ['mrk', 'xml', 'csv']:
             project = None
-            output_fields = args.get("of")
+            output_fields = args.get("fields")
             if output_fields is not None:
                 tags = [f.strip() for  f in output_fields.split(',')]
                 # make sure logical fields are available for sorting
