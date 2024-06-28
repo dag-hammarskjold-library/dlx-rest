@@ -1473,7 +1473,7 @@ export const validationData = {
                 "089__b:B21 OR 191__a:*/NGO/*": {"a": "Documents and Publications", "b": "NGO Written Statements"},
                 "191__a:*/PET/*": {"a": "Documents and Publications", "b": "Petitions"},
                 "089__b:B24": {"a": "Documents and Publications", "b": "Concluding Observations and Recommendations"},
-                "089__b:B29": {"a": "Images and sound", "b": "Images"},
+                "089__b:B29": {"a": "Images and sound", "b": "Sound"},
                 "089__b:B30": {"a": "Images and sound", "b": "Video"},
                 "089__b:B31": {"a": "Images and sound", "b": "Images"},
                 "089__b:B32": {"a": "Datasets"},
