@@ -35,6 +35,7 @@ export let searchcomponent = {
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                    <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
                     <li class="nav-item">
                         <div class="custom-control custom-switch nav-link ml-5">
                             <input v-if="params.engine === 'atlas'" type="checkbox" checked="true" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
@@ -161,7 +162,6 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
-            <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 bg-light border-bottom">
