@@ -298,13 +298,13 @@ class RecordsList(Resource):
         
         # process
         if fmt == 'xml':
-            return Response(recordset.to_xml(), mimetype='text/xml')
+            return Response(recordset.to_xml(write_id=True), mimetype='text/xml')
         elif fmt == 'mrk':
-            return Response(recordset.to_mrk(), mimetype='text/plain')
+            return Response(recordset.to_mrk(write_id=True), mimetype='text/plain')
         elif fmt == 'csv':
-            return Response(recordset.to_csv(), mimetype='text/mrk')
+            return Response(recordset.to_csv(write_id=True), mimetype='text/csv')
         elif fmt == 'tsv':
-            return Response(recordset.to_csv(), mimetype='text/tab-separated-values')
+            return Response(recordset.to_tsv(write_id=True), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
