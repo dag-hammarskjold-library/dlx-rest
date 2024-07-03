@@ -209,6 +209,10 @@ def brief_bib(record):
         agendas = [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
         f596 = [' '.join(field.get_values('a')) for field in record.get_fields('596')]
 
+    # Should be truncated in display with hover showing the rest
+    f520 = [record.get_value('520', 'a')]
+    print(f520)
+
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
@@ -218,6 +222,7 @@ def brief_bib(record):
         'types': '; '.join(ctypes),
         'agendas': agendas,
         'f596': f596,
+        'f520': f520
     }
 
 def brief_speech(record):

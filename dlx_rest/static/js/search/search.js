@@ -36,6 +36,14 @@ export let searchcomponent = {
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                    <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
+                    <li class="nav-item">
+                        <div class="custom-control custom-switch nav-link ml-5">
+                            <input v-if="params.engine === 'atlas'" type="checkbox" checked="true" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
+                            <input v-else type="checkbox" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
+                            <label class="custom-control-label" for="customSwitch1">Use Atlas Search</label>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </nav>
@@ -191,6 +199,9 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f596">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                    <div class="row" v-for="val in result.f520" style="white-space:nowrap">
+                        <span class="ml-3">{{val}}</span>
+                    </div>
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -287,6 +298,7 @@ export let searchcomponent = {
             myBasket: {},
             user: null,
             collectionTitle: null,
+            engine: "community"
         }
     },
     created: async function() {
@@ -376,7 +388,7 @@ export let searchcomponent = {
                 }
             }
         );
-        
+
         fetch(this.search_url, this.abortController).then(
             response => {
                 if (response.ok) {
@@ -418,6 +430,7 @@ export let searchcomponent = {
                         let rtype = result["types"].split("::")
 
                         myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        myResult["f520"] = result["f520"]
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
                             myResult["f596"] = result["f596"]
@@ -528,6 +541,9 @@ export let searchcomponent = {
                 }
                 
             }
+
+            // Set the search type to whatever we've set it to with our toggle 
+            myParams["engine"] = this.engine
 
             const qs = Object.keys(myParams)
                 .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
@@ -819,9 +835,17 @@ export let searchcomponent = {
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
         },
+
         showExportModal() {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
+          
+        toggleEngine(e) {
+            // toggle the search type
+            console.log("Toggling search engine")
+            this.params.engine = e.target.checked ? "atlas" : "community"
+            this.rebuildUrl("engine", this.engine) 
+
         }
     },
     components: {
