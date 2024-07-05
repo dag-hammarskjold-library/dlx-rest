@@ -883,7 +883,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validRegex": {
+                "a": ["\\.$"]
+            }
         },
         "520": {
             "name": "Summary, etc.",
@@ -893,7 +896,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validRegex": {
+                "a": ["\\.$"]
+            }
         },
         "529": {
             // Not defined in bibs validation document
