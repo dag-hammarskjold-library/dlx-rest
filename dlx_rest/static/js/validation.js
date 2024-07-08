@@ -888,9 +888,6 @@ export const validationData = {
                 "a": ["Restricted distribution","Confidential","Embargoed","Withdrawn","De-restricted"],
                 "f": ["Access limited to authorized users", "Access limited on-site", "Access limited on-site and to authorized users"]
             },
-            "_validRegex": {
-                "g": ["^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$"] // should be a date yyyy-mm-dd check my regex.
-            },
             "isDate": {
                 "g": true
             }
