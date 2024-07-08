@@ -237,16 +237,19 @@ class RecordsList(Resource):
         # search
         search = unquote(args.search) if args.search else None
         # subtype
-        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
             
         if args.engine in (None, "community"):
             print("Using Community search type")
 
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
-                query.conditions.append(type_condition)
             except InvalidQueryString as e:
                 abort(422, str(e))
+
+            query.conditions.append(type_condition)
         elif args.engine == "atlas":
             print("Using Atlas search type")
 
@@ -256,7 +259,7 @@ class RecordsList(Resource):
                 if hasattr(query, 'match'):
                     if query.match:
                         # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
-                        query.match.conditions = [*query.match.conditions] 
+                        query.match.conditions = [*query.match.conditions]
                         query.match.conditions.append(type_condition)
                     else:
                         query.match = Query(type_condition)
@@ -440,7 +443,9 @@ class RecordsListCount(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
-        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
 
         if args.search:
             search = unquote(args.search)
