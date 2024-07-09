@@ -788,7 +788,8 @@ class Record(Resource):
                 # Normally the record_id is an integer, but it's being stored here as a string.
                 try:
                     basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id))
-                    basket.remove_item(basket_item['id'])
+                    if basket_item is not None:
+                        basket.remove_item(basket_item['id'])
                 except IndexError:
                     pass
 
