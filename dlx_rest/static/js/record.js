@@ -2178,7 +2178,8 @@ export let multiplemarcrecordcomponent = {
                         })
                     } else if (control["name"] == "idField") {
                         let recordId = jmarc.recordId ? jmarc.recordId : "<New Record>"
-                        controlButton.innerText = `${jmarc.collection}/${recordId}`;
+                        let virtualCollection = jmarc.getVirtualCollection()
+                        controlButton.innerText = `${virtualCollection}/${recordId}`;
                     }
 
                     controlButton.className = `${control["class"]} float-left`;
