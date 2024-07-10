@@ -875,6 +875,23 @@ export const validationData = {
             "validSubfields": ["a", "g", "t"],
             "defaultSubfields": ["a"] 
         },
+        "506": {
+            "name": "Access restriction note",
+            "required": false,
+            "repeatable": false,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a", "b", "f", "g"],
+            "defaultSubfields": ["a", "b", "f"],
+            "validStrings": {
+                "a": ["Restricted distribution","Confidential","Embargoed","Withdrawn","De-restricted"],
+                "f": ["Access limited to authorized users", "Access limited on-site", "Access limited on-site and to authorized users"]
+            },
+            "isDate": {
+                "g": true
+            }
+        },
         "515": {
             "name": "Numbering peculiarities note",
             "required": false,
@@ -883,7 +900,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validRegex": {
+                "a": ["\\.$"]
+            }
         },
         "520": {
             "name": "Summary, etc.",
@@ -893,7 +913,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validRegex": {
+                "a": ["\\.$"]
+            }
         },
         "529": {
             // Not defined in bibs validation document
