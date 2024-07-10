@@ -209,6 +209,7 @@ class RecordsList(Resource):
         'fields',
         type=str,
         help='Comma separated list of fields you want returned (e.g., for export)'
+    )
      # This is so we can benchmark the two search formats
     args.add_argument(
         'engine',
