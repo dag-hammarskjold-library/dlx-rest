@@ -31,13 +31,13 @@ from dlx_rest.models import RecordView, User, Basket, requires_permission, regis
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
 
 # Init
-authorizations = {
-    'basic': {
-        'type': 'basic'
-    }
-}
 
-api = Api(app, doc='/api/', authorizations=authorizations)
+# build the auth cache in a non blocking thread
+def build_cache(): Auth.build_cache()
+
+threading.Thread(target=build_cache, args=[]).start()
+
+api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
     
 # Set up the login manager for the API
@@ -240,16 +240,12 @@ class RecordsList(Resource):
         type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
             
         if args.engine in (None, "community"):
-            print("Using Community search type")
-
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
                 query.conditions.append(type_condition)
             except InvalidQueryString as e:
                 abort(422, str(e))
         elif args.engine == "atlas":
-            print("Using Atlas search type")
-
             try:
                 query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
                 
@@ -266,8 +262,6 @@ class RecordsList(Resource):
                 abort(422, str(e))
         else:
             query = Query({}) 
-
-        print(query.compile())
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -338,7 +332,6 @@ class RecordsList(Resource):
                 # Determine lock status first, then resolve whether the item is in the current user's basket
                 lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
                 if len(lock_status) > 0:
-                    print(lock_status)
                     this_d["locked"] = True
 
                 basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
