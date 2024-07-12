@@ -1,4 +1,6 @@
 
+import { recordcomponent } from "./record.js"
+
 export let multiplemarcrecordcomponent = {
     props: ["api_prefix"],
     template: `
@@ -6,7 +8,7 @@ export let multiplemarcrecordcomponent = {
         <div>
             <div id="records" class="row">
                 <div v-for="record in records">
-                    
+                    <recordcomponent :api_prefix="api_prefix" :collection="record.collection" :recordId="record.recordId"></recordcomponent>
                 </div>
             </div>
         </div>
@@ -14,10 +16,13 @@ export let multiplemarcrecordcomponent = {
     `,
     data: function () {
         return {
-            records: [],
+            records: [{"collection":"bibs", "recordId":1373986}],
         }
     },
     methods: {
 
+    },
+    components: {
+        'recordcomponent': recordcomponent
     }
 }
