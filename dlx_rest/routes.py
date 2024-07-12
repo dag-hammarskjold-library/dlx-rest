@@ -459,6 +459,8 @@ def search_records(coll):
         vcoll = "speeches"
     elif request.args.get('subtype') == 'vote':
         vcoll = "votes"
+    elif request.args.get('subtype') == 'all':
+        vcoll = "all"
 
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
