@@ -594,6 +594,8 @@ export let multiplemarcrecordcomponent = {
                             field.createSubfield("b").value = ""
                         }
                     }
+                } else if (recup.collection === 'auths') {
+                    recup.deleteField("999")
                 }
 
                 this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
