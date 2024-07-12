@@ -242,8 +242,6 @@ class RecordsList(Resource):
         )
             
         if args.engine in (None, "community"):
-            print("Using Community search type")
-
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
             except InvalidQueryString as e:
@@ -251,8 +249,6 @@ class RecordsList(Resource):
 
             query.conditions.append(type_condition)
         elif args.engine == "atlas":
-            print("Using Atlas search type")
-
             try:
                 query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
                 
@@ -269,8 +265,6 @@ class RecordsList(Resource):
                 abort(422, str(e))
         else:
             query = Query({}) 
-
-        print(query.compile())
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -345,7 +339,6 @@ class RecordsList(Resource):
                 # Determine lock status first, then resolve whether the item is in the current user's basket
                 lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
                 if len(lock_status) > 0:
-                    print(lock_status)
                     this_d["locked"] = True
 
                 basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
@@ -553,7 +546,7 @@ class RecordsListBrowse(Resource):
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
-        direction = 1 if args.compare == 'less' else -1
+        direction = -1 if args.compare == 'less' else 1
         args.subtype = args.subtype or 'default'
         #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
@@ -561,23 +554,21 @@ class RecordsListBrowse(Resource):
         query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
         query['$and'].append({'_record_type': args.subtype})
         
-        if args.subtype == 'default': 
-            # browse index documents might have more than one subtype
-            query['$and'] += [{'_record_type': {'$ne': 'speech'}}, {'_record_type': {'$ne': 'vote'}}]
-
         if Config.TESTING:
             # collation is not implemented in mongomock
             collation = None
         else:
             collation = DlxConfig.marc_index_default_collation
-        
+
         start, limit = int(args.start), int(args.limit)
-        values = list(DB.handle[f'_index_{field}'].find(
-            query, 
-            skip=start-1, 
-            limit=limit, 
-            sort=[('text', direction)], 
-            collation=collation)
+        values = list(
+            DB.handle[f'_index_{field}'].find(
+                query, 
+                skip=start-1, 
+                limit=limit, 
+                sort=[('text', direction)], 
+                collation=collation
+            )
         )
 
         ''' 
