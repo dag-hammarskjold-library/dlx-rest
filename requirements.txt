@@ -63,4 +63,4 @@ WTForms==3.0.1
 xlrd==1.2.0
 xmldiff==2.4
 xmltodict==0.13.0
-zipp==3.8.0
+zipp==3.19.1
