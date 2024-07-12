@@ -192,7 +192,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief', 'brief_speech'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'csv', 'tsv', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -237,14 +237,17 @@ class RecordsList(Resource):
         # search
         search = unquote(args.search) if args.search else None
         # subtype
-        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
             
         if args.engine in (None, "community"):
             try:
                 query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
-                query.conditions.append(type_condition)
             except InvalidQueryString as e:
                 abort(422, str(e))
+
+            query.conditions.append(type_condition)
         elif args.engine == "atlas":
             try:
                 query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
@@ -252,7 +255,7 @@ class RecordsList(Resource):
                 if hasattr(query, 'match'):
                     if query.match:
                         # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
-                        query.match.conditions = [*query.match.conditions] 
+                        query.match.conditions = [*query.match.conditions]
                         query.match.conditions.append(type_condition)
                     else:
                         query.match = Query(type_condition)
@@ -313,9 +316,13 @@ class RecordsList(Resource):
         
         # process
         if fmt == 'xml':
-            return Response(recordset.to_xml(), mimetype='text/xml')
+            return Response(recordset.to_xml(write_id=True), mimetype='text/xml')
         elif fmt == 'mrk':
-            return Response(recordset.to_mrk(), mimetype='text/plain')
+            return Response(recordset.to_mrk(write_id=True), mimetype='text/plain')
+        elif fmt == 'csv':
+            return Response(recordset.to_csv(write_id=True), mimetype='text/csv')
+        elif fmt == 'tsv':
+            return Response(recordset.to_tsv(write_id=True), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
@@ -359,6 +366,8 @@ class RecordsList(Resource):
                 'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
                 'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
                 'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
@@ -433,7 +442,9 @@ class RecordsListCount(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
-        type_condition = Raw({'_record_type': args.subtype if args.subtype else 'default'})
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
 
         if args.search:
             search = unquote(args.search)
@@ -535,7 +546,7 @@ class RecordsListBrowse(Resource):
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
-        direction = 1 if args.compare == 'less' else -1
+        direction = -1 if args.compare == 'less' else 1
         args.subtype = args.subtype or 'default'
         #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
         from dlx.util import Tokenizer
@@ -543,23 +554,21 @@ class RecordsListBrowse(Resource):
         query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
         query['$and'].append({'_record_type': args.subtype})
         
-        if args.subtype == 'default': 
-            # browse index documents might have more than one subtype
-            query['$and'] += [{'_record_type': {'$ne': 'speech'}}, {'_record_type': {'$ne': 'vote'}}]
-
         if Config.TESTING:
             # collation is not implemented in mongomock
             collation = None
         else:
             collation = DlxConfig.marc_index_default_collation
-        
+
         start, limit = int(args.start), int(args.limit)
-        values = list(DB.handle[f'_index_{field}'].find(
-            query, 
-            skip=start-1, 
-            limit=limit, 
-            sort=[('text', direction)], 
-            collation=collation)
+        values = list(
+            DB.handle[f'_index_{field}'].find(
+                query, 
+                skip=start-1, 
+                limit=limit, 
+                sort=[('text', direction)], 
+                collation=collation
+            )
         )
 
         ''' 
