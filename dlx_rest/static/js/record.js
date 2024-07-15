@@ -2435,6 +2435,7 @@ export let multiplemarcrecordcomponent = {
 
             // Tag
             let tagCell = tagRow.insertCell();
+            tagCell.title = field.tag in validationData[jmarc.collection] ? validationData[jmarc.collection][field.tag]['name'] : null;
             field.tagCell = tagCell;
             tagCell.className = "field-tag";
             let tagDiv = document.createElement("div");
@@ -2573,6 +2574,8 @@ export let multiplemarcrecordcomponent = {
                     if (tagSpan.innerText.length === 3) {
 
                     }
+
+                    field.tagCell.title = field.tag in validationData[jmarc.collection] ? validationData[jmarc.collection][field.tag]['name'] : null;
                 });
             }
             
