@@ -16,7 +16,18 @@ export let multiplemarcrecordcomponent = {
     `,
     data: function () {
         return {
-            records: [{"collection":"bibs", "recordId":1373986}],
+            records: [],
+        }
+    },
+    created: function () {
+        //console.log(this.records)
+        //console.log(this.api_prefix)
+        var url = new URL(window.location)
+        var recordsList = url.searchParams.get("records")
+        for (let r of recordsList.split(",")) {
+            let coll = r.split("/")[0]
+            let rid = r.split("/")[1]
+            this.records.push({"collection": coll, "recordId": rid})
         }
     },
     methods: {
