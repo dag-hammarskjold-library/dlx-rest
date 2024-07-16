@@ -33,6 +33,12 @@ def make_sesion_permanent():
     if Config.TESTING:
         app.permanent_session_lifetime = timedelta(seconds=5)
 
+# Put some configs into the routes for debug purposes
+return_configs = {
+    "env": Config.environment,
+    "ver": Config.VERSION
+}
+
 # Main app routes
 @app.route('/')
 def index():
@@ -143,6 +149,12 @@ def admin_index():
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
+
+@app.route('/admin/debug')
+@login_required
+@requires_permission('readAdmin')
+def get_debug():
+    return jsonify(return_configs)
 
 # Users Admin
 # Not sure if we should make any of this available to the API
@@ -453,10 +465,15 @@ def search_records(coll):
         vcoll = "speeches"
     elif request.args.get('subtype') == 'vote':
         vcoll = "votes"
+    elif request.args.get('subtype') == 'all':
+        vcoll = "all"
 
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
     subtype  = request.args.get('subtype')
+
+    # Should set a default ...
+    engine = request.args.get('engine', 'community')
 
     if sort and direction:
         # Regardless of what's in the session already
@@ -483,7 +500,7 @@ def search_records(coll):
                 # TODO "looks like symbol" util function
                 q = f'symbol:"{term.upper()}"'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief', subtype=subtype)
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, engine=engine, _external=True, format='brief', subtype=subtype)
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
