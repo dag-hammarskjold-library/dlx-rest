@@ -2,7 +2,7 @@
 
 export let countcomponent = {
     props: ["api_prefix", "recordId"],
-    template: `<span class="mx-2">(<a class="result-link" :href="uiBase + 'records/bibs/search?q=xref:' + recordId">{{search_count}}</a>)</span>`,
+    template: `<span class="mx-2">(<a class="result-link" :href="uiBase + 'records/bibs/search?q=xref:' + recordId + '&subtype=all'">{{search_count}}</a>)</span>`,
     data: function() {
         let uiBase = this.api_prefix.replace("/api", "")
         return {

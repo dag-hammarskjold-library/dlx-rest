@@ -594,6 +594,8 @@ export let multiplemarcrecordcomponent = {
                             field.createSubfield("b").value = ""
                         }
                     }
+                } else if (recup.collection === 'auths') {
+                    recup.deleteField("999")
                 }
 
                 this.callChangeStyling("Record " + jmarc.recordId + " has been cloned and removed from the editor. Displaying new record", "d-flex w-100 alert-success")
@@ -2173,7 +2175,7 @@ export let multiplemarcrecordcomponent = {
                         fetch(url).then(
                             response => response.json()
                         ).then( json => {
-                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}">${json.data}</a>)`
+                            controlButton.innerHTML = `(<a class="text-dark" href="${uiBase}records/bibs/search?q=xref:${jmarc.recordId}&subtype=all">${json.data}</a>)`
                             controlButton.title = "Authority use count (bibs)"
                         })
                     } else if (control["name"] == "idField") {

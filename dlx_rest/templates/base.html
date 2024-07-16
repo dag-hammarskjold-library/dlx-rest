@@ -80,17 +80,17 @@
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
             <div class="collapse navbar-collapse" id="navbarToggler">
                 <ul class="navbar-nav mr-auto">
-                    {% if vcoll=="bibs" %}
+                    {% if (vcoll=="bibs" or vcoll=="all") %}
                         <li class="nav-item active"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
                     {% endif %}
-                    {% if vcoll=="speeches" %}
+                    {% if (vcoll=="speeches" or vcoll=="all") %}
                         <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
                     {% endif %}
-                    {% if vcoll == "votes" %}
+                    {% if (vcoll == "votes" or vcoll=="all") %}
                         <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
