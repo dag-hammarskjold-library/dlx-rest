@@ -839,6 +839,7 @@ export let searchcomponent = {
         showExportModal() {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
+        },
           
         toggleEngine(e) {
             // toggle the search type
