@@ -5,5 +5,16 @@
                 <multiplemarcrecordcomponent api_prefix="{{api_prefix}}" records="{{records}}" workform="{{workform}}" fromworkform="{{fromWorkform}}"></multiplemarcrecordcomponent>        
         </div>
   </div>
-  <script type="module" src="{{url_for('static', filename='js/record_stage_vm.js')}}"></script>
+  <script type="module">
+
+    import { multiplemarcrecordcomponent } from "./static/js/record_stage.js";
+
+    const record_stage_vm = Vue.createApp({
+        components: { multiplemarcrecordcomponent },
+        mounted: function () {
+            console.log("attaching record stage")
+        },
+        methods: {}
+    }).mount("#editor")
+  </script>
 {% endblock %}

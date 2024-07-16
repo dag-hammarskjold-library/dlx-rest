@@ -10,5 +10,8 @@ export let record_stage_vm = new Vue({
     data: {
       visible: false,
     },
+    created: function () {
+      console.log("attaching record stage")
+    },
     methods: {}
 })

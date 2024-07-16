@@ -5,7 +5,9 @@ import {
     Indicator2ValidationFlag,
     SubfieldCodeValidationFlag,
     SubfieldValueValidationFlag
-} from "./jmarc.mjs";
+} from "./jmarc.mjs"
+
+import { subfieldvalue } from "./record_subfield.js";
 
 export let recordcomponent = {
     props: ["api_prefix", "collection", "recordId", "viewType"],
@@ -16,20 +18,25 @@ export let recordcomponent = {
                 <td>
                     <div class="d-flex flex-inline gap-1">
                         <input type="checkbox" />
-                        <span :contentEditable="editMode" :tag="field.tag" @change="field.tag = $event.target.innerText">
+                        <code :contentEditable="editMode" :tag="field.tag" @change="field.tag = $event.target.innerText" class="text-primary">
                             {{field.tag}}
-                        </span>
+                        </code>
                     </div>
                 </td>
                 <td>
                     <div class="d-flex flex-inline flex-wrap gap-1">
                         <div v-for="subfield in field.subfields" v-bind:key="subfield">
-                            <span class="mx-2" :contentEditable="editMode" :code="subfield.code" @change="subfield.code = $event.target.innerText">
-                                {{subfield.code}}
-                            </span>
-                            <!--
-                            <subfieldvalue :modelValue="subfield.value" :xref="subfield.xref ? subfield.xref : false" @update:modelValue="newValue => subfield.value = newValue" />
-                            -->
+                            <code>
+                                <span class="mx-0 px-0">$</span>
+                                <span class="mr-2 px-0" :contentEditable="editMode" :code="subfield.code" @change="subfield.code = $event.target.innerText">
+                                    {{subfield.code}}
+                                </span>
+                            </code>
+                            <subfieldvalue 
+                                :modelValue="subfield.value" 
+                                :xref="subfield.xref ? subfield.xref : false" @update:modelValue="newValue => subfield.value = newValue" 
+                                :editMode="editMode"
+                            />
                         </div>
                     </div>
                 </td>
@@ -41,6 +48,9 @@ export let recordcomponent = {
             editMode: true,
             jmarc: {}
         }
+    },
+    components: {
+        "subfieldvalue": subfieldvalue
     },
     created: async function () {
         // Initialize

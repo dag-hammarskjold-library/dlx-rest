@@ -1,34 +1,51 @@
-
 import { recordcomponent } from "./record.js"
 
 export let multiplemarcrecordcomponent = {
     props: ["api_prefix"],
     template: `
-    <div class="col-sm-10" id="app1" style="background-color:white;">
-        <div>
-            <div id="records" class="row">
-                <div v-for="record in records">
-                    <recordcomponent :api_prefix="api_prefix" :collection="record.collection" :recordId="record.recordId"></recordcomponent>
+    <div>
+        <div class="d-flex flex-row">
+            <div class="col-sm-2">
+                <h1>Basket</h1>
+            </div>
+            <div class="col-sm">
+                <div class="d-flex flex-row"></div>
+                <div class="d-flex flex-row">{{message}}</div>
+                <div class="d-flex flex-row">
+                    <div v-for="(record, index) in records" v-bind:key="record">
+                        <div :name="record" class="d-flex flex-column mx-1 record w-100" @click="selectRecord(e)">
+                            <recordcomponent 
+                                :collection="record.collection" 
+                                :recordId="record.recordId" 
+                                :api_prefix="api_prefix"
+                                :editMode="true"
+                                @close="closeRecord"
+                                @inform="message => printMessage(message)"
+                                @change="unsaved.push($event)" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     `,
     data: function () {
+        let route = new URL(window.location)
+        let recordList = route.searchParams.get("records") ? route.searchParams.get("records").split(",") : []
+        let recordObjects = []
+        for (let record of recordList) {
+            let collection = record.split("/")[0]
+            let recordId = record.split("/")[1]
+            recordObjects.push({"collection": collection, "recordId": recordId})
+        }
         return {
-            records: [],
+            records: recordObjects,
+            message: null,
+            unsaved: []
         }
     },
     created: function () {
-        //console.log(this.records)
-        //console.log(this.api_prefix)
-        var url = new URL(window.location)
-        var recordsList = url.searchParams.get("records")
-        for (let r of recordsList.split(",")) {
-            let coll = r.split("/")[0]
-            let rid = r.split("/")[1]
-            this.records.push({"collection": coll, "recordId": rid})
-        }
+        console.log(this.records)
     },
     methods: {
 
