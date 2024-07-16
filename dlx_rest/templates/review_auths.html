@@ -9,6 +9,14 @@
         </div>
     </div>
 
-<script type="module" src="{{url_for('static', filename='js/auth_review_vm.js')}}" ></script>
+<script type="module">
+import { messagecomponent } from "{{url_for('static', filename='js/messagebar.js')}}"
+import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
+import { authreviewcomponent } from "{{url_for('static', filename='js/auth_review.js')}}"
+
+const auth_review_vm = Vue.createApp({
+    components: { sidebarcomponent, authreviewcomponent },
+}).mount("#auth_review_vm")
+</script>
 
 {% endblock %}

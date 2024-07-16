@@ -8,10 +8,6 @@ export let messagecomponent = {
         
       </div>
     `,
-    created() {
-        this.$root.$refs.messagecomponent = this;
-        vm=this;
-    },
     methods: {
       changeStyling(myText, myStyle) {
         let classList = myStyle.split(" ")

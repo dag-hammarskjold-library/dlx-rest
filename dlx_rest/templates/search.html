@@ -10,6 +10,15 @@
     </div>
 </div>
 
-<script type="module" src="{{url_for('static', filename='js/search_vm.js')}}"></script>
+<script type="module">
+    import { messagecomponent } from "{{url_for('static', filename='js/messagebar.js')}}"
+    import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
+    import { searchcomponent } from "{{url_for('static', filename='js/search/search.js')}}"
+    import { basketcomponent } from "{{url_for('static', filename='js/basket.js')}}"
+
+    const vm_search_component = Vue.createApp({
+        components: { sidebarcomponent, searchcomponent, basketcomponent },
+    }).mount("#search_vm")
+</script>
 
 {% endblock %}

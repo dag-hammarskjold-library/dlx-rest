@@ -34,7 +34,7 @@ export let browsecomponent = {
                 <div class="form-group">
                     <label for="searchAgain">Your search: </label>
                     <input id="searchAgain" type="text" :value=q>
-                    <button type="button mx-2" class="btn btn-primary" value="Search" @click="resubmitBrowse(index)">Search Again</button></td>
+                    <button type="button mx-2" class="btn btn-primary" value="Search" @click="resubmitBrowse(index)">Search Again</button>
                 </div>
                 </form>
             </div>

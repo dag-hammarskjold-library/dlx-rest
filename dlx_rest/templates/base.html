@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-100">
 
-<!--<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.6.0/stitch.js"></script> -->
-<script src="https://unpkg.com/@mongodb-js/charts-embed-dom@3.2.1/dist/charts-embed-dom.umd.min.js"></script>
-<script src="https://unpkg.com/@mongodb-js/charts-embed-dom"></script>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -26,7 +23,7 @@
     <meta name="theme-color" content="#ffffff">
 
     <!-- Bootstrap core CSS -->
-    <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename="css/bootstrap.min.css")}}"
 
     <!-- Font awesome link -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
@@ -38,15 +35,14 @@
     ></script>
 
     <!-- Vue local source -->
-    <script src="{{url_for('static', filename='js/vue/vue2.js')}}"></script>
-
-    <!-- jQuery 3 -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <!--<script src="{{url_for('static', filename='js/vue/vue.global.js')}}"></script>-->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <!-- Bootstrap local source -->
     <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script> 
 
-   
+    <script src="https://unpkg.com/@mongodb-js/charts-embed-dom@3.2.1/dist/charts-embed-dom.umd.min.js"></script>
+    <script src="https://unpkg.com/@mongodb-js/charts-embed-dom"></script>
 
    <script  type="module" src="{{url_for('static', filename='js/charts.js')}}"></script>
 

@@ -12,6 +12,18 @@
     </div>
 </div>
 
-<script type="module" src="{{url_for('static', filename='js/workform_vm.js')}}"></script>
+<script type="module">
+import { messagecomponent } from "{{url_for('static', filename='js/messagebar.js')}}"
+import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
+import { workformcomponent } from "{{url_for('static', filename='js/workform.js')}}"
+
+const vm_search_component = Vue.createApp({
+    components: { 
+        messagecomponent, 
+        sidebarcomponent, 
+        workformcomponent
+    }
+}).mount("#workform_vm")
+</script>
 
 {% endblock %}

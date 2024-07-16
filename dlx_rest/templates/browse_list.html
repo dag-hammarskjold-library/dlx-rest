@@ -13,6 +13,13 @@
     </div>
 </div>
 
-<script type="module" src="{{url_for('static', filename='js/browse_vm.js')}}"></script>
+<script type="module">
+    import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
+    import { browsecomponent } from "{{url_for('static', filename='js/search/browse.js')}}"
+
+    const vm_search_component = Vue.createApp({
+        components: { sidebarcomponent, browsecomponent },
+    }).mount("#browse_vm")
+</script>
 
 {% endblock %}

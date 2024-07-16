@@ -5,5 +5,11 @@
         <importcomponent api_prefix="{{api_prefix}}"></importcomponent>
     </div>
 </div>
-    <script type="module" src="{{url_for('static', filename='js/vm_import.js')}}"></script>
+    <script type="module">
+    import { importcomponent } from "{{url_for('static', filename='js/import.js')}}"
+
+    const vm_import = Vue.createApp({
+        components: { importcomponent }
+    }).mount("#import_marc")
+    </script>
 {% endblock %}

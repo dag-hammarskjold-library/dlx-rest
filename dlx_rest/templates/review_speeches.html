@@ -7,6 +7,12 @@
         </div>
     </div>
 
-<script type="module" src="{{url_for('static', filename='js/speech_review_vm.js')}}" ></script>
+<script type="module">
+import { speechreviewcomponent } from "{{url_for('static', filename='js/speech_review.js')}}"
+
+const speech_review_vm = Vue.createApp({
+    components: { speechreviewcomponent },
+}).mount("#speech_review_vm")
+</script>
 
 {% endblock %}
