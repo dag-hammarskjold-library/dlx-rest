@@ -45,11 +45,14 @@ def index():
     #return render_template('index.html', title="Home")
     return redirect(url_for('get_records_list', coll="bibs"))
 
+'''
 @app.route('/newui')
 def newui():
     return redirect(url_for('editor'))
+'''
 
 @app.route('/editor')
+@login_required
 def editor():
     this_prefix = url_for('doc', _external=True)
     records = request.args.get('records', None)
@@ -135,14 +138,14 @@ def logout():
 @login_required
 @requires_permission('readAdmin')
 def admin_index():
-    return render_template('admin/index.html', title="Admin")
+    return render_template('admin/index.html', vcoll="admin", title="Admin")
 
 @app.route('/admin/sync_log')
 @login_required
 @requires_permission('readSync')
 def get_sync_log():
     items = SyncLog.objects().order_by('-time')
-    return render_template('admin/sync_log.html', title="Sync Log", items=items)
+    return render_template('admin/sync_log.html', vcoll="admin", title="Sync Log", items=items)
 
 @app.route('/admin/debug')
 @login_required
@@ -157,7 +160,7 @@ def get_debug():
 @requires_permission('readUser')
 def list_users():
     users = User.objects
-    return render_template('admin/users.html', title="Users", users=users)
+    return render_template('admin/users.html', vcoll="admin", title="Users", users=users)
 
 @app.route('/admin/users/new', methods=['GET','POST'])
 @login_required
@@ -197,7 +200,7 @@ def create_user():
             flash("An error occurred trying to create the user. Please review the information and try again.")
             return redirect(url_for('create_user'))
     else:
-        return render_template('admin/createuser.html', title="Create User", form=form)
+        return render_template('admin/createuser.html', vcoll="admin", title="Create User", form=form)
 
 @app.route('/admin/users/<id>/edit', methods=['GET','POST'])
 @login_required
@@ -249,7 +252,7 @@ def update_user(id):
             raise
             return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
     else:
-        return render_template('admin/edituser.html', title="Edit User", user=user, form=form)
+        return render_template('admin/edituser.html', vcoll="admin", title="Edit User", user=user, form=form)
 
 @app.route('/admin/users/<id>/delete')
 @login_required
@@ -270,7 +273,7 @@ def delete_user(id):
 @requires_permission('readRole')
 def get_roles():
     roles = Role.objects
-    return render_template('admin/roles.html', title="Roles", roles=roles)
+    return render_template('admin/roles.html', vcoll="admin", title="Roles", roles=roles)
 
 @app.route('/admin/roles/new', methods=['GET', 'POST'])
 @login_required
@@ -299,7 +302,7 @@ def create_role():
             flash("An error occurred trying to create the role. Please review the information and try again.")
             return redirect(url_for('create_role'))
     else:
-        return render_template('admin/createrole.html', title="Create Role", form=form)
+        return render_template('admin/createrole.html', vcoll="admin", title="Create Role", form=form)
 
 
 @app.route('/admin/roles/<id>', methods=['GET', 'POST'])
@@ -338,7 +341,7 @@ def update_role(id):
             raise
             return render_template('admin/editrole.html', title="Update Role", role=role, form=form)
     else:
-        return render_template('admin/editrole.html', title="Update Role", form=form, role=role)
+        return render_template('admin/editrole.html', vcoll="admin", title="Update Role", form=form, role=role)
 
 @app.route('/admin/roles/<id>/delete')
 @login_required
@@ -796,9 +799,9 @@ def import_marc():
 @app.route('/reports/dashboard02', methods=["GET"])
 @login_required
 def show_dashboard02():
-    return render_template('dashboard02.html',vcoll="dashboard02", user=current_user.username, users=User.objects)     
+    return render_template('dashboard02.html',vcoll="dashboards", user=current_user.username, users=User.objects)     
  
 @app.route('/reports/dashboard03', methods=["GET"])
 @login_required
 def show_dashboard03():   
-    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)
+    return render_template('dashboard03.html',vcoll="dashboards", user=current_user.username)
