@@ -1,11 +1,16 @@
 {% extends 'base.html' %} {% block content %}    
 
     <div id="record_vm" v-show="true" data-api_prefix="{{prefix}}">
-        <headercomponent></headercomponent>
-        <messagecomponent prefix="{{prefix}}"></messagecomponent>
-        <multiplemarcrecordcomponent prefix="{{prefix}}" records="{{coll}}/{{record_id}}" readonly></multiplemarcrecordcomponent>
+        <readonlyrecord api_prefix="{{api_prefix}}" collection="{{collection}}" record_id="{{record_id}}"></readonlyrecord>
     </div>
 
-<script type="module" src="{{url_for('static', filename='js/record_vm.js')}}" ></script>
+<script type="module">
+    import {readonlyrecord} from "{{url_for('static', filename='js/readonly_record.js')}}"
+
+    export let readonly_vm = new Vue({
+        el: "#record_vm",
+        components: {readonlyrecord}
+    })
+</script>
 
 {% endblock %}
