@@ -222,7 +222,7 @@ export let multiplemarcrecordcomponent = {
         this.baseUrl = this.prefix.replace("/api", "");
        
         this.copiedFields = [];
-        this.$root.$refs.multiplemarcrecordcomponent = this;
+        //this.$root.$refs.multiplemarcrecordcomponent = this;
 
         let myProfile = await user.getProfile(this.prefix, 'my_profile');
         

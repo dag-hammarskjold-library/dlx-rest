@@ -18,6 +18,17 @@
         <selectworkform api_prefix="{{prefix}}" collection="auths"></selectworkform>
         <selectworkform api_prefix="{{prefix}}" collection="bibs"></selectworkform>
   </div>
-  <script type="module" src="{{url_for('static', filename='js/editor.js')}}"></script>
+  <script type="module">
+import { headercomponent } from "{{url_for('static', filename='js/header.js')}}"
+import { basketcomponent } from "{{url_for('static', filename='js/basket.js')}}"
+import { multiplemarcrecordcomponent } from "{{url_for('static', filename='js/record.js')}}"
+import { messagecomponent } from "{{url_for('static', filename='js/messagebar.js')}}"
+import { modalmergecomponent } from "{{url_for('static', filename='js/merge.js')}}"
+import { selectworkform } from "{{url_for('static', filename='js/modals/select_workform.js')}}"
+
+const vm_new_ui_component = Vue.createApp({
+    components: { headercomponent, basketcomponent, messagecomponent, modalmergecomponent, multiplemarcrecordcomponent, selectworkform },
+}).mount("#new_ui_component")
+  </script>
   {% endif %}
 {% endblock %}

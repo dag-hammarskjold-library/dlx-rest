@@ -111,7 +111,7 @@ export let batcheditmodal = {
     emits: ['update-records'],
     created: function () {
         // basketItems should change when the actual basket contents change, but this isn't happening
-        this.basketItems = this.$root.$refs.basketcomponent.basketItems
+        //this.basketItems = this.$root.$refs.basketcomponent.basketItems
         // Initialize Jmarc 
         Jmarc.api_prefix = this.api_prefix
     },
