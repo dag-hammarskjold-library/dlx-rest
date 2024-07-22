@@ -32,15 +32,17 @@ export let searchcomponent = {
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
-                <ul class="navbar-nav mr-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                     <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
+                </ul>
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <div class="custom-control custom-switch nav-link ml-5">
-                            <input v-if="params.engine === 'atlas'" type="checkbox" checked="true" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
-                            <input v-else type="checkbox" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
-                            <label class="custom-control-label" for="customSwitch1">Use Atlas Search</label>
+                        <div class="form-check form-switch nav-link">
+                            <input v-if="params.engine === 'atlas'" type="checkbox" role="switch" checked="true" class="form-check-input" id="customSwitch1" @change="toggleEngine">
+                            <input v-else type="checkbox" role="switch" class="form-check-input" id="customSwitch1" @change="toggleEngine">
+                            <label class="form-check-label" for="customSwitch1">Use Atlas Search</label>
                         </div>
                     </li>
                 </ul>
