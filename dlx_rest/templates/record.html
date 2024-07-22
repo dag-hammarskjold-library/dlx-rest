@@ -1,5 +1,7 @@
 {% extends 'base.html' %} {% block content %}    
 
+    {% set records="/".join([collection,record_id]) %}
+    <div class="container"><a href="{{url_for('editor', records=records)}}">Edit</a></div>
     <div id="record_vm" v-show="true" data-api_prefix="{{prefix}}">
         <readonlyrecord api_prefix="{{api_prefix}}" collection="{{collection}}" record_id="{{record_id}}"></readonlyrecord>
     </div>

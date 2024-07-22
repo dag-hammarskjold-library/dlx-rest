@@ -3,9 +3,10 @@ import { Jmarc } from "./jmarc.mjs"
 export let readonlyrecord = {
     props: ["api_prefix", "collection", "record_id"],
     template: `<div class="container">
-        <h5>{{collection}}/{{record_id}}</h5>
+        <h5>{{record.getVirtualCollection()}}/{{record_id}}</h5>
         <div v-for="field in record.fields" class="field" :data-tag="field.tag">
-            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+            <code class="text-primary">{{field.tag}}</code>
+            <span v-if="!field.subfields">{{field.value}}</span>
             <span v-for="subfield in field.subfields">
                 <code>\${{subfield.code}}</code>{{subfield.value}}
             </span>
