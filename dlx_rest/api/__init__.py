@@ -218,6 +218,13 @@ class RecordsList(Resource):
         help='Toggle the search type between Atas and Community',
         default='community'
     )
+    args.add_argument(
+        'listtype',
+        type=str,
+        choices=['default','export'],
+        help='Choose whether this is a record export or not',
+        default='default'
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -276,12 +283,17 @@ class RecordsList(Resource):
           
         # limit  
         limit = int(args.limit or 100)
+
+        # List type
+        list_type = args.listtype or 'default'
+        print(list_type)
         
         # format
         fmt = args['format'] or None
 
-        if fmt != 'brief_speech' and limit > 1000:
-            abort(404, 'Maximum limit is 1000')
+        if limit > 1000:
+            if fmt != brief_speech and list_type != 'export':
+                abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
             tags = ['191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
@@ -448,12 +460,6 @@ class RecordsList(Resource):
             else:
                 abort(500, 'POST request failed for unknown reasons')
 
-# Records Export
-@ns.route('/marc/<string:collection>/records/export')
-@ns.param('collection', "bibs" or "auths")
-class RecordsExport(Resource):
-    def post(self):
-        pass
 
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')

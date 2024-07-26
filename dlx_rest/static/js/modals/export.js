@@ -74,12 +74,20 @@ export let exportmodal = {
         setFormat(format) {
           this.selectedFormat = format
           this.selectedExportUrl = this.links.format[format.toUpperCase()]
+          let url = new URL(this.selectedExportUrl)
+          let search = new URLSearchParams(url.search)
+          search.set("limit", 10000)
+          search.set("listtype", "export")
+          url.search = search
+          this.selectedExportUrl = url
         },
         setOutputFields(e) {
             this.selectedFields = e.target.value
             let url = new URL(this.selectedExportUrl)
             let search = new URLSearchParams(url.search)
             search.set("fields", e.target.value)
+            search.set("limit", 10000)
+            search.set("listtype", "export")
             url.search = search
             this.selectedExportUrl = url
         },
