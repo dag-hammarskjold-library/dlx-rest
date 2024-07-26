@@ -49,7 +49,7 @@ export let exportmodal = {
                   <button type="button" class="btn btn-primary">Submit</button>
                 </a>
                 <!-- <button type="button" class="btn btn-primary" @click="submitExport">Submit</button> -->
-                <!-- <button type="button" class="btn btn-danger" @click="showModal = false">Close</button> -->
+                <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button>
               </div>
             </div>
           </div>

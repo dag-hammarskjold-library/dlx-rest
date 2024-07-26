@@ -448,6 +448,13 @@ class RecordsList(Resource):
             else:
                 abort(500, 'POST request failed for unknown reasons')
 
+# Records Export
+@ns.route('/marc/<string:collection>/records/export')
+@ns.param('collection', "bibs" or "auths")
+class RecordsExport(Resource):
+    def post(self):
+        pass
+
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')
 @ns.param('collection', '"bibs" or "auths"')
