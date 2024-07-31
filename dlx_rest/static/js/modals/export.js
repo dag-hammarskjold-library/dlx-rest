@@ -45,10 +45,7 @@ export let exportmodal = {
                 </div>
               </div>
               <div class="modal-footer">
-                <a :href="selectedExportUrl" :download="'export.' + selectedFormat">
-                  <button type="button" class="btn btn-primary">Submit</button>
-                </a>
-                <!-- <button type="button" class="btn btn-primary" @click="submitExport">Submit</button> -->
+                <button type="button" class="btn btn-primary" @click="submitExport">Submit</button>
                 <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button>
               </div>
             </div>
@@ -76,8 +73,9 @@ export let exportmodal = {
           this.selectedExportUrl = this.links.format[format.toUpperCase()]
           let url = new URL(this.selectedExportUrl)
           let search = new URLSearchParams(url.search)
-          search.set("limit", 10000)
-          search.set("listtype", "export")
+          search.set("start", 1)
+          search.set("limit", 100)
+          //search.set("listtype", "export")
           url.search = search
           this.selectedExportUrl = url
         },
@@ -86,17 +84,58 @@ export let exportmodal = {
             let url = new URL(this.selectedExportUrl)
             let search = new URLSearchParams(url.search)
             search.set("fields", e.target.value)
-            search.set("limit", 10000)
+            search.set("limit", 100)
             search.set("listtype", "export")
             url.search = search
             this.selectedExportUrl = url
         },
-        /* submitExport() {
-            fetch(this.selectedExportUrl).then( response => {
-                response.blob().then( blob => {
-                    this.download(blob, `export.${this.selectedFormat}`)
-                })
-            })
+        async submitExport() {
+            const url = new URL(this.selectedExportUrl);
+            const params = new URLSearchParams(url.search);
+            const format = params.get("format");
+            let mimetype = null;
+            let proceed = true;
+            let buffer = format === 'xml' ? '<collection>' : ''; // semi hackish way to accumulate the xml
+            // todo: handle buffer for more formats i.e. json, and improve xml handling
+
+            while (proceed) {
+                // cycle through pages synchronously
+                const response = await fetch(this.selectedExportUrl);
+                const blob = await response.blob();
+                const text = await blob.text();
+                mimetype = response.headers.get("Content-Type");
+
+                if (mimetype.match('^text/xml')) {
+                    const xml = (new DOMParser()).parseFromString(text, "text/xml")
+
+                    if (xml.getElementsByTagName("record").length == 0) {
+                        proceed = false
+                    } else {
+                        for (const recordXml of xml.getElementsByTagName("record")) {
+                            // add the string serialization of the record node to the buffer
+                            buffer += (new XMLSerializer()).serializeToString(recordXml) + '\n'
+                        }
+                    }
+                } else if (text) {
+                    buffer += text
+                } else {
+                    proceed = false
+                }
+
+                let newUrl = new URL(this.selectedExportUrl);
+                let search = new URLSearchParams(newUrl.search);
+                search.set("start", Number(search.get("start")) + Number(search.get("limit")));
+                newUrl.search = search;
+                this.selectedExportUrl = newUrl;
+            }
+
+            // see buffer declaration above
+            if (format === 'xml') {
+                buffer += '</collection>'
+            }
+
+            const blob = new File([buffer], {"type": mimetype});
+            this.download(blob, `export.${this.selectedFormat}`);
         },
         download(blob, filename) {
             const url = window.URL.createObjectURL(blob)
@@ -108,6 +147,6 @@ export let exportmodal = {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
-        } */
+        }
     }
 }
