@@ -94,32 +94,36 @@ export let exportmodal = {
             const params = new URLSearchParams(url.search);
             const format = params.get("format");
             let mimetype = null;
-            let proceed = true;
-            let buffer = format === 'xml' ? '<collection>' : ''; // semi hackish way to accumulate the xml
-            // todo: handle buffer for more formats i.e. json, and improve xml handling
+            let buffer = '';
+            let xml = format === 'xml' ?
+                // XMLDocument object will be used to combine xml from each page
+                (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
+                null;
 
-            while (proceed) {
+            while (true) {
                 // cycle through pages synchronously
                 const response = await fetch(this.selectedExportUrl);
                 const blob = await response.blob();
                 const text = await blob.text();
                 mimetype = response.headers.get("Content-Type");
-
+                
                 if (mimetype.match('^text/xml')) {
-                    const xml = (new DOMParser()).parseFromString(text, "text/xml")
+                    const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
 
-                    if (xml.getElementsByTagName("record").length == 0) {
-                        proceed = false
-                    } else {
-                        for (const recordXml of xml.getElementsByTagName("record")) {
-                            // add the string serialization of the record node to the buffer
-                            buffer += (new XMLSerializer()).serializeToString(recordXml) + '\n'
+                    if (pageXml.getElementsByTagName("record").length > 0) {
+                        for (const recordXml of pageXml.getElementsByTagName("record")) {
+                            xml.getElementsByTagName("collection")[0].appendChild(recordXml);
                         }
+                    } else {
+                        // end of results
+                        break
                     }
                 } else if (text) {
+                    // mrk, csv are plain text
                     buffer += text
                 } else {
-                    proceed = false
+                    // end of results
+                    break
                 }
 
                 let newUrl = new URL(this.selectedExportUrl);
@@ -129,12 +133,7 @@ export let exportmodal = {
                 this.selectedExportUrl = newUrl;
             }
 
-            // see buffer declaration above
-            if (format === 'xml') {
-                buffer += '</collection>'
-            }
-
-            const blob = new File([buffer], {"type": mimetype});
+            const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], {"type": mimetype});
             this.download(blob, `export.${this.selectedFormat}`);
         },
         download(blob, filename) {
