@@ -15,7 +15,7 @@ export let exportmodal = {
               <div class="modal-header">
                 <h5 class="modal-title">Export Results</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true" @click="showModal = false">&times;</span>
+                  <span aria-hidden="true" @click="reloadPage()">&times;</span> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
                 </button>
               </div>
               <div id="preview-text" class="modal-body">
@@ -147,6 +147,10 @@ export let exportmodal = {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
+        },
+        reloadPage() {
+            // this doesn't work when embedded in the template for some reason
+            location.reload()
         }
     }
 }
