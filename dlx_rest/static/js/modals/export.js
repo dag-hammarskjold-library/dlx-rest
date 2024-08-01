@@ -11,19 +11,13 @@ export let exportmodal = {
       <div class="modal-mask">
         <div class="modal-wrapper">
           <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
+            <div class="modal-content" style="width: 40%">
               <div class="modal-header">
                 <h5 class="modal-title">Export Results</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true" @click="showModal = false">&times;</span>
                 </button>
               </div>
-              <div id="results-spinner" class="col d-flex justify-content-center">
-                    <div class="spinner-border" role="status" v-show="showSpinner">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-              
               <div id="preview-text" class="modal-body">
                 <div class="container" id="format-select">
                   Select format:
@@ -45,8 +39,13 @@ export let exportmodal = {
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-primary" @click="submitExport">Submit</button>
-                <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button>
+                <div id="results-spinner" class="col d-flex justify-content-center">
+                  <div class="spinner-border" role="status" v-show="showSpinner">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                </div>
+                <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
+                <!-- <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button> -->
               </div>
             </div>
           </div>
@@ -90,6 +89,7 @@ export let exportmodal = {
             this.selectedExportUrl = url
         },
         async submitExport() {
+            this.showSpinner = true;
             const url = new URL(this.selectedExportUrl);
             const params = new URLSearchParams(url.search);
             const format = params.get("format");
@@ -101,7 +101,7 @@ export let exportmodal = {
                 null;
 
             while (true) {
-                // cycle through pages synchronously
+                // cycle through pages synchronously until no more records are found
                 const response = await fetch(this.selectedExportUrl);
                 const blob = await response.blob();
                 const text = await blob.text();
@@ -135,6 +135,7 @@ export let exportmodal = {
 
             const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], {"type": mimetype});
             this.download(blob, `export.${this.selectedFormat}`);
+            this.showSpinner = false;
         },
         download(blob, filename) {
             const url = window.URL.createObjectURL(blob)
