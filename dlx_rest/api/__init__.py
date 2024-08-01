@@ -31,13 +31,13 @@ from dlx_rest.models import RecordView, User, Basket, requires_permission, regis
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
 
 # Init
-authorizations = {
-    'basic': {
-        'type': 'basic'
-    }
-}
 
-api = Api(app, doc='/api/', authorizations=authorizations)
+# build the auth cache in a non blocking thread
+def build_cache(): Auth.build_cache()
+
+threading.Thread(target=build_cache, args=[]).start()
+
+api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
     
 # Set up the login manager for the API
