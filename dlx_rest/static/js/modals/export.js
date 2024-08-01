@@ -43,9 +43,12 @@ export let exportmodal = {
                   <div class="spinner-border" role="status" v-show="showSpinner">
                     <span class="sr-only">Loading...</span>
                   </div>
+                  <div style="display: inline-block; padding: 5" v-show="currentPage">
+                    <span>&nbsp;{{ currentPage }}</span>
+                  </div>
                 </div>
                 <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
-                <!-- <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button> -->
+                <button type="button" class="btn btn-danger" @click="reloadPage()">Cancel</button> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
               </div>
             </div>
           </div>
@@ -59,7 +62,8 @@ export let exportmodal = {
             showSpinner: false,
             selectedFormat: 'mrk',
             selectedFields: null,
-            selectedExportUrl: null
+            selectedExportUrl: null,
+            currentPage: null
         }
     },
     methods: {
@@ -89,10 +93,15 @@ export let exportmodal = {
             this.selectedExportUrl = url
         },
         async submitExport() {
+            this.currentPage = null;
             this.showSpinner = true;
             const url = new URL(this.selectedExportUrl);
             const params = new URLSearchParams(url.search);
             const format = params.get("format");
+            const countUrl = this.selectedExportUrl.toString().replace('/records', '/records/count');
+            const total = await fetch(countUrl).then(response => response.json()).then(json => json['data']);
+            let currentUrl = this.selectedExportUrl;
+            let page = 0;
             let mimetype = null;
             let buffer = '';
             let xml = format === 'xml' ?
@@ -102,7 +111,7 @@ export let exportmodal = {
 
             while (true) {
                 // cycle through pages synchronously until no more records are found
-                const response = await fetch(this.selectedExportUrl);
+                const response = await fetch(currentUrl);
                 const blob = await response.blob();
                 const text = await blob.text();
                 mimetype = response.headers.get("Content-Type");
@@ -126,16 +135,18 @@ export let exportmodal = {
                     break
                 }
 
-                let newUrl = new URL(this.selectedExportUrl);
-                let search = new URLSearchParams(newUrl.search);
-                search.set("start", Number(search.get("start")) + Number(search.get("limit")));
-                newUrl.search = search;
-                this.selectedExportUrl = newUrl;
+                let newUrl = new URL(currentUrl);
+                let params = new URLSearchParams(newUrl.search);
+                params.set("start", Number(params.get("start")) + Number(params.get("limit")));
+                newUrl.search = params;
+                currentUrl = newUrl;
+                this.currentPage = `page: ${++page} / ${Math.ceil(total / 100)}`;
             }
 
             const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], {"type": mimetype});
             this.download(blob, `export.${this.selectedFormat}`);
             this.showSpinner = false;
+            this.currentPage = "Done!"
         },
         download(blob, filename) {
             const url = window.URL.createObjectURL(blob)
