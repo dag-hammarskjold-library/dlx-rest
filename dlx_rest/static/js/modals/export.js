@@ -108,7 +108,7 @@ export let exportmodal = {
                 // XMLDocument object will be used to combine xml from each page
                 (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
                 null;
-
+            
             while (true) {
                 // cycle through pages synchronously until no more records are found
                 const response = await fetch(currentUrl);
@@ -118,9 +118,10 @@ export let exportmodal = {
                 
                 if (mimetype.match('^text/xml')) {
                     const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+                    const recordNodes = pageXml.getElementsByTagName("record")
 
-                    if (pageXml.getElementsByTagName("record").length > 0) {
-                        for (const recordXml of pageXml.getElementsByTagName("record")) {
+                    if (recordNodes.length > 0) {
+                        for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
                             xml.getElementsByTagName("collection")[0].appendChild(recordXml);
                         }
                     } else {
