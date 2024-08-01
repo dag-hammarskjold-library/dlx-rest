@@ -117,6 +117,7 @@ export let searchcomponent = {
             </div>
             <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
         </div>
+        <!--
         <div id="simple-search" class="row pt-2">
             <form class="form-inline mr-auto col-lg-12" :action="action">
                 <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search" :value="params.search">
@@ -127,6 +128,23 @@ export let searchcomponent = {
                     <span>X</span>
                 </button>
             </form>    
+        </div>
+        -->
+        <div id="simple-search">
+            <form class="row g-3 py-1" :action="action">
+                <div class="col-10">
+                    <label for="q" class="visually-hidden">Search</label>
+                    <input v-if="params.search" id="q" name="q" class="form-control" placeholder="Search" :value="params.search">
+                    <input v-else id="q" name="q" class="form-control" placeholder="Search">
+                    <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary mb-3" type="submit" id="search-btn" value="Search">Search</button>
+                    <button class="btn btn-sm btn-default mb-3" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
+                        <span>X</span>
+                    </button>
+                </div>
+            </form>
         </div>
         <div v-if="collection == 'auths'" id="filters" class="col text-center">
             Filter: 
