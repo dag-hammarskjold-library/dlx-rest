@@ -211,7 +211,6 @@ def brief_bib(record):
 
     # Should be truncated in display with hover showing the rest
     f520 = [record.get_value('520', 'a')]
-    print(f520)
 
     return {
         '_id': record.id,
@@ -323,7 +322,6 @@ def has_permission(user, action, record, collection):
                 bool_list.append("F")
     else:
         bool_list.append("F")
-    #print("boolean list:",bool_list)
     if "F" in bool_list:
         return False
     else:

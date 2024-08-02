@@ -5,6 +5,7 @@ export let sortcomponent = {
         <div class="row d-flex w-100 justify-content-center">
             <div class="col">Results per page</div>
             <div class="col">Sort</div>
+            <div class="col" v-if="['bibs','speeches','votes'].includes(vcoll)">Filter</div>
             <div class="col">Direction</div>
         </div>
         <div class="row d-flex w-100 justify-content-center">
@@ -21,6 +22,26 @@ export let sortcomponent = {
                     <li v-for="o in sortFields" class="list-inline-item">
                         <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
                         <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col" v-if="['bibs','speeches','votes'].includes(vcoll)">
+                <ul class="list-inline">
+                    <li class="list-inline-item">
+                        <a id="subtype" data-searchString="all" class="nav-link disabled result-link sortcomponent small p-0" v-if="params.subtype==='all'">All</a>
+                        <a id="subtype" data-searchString="all" class="nav-link result-link sortcomponent small p-0" v-else>All</a>
+                    </li>
+                    <li class="list-inline-item">
+                        <a id="subtype" data-searchString="default" class="nav-link disabled result-link sortcomponent small p-0" v-if="params.subtype==='default'">Docs & Pubs</a>
+                        <a id="subtype" data-searchString="default" class="nav-link result-link sortcomponent small p-0" v-else>Docs & Pubs</a>
+                    </li>
+                    <li class="list-inline-item">
+                        <a id="subtype" data-searchString="speech" class="nav-link disabled result-link sortcomponent small p-0" v-if="params.subtype==='speech'">Speeches</a>
+                        <a id="subtype" data-searchString="speech" class="nav-link result-link sortcomponent small p-0" v-else>Speeches</a>
+                    </li>
+                    <li class="list-inline-item">
+                        <a id="subtype" data-searchString="vote" class="nav-link disabled result-link sortcomponent small p-0" v-if="params.subtype==='vote'">Votes</a>
+                        <a id="subtype" data-searchString="vote" class="nav-link result-link sortcomponent small p-0" v-else>Votes</a>
                     </li>
                 </ul>
             </div>
@@ -90,7 +111,8 @@ export let sortcomponent = {
                 {"displayName": "asc", "searchString": "asc"},
                 {"displayName": "desc", "searchString": "desc"}
             ],
-            freeText: this.isFreeText
+            freeText: this.isFreeText,
+            vcoll: vcoll
         }
     },
     mounted: function() {

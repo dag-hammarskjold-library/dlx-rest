@@ -11,19 +11,13 @@ export let exportmodal = {
       <div class="modal-mask">
         <div class="modal-wrapper">
           <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
+            <div class="modal-content" style="width: 40%">
               <div class="modal-header">
                 <h5 class="modal-title">Export Results</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true" @click="showModal = false">&times;</span>
+                  <span aria-hidden="true" @click="reloadPage()">&times;</span> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
                 </button>
               </div>
-              <div id="results-spinner" class="col d-flex justify-content-center">
-                    <div class="spinner-border" role="status" v-show="showSpinner">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-              
               <div id="preview-text" class="modal-body">
                 <div class="container" id="format-select">
                   Select format:
@@ -45,11 +39,16 @@ export let exportmodal = {
                 </div>
               </div>
               <div class="modal-footer">
-                <a :href="selectedExportUrl" :download="'export.' + selectedFormat">
-                  <button type="button" class="btn btn-primary">Submit</button>
-                </a>
-                <!-- <button type="button" class="btn btn-primary" @click="submitExport">Submit</button> -->
-                <button type="button" class="btn btn-danger" @click="showModal = false">Cancel</button>
+                <div id="results-spinner" class="col d-flex justify-content-center">
+                  <div class="spinner-border" role="status" v-show="showSpinner">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                  <div style="display: inline-block; padding: 5" v-show="currentPage">
+                    <span>&nbsp;{{ currentPage }}</span>
+                  </div>
+                </div>
+                <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
+                <button type="button" class="btn btn-danger" @click="reloadPage()">Cancel</button> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
               </div>
             </div>
           </div>
@@ -63,7 +62,8 @@ export let exportmodal = {
             showSpinner: false,
             selectedFormat: 'mrk',
             selectedFields: null,
-            selectedExportUrl: null
+            selectedExportUrl: null,
+            currentPage: null
         }
     },
     methods: {
@@ -76,8 +76,9 @@ export let exportmodal = {
           this.selectedExportUrl = this.links.format[format.toUpperCase()]
           let url = new URL(this.selectedExportUrl)
           let search = new URLSearchParams(url.search)
-          search.set("limit", 10000)
-          search.set("listtype", "export")
+          search.set("start", 1)
+          search.set("limit", 100)
+          //search.set("listtype", "export")
           url.search = search
           this.selectedExportUrl = url
         },
@@ -86,17 +87,67 @@ export let exportmodal = {
             let url = new URL(this.selectedExportUrl)
             let search = new URLSearchParams(url.search)
             search.set("fields", e.target.value)
-            search.set("limit", 10000)
+            search.set("limit", 100)
             search.set("listtype", "export")
             url.search = search
             this.selectedExportUrl = url
         },
-        /* submitExport() {
-            fetch(this.selectedExportUrl).then( response => {
-                response.blob().then( blob => {
-                    this.download(blob, `export.${this.selectedFormat}`)
-                })
-            })
+        async submitExport() {
+            this.currentPage = null;
+            this.showSpinner = true;
+            const url = new URL(this.selectedExportUrl);
+            const params = new URLSearchParams(url.search);
+            const format = params.get("format");
+            const countUrl = this.selectedExportUrl.toString().replace('/records', '/records/count');
+            const total = await fetch(countUrl).then(response => response.json()).then(json => json['data']);
+            let currentUrl = this.selectedExportUrl;
+            let page = 0;
+            let mimetype = null;
+            let buffer = '';
+            let xml = format === 'xml' ?
+                // XMLDocument object will be used to combine xml from each page
+                (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
+                null;
+            
+            while (true) {
+                // cycle through pages synchronously until no more records are found
+                const response = await fetch(currentUrl);
+                const blob = await response.blob();
+                const text = await blob.text();
+                mimetype = response.headers.get("Content-Type");
+                
+                if (mimetype.match('^text/xml')) {
+                    const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+                    const recordNodes = pageXml.getElementsByTagName("record")
+
+                    if (recordNodes.length > 0) {
+                        for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
+                            xml.getElementsByTagName("collection")[0].appendChild(recordXml);
+                        }
+                    } else {
+                        // end of results
+                        break
+                    }
+                } else if (text) {
+                    // mrk, csv are plain text
+                    buffer += text
+                } else {
+                    // end of results
+                    break
+                }
+
+                let newUrl = new URL(currentUrl);
+                let params = new URLSearchParams(newUrl.search);
+                params.set("start", Number(params.get("start")) + Number(params.get("limit")));
+                newUrl.search = params;
+                currentUrl = newUrl;
+                this.currentPage = `page: ${++page} / ${Math.ceil(total / 100)}`;
+            }
+
+            const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], {"type": mimetype});
+            this.download(blob, `export.${this.selectedFormat}`);
+            this.showSpinner = false;
+            this.currentPage = "Done!"
         },
         download(blob, filename) {
             const url = window.URL.createObjectURL(blob)
@@ -108,6 +159,10 @@ export let exportmodal = {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
-        } */
+        },
+        reloadPage() {
+            // this doesn't work when embedded in the template for some reason
+            location.reload()
+        }
     }
 }
