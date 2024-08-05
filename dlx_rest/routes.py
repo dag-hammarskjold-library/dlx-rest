@@ -578,10 +578,8 @@ def review_speeches():
 @app.route('/records/<coll>/<id>', methods=['GET'])
 @login_required
 def get_record_by_id(coll,id):
-    # register the permission, but don't require it yet, TBI
-    #register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
-    return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
+    return render_template('record.html', collection=coll, record_id=id, api_prefix=this_prefix)
 
 @app.route('/records/<coll>/new')
 @login_required
