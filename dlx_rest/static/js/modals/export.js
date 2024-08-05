@@ -76,6 +76,7 @@ export let exportmodal = {
           this.selectedExportUrl = this.links.format[format.toUpperCase()]
           let url = new URL(this.selectedExportUrl)
           let search = new URLSearchParams(url.search)
+          search.set("fields", this.selectedFields)
           search.set("start", 1)
           search.set("limit", 100)
           //search.set("listtype", "export")

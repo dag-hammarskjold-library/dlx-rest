@@ -300,7 +300,7 @@ class RecordsList(Resource):
             project = None
             output_fields = args.get("fields")
             if output_fields is not None:
-                tags = [f.strip() for  f in output_fields.split(',')]
+                tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
                 # make sure logical fields are available for sorting
                 tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
                 project = dict.fromkeys(tags, True)
