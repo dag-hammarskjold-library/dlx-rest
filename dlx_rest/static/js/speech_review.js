@@ -38,35 +38,38 @@ export let speechreviewcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
             <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
-            <br>
-            <div>Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
-            <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?subtype=speech'">Speeches</a>
+            <div class="row">
+                <div class="col">
+                    <span class="result-link disabled">Sorting:</span>
+                    <span class="mx-1 result-link disabled" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
+                </div>
+                <a class="col result-link text-end" :href="uibase + '/records/bibs/search?subtype=speech'">Speeches</a>
             </div>
         </div>
-        <table class="table table-sm table-striped table-hover" v-if="speeches.length > 0">
+        <table class="table table-sm table-striped table-hover border-top" v-if="speeches.length > 0">
             <thead class="prevent-select">
                 <tr>
                     <th scope="col"></th>
                     <th scope="col">#</th>
                     <th scope="col" @click="processSort($event, 'symbol')">Meeting Record (791)
                         <i data-target="symbol" class="fas fa-sort-alpha-up text-secondary"></i>
-                        <span id="symbol-badge" class="badge badge-pill badge-dark">0</span>
+                        <span id="symbol-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'date')">Date (992)
                         <i data-target="date" class="fas fa-sort-alpha-up text-secondary"></i>
-                        <span id="date-badge" class="badge badge-pill badge-dark">0</span>
+                        <span id="date-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'speaker')">Speaker (700 a)
                         <i data-target="speaker" class="fas fa-sort-alpha-up text-secondary"></i>
-                        <span id="speaker-badge" class="badge badge-pill badge-dark">0</span>
+                        <span id="speaker-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'speaker_country')">Speaker (700 g)
                         <i data-target="speaker_country" class="fas fa-sort-alpha-up text-secondary"></i>
-                        <span id="speaker_country-badge" class="badge badge-pill badge-dark">0</span>
+                        <span id="speaker_country-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
                     <th scope="col" @click="processSort($event, 'country_org')">Country/Organization (710 or 711)
                         <i data-target="country_org" class="fas fa-sort-alpha-up text-secondary"></i>
-                        <span id="country_org-badge" class="badge badge-pill badge-dark">0</span>
+                        <span id="country_org-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
                     <th scope="col">Agendas</th>
                     <th scope="col"></th>
