@@ -298,9 +298,10 @@ class RecordsList(Resource):
             project = dict.fromkeys(tags, True)
         elif fmt in ['mrk', 'xml', 'csv']:
             project = None
-            output_fields = args.get("fields")
-            if output_fields is not None:
+
+            if output_fields := args.get("fields"):
                 tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
+                
                 # make sure logical fields are available for sorting
                 tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
                 project = dict.fromkeys(tags, True)

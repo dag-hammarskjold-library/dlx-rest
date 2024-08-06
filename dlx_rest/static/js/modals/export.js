@@ -61,7 +61,7 @@ export let exportmodal = {
             showModal: false,
             showSpinner: false,
             selectedFormat: 'mrk',
-            selectedFields: null,
+            selectedFields: '',
             selectedExportUrl: null,
             currentPage: null
         }
@@ -72,16 +72,16 @@ export let exportmodal = {
             this.setFormat('mrk')
         },
         setFormat(format) {
-          this.selectedFormat = format
-          this.selectedExportUrl = this.links.format[format.toUpperCase()]
-          let url = new URL(this.selectedExportUrl)
-          let search = new URLSearchParams(url.search)
-          search.set("fields", this.selectedFields)
-          search.set("start", 1)
-          search.set("limit", 100)
-          //search.set("listtype", "export")
-          url.search = search
-          this.selectedExportUrl = url
+            this.selectedFormat = format
+            this.selectedExportUrl = this.links.format[format.toUpperCase()]
+            let url = new URL(this.selectedExportUrl)
+            let search = new URLSearchParams(url.search)
+            search.set("fields", this.selectedFields)
+            search.set("start", 1)
+            search.set("limit", 100)
+            //search.set("listtype", "export")
+            url.search = search
+            this.selectedExportUrl = url
         },
         setOutputFields(e) {
             this.selectedFields = e.target.value
