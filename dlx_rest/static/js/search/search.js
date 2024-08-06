@@ -29,7 +29,7 @@ export let searchcomponent = {
         }
     },
     template: ` 
-    <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
+    <div class="container pt-2" id="app1" style="background-color:white;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
                 <ul class="navbar-nav me-auto">
@@ -51,85 +51,68 @@ export let searchcomponent = {
         <div id="advanced-search" class="row pt-2" style="display:none">
             <div class="input-group mb-3">
                 <div class="input-group-prepend">
-                    <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
-                    </div>
+                    <select id="searchType1" class="form-select">
+                        <option v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t);this.selected=true">{{t.name}}</option>
+                    </select>
                 </div>
                 <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
-                    </div>
+                    <select id="searchField1" class="form-select">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field);this.selected=true">{{field}}</option>
+                    </select>
                 </div>
                 <div class="input-group-append">
-                    <button id="searchConnector1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
-                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
-                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
-                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
-                    </div>
+                    <select id="searchConnector1" class="form-select">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND');this.selected=true">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR');this.selected=true">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT');this.selected=true">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT');this.selected=true">OR NOT</option>
+                    </select>
                 </div>
             </div>
             <div class="input-group mb-3">
                 <div class="input-group-prepend">
-                    <button id="searchType2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
-                    </div>
+                    <select id="searchType2" class="form-select">
+                        <option v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2',t);this.selected=true">{{t.name}}</option>
+                    </select>
                 </div>
                 <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
-                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField2',field)">{{field}}</option>
-                    </div>
+                    <select id="searchField2" class="form-select">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField2',field);this.selected=true">{{field}}</option>
+                    </select>
                 </div>
                 <div class="input-group-append">
-                    <button id="searchConnector2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
-                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
-                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
-                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
-                    </div>
+                    <select id="searchConnector2" class="form-select">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND');this.selected=true">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR');this.selected=true">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector2','AND NOT');this.selected=true">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector2','OR NOT');this.selected=true">OR NOT</option>
+                    </select>
                 </div>
             </div>
             <div class="input-group mb-3">
                 <div class="input-group-prepend">
-                    <button id="searchType3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
-                    </div>
+                    <select id="searchType3" class="form-select">
+                        <option v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3',t);this.selected=true">{{t.name}}</option>
+                    </select>
                 </div>
                 <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3" @keydown.enter="submitAdvancedSearch">
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
-                <div class="input-group-append">
-                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
-                    <div class="dropdown-menu">
-                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField3',field)">{{field}}</option>
-                    </div>
+                <div class="input-group-prepend">
+                    <select id="searchField3" class="form-select">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField3',field);this.selected=true">{{field}}</option>
+                    </select>
                 </div>
             </div>
-            <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
+            <div class="row">
+                <div class="mx-auto" style="width:200px">
+                    <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
+                </div>
+            </div>
         </div>
-        <!--
-        <div id="simple-search" class="row pt-2">
-            <form class="form-inline mr-auto col-lg-12" :action="action">
-                <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search" :value="params.search">
-                <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search" aria-label="Search">
-                <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
-                <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
-                <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
-                    <span>X</span>
-                </button>
-            </form>    
-        </div>
-        -->
         <div id="simple-search">
             <form class="row g-3 py-1" :action="action">
                 <div class="col-10">
@@ -177,56 +160,64 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
-        <div class="row" v-if="user">
-            Select 
-            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
-            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
-        </div>
-        <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row mt-1 bg-light border-bottom">
-                <div class="col-sm-1" v-if="user">
-                    <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
-                </div>
-                <div>
-                    <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
-                    <div :id="'preview-' + result._id" class="record-preview hidden">
-                        <span class="record-preview-id">{{result._id}}</span>
-                        </br>
-                        <span :id="'preview-text-' + result._id" class="preview-text"></span>
-                    </div>
-                </div>
-                <div class="col-sm-9 px-4">
-                    <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
-                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
-                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
-                    </div>
-                    <div v-else class="row" style="flex-wrap:inherit">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
-                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
-                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
-                    </div>
-                    <div class="row" style="white-space:nowrap">
-                        {{result.second_line}}
-                    </div>
-                    <div class="row" v-for="agenda in result.agendas">
-                        <span class="ml-3">{{agenda}}</span>
-                    </div>
-                    <div class="row" v-for="val in result.f596">
-                        <span class="ml-3">{{val}}</span>
-                    </div>
-                    <div class="row" v-for="val in result.f520" style="white-space:nowrap">
-                        <span class="ml-3">{{val}}</span>
-                    </div>
-                </div>
-                <div class="col-sm-1">
-                    <!-- need to test if authenticated here -->
-                    <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
-                    </div>
-                </div>
+        <div class="row">
+            <div class="col">
+                <ul class="list-inline">
+                    <li class="list-inline-item">Select</li>
+                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="selectAll">All</a></li>
+                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="selectNone">None</a></li>
+                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a></li>
+                </ul>
             </div>
+        </div>
+
+        <div id="results-list">
+            <table class="table table-striped table-borderless" style="table-layout: fixed">
+                <tbody>
+                    <tr v-for="result in this.results" :key="result._id">
+                        <td class="col-lg-1">
+                            <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                        </td>
+                        <td class="col" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                            <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
+                                <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                                <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                                <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
+                            </div>
+                            <div v-else class="row" style="flex-wrap:inherit">
+                                <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                                <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                                <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
+                            </div>
+                            <div class="row" style="white-space:nowrap">
+                            
+                                <span class="ml-3">
+                                <span>
+                                <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
+                                <div :id="'preview-' + result._id" class="record-preview hidden">
+                                    <span class="record-preview-id">{{result._id}}</span>
+                                    </br>
+                                    <span :id="'preview-text-' + result._id" class="preview-text"></span>
+                                </div>
+                            </span>
+                                    {{result.second_line}}</span>
+                            </div>
+                            <div class="row" v-for="agenda in result.agendas">
+                                <span class="ml-6">{{agenda}}</span>
+                            </div>
+                            <div class="row" v-for="val in result.f596">
+                                <span class="ml-6">{{val}}</span>
+                            </div>
+                            <div class="row" v-for="val in result.f520" style="white-space:nowrap">
+                                <span class="ml-6">{{val}}</span>
+                            </div>
+                        </td>
+                        <td class="col-1 text-end">
+                             <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         </br>
         <nav>
@@ -640,15 +631,9 @@ export let searchcomponent = {
                 //toggleLink.textContent = "Advanced Search"
             }
         },
+        //
         setParameter(which, what) {
-            this.advancedParams[which] = what
-            let el = document.getElementById(which)
-            if (typeof what === "object") {
-                el.innerText = what.name
-                this.advancedParams[which] = what.value
-            } else {
-                el.innerText = what
-            }
+            this.advancedParams[which] = what.value
         },
         submitAdvancedSearch(e) {
             // Build the URL

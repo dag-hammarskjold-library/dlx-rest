@@ -1,9 +1,11 @@
 {% extends 'base.html' %} {% block content %}    
 
-    <div id="speech_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
-        <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
-        <div class="row">
-            <speechreviewcomponent api_prefix="{{api_prefix}}"></speechreviewcomponent>
+    <div class="container">
+        <div id="speech_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
+            <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
+            <div class="row">
+                <speechreviewcomponent api_prefix="{{api_prefix}}"></speechreviewcomponent>
+            </div>
         </div>
     </div>
 

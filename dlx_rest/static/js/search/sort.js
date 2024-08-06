@@ -10,7 +10,7 @@ export let sortcomponent = {
         </div>
         <div class="row d-flex w-100 justify-content-center">
             <div class="col">
-                <ul class="list-inline">
+                <ul class="list-inline small">
                     <li v-for="o in rpp" class="list-inline-item">
                         <a id="limit" :data-searchString="o.searchString" v-if="o.searchString === parseInt(params.limit)" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
                         <a id="limit" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
@@ -18,7 +18,7 @@ export let sortcomponent = {
                 </ul>
             </div>
             <div class="col">
-                <ul class="list-inline">
+                <ul class="list-inline small">
                     <li v-for="o in sortFields" class="list-inline-item">
                         <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-if="o.searchString === params.sort" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
                         <a id="sort" :data-searchString="o.searchString" :data-defaultSortDir="o.sortDir" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>
@@ -26,7 +26,7 @@ export let sortcomponent = {
                 </ul>
             </div>
             <div class="col" v-if="['bibs','speeches','votes'].includes(vcoll)">
-                <ul class="list-inline">
+                <ul class="list-inline small">
                     <li class="list-inline-item">
                         <a id="subtype" data-searchString="all" class="nav-link disabled result-link sortcomponent small p-0" v-if="params.subtype==='all'">All</a>
                         <a id="subtype" data-searchString="all" class="nav-link result-link sortcomponent small p-0" v-else>All</a>
@@ -46,7 +46,7 @@ export let sortcomponent = {
                 </ul>
             </div>
             <div class="col">
-                <ul class="list-inline">
+                <ul class="list-inline small">
                     <li v-for="o in sortDirections" class="list-inline-item">
                         <a id="direction" :data-searchString="o.searchString" v-if="o.searchString === params.direction" class="nav-link disabled sortcomponent small p-0">{{o.displayName}}</a>
                         <a id="direction" :data-searchString="o.searchString" v-else class="nav-link result-link sortcomponent small p-0">{{o.displayName}}</a>

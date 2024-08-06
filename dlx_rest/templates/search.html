@@ -1,23 +1,19 @@
 {% extends 'base.html' %} {% block content %}
-<div style="background-color:grey;">
-    <div id="search_vm" v-show="true">
-        <messagecomponent></messagecomponent>
-        <div class="row">
-            <sidebarcomponent sbtype="facet"></sidebarcomponent>
-            <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" logged_in="{{'1' if current_user.is_authenticated else ''}}" index_list="{{index_list}}"></searchcomponent>
-            <sidebarcomponent sbtype="other"></sidebarcomponent>
-        </div>
+<div id="search_vm" v-show="true" class="container">
+    <messagecomponent></messagecomponent>
+    <div class="row">
+        <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" logged_in="{{'1' if current_user.is_authenticated else ''}}" index_list="{{index_list}}"></searchcomponent>
     </div>
 </div>
 
 <script type="module">
     import { messagecomponent } from "{{url_for('static', filename='js/messagebar.js')}}"
-    import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
+    //import { sidebarcomponent } from "{{url_for('static', filename='js/search/sidebar.js')}}"
     import { searchcomponent } from "{{url_for('static', filename='js/search/search.js')}}"
     import { basketcomponent } from "{{url_for('static', filename='js/basket.js')}}"
 
     const vm_search_component = Vue.createApp({
-        components: { sidebarcomponent, searchcomponent, basketcomponent },
+        components: { searchcomponent, basketcomponent },
     }).mount("#search_vm")
 </script>
 
