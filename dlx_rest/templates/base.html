@@ -78,7 +78,7 @@
     <header>
         <nav class="navbar navbar-expand-lg bg-light">
             <div class="container-fluid">
-                <a class="navbar-brand" href="{{url_for('get_records_list', coll='bibs')}}">
+                <a class="navbar-brand" href="{{url_for('search_records', coll='bibs')}}">
                     <img src="{{url_for('static', filename='img/dhl.png')}}" style="width: 60px;height: 60px;">MARC Editor
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,29 +88,29 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                       {% if (vcoll=="bibs" or vcoll=="all") %}
                       <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a>
+                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs')}}">Bibs</a>
                       </li>
                       {% else %}
                       <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a>
+                        <a class="nav-link" href="{{url_for('search_records', coll='bibs')}}">Bibs</a>
                       </li>
                       {% endif %}
                       {% if (vcoll=="speeches" or vcoll=="all") %}
                       <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('get_records_list', coll='bibs', subtype='speech')}}">Speeches</a>
+                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a>
                       </li>
                       {% else %}
                       <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('get_records_list', coll='bibs', subtype='speeches')}}">Speeches</a>
+                        <a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a>
                       </li>
                       {% endif %}
                       {% if (vcoll=="votes" or vcoll=="all") %}
                       <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('get_records_list', coll='bibs', subtype='votes')}}">Votes</a>
+                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a>
                       </li>
                       {% else %}
                       <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('get_records_list', coll='bibs', subtype='votes')}}">Votes</a>
+                        <a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a>
                       </li>
                       {% endif %}
                       <li class="nav-item dropdown">
@@ -124,7 +124,7 @@
                           </a>
                         {% endif %}
                         <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
+                          <li><a class="dropdown-item" href="{{url_for('search_records', coll='auths')}}">Auths</a></li>
                           <li><a class="dropdown-item" href="{{url_for('review_auth')}}">Review Auths</a></li>
                         </ul>
                       </li>
