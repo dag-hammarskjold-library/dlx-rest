@@ -205,6 +205,11 @@ class RecordsList(Resource):
         type=str,
         choices=['default', 'speech', 'vote', 'all', '']
     )
+    args.add_argument(
+        'fields',
+        type=str,
+        help='Comma separated list of fields you want returned (e.g., for export)'
+    )
      # This is so we can benchmark the two search formats
     args.add_argument(
         'engine',
@@ -287,10 +292,20 @@ class RecordsList(Resource):
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
             tags = ['269', '596', '700', '710', '711', '791', '991', '992']
-           
+            
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
+        elif fmt in ['mrk', 'xml', 'csv']:
+            project = None
+
+            if output_fields := args.get("fields"):
+                tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
+                
+                # make sure logical fields are available for sorting
+                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+                project = dict.fromkeys(tags, True)
+            
         elif fmt:
             project = None
         else:
@@ -433,6 +448,7 @@ class RecordsList(Resource):
                 return data, 201
             else:
                 abort(500, 'POST request failed for unknown reasons')
+
 
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')
