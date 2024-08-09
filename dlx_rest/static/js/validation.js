@@ -1663,15 +1663,29 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "046": {
-            "name": "Special coded dates",
+        "043": {
+            "name": "Geographical code",
             "required": false,
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
+            "validSubfields": ["b", "c"],
+            "defaultSubfields": ["b", "c"]
+        },
+        "046": {
+            "name": "Heading validity dates",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": ["s"],
             "validSubfields": ["s","t"],
-            "defaultSubfields": ["s","t"] 
+            "defaultSubfields": ["s"],
+            "isDate": {
+                "s": true,
+                "t": true
+            }
         },
         "049": {
             // Not defined in the specification document
@@ -1758,7 +1772,10 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","9","g"],
-            "defaultSubfields": ["a"] 
+            "defaultSubfields": ["a"],
+            "validStrings": {
+                "9": ["ms","fs"]
+            }
         },
         "111": {
             "name": "Heading - meeting name",
