@@ -677,11 +677,11 @@ class Record(Resource):
         fmt = args.get('format')
 
         if fmt == 'xml':
-            return Response(record.to_xml(), mimetype='text/xml')
+            return Response(record.to_xml(write_id=True), mimetype='text/xml')
         elif fmt == 'mrk':
-            return Response(record.to_mrk(), mimetype='text/plain')
+            return Response(record.to_mrk(write_id=True), mimetype='text/plain')
         elif fmt == 'mrc':
-            return Response(record.to_mrc(), mimetype='text/plain')
+            return Response(record.to_mrc(write_id=True), mimetype='text/plain')
         
         # check for files
         # todo: get identifier type mapping from config
