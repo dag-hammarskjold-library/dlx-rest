@@ -75,10 +75,17 @@ export let importcomponent = {
                         <div><pre>{{record['mrk']}}</pre></div>
                         -->
                         <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
-                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
-                            <span v-for="subfield in field.subfields">
-                                <code>\${{subfield.code}}</code>{{subfield.value}}
-                            </span>
+                            <div v-if="field.subfields">
+                                <code class="text-primary">{{field.tag}}</code>
+                                <span v-for="subfield in field.subfields">
+                                    <code>\${{subfield.code}}</code>{{subfield.value}}
+                                </span>
+                            </div>
+                            <!-- Show control fields if they were in the import, e.g., as export output -->
+                            <div v-else>
+                                <code class="text-primary">{{field.tag}}</code>
+                                <code>{{field.value}}</code>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -221,6 +228,12 @@ export let importcomponent = {
                                     }
                                 }
                             }
+
+                            // Set a field indicating the record was imported
+                            let importField = jmarc.createField("999")
+                            let importSubfield = importField.createSubfield("a")
+                            importSubfield.value = "importDATE"
+                            importField.new = true
 
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
                         }
