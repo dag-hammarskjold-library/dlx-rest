@@ -62,7 +62,7 @@ export let importcomponent = {
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1">
-                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="record.checked = !record.checked">
+                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="toggleSubmit(record)">
                     </div>
                     <div class="col-sm-9">
                         <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-warning">
@@ -85,7 +85,7 @@ export let importcomponent = {
                 <div class="row">
                     <div class="ml-auto mb-4">
                         <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
-                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
+                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected" :disabled="!selectedRecords">Submit Selected Records</button>
                     </div>
                 </div>
             </div>
@@ -120,7 +120,8 @@ export let importcomponent = {
             issues: 0,
             uiBase: "",
             showErrors: false,
-            detectedSpinner: false
+            detectedSpinner: false,
+            selectedRecords: false
         }
     },
     created: function () {
@@ -238,12 +239,27 @@ export let importcomponent = {
             for (let record of this.records) {
                 if (record.fatalErrors.length == 0) {
                     record.checked = true
+                    // we only need one selected record to enable the import button
+                    this.selectedRecords = true
                 }
             }
         },
         selectNone() {
             for (let record of this.records) {
                 record.checked = false
+            }
+            this.selectedRecords = false
+        },
+        toggleSubmit(r) {
+            // This toggles the checked state of the listed records
+            // Then determines whether there are any selected records
+            // and toggles the submit button so we don's submit 0 records
+            r.checked = !r.checked
+            this.selectedRecords = false
+            for (let record of this.records) {
+                if (record.checked) {
+                    this.selectedRecords = true
+                }
             }
         },
         submitSelected() {
