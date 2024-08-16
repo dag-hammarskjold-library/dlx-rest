@@ -101,12 +101,24 @@ export let importcomponent = {
             <h5>Review</h5>
             <div v-for="record in records">
                 <div v-if="record.jmarc.recordId">
-                    Imported record ID: <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a><br>
-                    <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
-                        <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
-                        <span v-for="subfield in field.subfields">
-                            <code>\${{subfield.code}}</code>{{subfield.value}}
-                        </span>
+                    <div v-if="record.previousJmarc">
+                        Record <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a> replaced with:
+                        <br>
+                        <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                            <span v-for="subfield in field.subfields">
+                                <code>\${{subfield.code}}</code>{{subfield.value}}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-else>
+                        Imported record ID: <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a><br>
+                        <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                            <span v-for="subfield in field.subfields">
+                                <code>\${{subfield.code}}</code>{{subfield.value}}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -288,11 +300,23 @@ export let importcomponent = {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
             // Only allow one click, so we don't accidentally post multiple records
-            //e.target.classList.add("disabled")            
-            return jmarc.post()
-                .catch(error => {
-                    // may need some user notifcation here?
-                    throw error
+            //e.target.classList.add("disabled")
+            let existingId = jmarc.getField("001")
+            Jmarc.get(this.collection, existingId.value).then( remoteJmarc => {
+                record['previousJmarc'] = remoteJmarc
+                remoteJmarc.fields = jmarc.fields
+                record['jmarc'] = remoteJmarc
+                //remoteJmarc.id = existingId.value
+                return remoteJmarc.put()
+                    .catch(error => {
+                        throw error
+                    })
+            }).catch(error => {
+                return jmarc.post()
+                    .catch(error => {
+                        // may need some user notifcation here?
+                        throw error
+                })
             })
         },
         filterView(e) {
