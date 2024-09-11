@@ -109,6 +109,7 @@ export class Subfield {
 
 		// date match
 		if (this.value && "isDate" in data && this.code in data.isDate) {
+			console.log(this.code, this.value)
 			let dateStr = this.value
 				.replace(" ", "-")
 				.replace(/^(\d{4})(\d{2})/, "$1-$2")
@@ -836,6 +837,7 @@ export class Jmarc {
         try {
             this.validate();
 		} catch (error) {
+			console.log(error)
 		    return Promise.reject(error)
 		}
 
