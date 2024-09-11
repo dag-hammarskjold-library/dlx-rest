@@ -3,6 +3,7 @@ import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
+import { exportmodal } from "../modals/export.js";
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -239,6 +240,7 @@ export let searchcomponent = {
                 <li v-else class="page-item disabled"><a class="page-link result-link" href="">Next</a></li>
             </ul>
         </nav>
+        <exportmodal ref="exportmodal" :links="this.links"></exportmodal>
     </div>`,
     data: function () {
         let myParams = this.search_url.split("?")[1];
@@ -836,15 +838,23 @@ export let searchcomponent = {
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
         },
+
+        showExportModal() {
+            //console.log(this.links.format)
+            this.$refs.exportmodal.show()
+        },
+          
         toggleEngine(e) {
             // toggle the search type
             console.log("Toggling search engine")
             this.params.engine = e.target.checked ? "atlas" : "community"
             this.rebuildUrl("engine", this.engine) 
+
         }
     },
     components: {
         'sortcomponent': sortcomponent, 
-        'countcomponent': countcomponent
+        'countcomponent': countcomponent,
+        'exportmodal': exportmodal
     }
 }

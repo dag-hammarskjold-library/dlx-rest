@@ -57,7 +57,7 @@ export let sortcomponent = {
     </div>
     `,
     data: function() {
-        let vcoll = "bibs"
+        let vcoll = this.collection
         if (this.params.search) {
             /* TODO get query "type" from backend [not implemented yet] */
             for (let term of this.params.search.split(/ +/)) {
