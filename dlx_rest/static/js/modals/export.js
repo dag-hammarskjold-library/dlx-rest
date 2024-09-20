@@ -114,7 +114,20 @@ export let exportmodal = {
                 // cycle through pages synchronously until no more records are found
                 const response = await fetch(currentUrl);
                 const blob = await response.blob();
-                const text = await blob.text();
+                let text = await blob.text();
+
+                if (text && format === 'csv') {
+                  if (page > 0) {
+                    // remove the header
+                    let lines = text.split("\n");
+                    lines.shift();
+                    text = lines.join("\n");
+                  }
+
+                  // add newline to end of page
+                  text += "\n"
+                }
+
                 mimetype = response.headers.get("Content-Type");
                 
                 if (mimetype.match('^text/xml')) {
