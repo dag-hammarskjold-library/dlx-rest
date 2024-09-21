@@ -43,8 +43,8 @@ export let exportmodal = {
                   <div class="spinner-border" role="status" v-show="showSpinner">
                     <span class="sr-only">Loading...</span>
                   </div>
-                  <div style="display: inline-block; padding: 5" v-show="currentPage">
-                    <span>&nbsp;{{ currentPage }}</span>
+                  <div style="display: inline-block; padding: 5" v-show="currentStatus">
+                    <span>&nbsp;{{ currentStatus }}</span>
                   </div>
                 </div>
                 <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
@@ -63,7 +63,7 @@ export let exportmodal = {
             selectedFormat: 'mrk',
             selectedFields: '',
             selectedExportUrl: null,
-            currentPage: null
+            currentStatus: null
         }
     },
     methods: {
@@ -94,7 +94,7 @@ export let exportmodal = {
             this.selectedExportUrl = url
         },
         async submitExport() {
-            this.currentPage = null;
+            this.currentStatus = null;
             this.showSpinner = true;
             const url = new URL(this.selectedExportUrl);
             const params = new URLSearchParams(url.search);
@@ -150,18 +150,25 @@ export let exportmodal = {
                     break
                 }
 
+                // next page
                 let newUrl = new URL(currentUrl);
                 let params = new URLSearchParams(newUrl.search);
                 params.set("start", Number(params.get("start")) + Number(params.get("limit")));
                 newUrl.search = params;
                 currentUrl = newUrl;
-                this.currentPage = `page: ${++page} / ${Math.ceil(total / 100)}`;
+                
+                // status
+                page++;
+                const results = page * 100;
+                let percent = (results / total) * 100;
+                percent = percent > 100 ? 100 : percent.toFixed(2);
+                this.currentStatus = `${percent}% of ${total} records`;
             }
 
             const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], {"type": mimetype});
             this.download(blob, `export.${this.selectedFormat}`);
             this.showSpinner = false;
-            this.currentPage = "Done!"
+            this.currentStatus = "Done!"
         },
         download(blob, filename) {
             const url = window.URL.createObjectURL(blob)
