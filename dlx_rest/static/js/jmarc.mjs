@@ -170,7 +170,7 @@ export class Subfield {
 					let xref;
 					
 					if (recordsList.length === 0) {
-						xref = new Error("Unmatched heading")
+						xref = new Error("Heading does not exist")
 					} else if (recordsList.length > 1) {
 						xref = new Error("Ambiguous heading")
 					} else {

@@ -62,7 +62,7 @@ export let importcomponent = {
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1">
-                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="record.checked = !record.checked">
+                        <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="toggleSubmit(record)">
                     </div>
                     <div class="col-sm-9">
                         <div v-if="showErrors && record['validationErrors'].length > 0" class="alert alert-warning">
@@ -75,17 +75,24 @@ export let importcomponent = {
                         <div><pre>{{record['mrk']}}</pre></div>
                         -->
                         <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
-                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
-                            <span v-for="subfield in field.subfields">
-                                <code>\${{subfield.code}}</code>{{subfield.value}}
-                            </span>
+                            <div v-if="field.subfields">
+                                <code class="text-primary">{{field.tag}}</code>
+                                <span v-for="subfield in field.subfields">
+                                    <code>\${{subfield.code}}</code>{{subfield.value}}
+                                </span>
+                            </div>
+                            <!-- Show control fields if they were in the import, e.g., as export output -->
+                            <div v-else>
+                                <code class="text-primary">{{field.tag}}</code>
+                                <code>{{field.value}}</code>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="ml-auto mb-4">
                         <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
-                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
+                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected" :disabled="!selectedRecords">Submit Selected Records</button>
                     </div>
                 </div>
             </div>
@@ -94,12 +101,24 @@ export let importcomponent = {
             <h5>Review</h5>
             <div v-for="record in records">
                 <div v-if="record.jmarc.recordId">
-                    Imported record ID: <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a><br>
-                    <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
-                        <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
-                        <span v-for="subfield in field.subfields">
-                            <code>\${{subfield.code}}</code>{{subfield.value}}
-                        </span>
+                    <div v-if="record.previousJmarc">
+                        Record <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a> replaced with:
+                        <br>
+                        <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                            <span v-for="subfield in field.subfields">
+                                <code>\${{subfield.code}}</code>{{subfield.value}}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-else>
+                        Imported record ID: <a :href="uiBase + 'editor?records=' + record['jmarc'].collection + '/' + record['jmarc'].recordId">{{record.jmarc.recordId}}</a><br>
+                        <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
+                            <code v-if="field.subfields" class="text-primary">{{field.tag}}</code>
+                            <span v-for="subfield in field.subfields">
+                                <code>\${{subfield.code}}</code>{{subfield.value}}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -120,7 +139,8 @@ export let importcomponent = {
             issues: 0,
             uiBase: "",
             showErrors: false,
-            detectedSpinner: false
+            detectedSpinner: false,
+            selectedRecords: false
         }
     },
     created: function () {
@@ -221,6 +241,12 @@ export let importcomponent = {
                                 }
                             }
 
+                            // Set a field indicating the record was imported
+                            let importField = jmarc.createField("999")
+                            let importSubfield = importField.createSubfield("a")
+                            importSubfield.value = "importDATE"
+                            importField.new = true
+
                             this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
                         }
                     }).catch(error => {
@@ -238,12 +264,27 @@ export let importcomponent = {
             for (let record of this.records) {
                 if (record.fatalErrors.length == 0) {
                     record.checked = true
+                    // we only need one selected record to enable the import button
+                    this.selectedRecords = true
                 }
             }
         },
         selectNone() {
             for (let record of this.records) {
                 record.checked = false
+            }
+            this.selectedRecords = false
+        },
+        toggleSubmit(r) {
+            // This toggles the checked state of the listed records
+            // Then determines whether there are any selected records
+            // and toggles the submit button so we don's submit 0 records
+            r.checked = !r.checked
+            this.selectedRecords = false
+            for (let record of this.records) {
+                if (record.checked) {
+                    this.selectedRecords = true
+                }
             }
         },
         submitSelected() {
@@ -259,11 +300,23 @@ export let importcomponent = {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
             // Only allow one click, so we don't accidentally post multiple records
-            //e.target.classList.add("disabled")            
-            return jmarc.post()
-                .catch(error => {
-                    // may need some user notifcation here?
-                    throw error
+            //e.target.classList.add("disabled")
+            let existingId = jmarc.getField("001")
+            Jmarc.get(this.collection, existingId.value).then( remoteJmarc => {
+                record['previousJmarc'] = remoteJmarc
+                remoteJmarc.fields = jmarc.fields
+                record['jmarc'] = remoteJmarc
+                //remoteJmarc.id = existingId.value
+                return remoteJmarc.put()
+                    .catch(error => {
+                        throw error
+                    })
+            }).catch(error => {
+                return jmarc.post()
+                    .catch(error => {
+                        // may need some user notifcation here?
+                        throw error
+                })
             })
         },
         filterView(e) {
