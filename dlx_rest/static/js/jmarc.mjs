@@ -782,6 +782,32 @@ export class Jmarc {
 
 		return jmarc
 	}
+
+	static async fromCsv(collection, csv) {
+		if (! ["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
+
+		let jmarc = new Jmarc(collection)
+		const promises = [];
+
+		await Promise.all(promises)
+		
+		return jmarc
+	}
+
+	static async fromXml(collection, xml) {
+		if (! ["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
+
+		let jmarc = new Jmarc(collection)
+		const promises = [];
+
+		await Promise.all(promises)
+		
+		return jmarc
+	}
     
     async post() {
 		if (this.recordId) {

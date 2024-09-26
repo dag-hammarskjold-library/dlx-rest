@@ -8,6 +8,7 @@ export let importcomponent = {
         <div v-if="state == 'init'">
             <h5>Select Files</h5>
             <p>Ensure that all records in the file are of the same type (bibs or auths).</p>
+            <p>Allowed formats: .mrk, .xml, .csv</p>
             <div class="row mb-2">
                 <div class="col">
                     Select Collection:
@@ -125,7 +126,7 @@ export let importcomponent = {
             <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
         </div>
     </div>`,
-    data: function () { 
+    data: function () {
         return {
             // Setting the import type here lets us expand this later
             importType: "records",
@@ -170,7 +171,7 @@ export let importcomponent = {
     methods: {
         reinitApp: function () {
             this.records = []
-            this.showErrors=false
+            this.showErrors = false
             this.state = 'init'
             this.collection = "bibs"
         },
@@ -215,132 +216,189 @@ export let importcomponent = {
             const promises = []
             this.detectedSpinner = true
             reader.onload = (res) => {
-                for (let mrk of res.target.result.split(/(\r\n *\r\n|\n *\n)/)) {
-                    let promise = Jmarc.fromMrk(this.collection, mrk).then( jmarc => {
-                        // The only classes of validation errors we care about are:
-                        // 1. Is there a duplicate symbol? If so, warn but allow import.
-                        // 2. Do all the auth controlled fields match existing auth 
-                        //    records? If not, error and prevent import.
-                        let validationErrors = []
-                        let fatalErrors = []
+                //let mrkset = res.target.result
+                //let splitPattern = /(\r\n *\r\n|\n *\n)/
+                //let fromFunc = "fromMrk"
 
-                        if (jmarc.fields.length > 0) {
-                            jmarc.symbolInUse().then( symbolInUse => {
-                                if (symbolInUse) {
-                                    this.issues += 1
-                                    validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
+                console.log(file.type)
+                // This is a naive file type checker; we should quickly reject 
+                // anything that doesn't match the actual formats allowed.
+
+                let recordSet = []
+
+                if (file.type == "text/csv") {
+                    recordSet = res.target.result.split(/\n/)
+                    let headers = recordSet[0].split(",")
+                    let exceptions = []
+
+                    for (let idx in recordSet) {
+                        // header row is 0, so we're skipping that
+                        if (idx == 0) {
+                            continue
+                        }
+
+                        let record = new Jmarc(this.collection)
+                        let recordData = recordSet[idx].split(",")
+
+                        for (let jdx in headers) {
+                            // This happens with blank lines
+                            if (recordData[jdx] === undefined) {
+                                continue
+                            }
+
+                            let instance = 0
+                            let fieldName = headers[jdx]
+                            const match = fieldName.match(/^(([1-9]+)\.)?(\d{3})(\$)?([a-z0-9])/)
+
+                            if (match) {
+                                if (match[1]) {
+                                    instance = parseInt(match[2]) - 1
                                 }
-                            });
+                                const tag = match[3]
+                                const code = match[5]
+                            } else if (fieldName.length === 3 && fieldName.startsWith('00')) {
+                                const tag = fieldName
+                                const code = null
+                            } else {
+                                exceptions.push(`Invalid column header "${fieldName}"`)
+                                continue
+                            }
+                            // Check for duplicate subfield codes
+                            if (record.getValue(tag, code, [instance, 0])) {
+                                exceptions.push(`Column header ${instance}.${tag}${code} is repeated`);
+                                continue;
+                            }
 
-                            for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
-                                for (let subfield of field.subfields.filter(x => 'xref' in x)) {
-                                    if (subfield.xref instanceof Error) {
-                                        // unresolved xrefs are set to an Error object
-                                        fatalErrors.push({"message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}`})
-                                    }
+                            // Apply field check if provided
+                            if (fieldCheck && fieldCheck === `${tag}${code || ''}`) {
+                                if (cls.recordClass.findOne(new Condition(tag, { [code]: value }).compile())) {
+                                    exceptions.push(`${tag}${code}: "${value}" is already in the system`);
+                                    continue;
                                 }
                             }
 
-                            // Set a field indicating the record was imported
-                            let importField = jmarc.createField("999")
-                            let importSubfield = importField.createSubfield("a")
-                            importSubfield.value = "importDATE"
-                            importField.new = true
-
-                            this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
+                            try {
+                                if (record.getField(tag, place = instance)) {
+                                    record.set(tag, code, value, address = [instance], authControl);
+                                } else {
+                                    record.set(tag, code, value, address = ['+'], authControl);
+                                }
+                            } catch (e) {
+                                exceptions.push(e.toString());
+                            }
                         }
-                    }).catch(error => {
-                        throw error
-                    })
 
-                    promises.push(promise)
-                }
-
-                Promise.all(promises).then(x => this.detectedSpinner = false)
-            }
-            
-        },
-        selectAll() {
-            for (let record of this.records) {
-                if (record.fatalErrors.length == 0) {
-                    record.checked = true
-                    // we only need one selected record to enable the import button
-                    this.selectedRecords = true
-                }
-            }
-        },
-        selectNone() {
-            for (let record of this.records) {
-                record.checked = false
-            }
-            this.selectedRecords = false
-        },
-        toggleSubmit(r) {
-            // This toggles the checked state of the listed records
-            // Then determines whether there are any selected records
-            // and toggles the submit button so we don's submit 0 records
-            r.checked = !r.checked
-            this.selectedRecords = false
-            for (let record of this.records) {
-                if (record.checked) {
-                    this.selectedRecords = true
-                }
-            }
-        },
-        submitSelected() {
-            this.state = "review"
-            for (let record of this.records) {
-                if (record.checked) {
-                    console.log("Submitting record...")
-                    this.submit(record)
-                }
-            }
-        },
-        async submit(record) {
-            let binary = new Blob([record['mrk']])
-            let jmarc = record['jmarc']
-            // Only allow one click, so we don't accidentally post multiple records
-            //e.target.classList.add("disabled")
-            let existingId = jmarc.getField("001")
-            Jmarc.get(this.collection, existingId.value).then( remoteJmarc => {
-                record['previousJmarc'] = remoteJmarc
-                remoteJmarc.fields = jmarc.fields
-                record['jmarc'] = remoteJmarc
-                //remoteJmarc.id = existingId.value
-                return remoteJmarc.put()
-                    .catch(error => {
-                        throw error
-                    })
-            }).catch(error => {
-                return jmarc.post()
-                    .catch(error => {
-                        // may need some user notifcation here?
-                        throw error
-                })
-            })
-        },
-        filterView(e) {
-            let values = [e.target.value]
-            // Empty the array if the input is empty, otherwise we get an empty string in the array
-            if (e.target.value.length == 0) {
-                values = []
-            }
-            // Split the input value if it includes a comma
-            if (e.target.value.includes(",")) {
-                values = e.target.value.split(",")
-            }
-            for (let el of document.getElementsByClassName("field")) {
-                let found = values.find((v) => el.dataset.tag.startsWith(v))
-                if (e.target.value > 0 || values.length > 0){
-                    if (!found) {
-                        el.style.display = "none"
-                    } else {
-                        el.style.display = ""
+                        //self.records.push(record);
                     }
-                } else {
-                    el.style.display = ""
+
+                    if (exceptions.length) {
+                        throw new Error('\n\n' + exceptions.join('\n') + '\n');
+                    }
+
+                    //self.count = self.records.length;
+
+                    //return self;
                 }
+
             }
+
+            console.log(recordSet.length)
+        } else if(file.type == "text/xml") {
+            splitPattern = / /
+        } else {
+            recordSet = res.target.result.split(/(\r\n *\r\n|\n *\n)/)
+                    console.log(recordSet.length)
+                }
+
+//for (let mrk of parsedSet(mrkset)) {
+//    // Do something on a record-by-record basis
+//}
+
+Promise.all(promises).then(x => this.detectedSpinner = false)
+            }
+
+        },
+selectAll() {
+    for (let record of this.records) {
+        if (record.fatalErrors.length == 0) {
+            record.checked = true
+            // we only need one selected record to enable the import button
+            this.selectedRecords = true
         }
+    }
+},
+selectNone() {
+    for (let record of this.records) {
+        record.checked = false
+    }
+    this.selectedRecords = false
+},
+toggleSubmit(r) {
+    // This toggles the checked state of the listed records
+    // Then determines whether there are any selected records
+    // and toggles the submit button so we don's submit 0 records
+    r.checked = !r.checked
+    this.selectedRecords = false
+    for (let record of this.records) {
+        if (record.checked) {
+            this.selectedRecords = true
+        }
+    }
+},
+submitSelected() {
+    this.state = "review"
+    for (let record of this.records) {
+        if (record.checked) {
+            console.log("Submitting record...")
+            this.submit(record)
+        }
+    }
+},
+        async submit(record) {
+    let binary = new Blob([record['mrk']])
+    let jmarc = record['jmarc']
+    // Only allow one click, so we don't accidentally post multiple records
+    //e.target.classList.add("disabled")
+    let existingId = jmarc.getField("001")
+    Jmarc.get(this.collection, existingId.value).then(remoteJmarc => {
+        record['previousJmarc'] = remoteJmarc
+        remoteJmarc.fields = jmarc.fields
+        record['jmarc'] = remoteJmarc
+        //remoteJmarc.id = existingId.value
+        return remoteJmarc.put()
+            .catch(error => {
+                throw error
+            })
+    }).catch(error => {
+        return jmarc.post()
+            .catch(error => {
+                // may need some user notifcation here?
+                throw error
+            })
+    })
+},
+filterView(e) {
+    let values = [e.target.value]
+    // Empty the array if the input is empty, otherwise we get an empty string in the array
+    if (e.target.value.length == 0) {
+        values = []
+    }
+    // Split the input value if it includes a comma
+    if (e.target.value.includes(",")) {
+        values = e.target.value.split(",")
+    }
+    for (let el of document.getElementsByClassName("field")) {
+        let found = values.find((v) => el.dataset.tag.startsWith(v))
+        if (e.target.value > 0 || values.length > 0) {
+            if (!found) {
+                el.style.display = "none"
+            } else {
+                el.style.display = ""
+            }
+        } else {
+            el.style.display = ""
+        }
+    }
+}
     }
 }
