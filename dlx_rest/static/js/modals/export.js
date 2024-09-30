@@ -1,4 +1,5 @@
 import { Jmarc } from "../jmarc.mjs"
+import { CSV } from "../CSV.mjs"
 
 export let exportmodal = {
     props: {
@@ -109,45 +110,39 @@ export let exportmodal = {
                 // XMLDocument object will be used to combine xml from each page
                 (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
                 null;
-            
+            let csv = new CSV();
+
             while (true) {
                 // cycle through pages synchronously until no more records are found
                 const response = await fetch(currentUrl);
                 const blob = await response.blob();
                 let text = await blob.text();
 
-                if (text && format === 'csv') {
-                  if (page > 0) {
-                    // remove the header
-                    let lines = text.split("\n");
-                    lines.shift();
-                    text = lines.join("\n");
-                  }
-
-                  // add newline to end of page
-                  text += "\n"
-                }
-
                 mimetype = response.headers.get("Content-Type");
                 
-                if (mimetype.match('^text/xml')) {
-                    const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
-                    const recordNodes = pageXml.getElementsByTagName("record")
+                if (text) {
+                    if (mimetype.match('^text/xml')) {
+                        const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+                        const recordNodes = pageXml.getElementsByTagName("record")
 
-                    if (recordNodes.length > 0) {
                         for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
                             xml.getElementsByTagName("collection")[0].appendChild(recordXml);
                         }
+                    } else if (format === 'csv') {
+                        csv.parseText(text);
                     } else {
-                        // end of results
-                        break
+                        // mrk is plain text
+                        buffer += text
                     }
-                } else if (text) {
-                    // mrk, csv are plain text
-                    buffer += text
                 } else {
                     // end of results
                     break
+                }
+
+                if (format === 'xml') {
+                    buffer = (new XMLSerializer()).serializeToString(xml);
+                } else if (format === 'csv') {
+                    buffer = csv.toString();
                 }
 
                 // next page
