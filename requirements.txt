@@ -10,7 +10,7 @@ cfn-flip==1.3.0
 charset-normalizer==3.3.2
 click==8.1.7
 cryptography==43.0.1
-dlx @ git+https://github.com/dag-hammarskjold-library/dlx@v1.4.16
+dlx @ git+https://github.com/dag-hammarskjold-library/dlx@v1.4.16.1
 dnspython==2.6.1
 email-validator==1.1.3
 exceptiongroup==1.2.1
