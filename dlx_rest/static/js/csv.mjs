@@ -1,6 +1,6 @@
 /* CSV parser and writer */
 
-//import {Jmarc} from "./jmarc.mjs" */
+import { Jmarc } from "./jmarc.mjs";
 
 export class CSV {
     constructor() {
@@ -24,11 +24,16 @@ export class CSV {
 
     parseText(text) {
         // Ingest a CSV from a single string. The CSV is expected to have a 
-        // header row. Double quotes are not parsed here.
+        // header row. Multiple CSVs can be ingested in order to combine the
+        // data.
 
         const lines = text.split("\n");
         const header = parseCSVLine(lines.shift());
         header.forEach(x => this._header.add(x));
+
+        if (! header.every(x => x.match(/^\d+\.\d{3}/))) {
+            throw Error("First line of data does not look like a valid header")
+        }
         
         for (let [i, line] of lines.entries()) {
             i = Object.keys(this.data).length + i;
@@ -58,6 +63,56 @@ export class CSV {
         }
         
         return buffer
+    }
+
+    listJmarc(collection) {
+        // Return a list of Jmarc objects constructed from the CSV data.
+        // todo: handle auth controlled fields. CSV needs subfield $0 for xref
+        // todo: support repeated subfields
+
+        let records = [];
+
+        for (const [row, data] of Object.entries(this.data)) {
+            const jmarc = new Jmarc(collection=collection);
+
+            for (const [headerField, value] of Object.entries(data)) {
+                const tag = getHeaderTag(headerField);
+                const place = parseInt(getHeaderPlace(headerField)) - 1;
+                const subfieldCode = getHeaderSub(headerField);
+                
+                let field = jmarc.getField(tag, place);
+
+                if (! field ) {
+                    field = jmarc.createField(tag)
+                }
+                
+                if (! tag.match(/^00/)) {
+                    // datafield
+                    const subfield = field.createSubfield(subfieldCode);
+
+                    if (jmarc.isAuthorityControlled(tag, subfieldCode)) {
+                        // todo: get and assign the xref
+                        const xref = row[`${place}.${tag}$${subfieldCode}`];
+
+                        if (xref) {
+                            subfield.value = xref
+                        } else {
+                            throw Error(`Xref (subfield $0) not found for auth controlled field ${tag}/${place} in row ${parseInt(row) + 1}`)
+                        }
+
+                    } else {
+                        subfield.value = value
+                    }
+                } else {
+                    // controlfield
+                    field.value = value
+                }
+            }
+
+            records.push(jmarc)
+        }
+
+        return records
     }
 
 }
