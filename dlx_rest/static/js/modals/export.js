@@ -124,6 +124,10 @@ export let exportmodal = {
           if (mimetype.match('^text/xml')) {
             const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
             const recordNodes = pageXml.getElementsByTagName("record")
+            
+            if (recordNodes.length === 0) {
+              break
+            }
 
             for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
               xml.getElementsByTagName("collection")[0].appendChild(recordXml);
