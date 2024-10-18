@@ -143,6 +143,8 @@ function parseCSVLine(line) {
         buffer += char
     }
 
+    values.push(buffer); // capture last column 
+
     return values
 }
 
