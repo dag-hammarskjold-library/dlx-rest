@@ -1,5 +1,6 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
+import { itemaddcomponent } from "./itemadd.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
@@ -206,7 +207,8 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
+                        <itemaddcomponent v-if="myBasket" :api_prefix="api_prefix" :userBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox"></itemaddcomponent>
                     </div>
                 </div>
             </div>
@@ -295,6 +297,7 @@ export let searchcomponent = {
             maxTime: 20000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
+            myProfile: {},
             myBasket: {},
             user: null,
             collectionTitle: null,
@@ -307,6 +310,9 @@ export let searchcomponent = {
     mounted: async function() {
         let component = this;
         this.collectionTitle = component.collection;
+        this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
+        this.user = this.myProfile.data.email;
+        this.myBasket = basket.getBasket(this.api_prefix);
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
@@ -457,6 +463,9 @@ export let searchcomponent = {
             }
         ).then( 
             () => {
+                // now handled by subcomponent
+                return
+
                 user.getProfile(component.api_prefix, 'my_profile').then(
                     myProfile => {
                         if (myProfile) {
@@ -563,47 +572,10 @@ export let searchcomponent = {
                 }
             }
         },
-        basketContains(basketContents, collection, record_id) {
-            for (let item of basketContents) {
-                if (item.collection == collection && item.record_id == record_id) {
-                    return true;
-                }
-            }
-            return false;
-        },
         refreshBasket() {
             basket.getBasket(this.api_prefix).then( (b) => {
                 this.myBasket = b
             })
-        },
-        async handleIconClick(e) {
-            let collection = e.target.id.split("-")[1]
-            let record_id = e.target.id.split("-")[2]
-            e.target.classList.add("fa-spinner");
-            if (e.target.classList.contains("fa-folder-plus")) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-plus");
-                    e.target.classList.add("fa-folder-minus");
-                    e.target.classList.add("text-muted");
-                    e.target.title = "Remove from basket";
-                })
-            } else if (e.target.classList.contains("fa-folder-minus")) {
-                await basket.deleteItem(this.myBasket, collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-minus");
-                    e.target.classList.add("fa-folder-plus");
-                    e.target.classList.remove("text-muted");
-                    e.target.title = "Add to basket";
-                })
-            } //else if (e.target.classList.contains("fa-lock")) {
-                // To do: unlock
-            //} 
-            else {
-                return false
-            }
-            this.refreshBasket()
-            return true
         },
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
@@ -774,6 +746,14 @@ export let searchcomponent = {
                 }
             }
         },
+        enableCheckbox(recordId) {
+            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+            el.disabled = false;
+        },
+        disableCheckbox(recordId) {
+            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+            el.disabled = true;
+        },
         async sendToBasket(e) {
             e.preventDefault()
             let items = []
@@ -835,12 +815,10 @@ export let searchcomponent = {
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
         },
-
         showExportModal() {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
         },
-          
         toggleEngine(e) {
             // toggle the search type
             console.log("Toggling search engine")
@@ -852,6 +830,7 @@ export let searchcomponent = {
     components: {
         'sortcomponent': sortcomponent, 
         'countcomponent': countcomponent,
-        'exportmodal': exportmodal
+        'exportmodal': exportmodal,
+        'itemaddcomponent': itemaddcomponent
     }
 }
