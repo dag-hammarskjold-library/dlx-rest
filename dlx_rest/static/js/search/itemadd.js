@@ -50,7 +50,7 @@ export let itemaddcomponent = {
     },
     methods: {
         async handleClick(event) {
-            if (this.itemLocked) {
+            if (this.itemLocked || this.statusPending) {
                 return
             }
 
@@ -66,10 +66,7 @@ export let itemaddcomponent = {
                 this.$emit("disableCheckbox", this.recordId);
             }
 
-            this.statusPending = false;
-
-            
+            this.statusPending = false;   
         }
-        
     }
 }
