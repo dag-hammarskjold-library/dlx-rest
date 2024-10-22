@@ -311,6 +311,11 @@ export let searchcomponent = {
 
         // cancel record preview if clicking anywhere besides the preview
         window.addEventListener("click", function(event) {
+            if (event.target.parentElement === null) {
+                // probably a modal
+                return
+            }
+
             if (
                 event.target.classList.contains("preview-toggle")
                 || event.target.classList.contains("record-preview")
