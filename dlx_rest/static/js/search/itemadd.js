@@ -3,7 +3,7 @@
 import basket from "../api/basket.js";
 
 export let itemaddcomponent = {
-    props: ["api_prefix", "collection", "recordId", "userBasket"],
+    props: ["api_prefix", "collection", "recordId", "myBasket"],
     template: `
         <div @click="handleClick()">
             <i v-if="statusPending" class="fas fa-2x fa-spinner fa-pulse"></i>
@@ -22,8 +22,6 @@ export let itemaddcomponent = {
         }
     },
     mounted: async function() {
-        this.myBasket = await this.userBasket; //await basket.getBasket(this.api_prefix);
-
         this.myBasket.forEach(item => {
             if (item.collection === this.collection && item.record_id == this.recordId) {
                 this.inBasket = true;

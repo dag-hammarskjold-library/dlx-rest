@@ -208,7 +208,7 @@ export let searchcomponent = {
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
                         <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
-                        <itemaddcomponent v-if="myBasket" :api_prefix="api_prefix" :userBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox"></itemaddcomponent>
+                        <itemaddcomponent v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox"></itemaddcomponent>
                     </div>
                 </div>
             </div>
@@ -312,7 +312,7 @@ export let searchcomponent = {
         this.collectionTitle = component.collection;
         this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
         this.user = this.myProfile.data.email;
-        this.myBasket = basket.getBasket(this.api_prefix);
+        this.myBasket = await basket.getBasket(this.api_prefix);
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
@@ -337,8 +337,7 @@ export let searchcomponent = {
         
         // [what is this used for?]
         if (component.collection == "auths") {
-            
-            let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
+            /* let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
             component.lookup_maps['auths'] = authMapData.data;
@@ -346,7 +345,7 @@ export let searchcomponent = {
             let bibLookupMapUrl = `${component.api_prefix}marc/bibs/lookup/map`
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
-            component.lookup_maps['bibs'] = bibMapData.data;
+            component.lookup_maps['bibs'] = bibMapData.data; */
         } else if (component.collection == "bibs") {
             //this.searchFields = this.bibSearchFields
         }
@@ -461,65 +460,7 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        ).then( 
-            () => {
-                // now handled by subcomponent
-                return
-
-                user.getProfile(component.api_prefix, 'my_profile').then(
-                    myProfile => {
-                        if (myProfile) {
-                            component.user = myProfile.data.email;
-                        }
-                    
-                        if (typeof component.user !== "undefined") {
-                            basket.getBasket(component.api_prefix).then(
-                                myBasket => {
-                                    this.myBasket = myBasket
-                                    for (let result of component.results) {
-                                        let myId = `icon-${component.collection}-${result._id}`;
-                                        let iconEl = document.getElementById(myId);
-
-                                        let myCheckboxId = `input-${component.collection}-${result._id}`;
-                                        let inputEl = document.getElementById(myCheckboxId);
-                                    
-                                        if (component.basketContains(myBasket, component.collection, result._id)) {
-                                            //iconEl.classList.remove('fa-folder-plus',);
-                                            iconEl.classList.add("fa-folder-minus");
-                                            iconEl.classList.add("text-muted");
-                                            iconEl.title = "Remove from basket";
-                                        } else {
-                                            iconEl.classList.add('fa-folder-plus');
-                                            iconEl.title = "Add to basket";
-                                            inputEl.disabled = false
-                                        }
-
-                                        // checking if the record is locked and displaying a lock if it is.
-                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                            itemLocked => {
-                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                    // Display a lock icon
-                                                    iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.remove('fa-folder-minus',);
-                                                    iconEl.classList.add('fa-lock',);
-                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                                                    // revert link to read only view. 
-                                                    // TODO: acquire the lock status earlier 
-                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
-                                                    inputEl.disabled = true
-                                                } else {
-                                                    iconEl.addEventListener("click", component.handleIconClick, true)
-                                                }
-                                            }
-                                        );
-                                    }
-                                }
-                            )
-                        }        
-                    }
-                )
-            }
-        );
+        )
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
@@ -752,6 +693,7 @@ export let searchcomponent = {
         },
         disableCheckbox(recordId) {
             let el = document.getElementById(`input-${this.collection}-${recordId}`);
+            el.checked = false;
             el.disabled = true;
         },
         async sendToBasket(e) {
