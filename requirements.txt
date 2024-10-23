@@ -20,6 +20,6 @@ pyparsing==3.0.7
 python-ulid==1.1.0
 sentry-sdk==2.8.0
 troposphere==4.0.1
-WTForms==3.0.
+WTForms==3.0.1
 xmltodict==0.13.0
 zipp==3.19.1
