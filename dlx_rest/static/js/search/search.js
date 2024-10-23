@@ -293,7 +293,7 @@ export let searchcomponent = {
             lookup_maps: {},
             expressions: [],
             vcoll: null,
-            searchTime: 0,
+            searchTime: "?",
             maxTime: 20000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
