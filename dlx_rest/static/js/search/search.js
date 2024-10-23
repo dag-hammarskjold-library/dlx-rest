@@ -674,7 +674,7 @@ export let searchcomponent = {
         selectAll(e)  {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled && inputEl.id != "customSwitch1") {
                     inputEl.checked = true
                 }
             }
@@ -682,7 +682,7 @@ export let searchcomponent = {
         selectNone(e) {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox") {
+                if (inputEl.type == "checkbox" && inputEl.id != "customSwitch1") {
                     inputEl.checked = false
                 }
             }

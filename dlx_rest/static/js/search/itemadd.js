@@ -14,7 +14,6 @@ export let itemaddcomponent = {
     `,
     data: function() {
         return {
-            myBasket: null,
             itemLocked: true,
             inBasket: false,
             lockedBy: "system",
