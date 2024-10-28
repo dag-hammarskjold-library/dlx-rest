@@ -11,7 +11,7 @@ Flask-Login==0.6.3
 flask-mongoengine-3==1.0.9
 flask-restx==1.1.0
 Flask-Session==0.4.0
-Flask-WTF==1.2.1
+Flask-WTF==1.2.2
 importlib-metadata==4.11.3
 itsdangerous==2.1.2
 mongoengine==0.24.1
