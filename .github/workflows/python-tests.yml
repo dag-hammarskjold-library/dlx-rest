@@ -5,7 +5,7 @@ name: Python package
 
 on:
   pull_request:
-    branches: [ master ]
+    types: [ opened, synchronize, reponend ]
     
 env:
   DLX_REST_TESTING: True
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.8, 3.9, "3.10", 3.11]
 
     steps:
     - uses: actions/checkout@v2

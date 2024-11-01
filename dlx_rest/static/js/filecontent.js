@@ -15,29 +15,29 @@ class FileContent {
             };
             this.fr = { //French
                 selected: langs.find(element => element === "FR") ? true : false,
-                className: langs.find(element => element === "FR") ? "bg-secondary" : "outlined-secondary"
+                className: langs.find(element => element === "FR") ? "bg-secondary" : "outlined-primary"
             };
             this.es = { //Spanish
                 selected: langs.find(element => element === "ES") ? true : false,
-                className: langs.find(element => element === "ES") ? "bg-success" : "outlined-success"
+                className: langs.find(element => element === "ES") ? "bg-success" : "outlined-primary"
             };
             this.ar = { //Arabic
                 selected: langs.find(element => element === "AR") ? true : false,
-                className: langs.find(element => element === "AR") ? "bg-warning" : "outlined-warning"
+                className: langs.find(element => element === "AR") ? "bg-warning" : "outlined-primary"
             };
             this.zh = { //Chinese
                 selected: langs.find(element => element === "ZH") ? true : false,
-                className: langs.find(element => element === "ZH") ? "bg-danger" : "outlined-danger"
+                className: langs.find(element => element === "ZH") ? "bg-danger" : "outlined-primary"
             };
             this.ru = { //Russian
                 selected: langs.find(element => element === "RU") ? true : false,
-                className: langs.find(element => element === "RU") ? "bg-dark" : "outlined-dark"
+                className: langs.find(element => element === "RU") ? "bg-dark" : "outlined-primary"
             };
             this.de = { //German
                 selected: langs.find(element => element === "DE") ? true : false,
-                className: langs.find(element => element === "DE") ? "bg-info" : "outlined-info"
+                className: langs.find(element => element === "DE") ? "bg-info" : "outlined-primary"
             };
-            this.overwrite = true; //default
+            this.overwrite = false; //default
 
         }
         // Methods
@@ -46,10 +46,11 @@ class FileContent {
         let sym_1 = filename.replace(/\.[^.$]+$/g, "");
 
         //remove language extension
-        let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); //
+        let sym_2 = sym_1.replaceAll(/(-[ACEFRSGZD][A-Z]?)+$/g, ""); 
 
         //replaces any underscores or dashes  with slashes
-        let sym_3 = sym_2.replaceAll(/-|_/g, "/");
+        //let sym_3 = sym_2.replaceAll(/-|_/g, "/");
+        let sym_3 = sym_2.replaceAll(/_/g, "/");
 
         return sym_3;
     }
@@ -68,7 +69,7 @@ class FileContent {
     updateLangFR() {
         if (this.fr.selected == true) {
             this.fr.selected = false;
-            this.fr.className = "outlined-secondary"
+            this.fr.className = "outlined-primary"
         } else {
             this.fr.selected = true;
             this.fr.className = "bg-secondary"
@@ -77,7 +78,7 @@ class FileContent {
     updateLangES() {
         if (this.es.selected == true) {
             this.es.selected = false;
-            this.es.className = "outlined-success"
+            this.es.className = "outlined-primary"
         } else {
             this.es.selected = true;
             this.es.className = "bg-success"
@@ -86,7 +87,7 @@ class FileContent {
     updateLangAR() {
         if (this.ar.selected == true) {
             this.ar.selected = false;
-            this.ar.className = "outlined-warning"
+            this.ar.className = "outlined-primary"
         } else {
             this.ar.selected = true;
             this.ar.className = "bg-warning"
@@ -95,7 +96,7 @@ class FileContent {
     updateLangZH() {
         if (this.zh.selected == true) {
             this.zh.selected = false;
-            this.zh.className = "outlined-danger"
+            this.zh.className = "outlined-primary"
         } else {
             this.zh.selected = true;
             this.zh.className = "bg-danger"
@@ -104,7 +105,7 @@ class FileContent {
     updateLangRU() {
         if (this.ru.selected == true) {
             this.ru.selected = false;
-            this.ru.className = "outlined-dark"
+            this.ru.className = "outlined-primary"
         } else {
             this.ru.selected = true;
             this.ru.className = "bg-dark"
@@ -113,7 +114,7 @@ class FileContent {
     updateLangDE() {
         if (this.de.selected == true) {
             this.de.selected = false;
-            this.de.className = "outlined-info"
+            this.de.className = "outlined-primary"
         } else {
             this.de.selected = true;
             this.de.className = "bg-info"
@@ -126,44 +127,6 @@ class FileContent {
                 this.overwrite = true
             }
         }
-        /*
-        getLangArray() {
-          let langArray = [];
-          
-          if (this.en.selected)
-           langArray.push("EN");
-
-          if (this.fr.selected)
-           langArray.push("FR");
-          
-          if (this.es.selected)
-           langArray.push("ES");
-
-          if (this.ar.selected)
-           langArray.push("AR");
-
-          if (this.zh.selected)
-           langArray.push("ZH");
-          
-          if (this.ru.selected)
-           langArray.push("RU");
-           
-          if (this.de.selected)
-           langArray.push("DE");
-
-          console.log(langArray);
-          return langArray;
-
-        }
-        getJSON() {
-          record = {
-            "filename": this.filename,
-            "docSymbol": this.docSymbol,
-            "languages": getLangArray()
-          }
-          return record;
-        }
-        */
 }
 
 export default FileContent;

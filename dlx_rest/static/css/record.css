@@ -75,8 +75,13 @@ tr.hidden-field {
     display: none;
 }
 
+tr.uneditable-field {
+    outline: 1px dotted red;
+    background-color: rgb(250, 239, 226);
+}
+
 tr.field-row-selected {
-    outline: thin solid;
+    outline: 1px solid black;
     box-shadow: -5px 10px 10px 1px gray;
 }
 
@@ -213,8 +218,10 @@ td.unsaved {
 }
 
 span.subfield-value-selected {
+    /*display: inline-box;*/
     outline: 1px solid blue;
-    padding: 3px;
+    padding: 1px;
+    padding-left: 3px;
     font-weight: default;
     background-color: white;
 }
@@ -240,10 +247,30 @@ span.lookup-choice-code {
     color: blue;
 }
 
-li.lookup-choice:hover {
+li.lookup-choice-hover:hover {
+    background-color: gray;
+}
+
+option.lookup-choice-hover:hover {
     background-color: gray;
 }
 
 i.create-authority {
     color: blue
+}
+
+div.typeahead-dropdown {
+    position: relative;
+}
+
+div.typeahead-select {
+    position: absolute;
+}
+
+td.validation-flag {
+    background-color: #f8d7da;
+}
+
+span.validation-flag {
+    background-color: #f8d7da;
 }

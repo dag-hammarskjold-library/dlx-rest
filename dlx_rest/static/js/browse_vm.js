@@ -3,7 +3,6 @@
 /////////////////////////////////////////////////////////////////
 
 //import { Jmarc } from "./jmarc.mjs";
-import { messagecomponent } from "./messagebar.js";
 import { sidebarcomponent } from "./search/sidebar.js";
 import { browsecomponent } from "./search/browse.js";
 
@@ -12,7 +11,7 @@ import { browsecomponent } from "./search/browse.js";
 /////////////////////////////////////////////////////////////////
 export let vm_search_component = new Vue({
     el: '#browse_vm',
-    components: { messagecomponent, sidebarcomponent, browsecomponent },
+    components: { sidebarcomponent, browsecomponent },
     data: {
       visible: false,
     },

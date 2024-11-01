@@ -4,7 +4,7 @@ os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
 from datetime import datetime
-from moto import mock_s3
+from moto import mock_aws
 from dlx import DB
 from dlx.marc import Bib, Auth
 from dlx.file import File, Identifier, S3
@@ -22,58 +22,70 @@ def default_users():
     return {
         'admin': {
             'email':'test_user@un.org',
+            'username': 'admcat',
             'password': 'password',
             'role': 'admin'
         },
         'non-admin': {
             'email':'user@un.org',
+            'username': 'nacat',
             'password': 'password'
         },
         'invalid': {
             'email':'invalid@un.org',
+            'username': 'invcat',
             'password': 'password'
         },
         'new': {
             'email': 'new_test_user@un.org',
+            'username': 'ntucat',
             'password': 'password'
         },
         'bib-admin': {
             'email': 'bib_admin@un.org',
+            'username': 'bibcat',
             'password': 'password',
             'role': 'bibs-admin'
         },
         'auth-admin': {
             'email': 'auth_admin@un.org',
+            'username': 'authcat',
             'password': 'password',
             'role': 'auths-admin'
         },
         'file-admin': {
             'email': 'file_admin@un.org',
+            'username': 'filecat',
             'password': 'password',
             'role': 'files-admin'
         },
         'bib-NY-admin': {
             'email': 'bib_ny_admin@un.org',
+            'username': 'bibnycat',
             'password': 'password',
             'role': 'bibs-NY-admin'
         },
         'auth-NY-admin': {
             'email': 'auth_ny_admin@un.org',
+            'username': 'authnycat',
             'password': 'password',
             'role': 'auths-NY-admin'
         },
         'bib-GE-admin': {
             'email': 'bib_ge_admin@un.org',
+            'username': 'bibgecat',
             'password': 'password',
             'role': 'bibs-GE-admin'
         },
         'auth-GE-admin': {
             'email': 'auth_ge_admin@un.org',
+            'username': 'authgecat',
             'password': 'password',
             'role': 'auths-GE-admin'
         },
         'bib-NY-indexer': {
             'email': 'bib_ny_indexer@un.org',
+            'username': 'bibnyicat',
             'password': 'password',
             'role': 'bibs-NY-indexer'
         },
@@ -95,10 +107,7 @@ def default_users():
 @pytest.fixture(scope='module')
 def client():
     from dlx_rest.app import app
-    
     app.TESTING = True
-    #app.config.update(SERVER_NAME='0.0.0.0:80')
-    
     return app.test_client()
 
 @pytest.fixture(scope='module')
@@ -204,7 +213,7 @@ def users(roles, default_users):
     for utype in default_users:
         if utype not in ["invalid","new"]:
             u = default_users[utype]
-            user = User(email = u['email'], created=datetime.now())
+            user = User(email = u['email'], username=u['username'], created=datetime.now())
             user.set_password(u['password'])
             try:
                 user.add_role_by_name(u['role'])
@@ -286,7 +295,7 @@ def marc():
      
 @pytest.fixture 
 def files():
-    with mock_s3():
+    with mock_aws():
         S3.connect(bucket='mock_bucket')
         S3.client.create_bucket(Bucket=S3.bucket)
         

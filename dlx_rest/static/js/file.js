@@ -1,12 +1,13 @@
 import FileContent from "./filecontent.js";
 
-const input = document.getElementById("files");
-const preview = document.querySelector(".preview");
-const txt = document.getElementById("fileText"); //new
-const fileObjectArray = [];
+let input = document.getElementById("files");
+let preview = document.querySelector(".preview");
+let txt = document.getElementById("fileText"); 
+let fileObjectArray = [];
 
 input.style.opacity = 0;
 txt.style.opacity = 0;
+
 
 /**Updated Section*/
 /**
@@ -164,13 +165,16 @@ const toggleDE = function () {
 /**
  * Add event listener to overwrite/keep radio button.
  */
+
+
 const toggleAction = function (e) {
   
   // Find the current file object in fileObjectArray
   let fileObject = fileObjectArray.find(
      ({ id }) => id === parseInt(this.parentElement.parentElement.parentElement.parentElement.parentElement.id)
+  
   );
-
+ 
   //update the status
   fileObject.updateOverwrite(e.target.value);
 
@@ -182,6 +186,7 @@ input.addEventListener("change", createFileObjects);
 
 /* For each file added to the drag/drop or browse, create a file object*/
 function createFileObjects() {
+  
   while (preview.firstChild) {
     preview.removeChild(preview.firstChild);
   }
@@ -197,11 +202,12 @@ function createFileObjects() {
   }
   //otherwise, create objects and display table
   else {
-    const table = document.createElement("table");
-    table.classList.add("table", "table-sm", "table-hover");
 
+    let table = document.createElement("table");
+    table.classList.add("table", "table-sm");
+    table.setAttribute("id","table_upload")
     preview.appendChild(table);
-
+    
     const thead = document.createElement("thead");
 
     table.appendChild(thead);
@@ -210,11 +216,38 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Action"];
+    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
       th.textContent = th_txt[t];
+
+      if(th_txt[t]==="Language(s)" || th_txt[t]==="Keep All / Overwrite All "){
+          th.classList.add("align-center");
+      }  
+ 
+      // Add the checkbox Overwrite All
+      if (th_txt[t]==="Keep All / Overwrite All "){
+        let ovrwriteAll = document.createElement("INPUT");
+        ovrwriteAll.setAttribute("type", "checkbox");
+        th.appendChild(ovrwriteAll)
+
+      // creation of the listener
+      ovrwriteAll.addEventListener("click",()=>{
+          let listOverwrite=document.getElementsByClassName("overwrite-class")
+          let listkeep=document.getElementsByClassName("keep-class")
+          for (let i = 0; i < listOverwrite.length; i++) {
+
+              // update the UI
+              (ovrwriteAll.checked==true) ? listOverwrite[i].checked=true : listkeep[i].checked=true;
+          }
+           // update the file object
+          fileObjectArray.forEach(element=>{
+            (ovrwriteAll.checked==true) ? element.updateOverwrite("overwrite") : element.updateOverwrite("keep") ;
+            txt.value = JSON.stringify(fileObjectArray);
+          })
+        })
+      }      
       tr.appendChild(th);
     }
 
@@ -228,17 +261,15 @@ function createFileObjects() {
       i = i + 1;
     }
 
-    // console.log(JSON.stringify(fileObjectArray));
-
     fileObjectArray.forEach((file) => {
     // const fileList = fileOjectArray.map((file) => {
       let fileEntry = document.createElement("tr");
       fileEntry.setAttribute("id", file.id);
     
       fileEntry.innerHTML = `
-        <td class="file__filename">${file.filename}</td>
+        <td class="file__filename disabled-text">${file.filename}</td>
         <td class="file__docSymbol" contenteditable="true">${file.docSymbol}</td>
-        <td>
+        <td class="align-center">
            <div>
               <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
               <span class="badge rounded-pill ${file.fr.className} file__FR">FR</span>
@@ -249,30 +280,43 @@ function createFileObjects() {
               <span class="badge rounded-pill ${file.de.className} file__DE">DE</span>
          </div>
         </td>
-        <td>
+        <td class="align-center">
             <div class="row">
+              <div class="col">
+                <div class="col form-check col-form-label-sm">
+                  <input class="form-check-input file__action keep-class" type="radio" name="status${file.id}" 
+                        value="keep" ${file.overwrite ? "" : "checked"}>
+                  <label class="form-check-label" for="keep">Keep</label>
+                  </div>
+                </div>
+             
                <div class="col">
                   <div class="form-check col-form-label-sm">
-                  <input class="form-check-input file__action" type="radio" name="status${file.id}" 
+                  <input class="form-check-input file__action overwrite-class" type="radio" name="status${file.id}" 
                      value="overwrite" ${file.overwrite ? "checked" : ""}>
                   <label class="form-check-label" for="overwrite">Overwrite</label>
                </div>
-           </div>
-         <div class="col">
-            <div class="col form-check col-form-label-sm">
-               <input class="form-check-input file__action" type="radio" name="status${file.id}" 
-                     value="keep" ${file.overwrite ? "" : "checked"}>
-               <label class="form-check-label" for="keep">Keep</label>
-               </div>
-               </div>
+            </div>
           </div>
-         </td>
+        </td>
+       <!-- <td id="${file.filename}" title="remove this file"><i class="fa fa-trash mt-2" aria-hidden="true" style="color: #11a745;" onclick="deleteRow()"></i></td> -->
       `;
-   
-      // Add event listeners
+
+
+      
+      // Add event listeners for docsymbol
       const ds = fileEntry.querySelector(".file__docSymbol");
+
+      const checkSpaceInName= function(){
+            // adding background color when we have spaces in docsymbol
+            (ds.textContent.indexOf(" ")>=0) ? ds.style.backgroundColor = "#FFEBCD" : ds.style.backgroundColor = "#FFFFFF";
+          }
+
       ds.addEventListener("blur", changeDS);
-   
+      ds.addEventListener("DOMSubtreeModified", checkSpaceInName);
+
+      checkSpaceInName()  
+
       const en = fileEntry.querySelector(".file__EN");
       en.addEventListener("click", toggleEN);
    

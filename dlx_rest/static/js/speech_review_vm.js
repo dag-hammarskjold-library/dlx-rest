@@ -2,16 +2,16 @@
 // Imports
 /////////////////////////////////////////////////////////////////
 
-//import { headercomponent } from "./header.js";
-import { multiplemarcrecordcomponent } from "./record.js";
-import { messagecomponent } from "./messagebar.js";
+//import { Jmarc } from "./jmarc.mjs";
+import { speechreviewcomponent } from "./speech_review.js";
+
 
 /////////////////////////////////////////////////////////////////
 // VIEW MODEL DEFINITION
 /////////////////////////////////////////////////////////////////
-export let vm_new_ui_component = new Vue({
-    el: '#record_vm',
-    components: { multiplemarcrecordcomponent, messagecomponent },
+export let speech_review_vm = new Vue({
+    el: '#speech_review_vm',
+    components: { speechreviewcomponent },
     data: {
       visible: false,
     },

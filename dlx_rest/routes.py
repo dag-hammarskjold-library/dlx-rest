@@ -3,14 +3,18 @@ from cmath import sin
 from email.policy import default
 import re
 import dlx
-from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash
+from flask import url_for, Flask, abort, g, jsonify, request, redirect, render_template, flash, session
 from flask_login import current_user, login_user, login_required, logout_user
-from datetime import datetime
+from datetime import datetime, timedelta
+import datetime as dt
 from urllib.parse import urlparse, parse_qs
 import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
 from dlx.file.s3 import S3
 from dlx import DB
+import pymongo
+
+
 
 #Local app imports
 from dlx_rest.app import app, login_manager
@@ -19,6 +23,21 @@ from dlx_rest.models import RecordView, User, SyncLog, Permission, Role, require
 from dlx_rest.forms import LoginForm, RegisterForm, CreateUserForm, UpdateUserForm, CreateRoleForm, UpdateRoleForm
 from dlx_rest.utils import is_safe_url
 
+# This function sets an expiration/timeout for idle sessions.
+@app.before_request
+def make_sesion_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(hours=12)
+
+    # Special case for testing, so we can test this without waiting too long
+    if Config.TESTING:
+        app.permanent_session_lifetime = timedelta(seconds=5)
+
+# Put some configs into the routes for debug purposes
+return_configs = {
+    "env": Config.environment,
+    "ver": Config.VERSION
+}
 
 # Main app routes
 @app.route('/')
@@ -38,11 +57,15 @@ def editor():
     fromWorkform = request.args.get('fromWorkform', None)
     return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
+@app.route('/help')
+@login_required
+def help():
+    return render_template('help.html', vcoll="help", title="Help")
 
 @app.route('/workform')
 def workform():
     this_prefix = url_for('doc', _external=True)
-    return render_template('workform.html', api_prefix=this_prefix)
+    return render_template('workform.html', api_prefix=this_prefix, title="Workforms")
 
 # Authentication
 @login_manager.user_loader
@@ -52,7 +75,7 @@ def load_user(id):
     try:
         user = User.objects.get(id=id)
     except:
-        return False
+        return None
     # Hopefully this re-generates every 10 minutes of activity...
     user.token = user.generate_auth_token().decode('UTF-8')
     return user
@@ -121,6 +144,12 @@ def get_sync_log():
     items = SyncLog.objects().order_by('-time')
     return render_template('admin/sync_log.html', title="Sync Log", items=items)
 
+@app.route('/admin/debug')
+@login_required
+@requires_permission('readAdmin')
+def get_debug():
+    return jsonify(return_configs)
+
 # Users Admin
 # Not sure if we should make any of this available to the API
 @app.route('/admin/users')
@@ -140,6 +169,7 @@ def create_user():
     form.views.choices = [(v.id, f'{v.collection}/{v.name}') for v in RecordView.objects()]
     if request.method == 'POST':
         email = request.form.get('email')
+        username = request.form.get('username')
         roles = form.roles.data
         default_views = form.views.data
         password = request.form.get('password')
@@ -147,8 +177,8 @@ def create_user():
 
         user = User(email=email, created=created)
         user.set_password(password)
+        user.username = username
         for role in roles:
-            print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -175,7 +205,6 @@ def create_user():
 def update_user(id):
     try:
         user = User.objects.get(id=id)
-        print("default views:", user.default_views)
     except IndexError:
         flash("The user was not found.")
         return redirect(url_for('list_users'))
@@ -189,14 +218,17 @@ def update_user(id):
     if request.method == 'POST':
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
+        username = request.form.get('username', user.username)
         roles = request.form.getlist('roles')
         default_views = request.form.getlist('views')
-        print(default_views)
+        password = request.form.get('password', user.password_hash)
 
         user.email = email  #unsure if this is a good idea
+        user.username = username
+        if password:
+            user.set_password(password)
         user.roles = []
         for role in roles:
-            print(role)
             try:
                 r = Role.objects.get(name=role)
                 user.roles.append(r)
@@ -253,7 +285,6 @@ def create_role():
         role = Role(name=name)
         role.permissions = []
         for permission in permissions:
-            print(permission)
             try:
                 p = Permission.objects.get(action=permission)
                 role.permissions.append(p)
@@ -293,14 +324,13 @@ def update_role(id):
         role.permissions = []
         for permission in permissions:
             try:
-                p = Permission.objects.get(action=permission)
+                p = Permission.objects.get(id=permission)
                 role.permissions.append(p)
             except:
                 pass
         
         try:
             role.save(validate=True)
-            print("I am here")
             flash("The role was updated successfully.")
             return redirect(url_for('get_roles'), 302)
         except:
@@ -400,45 +430,76 @@ def get_records_list(coll):
     # This is just a passthrough route
     return redirect(url_for('search_records', coll=coll))
 
+def get_index_list(record_type):
+    return index_list
+
 @app.route('/records/<coll>/search')
+@login_required
 def search_records(coll):
     api_prefix = url_for('doc', _external=True)
-    limit = request.args.get('limit', 25)
+    limit = request.args.get('limit', 250)
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
+
+    # Compare the old query with the new query; if the new query is different, reset pagination
+    # if old_q contains anything at all, it returns a list, so let's make sure we're checking
+    # for the first string in the list entry instead of assuming we got a string.
+    old_q = parse_qs(urlparse(request.referrer).query).get('q', [''])
+    
+    if q != old_q[0]:
+        start = 1
+
+    session.permanent = True
+
+    # Move vcoll variable here so we can use it in the session 
+    # to review
+    vcoll = coll
+    
+    if request.args.get('subtype') == 'speech':
+        vcoll = "speeches"
+    elif request.args.get('subtype') == 'vote':
+        vcoll = "votes"
+    elif request.args.get('subtype') == 'all':
+        vcoll = "all"
+
     sort =  request.args.get('sort')
     direction = request.args.get('direction') #, 'desc' if sort == 'updated' else '')
+    subtype  = request.args.get('subtype')
+
+    # Should set a default ...
+    engine = request.args.get('engine', 'community')
+
+    if sort and direction:
+        # Regardless of what's in the session already
+        session[f"sort_{vcoll}"] = {"field": sort, "direction": direction}
+        this_v = session[f"sort_{vcoll}"]
+    else:
+        # See if something is in the session already
+        try:
+            # We have session values, so use those
+            this_v = session[f"sort_{vcoll}"]
+            sort = session[f"sort_{vcoll}"]["field"]
+            direction = session[f"sort_{vcoll}"]["direction"]
+        except KeyError:
+            # There is nothing in the session, so fallback to defaults
+            sort = "updated"
+            direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
     terms = re.split(' *(AND|OR|NOT) +', q)
         
     for term in (filter(None, terms)):
-        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT') and not sort:
+        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT'):
             if re.match('[A-z]+/', term) and len(terms) == 1:
                 # TODO "looks like symbol" util function
-                q = f'symbol:{term.upper()}*'
-            else:    
-                # appears to be free text term
-                sort = 'relevance'
-                
-    if not sort:
-        sort = 'updated'
-        direction = 'desc'
-    elif sort != 'relevance' and not direction:
-        direction = 'asc'
+                q = f'symbol:"{term.upper()}"'
 
-    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-
-    vcoll = coll
-    if "B22" in q:
-        vcoll = "speeches"
-    if "B23" in q:
-        vcoll = "votes"
+    search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, engine=engine, _external=True, format='brief', subtype=subtype)
 
     # todo: get all from dlx config
     # Sets the list of logical field indexes that should appear in advanced search
     if vcoll == 'speeches':
-        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
+        index_list = json.dumps(['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
     elif vcoll == 'votes':
         index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
     else:
@@ -450,17 +511,18 @@ def search_records(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list)
+    return render_template('search.html', api_prefix=api_prefix, search_url=search_url, collection=coll, vcoll=vcoll, index_list=index_list, title=vcoll)
 
 @app.route('/records/<coll>/browse')
+@login_required
 def browse(coll):
     api_prefix = url_for('doc', _external=True)
 
     # todo: get all from dlx config
-    if request.args.get('type') == 'speech':
-        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'related_docs', 'bib_creator'])
-    elif request.args.get('type') == 'vote':
-        index_list = json.dumps(['symbol', 'body', 'agenda', 'bib_creator'])
+    if request.args.get('subtype') == 'speech':
+        index_list = json.dumps(['symbol', 'body', 'speaker', 'agenda', 'country_org', 'bib_creator'])
+    elif request.args.get('subtype') == 'vote':
+        index_list = json.dumps(['symbol', 'body', 'agenda', 'related_docs', 'bib_creator'])
     else:
         logical_fields = getattr(dlx.Config, f"{coll.strip('s')}_logical_fields")
         fields = list(logical_fields.keys())
@@ -470,23 +532,22 @@ def browse(coll):
 
         index_list = json.dumps(fields)
 
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", type=request.args.get('type'))
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index_list=index_list, vcoll="browse", subtype=request.args.get('subtype'), title=f'Browse ({request.args.get("subtype")})')
 
 @app.route('/records/<coll>/browse/<index>')
+@login_required
 def browse_list(coll, index):
     q = request.args.get('q', 'a')
     api_prefix = url_for('doc', _external=True)
-    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", type=request.args.get('type'))
-
-@app.route('/records/<coll>/facets')
-def facet_record(coll):
-    return {"Facets..."}
+    
+    return render_template('browse_list.html', api_prefix=api_prefix, coll=coll, index=index, q=q, vcoll="browse", subtype=request.args.get('subtype'))
 
 @app.route('/records/auths/review')
 @login_required
 @requires_permission("reviewAuths")
 def review_auth():
-    min_date = "2022-03-01"
+    # min_date = "2022-03-01"
+    min_date = dt.date.today() - dt.timedelta(days=7)
     api_prefix = url_for('doc', _external=True)
     limit = request.args.get('limit', 25)
     start = request.args.get('start', 1)
@@ -502,48 +563,20 @@ def review_auth():
 
     search_url = url_for('api_records_list', collection="auths", start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
 
-    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths")
+    return render_template('review_auths.html', api_prefix=api_prefix, search_url=search_url, collection="auths", vcoll="auths", title="AuthReview")
 
-
-def search_records_old(coll):
-    '''Collect arguments'''
-    #print(f"Args: {request.args}")
-    limit = request.args.get('limit', 10)
-    sort = request.args.get('sort', 'updated')
-    direction = request.args.get('direction', 'desc')
-    start = request.args.get('start', 1)
-    q = request.args.get('q', '')
-
-    endpoint = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, _external=True, format='brief')
-    print(f"Endpoint: {endpoint}")
-    data = requests.get(endpoint).json()
-    records = []
-    for r in data['data']:
-        record = build_head(coll, r)
-        records.append(record)
-
-    prev_page = None
-    next_page = None
-
-    record_count_url = data['_links']['related']['count']
-
-    if not len(records) < int(limit):
-        next_page = build_pagination(data['_links']['_next'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
-    if int(start) > int(limit):
-        prev_page = build_pagination(data['_links']['_prev'], coll=coll, q=q, start=start, limit=limit, sort=sort, direction=direction)
-
-    #parameters to call the API
-    this_prefix = url_for('doc', _external=True)
-        
-    return render_template('list_records.html', coll=coll, records=records, start=start, limit=limit, sort=sort, direction=direction, q=q, prev_page=prev_page, next_page=next_page, count=record_count_url, prefix=this_prefix)
-
+@app.route('/records/speeches/review')
+@login_required
+def review_speeches():
+    api_prefix = url_for('doc', _external=True)
+    q = request.args.get('q')
+    return render_template('review_speeches.html', api_prefix=api_prefix, title="Speech Review", q=q)
 
 @app.route('/records/<coll>/<id>', methods=['GET'])
+@login_required
 def get_record_by_id(coll,id):
-    # register the permission, but don't require it yet, TBI
-    #register_permission('updateRecord')
     this_prefix = url_for('doc', _external=True)
-    return render_template('record.html', coll=coll, record_id=id, prefix=this_prefix)
+    return render_template('record.html', collection=coll, record_id=id, api_prefix=this_prefix)
 
 @app.route('/records/<coll>/new')
 @login_required
@@ -555,17 +588,15 @@ def create_record(coll):
 @login_required
 @requires_permission('readFile')
 def upload_files():
-    return render_template('process_files.html', vcoll="files")
+    return render_template('process_files.html', vcoll="files", title="Files")
 
 
 @app.route('/files/process', methods=["POST"])
 @login_required
 @requires_permission('createFile')
 def process_files():
-
-    DB.connect(Config.connect_string)
     S3.connect(bucket=Config.bucket)
-
+    
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
 
@@ -631,10 +662,24 @@ def process_files():
         
         fileResults.append(record)
         record = {}
+    
+    if len(fileResults)>0:
+        # creation of the json
+        upload_operation={}   
+        upload_operation["user"]=current_user.username
+        upload_operation["when"]=datetime.today()
+        upload_operation["events"]=fileResults
+        upload_operation["type"]="File_Upload"
+        
+        # create a mongo client and save the json inside the database
+        myclient = pymongo.MongoClient(Config.connect_string)
+        mydb = myclient[Config.dbname]
+        mycol = mydb["import_log"]
+        mycol.insert_one(upload_operation)
+    
 
-    #print(fileResults)    
-
-    return render_template('file_results.html', submitted=fileResults, vcoll="files")
+    return render_template('file_results.html', submitted=fileResults, vcoll="files", user=current_user.username)
+   
 
 @app.route('/files/search')
 @login_required
@@ -643,7 +688,7 @@ def search_files():
     baseURL = url_for('doc', _external=True)
     #this_prefix = baseURL.replace("/api/", url_for('files_results'))
     this_prefix = url_for('files_results')
-    return render_template('file_update.html', prefix=this_prefix, vcoll="files")
+    return render_template('file_update.html', prefix=this_prefix, vcoll="files", title="Files")
 
 
 @app.route('/files/update/results', methods=['GET', 'POST'])
@@ -658,9 +703,8 @@ def files_results():
 
 
 def process_text(text, option):
-    DB.connect(Config.connect_string)
+    DB.connect(Config.connect_string, database=Config.dbname)
     
-
     pipeline = []
 
     collation={
@@ -717,8 +761,7 @@ def update_file():
     """
     Updates the file entry based on record id
     """
-    DB.connect(Config.connect_string)
-    
+    DB.connect(Config.connect_string, database=Config.dbname)
 
     record_id = request.form.get('record_id')
     docsymbol = request.form.get('docsymbol')
@@ -739,3 +782,21 @@ def update_file():
 
     except Exception as e:
         return e
+
+@app.route('/import')
+@login_required
+#@requires_permission('importMarc')
+def import_marc():
+    this_prefix = url_for('doc', _external=True)
+    print(this_prefix)
+    return render_template('import_marc.html', api_prefix=this_prefix)
+
+@app.route('/reports/dashboard02', methods=["GET"])
+@login_required
+def show_dashboard02():
+    return render_template('dashboard02.html',vcoll="dashboard02", user=current_user.username, users=User.objects)     
+ 
+@app.route('/reports/dashboard03', methods=["GET"])
+@login_required
+def show_dashboard03():   
+    return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)

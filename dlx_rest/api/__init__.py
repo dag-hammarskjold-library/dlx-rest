@@ -4,9 +4,8 @@ DLX REST API
 
 # external
 from http.client import HTTPResponse
-import this
-from dlx_rest.routes import login
-import os, json, re, boto3, mimetypes, jsonschema
+from dlx_rest.routes import login, search_files
+import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -15,38 +14,36 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from pymongo.collation import Collation
-from bson import Regex
+from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
 from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, Datafield, \
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
+from dlx.marc.query import InvalidQueryString, AtlasQuery
 from dlx.marc.query import Raw
 from dlx.file import File, Identifier
-from werkzeug import security
+from dlx.util import AsciiMap
 
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, item_locked, has_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
 
 # Init
-authorizations = {
-    'basic': {
-        'type': 'basic'
-    }
-}
 
-api = Api(app, doc='/api/', authorizations=authorizations)
+# build the auth cache in a non blocking thread
+def build_cache(): Auth.build_cache()
+
+threading.Thread(target=build_cache, args=[]).start()
+
+api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
-DB.connect(Config.connect_string)
     
 # Set up the login manager for the API
 @login_manager.request_loader
 def request_loader(request):
     auth_header = request.headers.get('Authorization')
-    #print(f"Auth header: {auth_header}")
     if not auth_header:
         return None
 
@@ -185,7 +182,7 @@ class RecordsList(Resource):
     args.add_argument(
         'sort',
         type=str,
-        choices=['relevance', 'updated', 'date', 'symbol', 'title', 'heading'],
+        choices=['relevance', 'updated', 'created', 'date', 'symbol', 'title', 'subject', 'heading', 'country_org', 'speaker', 'body', 'agenda'],
     )
     args.add_argument(
         'direction', type=str, 
@@ -195,7 +192,7 @@ class RecordsList(Resource):
     args.add_argument(
         'format', 
         type=str, 
-        choices=['json', 'xml', 'mrk', 'mrc', 'brief'],
+        choices=['json', 'xml', 'mrk', 'mrc', 'csv', 'tsv', 'brief', 'brief_speech'],
         help='Formats the list as a batch of records in the specified format'
     )
     args.add_argument(
@@ -204,22 +201,75 @@ class RecordsList(Resource):
         help='Consult documentation for query syntax' # todo
     )
     args.add_argument(
-        'browse', 
-        type=str, 
-        help='Consult documentation for query syntax' # todo
+        'subtype',
+        type=str,
+        choices=['default', 'speech', 'vote', 'all', '']
+    )
+    args.add_argument(
+        'fields',
+        type=str,
+        help='Comma separated list of fields you want returned (e.g., for export)'
+    )
+     # This is so we can benchmark the two search formats
+    args.add_argument(
+        'engine',
+        type=str,
+        choices=['community','atlas'],
+        help='Toggle the search type between Atas and Community',
+        default='community'
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
     def get(self, collection):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+
+        # We can also note some things about the requesting user's basket here, since this route, and all others, require login
+        if not current_user.is_anonymous:
+            this_u = User.objects.get(id=current_user['id'])
+            this_basket = Basket.objects(owner=this_u)[0]
+        else:
+            this_basket = None
+
+        # Get all of the baskets so we can speed up the fetch/render; note that we could just do a database search here...
+        all_basket_objects = []
+        for basket in Basket.objects:
+            for item in basket.items:
+                if item not in all_basket_objects:
+                    all_basket_objects.append(item)
         
         # search
         search = unquote(args.search) if args.search else None
-        query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+        # subtype
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
+            
+        if args.engine in (None, "community"):
+            try:
+                query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+            except InvalidQueryString as e:
+                abort(422, str(e))
+
+            query.conditions.append(type_condition)
+        elif args.engine == "atlas":
+            try:
+                query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+                
+                if hasattr(query, 'match'):
+                    if query.match:
+                        # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                        query.match.conditions = [*query.match.conditions]
+                        query.match.conditions.append(type_condition)
+                    else:
+                        query.match = Query(type_condition)
+                else:
+                    query.match = type_condition
+            except InvalidQueryString as e:
+                abort(422, str(e))
+        else:
+            query = Query({}) 
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -227,54 +277,92 @@ class RecordsList(Resource):
         # limit  
         limit = int(args.limit or 100)
         
-        if limit > 1000:
-            abort(404, 'Maximum limit is 1000')
-        
         # format
         fmt = args['format'] or None
+
+        if fmt != 'brief_speech' and limit > 1000:
+            abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
-            tags = ['191', '245', '269', '700', '710', '791', '989'] if collection == 'bibs' \
-                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491']
+            tags = ['191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
+        elif fmt == 'brief_speech':
+            tags = ['269', '596', '700', '710', '711', '791', '991', '992']
+            
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+            project = dict.fromkeys(tags, True)
+        elif fmt in ['mrk', 'xml', 'csv']:
+            project = None
+
+            if output_fields := args.get("fields"):
+                tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
+                
+                # make sure logical fields are available for sorting
+                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+                project = dict.fromkeys(tags, True)
+            
         elif fmt:
-            project = {}
+            project = None
         else:
             project = {'_id': 1}
           
         # sort
-        sort_by = args.get('sort')
-        
-        if sort_by == 'relevance':
-            project['score'] = {'$meta': 'textScore'}
-            sort = [('score', {'$meta': 'textScore'})]
-        elif sort_by:
-            sort = [(sort_by, DESC)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, ASC)]
-            # only include results with the sorted field. otherwise, records with the field missing will be the first results
-            # TODO review
-            query.add_condition(Raw({sort_by: {'$exists': True}}))
-        else:
-            sort = None
+        sort_by = args.get('sort') or 'updated'
+        sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
+        sort_by = 'date' if sort_by == 'meeting date' else sort_by
+
+        # collation is not implemented in mongomock
+        collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
         # exec query
-        collation = Collation(locale='en', numericOrdering=True) if sort_by == 'symbol' else None
-        recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
+        if isinstance(query, AtlasQuery):
+            pipeline = query.compile()
+            pipeline += [{'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}}, {'$skip': start-1}, {'$limit': limit}]
+            recordset = cls.from_aggregation(pipeline, collation=collation)
+        else:
+            sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
+            recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
         
         # process
         if fmt == 'xml':
-            return Response(recordset.to_xml(), mimetype='text/xml')
+            return Response(recordset.to_xml(write_id=True), mimetype='text/xml')
         elif fmt == 'mrk':
-            return Response(recordset.to_mrk(), mimetype='text/plain')
+            return Response(recordset.to_mrk(write_id=True), mimetype='text/plain')
+        elif fmt == 'csv':
+            return Response(recordset.to_csv(write_id=True), mimetype='text/csv')
+        elif fmt == 'tsv':
+            return Response(recordset.to_tsv(write_id=True), mimetype='text/tab-separated-values')
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
             data = [make_brief(r) for r in recordset]
+        elif fmt == 'brief_speech':
+            schema_name='api.brieflist'
+            make_brief = brief_speech
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                this_d["myBasket"] = False
+                
+                # Determine lock status first, then resolve whether the item is in the current user's basket
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    this_d["locked"] = True
+
+                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                if len(basket_contains) > 0:
+                    this_d["myBasket"] = True
+                    this_d["locked"] = False
+                data.append(this_d)
         else:
             schema_name='api.urllist'
-            data = [URL('api_record', record_id=r.id, **route_params).to_str() for r in recordset]
+            data = [URL('api_record', collection=collection, record_id=r.id).to_str() for r in recordset]
             
         new_direction = 'desc' if args.direction in (None, 'asc') else 'asc'
         
@@ -284,17 +372,19 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction).to_str(),
-                'list': URL('api_records_list', start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'XML': URL('api_records_list', start=start, limit=limit, search=search,  format='xml', sort=sort_by, direction=args.direction, **route_params).to_str(),
-                'MRK': URL('api_records_list', start=start, limit=limit, search=search,  format='mrk', sort=sort_by, direction=args.direction, **route_params).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
@@ -310,22 +400,25 @@ class RecordsList(Resource):
     @ns.doc(description='Create a Bibliographic or Authority Record with the given data.', security='basic')
     @login_required
     def post(self, collection):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         cls = ClassDispatch.by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
     
         user = current_user if request_loader(request) is None else request_loader(request)
-        
 
         if args.format == 'mrk':
-            
             record = cls.from_mrk(request.data.decode())
             if not has_permission(user, "createRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:    
-                record.commit(user=user)
+                result = record.commit(user=user.username)
+
+                if result:
+                    data = {'result': URL('api_record', collection=collection, record_id=record.id).to_str()}
+                    return data, 201
+                else:
+                    abort(500, 'POST request failed for unknown reasons')
+            
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -344,7 +437,7 @@ class RecordsList(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
 
-            result = record.commit(user=user.email)
+            result = record.commit(user=user.username)
             #except Exception as e:
             #    abort(400, str(e))
         
@@ -355,6 +448,7 @@ class RecordsList(Resource):
             else:
                 abort(500, 'POST request failed for unknown reasons')
 
+
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')
 @ns.param('collection', '"bibs" or "auths"')
@@ -363,12 +457,52 @@ class RecordsListCount(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+        type_condition = Raw(
+            {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
+        )
 
         if args.search:
             search = unquote(args.search)
-            query = Query.from_string(search, record_type=collection[:-1])
+
+            if args.engine == "community":
+                try:
+                    query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+                    query.conditions.append(type_condition)
+                except InvalidQueryString as e:
+                    abort(422, str(e))
+            elif args.engine == "atlas":
+                try:
+                    query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+
+                    if hasattr(query, 'match'):
+                        if query.match:
+                            # todo: fix this in dlx. `query.match.conditions` should be an array instad of tuple
+                            query.match.conditions = [*query.match.conditions] 
+                            query.match.conditions.append(type_condition)
+                        else:
+                            query.match = Query(type_condition)
+                    else:
+                        query.match = type_condition
+
+                except InvalidQueryString as e:
+                    abort(422, str(e))
+        else: 
+            query = Query(type_condition)
+        
+        if query:
+            if isinstance(query, AtlasQuery):
+                pipeline = query.compile()
+                pipeline.append({'$count': 'count'})
+                data = list(cls().handle.aggregate(pipeline))[0]['count']
+            else:
+                data = cls().handle.count_documents(
+                    query.compile(),
+                    # collation is not implemented in mongomock
+                    collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                    maxTimeMS=Config.MAX_QUERY_TIME
+                )
         else:
-            query = {}
+            data = cls().handle.estimated_document_count()
         
         links = {
             '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
@@ -378,9 +512,7 @@ class RecordsListCount(Resource):
         }
         
         meta = {'name': 'api_records_list_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
-        
-        data = cls().handle.count_documents(query.compile(), maxTimeMS=Config.MAX_QUERY_TIME) if query else cls().handle.estimated_document_count()
-        
+
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Records list browse
@@ -412,9 +544,9 @@ class RecordsListBrowse(Resource):
         default=10,
     )
     args.add_argument(
-        'type',
+        'subtype',
         type=str, 
-        choices=['bib', 'speech', 'vote', 'auth']
+        choices=['default', 'speech', 'vote']
     )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records sorted by the "logical field" specified in the search.')
@@ -423,29 +555,60 @@ class RecordsListBrowse(Resource):
         args = RecordsListBrowse.args.parse_args()
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         querystring = request.args.get('search') or abort(400, 'Param "search" required')
-        match = re.match('^(\w+):(.*)', querystring) or abort(400, 'Invalid search string')
+        match = re.match('^(\\w+):(.*)', querystring) or abort(400, 'Invalid search string')
         field = match.group(1)
         value = match.group(2)
         logical_fields = DlxConfig.bib_logical_fields if collection == 'bibs' else DlxConfig.auth_logical_fields
         field in logical_fields or abort(400, 'Search must be by "logical field". No recognized logical field was detected')
         operator = '$lt' if args.compare == 'less' else '$gte'
-        direction = DESC if args.compare == 'less' else ASC
-        query = {'_id': {operator: value}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}
-        lfields = list(DlxConfig.bib_index_logical_numeric if collection == 'bibs' else DlxConfig.auth_index_logical_numeric)
-        print(lfields)
-        collation = Collation(
-            locale='en', 
-            strength=2, 
-            numericOrdering=True if field in lfields else False
-        )
-        start, limit = int(args.start), int(args.limit)
+        direction = -1 if args.compare == 'less' else 1
+        args.subtype = args.subtype or 'default'
+        #subq = {'$and': [{'_record_type': 'default'}, {'_record_type': {'$nin': ['speech', 'vote']}}]}
+        from dlx.util import Tokenizer
+        #query = {'text': {operator: f' {Tokenizer.scrub(value)} '}, subq}
+        query = {'$and': [{'text': {operator: f' {Tokenizer.scrub(value)} '}}]}
+        query['$and'].append({'_record_type': args.subtype})
+        
+        if Config.TESTING:
+            # collation is not implemented in mongomock
+            collation = None
+        else:
+            collation = DlxConfig.marc_index_default_collation
 
-        values = [d for d in DB.handle[f'_index_{field}'].find(query, skip=start-1, limit=limit, sort=[('_id', direction)], collation=collation)]
+        start, limit = int(args.start), int(args.limit)
+        values = list(
+            DB.handle[f'_index_{field}'].find(
+                query, 
+                skip=start-1, 
+                limit=limit, 
+                sort=[('text', direction)], 
+                collation=collation
+            )
+        )
+
+        ''' 
+        # using an aggregation. this method is slower and requires specifiying all characters to ignore
+        # remove slash, comma, dash and en dash
+        to_match = value.replace(',', '').replace('-', ' ').replace('–', ' ').replace('/', ' ')
+
+        values = DB.handle[f'_index_{field}'].aggregate(
+            [
+                {'$addFields': {'to_sort': {'$replaceAll': {'input': '$_id', 'find': ',', 'replacement': ''}}}},
+                {'$project': {'_id': 1, '_record_type': 1, 'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '-', 'replacement': ' '}}}},
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '–', 'replacement': ' '}}}}, # en dash
+                {'$set': {'to_sort': {'$replaceAll': {'input': '$to_sort', 'find': '/', 'replacement': ' '}}}}, # slash
+                {'$match': {'to_sort': {operator: to_match}, '_record_type': args.type if args.type in ('speech', 'vote') else 'default'}},
+                {'$sort': {'to_sort': 1 if args.compare == 'greater' else -1}},
+                {'$skip': start-1},
+                {'$limit': limit}
+            ],
+            collation=None if Config.TESTING else collation
+        )
+        values = list(values)
+        '''
         
         if args.compare == 'less':
             values = list(reversed(list(values)))
-
-        criteria = ' AND 089:\'B22\'' if args.type == 'speech' else ' AND 089:\'B23\'' if args.type == 'vote' else ''
 
         data = [
             {
@@ -454,12 +617,14 @@ class RecordsListBrowse(Resource):
                     'api_records_list', 
                     collection=collection,
                     # todo: make record type serachable by query string instead of useing type codes
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str(),
                 'count': URL(
                     'api_records_list_count', 
                     collection=collection, 
-                    search=f'{field}:\'{x.get("_id")}\'' + criteria
+                    search=f'{field}:\'{x.get("_id")}\'',
+                    subtype=args.subtype
                 ).to_str()
             } for x in values
         ]
@@ -501,29 +666,55 @@ class Record(Resource):
         args = Record.args.parse_args()
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
+        
+        # remove any unexpected (deprecated) auth-controlled fields
+        for field in record.datafields:
+            for subfield in filter(lambda x: hasattr(x, 'xref'), field.subfields):
+                if DlxConfig.is_authority_controlled(collection[:-1], field.tag, subfield.code) is False:
+                    field.subfields = list(filter(lambda x: x != subfield, field.subfields))
+
         fmt = args.get('format')
 
         if fmt == 'xml':
-            return Response(record.to_xml(), mimetype='text/xml')
+            return Response(record.to_xml(write_id=True), mimetype='text/xml')
         elif fmt == 'mrk':
-            return Response(record.to_mrk(), mimetype='text/plain')
+            return Response(record.to_mrk(write_id=True), mimetype='text/plain')
         elif fmt == 'mrc':
-            return Response(record.to_mrc(), mimetype='text/plain')
-            
-        files = []
+            return Response(record.to_mrc(write_id=True), mimetype='text/plain')
         
-        for lang in ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE'):
-            f = File.latest_by_identifier_language(
-                Identifier('symbol', record.get_value('191', 'a') or record.get_value('191', 'z') or record.get_value('791', 'a')), lang
-            )
+        # check for files
+        # todo: get identifier type mapping from config
+        files_data = []
+
+        if collection == 'bibs':
+            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+            isbns = record.get_values('020', 'a')
+            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+            # Get files by original URI which was logged in the Archive-It system
+            uris = record.get_values('561', 'u')
+            all_files = []
             
-            if f:
-                files.append({'mimetype': f.mimetype, 'language': lang.lower(), 'url': URL('api_file_record', record_id=f.id).to_str()})
-        
+            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
+                for id_value in id_values:
+                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+                    
+            files_data = [
+                {
+                    'mimetype': f.mimetype, 
+                    'language': f.languages[0].lower(), 
+                    'url': URL('api_file_record', record_id=f.id).to_str()
+                } for f in all_files
+            ]
+                
         data = record.to_dict()
+        data['created'] = record.created
+        data['created_user'] = record.created_user
         data['updated'] = record.updated
-        data['files'] = files
-        
+        data['user'] = record.user
+        data['files'] = files_data
+
         meta = {
             'name': 'api_record',
             'returns':  URL('api_schema', schema_name='jmarc').to_str(),
@@ -554,11 +745,7 @@ class Record(Resource):
     @ns.doc(description='Replace the record with the given data.', security='basic')
     @login_required
     def put(self, collection, record_id):
-        #user = 'testing' if current_user.is_anonymous else current_user.email
-        #print(user)
         user = current_user if request_loader(request) is None else request_loader(request)
-        #print(user)
-        #print(user, user.permissions_list())
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         args = Record.args.parse_args()
@@ -572,7 +759,7 @@ class Record(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:
-                result = record.commit(user=user)
+                result = record.commit(user=user.username)
             except Exception as e:
                 abort(400, str(e))
         else:
@@ -583,7 +770,7 @@ class Record(Resource):
                 abort(403, f'The current user is not authorized to perform this action.')
 
             try:
-                result = record.commit(user=user.email)
+                result = record.commit(user=user.username)
             except Exception as e:
                 abort(400, str(e))
         
@@ -608,7 +795,7 @@ class Record(Resource):
             abort(403, f'The current user is not authorized to perform this action.')
 
         try:
-            result = record.delete(user=user.email)
+            result = record.delete(user=user.username)
         except AuthInUse as e:
             abort(403, 'Authority record in use')
         
@@ -618,9 +805,13 @@ class Record(Resource):
                 # Normally the record_id is an integer, but it's being stored here as a string.
                 try:
                     basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id))
-                    basket.remove_item(basket_item['id'])
+                    if basket_item is not None:
+                        basket.remove_item(basket_item['id'])
                 except IndexError:
                     pass
+
+                #if basket_item = basket.get_item_by_coll_and_rid(collection, str(record_id)):
+                #       basket.remove_item(basket_item['id'])
 
             return Response(status=204)
         else:
@@ -647,8 +838,6 @@ Recommendation: Deprecate these API routes.
 class RecordFieldsList(Resource):
     @ns.doc(description='Return a list of the fields in the record with the given record ID')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
 
@@ -667,7 +856,7 @@ class RecordFieldsList(Resource):
                 )
         
         links = {
-            '_self': URL('api_record_fields_list', **route_params).to_str(),
+            '_self': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
@@ -690,9 +879,6 @@ class RecordFieldsList(Resource):
 class RecordFieldPlaceList(Resource):
     @ns.doc(description='Return a list of the instances of the field in the record')
     def get(self, collection, record_id, field_tag):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         places = len(list(record.get_fields(field_tag)))
@@ -700,11 +886,11 @@ class RecordFieldPlaceList(Resource):
         
         for place in range(0, places):
             field_places.append(
-                URL('api_record_field_place', field_place=place, **route_params).to_str()
+                URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=place).to_str()
             )
         
         links = {
-            '_self': URL('api_record_field_place_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_list', collection=collection, record_id=record_id, field_tag=field_tag).to_str(),
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
@@ -749,13 +935,12 @@ class RecordFieldPlaceList(Resource):
             record_data[field_tag].append(field_data)
             record = cls(record_data, auth_control=True)
         except Exception as e:
-            print(record.to_dict())
             abort(400, str(e))
 
         if not has_permission(user, "updateRecord", record, collection):
             abort(403, f'The current user is not authorized to perform this action.')
 
-        result = record.commit(user=user.email)
+        result = record.commit(user=user.username)
         
         if result:
             url = URL(
@@ -779,9 +964,6 @@ class RecordFieldPlaceList(Resource):
 class RecordFieldPlace(Resource):
     @ns.doc(description='Return the field at the given place in the record')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -790,9 +972,9 @@ class RecordFieldPlace(Resource):
         links = {
             'related': {
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
-                'subfields': URL('api_record_field_place_subfield_list', **route_params).to_str()
+                'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             },
-            '_self': URL('api_record_field_place', **route_params).to_str(),
+            '_self': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
         }
         
         meta = {
@@ -831,7 +1013,7 @@ class RecordFieldPlace(Resource):
             if not has_permission(user, "updateRecord", record, collection):
                 abort(403, f'The current user is not authorized to perform this action.')
 
-            result = cls(record_data, auth_control=True).commit(user=user.email)
+            result = cls(record_data, auth_control=True).commit(user=user.username)
         except Exception as e:
             abort(400, str(e))
 
@@ -851,12 +1033,14 @@ class RecordFieldPlace(Resource):
     @ns.doc(description='Delete the field with the given tag at the given place', security='basic')
     @login_required
     def delete(self, collection, record_id, field_tag, field_place):
-        #user = f'testing' if current_user.is_anonymous else current_user.email
+        abort(503, 'This route is under construction')
 
         user = current_user if request_loader(request) is None else request_loader(request)
         
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
+        
+        
         record.get_field(field_tag, place=field_place) or abort(404)
 
         if not has_permission(user, "updateRecord", record, collection):
@@ -864,7 +1048,7 @@ class RecordFieldPlace(Resource):
         
         record.delete_field(field_tag, place=field_place)
         
-        if record.commit(user=user.email):
+        if record.commit(user=user.username):
             return Response(status=204)
         else:
             abort(500, 'DELETE request failed for unknown reasons')
@@ -878,9 +1062,6 @@ class RecordFieldPlace(Resource):
 class RecordFieldPlaceSubfieldList(Resource):
     @ns.doc(description='Return a list of the subfields in the field')
     def get(self, collection, record_id, field_tag, field_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         field = record.get_field(field_tag, place=field_place) or abort(404)
@@ -888,25 +1069,20 @@ class RecordFieldPlaceSubfieldList(Resource):
         subfields, seen, place = [], {}, 0
         
         for sub in field.subfields:
-            new_route_params = copy(route_params)
-            new_route_params['subfield_code'] = sub.code
-            
             if sub.code in seen:
                 place += 1
             else:
                 place = 0
                 seen[sub.code] = True
-            
-            new_route_params['subfield_place'] = place
 
             subfields.append(
-                URL('api_record_field_subfield_value', subfield_place=place, subfield_code=sub.code, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_place=place, subfield_code=sub.code).to_str()
             )
             
         links = {
-            '_self': URL('api_record_field_place_subfield_list', **route_params).to_str(),
+            '_self': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str(),
             'related': {
-                'field': URL('api_record_field_place', **route_params).to_str()
+                'field': URL('api_record_field_place', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place,).to_str()
             }
         }
 
@@ -927,9 +1103,6 @@ class RecordFieldPlaceSubfieldList(Resource):
 class RecordFieldPlaceSubfieldPlaceList(Resource):
     @ns.doc(description='Return a list of the subfields with the given code')
     def get(self, collection, record_id, field_tag, field_place, subfield_code):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -940,11 +1113,11 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
         
         for place in range(0, len(list(subfields))):
             subfield_places.append(
-                URL('api_record_field_subfield_value', subfield_place=place, **route_params).to_str()
+                URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str()
             )
         
         links = {
-            '_self':  URL('api_record_field_place_subfield_place_list', **route_params).to_str(),
+            '_self':  URL('api_record_field_place_subfield_place_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=place).to_str(),
             'related': {
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place).to_str()
             }
@@ -968,15 +1141,12 @@ class RecordFieldPlaceSubfieldPlaceList(Resource):
 class RecordFieldSubfieldValue(Resource):
     @ns.doc(description='Return the value of the subfield')
     def get(self, collection, record_id, field_tag, field_place, subfield_code, subfield_place):
-        route_params = locals()
-        route_params.pop('self')
-
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         value = record.get_value(field_tag, subfield_code, address=[field_place, subfield_place]) or abort(404)
         
         links = {
-            '_self': URL('api_record_field_subfield_value', **route_params).to_str(),
+            '_self': URL('api_record_field_subfield_value', collection=collection, record_id=record_id, field_tag=field_tag, field_place=field_place, subfield_code=subfield_code, subfield_place=subfield_place).to_str(),
             'related': {
                 #'record':URL('api_record', collection=collection, record_id=record_id).to_str(),
                 'subfields': URL('api_record_field_place_subfield_list', collection=collection, record_id=record_id,field_tag=field_tag, field_place=field_place).to_str()
@@ -997,9 +1167,6 @@ class RecordFieldSubfieldValue(Resource):
 class RecordSubfieldsList(Resource):
     @ns.doc(description='Return a list of all the subfields in the record with the given record')
     def get(self, collection, record_id):
-        route_params = locals()
-        route_params.pop('self')
-        
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
@@ -1021,16 +1188,17 @@ class RecordSubfieldsList(Resource):
                     subfields.append(
                         URL(
                             'api_record_field_subfield_value',
+                            collection=collection,
+                            record_id=record_id,
                             field_tag=field.tag,
                             field_place=field_place,
                             subfield_code=subfield.code,
-                            subfield_place=subfield_place,
-                            **route_params
+                            subfield_place=subfield_place
                         ).to_str()
                     )
                     
         links = {
-            '_self': URL('api_record_subfields_list', **route_params).to_str(),
+            '_self': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
             'related': {
                 'record': URL('api_record', collection=collection, record_id=record_id).to_str()
             }
@@ -1071,43 +1239,76 @@ class LookupFieldsList(Resource):
 @ns.param('collection', '"bibs" or "auths"')
 @ns.param('field_tag', 'The tag of the field value to look up')
 class LookupField(Resource):
+    args = reqparse.RequestParser()
+    
     @ns.doc(description='Return a list of authorities that match a string value')
-    #@ns.expect(list_argparser)
+    @ns.expect(args)
     def get(self, collection, field_tag):
         cls = ClassDispatch.by_collection(collection) or abort(404)
-        codes = filter(lambda x: len(x) == 1, request.args.keys())
-        conditions_1, conditions_2 = [], []
+        # args are subfield codes
+        codes = list(filter(lambda x: len(x) == 1, request.args.keys()))
+        codes or abort(400, 'Subfield codes required as the URL query parameters')
         sparams = {}
-            
+        conditions_1, conditions_2, conditions_3 = [], [], []
+
         for code in codes:
             val = request.args[code]
-            val = re.escape(val)
             sparams[code] = val
             auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
-            
+
             if not auth_tag:
                 continue
+
+            tags = [auth_tag]
+
+            # exact match
+            conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
+            # starts with
+            val_regex_checker = ''
+
+            for char in val:
+                xchars = []
                 
-            tags = [auth_tag] # [auth_tag, '4' + auth_tag[1:], '5' + auth_tag[1:]]
-            
-            # matches start
-            conditions_1.append(Or(*[Condition(tag, {code: Regex(f'^{val}', 'i')}, record_type='auth') for tag in tags]))
-            # matches anywhere
-            conditions_2.append(Or(*[Condition(tag, {code: Regex(f'{val}', 'i')}, record_type='auth') for tag in tags]))
-            
-        if not sparams:
-            abort(400, 'Request parameters required')
-            
-        query = Query(*conditions_1)
+                for k, v in AsciiMap.data.items():
+                    if v.lower() not in ('a', 'e', 'i', 'o', 'u'):
+                        continue
+                        
+                    if k in AsciiMap.multi_byte() or ord(k) > 0x0130: # char 'İ' #int(0x017F): # Latin Extended-A
+                        continue
+
+                    if v.lower() == char.lower():
+                        xchars.append(k)
+
+                if xchars:
+                    xchars += char.lower() + char.upper()
+                    val_regex_checker += f'[{"".join(xchars)}]'
+                else:
+                    if char.lower() != char.upper():
+                        val_regex_checker += f'[{char.lower() + char.upper()}]'
+                    else:
+                        val_regex_checker += re.escape(char)
+
+            conditions_2.append(f'{auth_tag}__{code}:/^{val_regex_checker}/')
+            # free text
+            conditions_3.append(f'{auth_tag}__{code}:{val}')
+
+        querystring = " AND ".join(conditions_1)
+        query = Query.from_string(querystring)
         proj = dict.fromkeys(tags, 1)
         start = int(request.args.get('start', 1))
-        cln = {'locale': 'en', 'strength': 1}
-        auths = AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', ASC)]), collation=cln)
-        auths = list(auths)
-        
+        cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
+        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', 1)]), collation=cln))
+
         if len(auths) < 25:
-            query = Query(*conditions_2)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', ASC)]), collation=cln)
+            querystring = " AND ".join(conditions_2)
+            query = Query.from_string(querystring)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
+            auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
+
+        if len(auths) < 25:
+            querystring = " AND ".join(conditions_3)
+            query = Query.from_string(querystring)
+            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
             auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         
         processed = []
@@ -1166,6 +1367,7 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
+        start_time = time.time()
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1178,52 +1380,13 @@ class RecordMerge(Resource):
             abort(403, "User does not have permission to merge authorities.")
         
         if losing.heading_field.tag != gaining.heading_field.tag:
-            abort(403, "Auth records not of the same type")
+            abort(409, "Auth records not of the same type")
 
-        def update_records(record_type, gaining, losing):
-            authmap = getattr(DlxConfig, f'{record_type}_authority_controlled')
-            
-            conditions = []
-                 
-            for ref_tag, d in authmap.items():
-                for subfield_code, auth_tag in d.items():
-                    if auth_tag == losing.heading_field.tag:
-                        val = losing.heading_field.get_value(subfield_code)
-                        
-                        if val:
-                            conditions.append(Condition(ref_tag, {subfield_code: losing_id}, record_type=record_type))
-            
-            
-            cls = BibSet if record_type == 'bib' else AuthSet
-            query = Query(Or(*conditions))
-            changed = 0
+        # todo: excute this in a Lambda function
+        gaining.merge(user=user.username if user else 'admin', losing_record=losing)
 
-            for record in cls.from_query(query):
-                state = record.to_bson()
-                
-                for i, field in enumerate(record.fields):
-                    if isinstance(field, Datafield):
-                        for subfield in field.subfields:
-                            if hasattr(subfield, 'xref') and subfield.xref == losing_id:
-                                subfield.xref = gaining.id
-                        
-                                if field in record.fields[0:i] + record.fields[i+1:]:
-                                    del record.fields[i] # duplicate field
-                        
-                if record.to_bson() != state:    
-                    record.commit(user=user.email)
-                    changed += 1
-                    
-            return changed
-        
-        changed = 0
-        
-        for record_type in ('bib', 'auth'):
-            changed += update_records(record_type, gaining, losing)    
-        
-        losing.delete(user=user.email)
-        
-        return jsonify({'message': f'updated {changed} records and deleted auth# {losing_id}'}) 
+        # todo: update response message when merge is async
+        return jsonify({'message': f'Merge complete'})
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
@@ -1239,8 +1402,10 @@ class AuthUseCount(Resource):
         args = AuthUseCount.args.parse_args()
         auth = Auth.from_id(record_id) or abort(404)
         args.use_type in ('bibs', 'auths') or abort(400, 'Query param "use_type" must be set to "bibs" or "auths"')
-        count = auth.in_use(usage_type=args.use_type[:-1])
-        
+        #count = auth.in_use(usage_type=args.use_type[:-1]) # returns the number of fields using the auth
+        cls = Bib if args.use_type == 'bibs' else Auth
+        count = cls.count_documents(Query.from_string(f'xref:{auth.id}').compile()) # the number of records using the auth
+
         links = {
             '_self': URL('api_auth_use_count', record_id=record_id, use_type=args.use_type).to_str(),
             'related': {
@@ -1492,7 +1657,6 @@ class FileRecord(Resource):
     @ns.expect(args)
     def get(self, record_id):
         args = FileRecord.args.parse_args()
-        print(args)
         record = File.from_id(str(record_id)) or abort(404)
             
         if record.filename is None:
@@ -1511,7 +1675,6 @@ class FileRecord(Resource):
             record.filename = File.encode_fn(ids, langs, extension)
         
         action = args.get('action', None)
-        print(action)
         
         if action == 'download':
             output_filename = record.filename
@@ -1520,7 +1683,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1532,7 +1694,6 @@ class FileRecord(Resource):
         
             try:
                 s3_file = s3.get_object(Bucket=bucket, Key=record_id)
-                print(s3_file)
             except Exception as e:
                 abort(500, str(e))
 
@@ -1636,10 +1797,10 @@ class MyBasketRecord(Resource):
         override = False
         if "override" in item.keys():
             override = item["override"]
-        #print(item)
+
         lock_status = item_locked(item['collection'], item['record_id'])
-        #print(lock_status)
         this_u = User.objects.get(id=current_user.id)
+        
         if lock_status["locked"] == True:
             if lock_status["by"] == this_u.email:
                 # It's locked, but by the current user
@@ -1649,10 +1810,7 @@ class MyBasketRecord(Resource):
                 if override:
                     # Remove it from the other user's basket
                     # Add it to this user's basket
-                    #print(lock_status["in"])
                     for losing_basket in Basket.objects(name=lock_status["in"]):
-                        #print(losing_basket)
-
                         losing_basket.remove_item(lock_status["item_id"])
                     this_u.my_basket().add_item(item)
                     return {},201
@@ -1662,6 +1820,22 @@ class MyBasketRecord(Resource):
             # The item is not locked, so we can add it to our basket
             this_u.my_basket().add_item(item)
             return {},201      
+
+@ns.route('/userprofile/my_profile/basket/addBulk')
+class MyBasketAddBulk(Resource):
+    @ns.doc("Add a list of records to the user's basket in bulk.", security="basic")
+    @login_required
+    def post(self):
+        try:
+            this_u = User.objects.get(id=current_user['id'])
+            user_id = this_u['id']
+            this_basket = Basket.objects(owner=this_u)[0]
+            items = json.loads(request.data)
+            if items:
+                this_basket.add_items(items)
+        except:
+            raise
+        return 200
 
 @ns.route('/userprofile/my_profile/basket/clear')
 class MyBasketClear(Resource):
@@ -1691,7 +1865,6 @@ class MyBasketItem(Resource):
             item_data = item_data_raw
             if isinstance(item_data_raw, list):
                 item_data = item_data_raw[0]
-            #print(item_data)
             if item_data['collection'] == 'bibs':
                 this_m = Bib.from_id(int(item_data['record_id']))
                 item_data['title'] = this_m.title() or '...'
@@ -1737,8 +1910,6 @@ class ViewList(Resource):
     def get(self, coll):
         try:
             view_list = RecordView.objects(collection=coll)
-            for v in view_list:
-                print(v.id, v.name)
         except:
             raise
         
@@ -1774,7 +1945,6 @@ class View(Resource):
     @ns.doc("Get the contents of a record view by collection and id.")
     def get(self, coll, id):
         this_item = RecordView.objects.get(id=id)
-        print(this_item.name)
 
         links = {
             '_self': URL('api_view', coll=coll, id=id).to_str(),

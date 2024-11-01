@@ -38,7 +38,6 @@ export let workformcomponent = {
     created: async function() {
         Jmarc.apiUrl = this.api_prefix;
         
-        console.log("hello")
         
         for (let col of ["auths", "bibs"]) {
             this[`${col}_workforms`] = await Jmarc.listWorkforms(col);

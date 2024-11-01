@@ -1,14 +1,11 @@
-from flask import Flask, Response, url_for, jsonify, abort as flask_abort
+from flask import Flask, Response, url_for, jsonify, abort as flask_abort, session
 #from flask_restx import Resource, Api, reqparse
 from flask_login import LoginManager
-from pymongo import ASCENDING as ASC, DESCENDING as DESC
 from mongoengine import connect, disconnect
 from flask_cors import CORS
 from dlx import DB
-from dlx.marc import BibSet, Bib, AuthSet, Auth
 from dlx_rest.config import Config
-
-#DB.connect(Config.connect_string)
+import certifi, sentry_sdk
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -18,8 +15,35 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
 
-connect(host=Config.connect_string,db=Config.dbname)
-DB.connect(Config.connect_string)
+try: 
+    sentry_dsn = Config.sentry_dsn
+    # Sentry setup
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        # We recommend adjusting this value in production.
+        profiles_sample_rate=1.0,
+    )
+
+    @app.context_processor
+    def inject_sentry_url():
+        return dict(sentry_js_url = Config.sentry_js_url)
+except AttributeError:
+    pass
+
+
+# dlx connect
+DB.connect(Config.connect_string, database=Config.dbname)
+
+# mongoengine connect
+if Config.ssl:
+    connect(host=Config.connect_string,db=Config.dbname, tlsCAFile=certifi.where())
+else:
+    connect(host=Config.connect_string,db=Config.dbname)
 
 try:
     app.secret_key=Config.secret_key

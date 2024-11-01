@@ -5,10 +5,11 @@ DLX REST API utilities
 import requests, json, jsonschema
 from copy import deepcopy
 from datetime import datetime, timezone
+from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
 from dlx.marc import Bib, BibSet, Auth, AuthSet
-from dlx_rest.models import Basket
+from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
 
@@ -192,36 +193,88 @@ def brief_bib(record):
     
     if record.get_value('245', 'a'):
         head = ' '.join(record.get_values('245', 'a', 'b', 'c'))
-    elif record.get_value('710', 'a'):
-        head, member = record.get_value('700', 'a'), record.get_value('710', 'a')
+    elif record.get_value('700', 'a') or record.get_value('710', 'a') or record.get_value('711', 'a'):
+        head, member = ' '.join([record.get_value('700', 'a'), record.get_value('700', 'g') or '']), record.get_value('710', 'a') or record.get_value('711', 'a')
         
-        if member:
+        if head and member:
             head += f' ({member})'
+        elif member:
+            head = member
     else:
         head = None
+    
+    agendas = []
+    f596 = []
+    if "Speeches" in ctypes:
+        agendas = [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')]
+        f596 = [' '.join(field.get_values('a')) for field in record.get_fields('596')]
+
+    # Should be truncated in display with hover showing the rest
+    f520 = [record.get_value('520', 'a')]
 
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
         'symbol': '; '.join(record.get_values('191', 'a') or record.get_values('791', 'a')),
         'title': head or '[No Title]',
-        'date': record.get_value('269', 'a'),
-        'types': '; '.join(ctypes)
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'types': '; '.join(ctypes),
+        'agendas': agendas,
+        'f596': f596,
+        'f520': f520
+    }
+
+def brief_speech(record):
+    # This is much more specific than the regular search results we're populating with brief_bib and brief_auth
+
+    return {
+        '_id': record.id,
+        'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
+        'symbol': '; '.join(record.get_values('791', 'a')),
+        'speaker': record.get_value('700', 'a'),
+        'speaker_country': record.get_value('700', 'g'),
+        'country_org': record.get_value('710', 'a') or record.get_value('711', 'a'),
+        'date': '; '.join(record.get_values('992', 'a') or record.get_values('269', 'a')),
+        'agendas': [' '.join(field.get_values('a', 'b', 'c','d')) for field in record.get_fields('991')],
+        # This item_locked function is running for each record returned in this API call
+        #'locked': item_locked("bibs", record.id)["locked"],
+        'locked': False,
+        #'myBasket': False
     }
 
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
+    alt_field = '; '.join(record.get_values(alt_tag))
+
+    if record.heading_field.tag == '191':
+        f491 = '; '.join(record.get_values('491','a','b','c','d'))
+        f591 = '; '.join(record.get_values('591','a','b','c','d'))
+        heading_alt_ary = []
+        for f in [f491, f591]:
+            if len(f) > 0:
+                heading_alt_ary.append(f)
+        alt_field = '; '.join(heading_alt_ary)
 
     return {
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
-        'alt': '; '.join(record.get_values(alt_tag, 'a')),
+        'alt': alt_field,
         'heading_tag': record.heading_field.tag
     }
 
 def item_locked(collection, record_id):
+    # mongoengine _get_collection method allows regular pymongo queries 
+    basket = Basket._get_collection().find_one({"items.collection": collection, "items.record_id": str(record_id)})
+
+    if basket:    
+        owner = User._get_collection().find_one({"_id": basket["owner"]})
+        return {"locked": True, "in": basket["name"], "by": owner["email"], "item_id": basket["items"][0]['id']}
+    else:
+        return {"locked": False}
+
+    # old
     for basket in Basket.objects:
         try:
             lock = list(filter(lambda x: x['record_id'] == str(record_id) and x['collection'] == collection, basket.items))
@@ -269,7 +322,6 @@ def has_permission(user, action, record, collection):
                 bool_list.append("F")
     else:
         bool_list.append("F")
-    print("boolean list:",bool_list)
     if "F" in bool_list:
         return False
     else:
