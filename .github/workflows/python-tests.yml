@@ -5,7 +5,7 @@ name: Python package
 
 on:
   pull_request:
-    types: [ opened, synchronize, reponend ]
+    types: [ opened, synchronize, reopened ]
     
 env:
   DLX_REST_TESTING: True
