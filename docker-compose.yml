@@ -1,21 +1,17 @@
-version: '3'
+version: '3.11'
 
 services:
-  dlx_rest:
-    container_name: dlx_rest
-    restart: always
-    build: .
-    expose:
-      - 8000
-    command: gunicorn -w 1 -b :8000 dlx_rest.app:app
-    volumes:
-      - ~/.aws/:/root/.aws/:ro
 
-  nginx:
-    container_name: nginx
-    restart: always
-    build: ./nginx
+  ods:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/usr/src/app'
     ports:
-      - "80:80"
-    depends_on:
-      - dlx_rest
+      - 5001:5000
+    environment:
+      - FLASK_ENV=development
+    env_file:
+      - ".env"
+    command: gunicorn dlx_rest.app:app --workers 3 --bind :5000 --timeout 900
