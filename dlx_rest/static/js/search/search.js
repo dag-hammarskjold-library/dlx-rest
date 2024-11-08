@@ -1,5 +1,6 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
+import { itemaddcomponent } from "./itemadd.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
@@ -206,7 +207,8 @@ export let searchcomponent = {
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                        <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
+                        <itemaddcomponent v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox"></itemaddcomponent>
                     </div>
                 </div>
             </div>
@@ -291,10 +293,11 @@ export let searchcomponent = {
             lookup_maps: {},
             expressions: [],
             vcoll: null,
-            searchTime: 0,
+            searchTime: "?",
             maxTime: 20000, //milliseconds
             headFilters: ['100','110','111', '130', '150','190','191'],
             abortController: new AbortController(),
+            myProfile: {},
             myBasket: {},
             user: null,
             collectionTitle: null,
@@ -307,10 +310,18 @@ export let searchcomponent = {
     mounted: async function() {
         let component = this;
         this.collectionTitle = component.collection;
+        this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
+        this.user = this.myProfile.data.email;
+        this.myBasket = await basket.getBasket(this.api_prefix);
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
         window.addEventListener("click", function(event) {
+            if (event.target.parentElement === null) {
+                // probably a modal
+                return
+            }
+
             if (
                 event.target.classList.contains("preview-toggle")
                 || event.target.classList.contains("record-preview")
@@ -331,8 +342,7 @@ export let searchcomponent = {
         
         // [what is this used for?]
         if (component.collection == "auths") {
-            
-            let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
+            /* let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
             component.lookup_maps['auths'] = authMapData.data;
@@ -340,7 +350,7 @@ export let searchcomponent = {
             let bibLookupMapUrl = `${component.api_prefix}marc/bibs/lookup/map`
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
-            component.lookup_maps['bibs'] = bibMapData.data;
+            component.lookup_maps['bibs'] = bibMapData.data; */
         } else if (component.collection == "bibs") {
             //this.searchFields = this.bibSearchFields
         }
@@ -455,62 +465,7 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        ).then( 
-            () => {
-                user.getProfile(component.api_prefix, 'my_profile').then(
-                    myProfile => {
-                        if (myProfile) {
-                            component.user = myProfile.data.email;
-                        }
-                    
-                        if (typeof component.user !== "undefined") {
-                            basket.getBasket(component.api_prefix).then(
-                                myBasket => {
-                                    this.myBasket = myBasket
-                                    for (let result of component.results) {
-                                        let myId = `icon-${component.collection}-${result._id}`;
-                                        let iconEl = document.getElementById(myId);
-
-                                        let myCheckboxId = `input-${component.collection}-${result._id}`;
-                                        let inputEl = document.getElementById(myCheckboxId);
-                                    
-                                        if (component.basketContains(myBasket, component.collection, result._id)) {
-                                            //iconEl.classList.remove('fa-folder-plus',);
-                                            iconEl.classList.add("fa-folder-minus");
-                                            iconEl.classList.add("text-muted");
-                                            iconEl.title = "Remove from basket";
-                                        } else {
-                                            iconEl.classList.add('fa-folder-plus');
-                                            iconEl.title = "Add to basket";
-                                            inputEl.disabled = false
-                                        }
-
-                                        // checking if the record is locked and displaying a lock if it is.
-                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                            itemLocked => {
-                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                    // Display a lock icon
-                                                    iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.remove('fa-folder-minus',);
-                                                    iconEl.classList.add('fa-lock',);
-                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                                                    // revert link to read only view. 
-                                                    // TODO: acquire the lock status earlier 
-                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
-                                                    inputEl.disabled = true
-                                                } else {
-                                                    iconEl.addEventListener("click", component.handleIconClick, true)
-                                                }
-                                            }
-                                        );
-                                    }
-                                }
-                            )
-                        }        
-                    }
-                )
-            }
-        );
+        )
         
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
@@ -563,47 +518,10 @@ export let searchcomponent = {
                 }
             }
         },
-        basketContains(basketContents, collection, record_id) {
-            for (let item of basketContents) {
-                if (item.collection == collection && item.record_id == record_id) {
-                    return true;
-                }
-            }
-            return false;
-        },
         refreshBasket() {
             basket.getBasket(this.api_prefix).then( (b) => {
                 this.myBasket = b
             })
-        },
-        async handleIconClick(e) {
-            let collection = e.target.id.split("-")[1]
-            let record_id = e.target.id.split("-")[2]
-            e.target.classList.add("fa-spinner");
-            if (e.target.classList.contains("fa-folder-plus")) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-plus");
-                    e.target.classList.add("fa-folder-minus");
-                    e.target.classList.add("text-muted");
-                    e.target.title = "Remove from basket";
-                })
-            } else if (e.target.classList.contains("fa-folder-minus")) {
-                await basket.deleteItem(this.myBasket, collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-minus");
-                    e.target.classList.add("fa-folder-plus");
-                    e.target.classList.remove("text-muted");
-                    e.target.title = "Add to basket";
-                })
-            } //else if (e.target.classList.contains("fa-lock")) {
-                // To do: unlock
-            //} 
-            else {
-                return false
-            }
-            this.refreshBasket()
-            return true
         },
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
@@ -761,7 +679,7 @@ export let searchcomponent = {
         selectAll(e)  {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled && inputEl.id != "customSwitch1") {
                     inputEl.checked = true
                 }
             }
@@ -769,10 +687,19 @@ export let searchcomponent = {
         selectNone(e) {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox") {
+                if (inputEl.type == "checkbox" && inputEl.id != "customSwitch1") {
                     inputEl.checked = false
                 }
             }
+        },
+        enableCheckbox(recordId) {
+            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+            el.disabled = false;
+        },
+        disableCheckbox(recordId) {
+            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+            el.checked = false;
+            el.disabled = true;
         },
         async sendToBasket(e) {
             e.preventDefault()
@@ -835,12 +762,10 @@ export let searchcomponent = {
             toggleButton.className = "fas fa-file preview-toggle";
             toggleButton.title = "preview record";
         },
-
         showExportModal() {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
         },
-          
         toggleEngine(e) {
             // toggle the search type
             console.log("Toggling search engine")
@@ -852,6 +777,7 @@ export let searchcomponent = {
     components: {
         'sortcomponent': sortcomponent, 
         'countcomponent': countcomponent,
-        'exportmodal': exportmodal
+        'exportmodal': exportmodal,
+        'itemaddcomponent': itemaddcomponent
     }
 }

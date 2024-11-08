@@ -313,7 +313,6 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort') or 'updated'
-        sort_by = 'subject' if sort_by == 'heading' else sort_by
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
 
