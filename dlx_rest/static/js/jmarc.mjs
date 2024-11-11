@@ -398,7 +398,7 @@ export class DataField {
 				
 				return choices
 			}
-		)
+		).catch(error => {throw error})
 	}
 }
 
@@ -636,7 +636,7 @@ export class Jmarc {
 	
 	static async listWorkforms(collection) {
 	    let response = await fetch(Jmarc.apiUrl + `marc/${collection}/workforms`);
-        let json = await response.json();
+        let json = await response.json().catch(error => {throw error})
         
         return json.data.map(
             url => url.split("/").slice(-1)[0]
@@ -672,7 +672,7 @@ export class Jmarc {
 
                 return jmarc;
             }
-        )
+        ).catch(error => {throw error})
 	}
     
     static async deleteWorkform(collection, workformName) {
@@ -685,7 +685,7 @@ export class Jmarc {
             json => {
                 return true
             }
-        )
+        ).catch(error => {throw error})
     }
 
     async saveWorkform(workformName, description) {
@@ -824,7 +824,7 @@ export class Jmarc {
 				return Jmarc.get(this.collection, this.recordId)
 			}
 		).catch(
-		    error => { throw new Error(error) }
+		    error => { throw error }
 		)
 	}
 
@@ -867,7 +867,7 @@ export class Jmarc {
 				return Jmarc.get(this.collection, this.recordId)
 			} 
 		).catch(
-			 error => { throw new Error(error) }
+			 error => { throw error }
 		)
 	}
 	
@@ -904,7 +904,7 @@ export class Jmarc {
 				throw new Error(`Something went wrong: ${check}`)
 			}
 		).catch(
-			error => { throw new Error(error) }
+			error => { throw error }
 		)
 	}
 
@@ -1009,11 +1009,13 @@ export class Jmarc {
 		
 		let response = await fetch(this.url + "/history");
 		let json = await response.json();
+		if (response.status != 200) throw new Error(json['message']);
 		let data = json['data'];
 		let promises = data.map(async result => {
 			let jmarc = new Jmarc(this.collection);
 			let response = await fetch(result.event);
 			let json = await response.json();
+			if (response.status != 200) {throw new Error(json['message'])}
 			return jmarc.parse(json['data']);
 		});
 
@@ -1205,6 +1207,7 @@ export class Jmarc {
 				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
 				const res = await fetch(url);
 				const json = await res.json();
+				if (res.status != 'OK') {throw new Error(json['message'])}
 				const results = json['data'];
 	
 				if (results.length > 0) inUse = true
@@ -1232,8 +1235,13 @@ export class Jmarc {
     	    .join(" AND ")
 
 		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
-		let res = await fetch(url)
-		let json = await res.json()
+		let response = await fetch(url).catch(e => {throw e});
+		let json = await response.json()
+		
+		if (response.status !== 200) {
+			throw new Error(json['message'])
+		}
+
 		let count = json['data']
 
 		if (count === 1) {
@@ -1252,14 +1260,17 @@ export class Jmarc {
 		
 		let searchStr = 
     	    headingField.subfields
-			// regex ensures exact match since db collation may be set to case-insenstive
-			// there is no builtin method to escape regex in JS? https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
-    	    .map(x => `${headingField.tag}__${x.code}:/^${x.value.replace(/[.*+?^${}()\\/|[\]\\]/g, "\\$&")}$/`)
+			.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
     	    .join(" AND ");
 
-    	let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);
-		let res = await fetch(url);
-		let json = await res.json();
+    	const url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);
+		const response = await fetch(url).catch(e => {throw e});
+		const json = await response.json();
+
+		if (response.status !== 200) {
+			throw new Error(json['message'])
+		}
+		
 		let count = json['data'];
 
 		if (count === 0) {
