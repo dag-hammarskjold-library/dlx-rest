@@ -46,7 +46,7 @@ if Config.ssl:
 else:
     if 'mongomock://' in Config.connect_string:
         # mongoengine noew requires connect to mock db using `mongo_client_class`
-        connect('mongodb://localhost', mongo_client_class=MockClient)
+        connect('testing', host='mongodb://localhost', mongo_client_class=MockClient)
     else:
         connect(host=Config.connect_string, db=Config.dbname)
 
