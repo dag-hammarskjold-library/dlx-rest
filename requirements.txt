@@ -16,7 +16,7 @@ itsdangerous==2.1.2
 mongoengine==0.24.1
 py==1.11.0
 pyparsing==3.2.0
-python-ulid==1.1.0
+python-ulid==3.0.0
 sentry-sdk==2.8.0
 troposphere==4.0.1
 WTForms==3.0.1
