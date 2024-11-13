@@ -85,7 +85,7 @@ export let importcomponent = {
                 <div class="row">
                     <div class="ml-auto mb-4">
                         <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
-                        <button type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
+                        <button v-if="selectedRecords > 0" type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit Selected Records</button>
                     </div>
                 </div>
             </div>
@@ -106,7 +106,7 @@ export let importcomponent = {
             <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
         </div>
     </div>`,
-    data: function () { 
+    data: function () {
         return {
             // Setting the import type here lets us expand this later
             importType: "records",
@@ -120,7 +120,8 @@ export let importcomponent = {
             issues: 0,
             uiBase: "",
             showErrors: false,
-            detectedSpinner: false
+            detectedSpinner: false,
+            selected: 0
         }
     },
     created: function () {
@@ -145,12 +146,21 @@ export let importcomponent = {
                 }
             }
             return count
+        },
+        selectedRecords: function () {
+            let count = 0
+            for (let record of this.records) {
+                if (record.checked) {
+                    count += 1
+                }
+            }
+            return count
         }
     },
     methods: {
         reinitApp: function () {
             this.records = []
-            this.showErrors=false
+            this.showErrors = false
             this.state = 'init'
             this.collection = "bibs"
         },
@@ -196,7 +206,7 @@ export let importcomponent = {
             this.detectedSpinner = true
             reader.onload = (res) => {
                 for (let mrk of res.target.result.split(/(\r\n *\r\n|\n *\n)/)) {
-                    let promise = Jmarc.fromMrk(this.collection, mrk).then( jmarc => {
+                    let promise = Jmarc.fromMrk(this.collection, mrk).then(jmarc => {
                         // The only classes of validation errors we care about are:
                         // 1. Is there a duplicate symbol? If so, warn but allow import.
                         // 2. Do all the auth controlled fields match existing auth 
@@ -205,23 +215,23 @@ export let importcomponent = {
                         let fatalErrors = []
 
                         if (jmarc.fields.length > 0) {
-                            jmarc.symbolInUse().then( symbolInUse => {
+                            jmarc.symbolInUse().then(symbolInUse => {
                                 if (symbolInUse) {
                                     this.issues += 1
-                                    validationErrors.push({"message": "Duplicate Symbol Warning: The symbol for this record is already in use."})
+                                    validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
                                 }
                             });
 
-                            for (let field of jmarc.fields.filter(x => ! x.tag.match(/^00/))) {
+                            for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
                                 for (let subfield of field.subfields.filter(x => 'xref' in x)) {
                                     if (subfield.xref instanceof Error) {
                                         // unresolved xrefs are set to an Error object
-                                        fatalErrors.push({"message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}`})
+                                        fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
                                     }
                                 }
                             }
 
-                            this.records.push({"jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false})
+                            this.records.push({ "jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
                         }
                     }).catch(error => {
                         throw error
@@ -232,7 +242,7 @@ export let importcomponent = {
 
                 Promise.all(promises).then(x => this.detectedSpinner = false)
             }
-            
+
         },
         selectAll() {
             for (let record of this.records) {
@@ -264,7 +274,7 @@ export let importcomponent = {
                 .catch(error => {
                     // may need some user notifcation here?
                     throw error
-            })
+                })
         },
         filterView(e) {
             let values = [e.target.value]
@@ -278,7 +288,7 @@ export let importcomponent = {
             }
             for (let el of document.getElementsByClassName("field")) {
                 let found = values.find((v) => el.dataset.tag.startsWith(v))
-                if (e.target.value > 0 || values.length > 0){
+                if (e.target.value > 0 || values.length > 0) {
                     if (!found) {
                         el.style.display = "none"
                     } else {
