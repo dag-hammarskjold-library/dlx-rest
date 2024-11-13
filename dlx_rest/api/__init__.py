@@ -14,6 +14,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
+from pymongo.errors import ExecutionTimeout
 from pymongo.collation import Collation
 from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
@@ -269,7 +270,7 @@ class RecordsList(Resource):
             except InvalidQueryString as e:
                 abort(422, str(e))
         else:
-            query = Query({}) 
+            query = Query({})
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -326,8 +327,12 @@ class RecordsList(Resource):
             recordset = cls.from_aggregation(pipeline, collation=collation)
         else:
             sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
-            recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-        
+            
+            try:
+                recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
+            except ExecutionTimeout as e:
+                abort(408, str(e))
+
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(write_id=True), mimetype='text/xml')
@@ -495,12 +500,15 @@ class RecordsListCount(Resource):
                 pipeline.append({'$count': 'count'})
                 data = list(cls().handle.aggregate(pipeline))[0]['count']
             else:
-                data = cls().handle.count_documents(
-                    query.compile(),
-                    # collation is not implemented in mongomock
-                    collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
-                    maxTimeMS=Config.MAX_QUERY_TIME
-                )
+                try:
+                    data = cls().handle.count_documents(
+                        query.compile(),
+                        # collation is not implemented in mongomock
+                        collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                        maxTimeMS=Config.MAX_QUERY_TIME
+                    )
+                except ExecutionTimeout as e:
+                    abort(408, str(e))
         else:
             data = cls().handle.estimated_document_count()
         
