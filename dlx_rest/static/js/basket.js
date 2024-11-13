@@ -204,7 +204,8 @@ export let basketcomponent = {
                 ).catch(
                     error => {
                         // alert that debugging is needed
-                        this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger")
+                        this.callChangeStyling(`Basket item ${element.collection} / ${element.record_id} failed to load`, "d-flex w-100 alert-danger");
+                        throw error;
                     }
                 )
             }
