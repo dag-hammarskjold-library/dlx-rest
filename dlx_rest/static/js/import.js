@@ -253,7 +253,8 @@ export let importcomponent = {
                             // Set a field indicating the record was imported
                             let importField = jmarc.createField("999")
                             let importSubfield = importField.createSubfield("a")
-                            importSubfield.value = "importDATE"
+                            const today = new Date()
+                            importSubfield.value = `import${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
