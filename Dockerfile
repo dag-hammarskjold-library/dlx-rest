@@ -15,3 +15,5 @@ RUN pip install -r requirements.txt
 RUN pip install gunicorn
 
 COPY . /usr/src/app
+
+CMD ["gunicorn", "--bind", ":5000", "dlx_rest.app:app"]
