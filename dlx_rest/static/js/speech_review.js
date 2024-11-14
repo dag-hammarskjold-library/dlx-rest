@@ -20,7 +20,8 @@ export let speechreviewcomponent = {
             <div class="input-group mb-3">
                 <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches" v-model="searchTerm" @keyup="updateSearchQuery">
                 <div class="input-group-append">
-                    <a class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                    <a v-if="searchTerm" class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                    <a v-else class="btn" style="color: lightgray" type="button" disabled>Submit</a>
                 </div>
             </div>
         </form>
@@ -168,6 +169,11 @@ export let speechreviewcomponent = {
             window.history.replaceState(null, "", url)
         },
         submitSearch() {
+            if (!this.searchTerm) {
+                window.alert("Search term required");
+                return
+            }
+
             // Do the search and update this.speeches
             let search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=1&limit=50000`
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
