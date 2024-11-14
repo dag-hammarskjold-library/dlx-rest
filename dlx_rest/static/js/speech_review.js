@@ -168,28 +168,41 @@ export let speechreviewcomponent = {
             url.searchParams.set("q", this.searchTerm)
             window.history.replaceState(null, "", url)
         },
-        submitSearch() {
+        async submitSearch() {
             if (!this.searchTerm) {
                 window.alert("Search term required");
                 return
             }
 
             // Do the search and update this.speeches
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=1&limit=50000`
+            // get the count
+            const countUrl = `${this.api_prefix}marc/bibs/records/count?search=${this.searchTerm}&subtype=speech`;
+            const count = await fetch(countUrl).then(response => {
+                return response.json()
+            }).then(json => {
+                return json['data']
+            }).catch(e => {throw e});
+
+            let seen = 0;
+            let startTime = Date.now();
+            this.showSpinner = true;
+
+            while (seen < count) {
+                const search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=${seen+1}&limit=${100}`;
+                const records = await fetch(search_url).then(response => {
+                    return response.json()
+                }).then(json => {
+                    return json['data']
+                }).catch(e => {throw e});
+
+                records.forEach(record => {this.speeches.push(record)});
+                seen += records.length; 
+            }
+            
+            this.searchTime = (Date.now() - startTime) / 1000;
+            this.showSpinner = false;
             let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
-            let startTime = Date.now()
-            this.showSpinner = true
-            fetch(search_url).then(response => {
-                response.json().then(jsonData => {
-                    this.speeches = jsonData.data
-                }).then( () => {
-                    this.submitted = true
-                })
-            }).then( () => {this.showSpinner = false}).then(() => {
-                window.history.replaceState({},ui_url)
-            }).then( () => {
-                this.searchTime = (Date.now() - startTime) / 1000
-            })
+            window.history.replaceState({},ui_url);
         },
         toggleSelect(e) {
             let recordId = e.target.dataset.recordid
@@ -198,7 +211,6 @@ export let speechreviewcomponent = {
             } else {
                 this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
             }
-            
         },
         selectAll() {
             for (let i of document.querySelectorAll("input[type=checkbox]")) {
