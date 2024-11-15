@@ -20,6 +20,7 @@ class RegisterForm(FlaskForm):
 class CreateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     username = StringField('Username', validators=[DataRequired()])
+    shortname = StringField('Short Name', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
     roles = SelectMultipleField('Roles')
@@ -29,6 +30,7 @@ class CreateUserForm(FlaskForm):
 class UpdateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     username = StringField('Username', validators=[DataRequired()])
+    shortname = StringField('Short Name', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     # To do: Make this list come from the database.
     roles = SelectMultipleField('Roles')

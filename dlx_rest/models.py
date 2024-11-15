@@ -68,6 +68,7 @@ class RecordView(Document):
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
     username = StringField(max_length=200, required=True)
+    shortname = StringField(max_length=3, required=True)
     password_hash = StringField(max_length=200)
     roles = ListField(ReferenceField(Role))
     default_views = ListField(ReferenceField(RecordView))

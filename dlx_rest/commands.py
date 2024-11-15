@@ -78,9 +78,12 @@ def init_roles():
             this_permission = Permission(action=f'{action}{comp}')
             this_permission.save()
             admin_permissions.append(this_permission)
+
+    import_marc = Permission(action='importMarc')
     
     admin_permissions.append(auth_review)
     admin_permissions.append(merge_auth)
+    admin_permissions.append(import_marc)
     admin_role = Role(name="admin")
     admin_role.permissions = admin_permissions
     admin_role.save()
@@ -144,6 +147,8 @@ def init_roles():
     coll_admin = Role(name=f'bibs-NY-indexer')
     coll_admin.permissions = coll_perms
     coll_admin.save()
+
+    # To do: init the batch admin role
 
     # Resetting previously existing roles
     for r in user_roles:
