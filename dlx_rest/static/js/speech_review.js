@@ -106,8 +106,8 @@ export let speechreviewcomponent = {
     <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Speeches"></previewmodal>
     <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
-    data: function() {
-        let myUIBase = this.api_prefix.replace('/api/','')
+    data: function () {
+        let myUIBase = this.api_prefix.replace('/api/', '')
         return {
             speeches: [],
             submitted: false,
@@ -126,7 +126,7 @@ export let speechreviewcomponent = {
         // This function performs multifield sort using the objects stored in the sortColumns array
         // What goes in the sortColumns array, in what order, and how it gets there is handled by processSort() below
         sortedSpeeches: function () {
-            return this.speeches.sort( (a, b) => {
+            return this.speeches.sort((a, b) => {
                 // For each object in sortColumns, we want to perform the sort
                 // Each object is a defined column that exists in the incoming data
                 for (const i in this.sortColumns) {
@@ -159,7 +159,7 @@ export let speechreviewcomponent = {
     },
     methods: {
         async refreshBasket() {
-            basket.getBasket(this.api_prefix).then( (b) => {
+            basket.getBasket(this.api_prefix).then((b) => {
                 this.myBasket = b
             })
         },
@@ -181,35 +181,41 @@ export let speechreviewcomponent = {
                 return response.json()
             }).then(json => {
                 return json['data']
-            }).catch(e => {throw e});
+            }).catch(e => { throw e });
 
             let seen = 0;
             let startTime = Date.now();
             this.showSpinner = true;
 
+            let seenIds = []
             while (seen < count) {
-                const search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=${seen+1}&limit=${100}`;
+                const search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=${seen + 1}&limit=${100}`;
                 const records = await fetch(search_url).then(response => {
                     return response.json()
                 }).then(json => {
                     return json['data']
-                }).catch(e => {throw e});
+                }).catch(e => { throw e });
 
-                records.forEach(record => {this.speeches.push(record)});
-                seen += records.length; 
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id)
+                        this.speeches.push(record)
+                    }
+                });
+                seen += records.length;
             }
-            
+
             this.searchTime = (Date.now() - startTime) / 1000;
             this.showSpinner = false;
-            let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
-            window.history.replaceState({},ui_url);
+            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/speeches/review?q=${this.foundQ}`
+            window.history.replaceState({}, ui_url);
         },
         toggleSelect(e) {
             let recordId = e.target.dataset.recordid
-            if (this.selectedRecords.includes({"collection": "bibs", "record_id": recordId})) {
-                this.selectedRecords.splice(this.selectedRecords.indexOf({"collection": "bibs", "record_id": recordId}),1)
+            if (this.selectedRecords.includes({ "collection": "bibs", "record_id": recordId })) {
+                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
             } else {
-                this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+                this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
             }
         },
         selectAll() {
@@ -217,7 +223,7 @@ export let speechreviewcomponent = {
                 i.disabled ? i.checked = false : i.checked = true
                 let recordId = i.dataset.recordid
                 if (i.checked) {
-                    this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+                    this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
                 }
             }
         },
@@ -227,7 +233,7 @@ export let speechreviewcomponent = {
             }
             this.selectedRecords = []
         },
-        processSort: function(e, column) {
+        processSort: function (e, column) {
             // reset sort indicators
             for (let i of document.getElementsByTagName("i")) {
                 i.classList.replace("text-dark", "text-secondary")
@@ -250,17 +256,17 @@ export let speechreviewcomponent = {
                         // Otherwise we are changing the sort direction
                         existingColumn.direction = direction
                     }
-                } else {                    
+                } else {
                     existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc"
                     this.sortColumns = [existingColumn]
                 }
             } else {
                 if (e.shiftKey) {
                     // There was no existing column, and we want to add this to our list of columns
-                    this.sortColumns.push({column: column, direction: "asc"})
+                    this.sortColumns.push({ column: column, direction: "asc" })
                 } else {
                     // There was no existing column, and we want to make this our only sort column
-                    this.sortColumns = [{column:column, direction:"asc"}]
+                    this.sortColumns = [{ column: column, direction: "asc" }]
                 }
             }
             // Finally, go through the DOM and update the icons and badges according to the contents of sortColumns
@@ -286,7 +292,7 @@ export let speechreviewcomponent = {
             4. Update the folder icon for each item sent to the basket
             5. Empty this.selectedRecords
             */
-            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then( () => {
+            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then(() => {
                 for (let record of this.selectedRecords) {
                     let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
                     checkbox.checked = false
@@ -302,7 +308,7 @@ export let speechreviewcomponent = {
         toggleBasket: async function (e, speechId) {
             if (e.target.classList.contains("fa-folder-plus")) {
                 // add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then( () => {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then(() => {
                     let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
                     checkbox.disabled = true
                     e.target.classList.remove("fa-folder-plus")
@@ -310,7 +316,7 @@ export let speechreviewcomponent = {
                 })
             } else {
                 // remove from basket
-                await basket.deleteItem(this.myBasket, "bibs", speechId).then( () => {
+                await basket.deleteItem(this.myBasket, "bibs", speechId).then(() => {
                     let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
                     checkbox.disabled = false
                     e.target.classList.remove("fa-folder-minus")
@@ -338,7 +344,7 @@ export let speechreviewcomponent = {
         },
     },
     components: {
-        'sortcomponent': sortcomponent, 
+        'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'previewmodal': previewmodal,
         'agendamodal': agendamodal
