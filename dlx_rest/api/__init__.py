@@ -1734,6 +1734,7 @@ class MyUserProfileRecord(Resource):
         this_u = User.objects.get(id=current_user.id)
         user_id = this_u['id']
         return_data['email'] = this_u.email
+        return_data['shortname'] = this_u.shortname
         return_data['roles'] = []
         return_data['default_views'] = []
             
