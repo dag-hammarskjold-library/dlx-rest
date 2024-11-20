@@ -1,4 +1,5 @@
 import { Jmarc } from './jmarc.mjs'
+import user from "./api/user.js"
 
 export let importcomponent = {
     props: ["api_prefix"],
@@ -140,12 +141,17 @@ export let importcomponent = {
             uiBase: "",
             showErrors: false,
             detectedSpinner: false,
-            selected: 0
+            selected: 0,
+            userShort: null,
+            myProfile: {}
         }
     },
-    created: function () {
+    created: async function () {
         Jmarc.apiUrl = this.api_prefix
         this.uiBase = this.api_prefix.replace("/api", "")
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        // We only need the shortname of the user
+        this.userShort = this.myProfile.data.shortname
     },
     computed: {
         unimportableRecords: function () {
@@ -254,7 +260,8 @@ export let importcomponent = {
                             let importField = jmarc.createField("999")
                             let importSubfield = importField.createSubfield("a")
                             const today = new Date()
-                            importSubfield.value = `import${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            // user shortname
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })

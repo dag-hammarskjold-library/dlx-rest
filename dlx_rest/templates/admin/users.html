@@ -5,6 +5,7 @@
         <thead>
             <th>Email</th>
             <th>Username</th>
+            <th>Short Name</th>
             <th>Roles</th>
             <th>Default Views</th>
             <th>Actions</th>
@@ -14,19 +15,21 @@
             <tr>
                 <td>{{user.email}}</td>
                 <td>{{user.username}}</td>
+                <td>{{user.shortname}}</td>
                 <td>
                     {% for role in user.roles %}
-                        {{role.name}}{{ ", " if not loop.last else "" }}
+                    {{role.name}}{{ ", " if not loop.last else "" }}
                     {% endfor %}
                 </td>
                 <td>
                     {% for v in user.default_views %}
-                        {{v.collection}}/{{v.name}}
+                    {{v.collection}}/{{v.name}}
                     {% endfor %}
                 </td>
                 <td>
                     <i class="fas fa-edit"><a href="{{url_for('update_user', id=user.id)}}"> Edit</a></i> |
-                    <i class="fas fa-trash-alt"><a href="{{url_for('delete_user', id=user.id)}}"> Delete</a></i></td>
+                    <i class="fas fa-trash-alt"><a href="{{url_for('delete_user', id=user.id)}}"> Delete</a></i>
+                </td>
             </tr>
             {% endfor %}
             <tr>

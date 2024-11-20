@@ -138,7 +138,7 @@ def test_create_user(client, default_users):
     assert response.status_code == 403
 
     response = client.post('/admin/users/new', data={
-        'email': 'new_test_user@un.org', 'password': 'password'
+        'email': 'new_test_user@un.org', 'shortname': 'ntu', 'password': 'password'
     })
     assert response.status_code == 403
 
@@ -149,7 +149,7 @@ def test_create_user(client, default_users):
     assert response.status_code == 403
 
     response = client.post('/admin/users/new', data={
-        'email': 'new_test_user@un.org', 'password': 'password'
+        'email': 'new_test_user@un.org', 'shortname': 'ntu', 'password': 'password'
     })
     assert response.status_code == 403
 
@@ -163,7 +163,7 @@ def test_create_user(client, default_users):
 
     new_user = default_users['new']
     response = client.post('/admin/users/new', data={
-        'email': new_user['email'], 'username': new_user['username'], 'password': new_user['password']
+        'email': new_user['email'], 'username': new_user['username'], 'shortname': new_user['shortname'], 'password': new_user['password']
     })
     assert response.status_code == 302
 
@@ -186,7 +186,7 @@ def test_update_user(client, default_users):
     assert response.status_code == 403
 
     response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
-        'email':'foo@bar.com', 'password': 'password'
+        'email':'foo@bar.com', 'shortname': 'foo', 'password': 'password'
     })
     assert response.status_code == 403
 
@@ -197,7 +197,7 @@ def test_update_user(client, default_users):
     assert response.status_code == 403
 
     response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
-        'email':'foo@bar.com', 'password': 'password'
+        'email':'foo@bar.com', 'shortname': 'foo', 'password': 'password'
     })
     assert response.status_code == 403
     logout(client)
@@ -209,7 +209,7 @@ def test_update_user(client, default_users):
     assert response.status_code == 200
 
     response = client.post('/admin/users/{}/edit'.format(str(edited_user.id)), data={
-        'email':'foo@bar.com', 'password': 'password'
+        'email':'foo@bar.com', 'shortname': 'foo', 'password': 'password'
     })
     assert response.status_code == 302
     logout(client)
