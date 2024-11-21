@@ -174,10 +174,12 @@ export let speechreviewcomponent = {
                 return
             }
 
-            let next = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech`;
+            this.speeches = []
+            this.showSpinner = true
             const startTime = Date.now();
             const seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
-            
+            let next = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech`;
+
             while (1) {
                 let records;
 
@@ -190,7 +192,7 @@ export let speechreviewcomponent = {
                     // todo: alert user there was an error
                     throw e
                 });
-                
+
                 if (records.length === 0) {
                     break
                 }
