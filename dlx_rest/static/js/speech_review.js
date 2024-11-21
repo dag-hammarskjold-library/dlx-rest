@@ -174,34 +174,32 @@ export let speechreviewcomponent = {
                 return
             }
 
-            // Do the search and update this.speeches
-            // get the count
-            const countUrl = `${this.api_prefix}marc/bibs/records/count?search=${this.searchTerm}&subtype=speech`;
-            const count = await fetch(countUrl).then(response => {
-                return response.json()
-            }).then(json => {
-                return json['data']
-            }).catch(e => { throw e });
-
             let seen = 0;
             let startTime = Date.now();
-            this.showSpinner = true;
-
-            let seenIds = []
-            while (seen < count) {
+            let seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
+            
+            while (1) {
                 const search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=${seen + 1}&limit=${100}`;
                 const records = await fetch(search_url).then(response => {
                     return response.json()
                 }).then(json => {
                     return json['data']
-                }).catch(e => { throw e });
+                }).catch(e => {
+                    // todo: alert user there was an error
+                    throw e
+                });
+                
+                if (records.length === 0) {
+                    break
+                }
 
                 records.forEach(record => {
                     if (!seenIds.includes(record._id)) {
-                        seenIds.push(record._id)
-                        this.speeches.push(record)
+                        seenIds.push(record._id);
+                        this.speeches.push(record);
                     }
                 });
+
                 seen += records.length;
             }
 
