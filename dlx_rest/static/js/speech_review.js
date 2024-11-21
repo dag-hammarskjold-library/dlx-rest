@@ -176,17 +176,18 @@ export let speechreviewcomponent = {
 
             this.speeches = []
             this.showSpinner = true
-
-            let seen = 0;
-            let startTime = Date.now();
-            let seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
+            const startTime = Date.now();
+            const seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
+            let next = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech`;
 
             while (1) {
-                const search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=${seen + 1}&limit=${100}`;
-                const records = await fetch(search_url).then(response => {
+                let records;
+
+                await fetch(next).then(response => {
                     return response.json()
                 }).then(json => {
-                    return json['data']
+                    next = json['_links']['_next']
+                    records = json['data']
                 }).catch(e => {
                     // todo: alert user there was an error
                     throw e
@@ -202,8 +203,6 @@ export let speechreviewcomponent = {
                         this.speeches.push(record);
                     }
                 });
-
-                seen += records.length;
             }
 
             this.searchTime = (Date.now() - startTime) / 1000;
