@@ -1,0 +1,17 @@
+version: '3.11'
+
+services:
+
+  ods:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/usr/src/app'
+    ports:
+      - 5001:5000
+    environment:
+      - FLASK_ENV=development
+    env_file:
+      - ".env"
+    command: gunicorn dlx_rest.app:app --workers 3 --bind :5000 --timeout 900
