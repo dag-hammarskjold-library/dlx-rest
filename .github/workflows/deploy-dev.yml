@@ -2,7 +2,7 @@ name: Build and deploy to AWS Elastic Beanstalk
 
 on:
     push:
-        branches: [main, beanstalk]
+        branches: [main, _beanstalk]
 
 jobs:
     build:
