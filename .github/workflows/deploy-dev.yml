@@ -12,7 +12,7 @@ jobs:
 
             - name: Install git
               run: |
-                sudo apt install git-all
+                sudo apt-get update && apt-get install git-all
 
             - name: Set up Python 3.12
               uses: actions/setup-python@v5
