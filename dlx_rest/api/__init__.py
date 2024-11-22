@@ -281,7 +281,7 @@ class RecordsList(Resource):
         # format
         fmt = args['format'] or None
 
-        if fmt != 'brief_speech' and limit > 1000:
+        if limit > 1000:
             abort(404, 'Maximum limit is 1000')
         
         if fmt == 'brief':
