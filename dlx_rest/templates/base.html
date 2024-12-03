@@ -75,7 +75,9 @@
         <!-- Fixed navbar -->
         <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
             <a class="navbar-brand" href="{{url_for('get_records_list', coll='bibs')}}">
-                <img src="{{ url_for('static', filename='img/dhl.png') }}" style="width:60px;height:60px;"> MARC Editor
+                <img src="{{ url_for('static', filename='img/dhl.png') }}" style="width:60px;height:60px;">
+                MARC Editor
+                <span style="font-size: 9px">{{ version }}</span>
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
             <div class="collapse navbar-collapse" id="navbarToggler">
