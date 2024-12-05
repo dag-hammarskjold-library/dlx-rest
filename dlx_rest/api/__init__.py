@@ -316,6 +316,7 @@ class RecordsList(Resource):
         sort_by = args.get('sort') or 'updated'
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
+        sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
