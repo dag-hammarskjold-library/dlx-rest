@@ -81,7 +81,7 @@ export let batcheditmodal = {
                                         <input v-if="matchesReferrer(item.collection, item._id) && includeReferrer" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                         <input v-if="!matchesReferrer(item.collection, item._id)" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                     </td>
-                                    <td><label class="form-check-label" :for="item._id">{{item.title}} ({{item.collection}}/{{item._id}})</label></td>
+                                    <td><label class="form-check-label" :for="item._id">{{item.title}} ({{item.vcoll}}/{{item._id}})</label></td>
                                 </tr>
                                 </tbody>
                             </table>
