@@ -39,6 +39,11 @@ return_configs = {
     "ver": Config.VERSION
 }
 
+
+@app.context_processor
+def get_version():
+    return dict(version=Config.VERSION)
+
 # Main app routes
 @app.route('/')
 def index():
