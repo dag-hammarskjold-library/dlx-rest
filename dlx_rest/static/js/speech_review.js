@@ -33,7 +33,7 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <div v-if="submitted">{{speeches.length}} results returned in {{searchTime}} seconds</div>
-        <div v-if="speeches.length > 0">
+        <div v-if="speeches.length > 0" @click.prevent>
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
@@ -125,7 +125,8 @@ export let speechreviewcomponent = {
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
-            isDragging: false
+            isDragging: false,
+            selectedRows: []
         }
     },
     computed: {
@@ -219,12 +220,11 @@ export let speechreviewcomponent = {
         },
         toggleSelect(e, speech) {
             let recordId = e.target.dataset.recordid
-            if (this.selectedRecords.includes({ "collection": "bibs", "record_id": recordId })) {
-                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
-                speech.selected = false
-            } else {
+            speech.selected = !speech.selected
+            if (speech.selected) {
                 this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
-                speech.selected = true
+            } else {
+                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
             }
         },
         selectAll() {
@@ -279,8 +279,7 @@ export let speechreviewcomponent = {
         selectRows() {
             const startIdx = this.speeches.indexOf(this.dragStart)
             const endIdx = this.speeches.indexOf(this.dragEnd)
-            
-            console.log(this.selectedRows)
+
             this.selectedRows.forEach(row => {
                 let i = row.getElementsByTagName("input")[0]
                 if (!i.disabled && !i.checked) {
@@ -357,6 +356,9 @@ export let speechreviewcomponent = {
                     icon.classList.add("fa-folder-minus")
                 }
                 this.selectedRecords = []
+                this.speeches.forEach(speech => {
+                    speech.selected = false
+                })
                 this.refreshBasket()
             })
         },
