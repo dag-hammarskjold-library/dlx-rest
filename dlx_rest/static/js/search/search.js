@@ -208,7 +208,7 @@ export let searchcomponent = {
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
                         <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
-                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox; result.locked=true"></itemaddcomponent>
+                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox; result.locked=false" @disableCheckbox="disableCheckbox; result.locked=true"></itemaddcomponent>
                     </div>
                 </div>
             </div>
