@@ -3457,7 +3457,9 @@ function keyupAuthLookup(event) {
             // the dropdown list is being navigated. not sure why it triggers the inupt event
             return
         }
-
+        // Comment via #1530: This does trim the value currently stored, but
+        // it doesn't appear to update the value submitted via the "+" icon 
+        // that saves the record.
         subfield.value = subfield.valueSpan.innerText.trim();
     } else if (event.type == "paste") {
         subfield.value = event.clipboardData.getData("text").trim();
@@ -3492,7 +3494,10 @@ function keyupAuthLookup(event) {
         let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
         
         for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
-            newField.createSubfield(s.code).value = s.value
+            // Comment via #1530: The trim method added here saves the value properly, but
+            // it still doesn't show up in the record without the leading space until the 
+            // record is saved. 
+            newField.createSubfield(s.code).value = s.value.trim()
         }
 
         newField = auth.createField("040", "a");
