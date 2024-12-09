@@ -182,12 +182,12 @@ export let searchcomponent = {
                 </div>
                 <div class="col-sm-9 px-4">
                     <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <a v-if="!result.locked" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
                     <div v-else class="row" style="flex-wrap:inherit">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                        <a v-if="!result.locked" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
                         <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
                         <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
                     </div>
@@ -208,7 +208,7 @@ export let searchcomponent = {
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
                         <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
-                        <itemaddcomponent v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox"></itemaddcomponent>
+                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox" @disableCheckbox="disableCheckbox; result.locked=true"></itemaddcomponent>
                     </div>
                 </div>
             </div>
@@ -246,7 +246,7 @@ export let searchcomponent = {
                 myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
             }
         }
-        let myUIBase = this.api_prefix.replace('/api/','');
+        let myUIBase = this.api_prefix.replace('/api/', '');
         return {
             visible: true,
             results: [],
@@ -276,11 +276,11 @@ export let searchcomponent = {
             */
             searchFields: [],
             searchTypes: [
-                {'name': 'All of the words:', 'value': 'all'},
-                {'name': 'Any of the words:', 'value': 'any'},
-                {'name': 'Exact phrase:', 'value': 'exact'},
-                {'name': 'Partial phrase:', 'value': 'partial'},
-                {'name': 'Regular expression:', 'value': 'regex'},
+                { 'name': 'All of the words:', 'value': 'all' },
+                { 'name': 'Any of the words:', 'value': 'any' },
+                { 'name': 'Exact phrase:', 'value': 'exact' },
+                { 'name': 'Partial phrase:', 'value': 'partial' },
+                { 'name': 'Regular expression:', 'value': 'regex' },
             ],
             uibase: myUIBase,
             count: null,
@@ -295,7 +295,7 @@ export let searchcomponent = {
             vcoll: null,
             searchTime: "?",
             maxTime: 20000, //milliseconds
-            headFilters: ['100','110','111', '130', '150','190','191'],
+            headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             abortController: new AbortController(),
             myProfile: {},
             myBasket: {},
@@ -304,10 +304,10 @@ export let searchcomponent = {
             engine: "community"
         }
     },
-    created: async function() {
+    created: async function () {
         this.allowDirectEdit = this.logged_in ? true : false;
     },
-    mounted: async function() {
+    mounted: async function () {
         let component = this;
         this.collectionTitle = component.collection;
         this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
@@ -316,7 +316,7 @@ export let searchcomponent = {
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
-        window.addEventListener("click", function(event) {
+        window.addEventListener("click", function (event) {
             if (event.target.parentElement === null) {
                 // probably a modal
                 return
@@ -339,7 +339,7 @@ export let searchcomponent = {
 
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
-        
+
         // [what is this used for?]
         if (component.collection == "auths") {
             /* let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
@@ -365,7 +365,7 @@ export let searchcomponent = {
             this.collectionTitle = "votes"
         }
 
-        let myEnd = component.params.start + component.params.limit -1;
+        let myEnd = component.params.start + component.params.limit - 1;
         component.end = myEnd;
         component.start = component.params.start;
         let startTime = Date.now();
@@ -376,7 +376,7 @@ export let searchcomponent = {
         ).then(
             jsonData => {
                 component.resultcount = jsonData["data"];
-                
+
                 // override the spinner
                 document.getElementById("result-count-top").innerHTML = component.resultcount;
                 document.getElementById("result-count-bottom").innerHTML = component.resultcount;
@@ -384,7 +384,7 @@ export let searchcomponent = {
                 if (component.resultcount == 0) {
                     component.start = 0;
                 }
-                
+
                 if (myEnd >= component.resultcount) {
                     component.end = component.resultcount
                     component.next = null
@@ -426,13 +426,13 @@ export let searchcomponent = {
                     component.count = component.links.related.count;
                 }
                 if (component.links._prev) {
-                    component.prev = component.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                    component.prev = component.links._prev.replace('&search', '&q').replace('/records', '/search').replace('/api/marc', '/records');
                 }
                 if (component.links._next) {
-                    component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                    component.next = component.links._next.replace('&search', '&q').replace('/records', '/search').replace('/api/marc', '/records');
                 }
                 for (let result of jsonData["data"]) {
-                    let myResult = { "_id": result["_id"]}
+                    let myResult = { "_id": result["_id"] }
                     if (component.collection == "bibs") {
                         myResult["first_line"] = result["title"]
                         //.split("::")[result["types"].split("::").length-1]]
@@ -452,6 +452,7 @@ export let searchcomponent = {
                     } else if (component.collection == "files") {
                         // not implemented yet
                     }
+                    myResult.locked = false
                     component.results.push(myResult);
                 }
             }
@@ -466,7 +467,7 @@ export let searchcomponent = {
                 }
             }
         )
-        
+
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
 
@@ -476,7 +477,7 @@ export let searchcomponent = {
     },
     methods: {
         rebuildUrl(param, value) {
-            let myParams = Object.assign({},this.params);
+            let myParams = Object.assign({}, this.params);
             let searchParam = myParams["search"]
             let newSearchParam = ""
             for (let hf of this.headFilters) {
@@ -485,23 +486,23 @@ export let searchcomponent = {
                     break
                 }
             }
-            
+
             if (newSearchParam.includes("nnn")) {
-                myParams["search"] = newSearchParam.replace("nnn",value)
+                myParams["search"] = newSearchParam.replace("nnn", value)
             } else {
                 if (newSearchParam.length > 0) {
                     myParams["search"] = `${newSearchParam} AND ${value}:*`
                 } else {
                     myParams["search"] = `${value}:*`
                 }
-                
+
             }
 
             // Set the search type to whatever we've set it to with our toggle 
             myParams["engine"] = this.engine
 
             const qs = Object.keys(myParams)
-                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .map(key => `${key.replace('search', 'q')}=${encodeURIComponent(myParams[key])}`)
                 .join('&');
             return `${this.action}?${qs}`;
         },
@@ -519,7 +520,7 @@ export let searchcomponent = {
             }
         },
         refreshBasket() {
-            basket.getBasket(this.api_prefix).then( (b) => {
+            basket.getBasket(this.api_prefix).then((b) => {
                 this.myBasket = b
             })
         },
@@ -528,7 +529,7 @@ export let searchcomponent = {
             let ss = document.getElementById("simple-search")
             let toggleASLink = document.getElementById("toggleASLink")
             let toggleSSLink = document.getElementById("toggleSSLink")
-            if (el.style.display == "none"){
+            if (el.style.display == "none") {
                 el.style.display = "block"
                 ss.style.display = "none"
                 toggleASLink.classList.add("active")
@@ -556,15 +557,15 @@ export let searchcomponent = {
             // Build the URL
             var expressions = []
             var anycount = 0
-            for (let i of ["1","2","3"]) {
-                let term  = this.advancedParams[`searchTerm${i}`]
+            for (let i of ["1", "2", "3"]) {
+                let term = this.advancedParams[`searchTerm${i}`]
                 let termList = []
                 // First figure out if there IS a search term here, then split it by space
                 if (term !== null) {
                     termList = term.split(/\s+/)
                 }
                 // Next figure out if we're searching in a field or not
-                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                if (this.advancedParams[`searchField${i}`] == "any") {
                     if (term) {
                         anycount++
                     }
@@ -595,12 +596,12 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         default:
                             expressions.push(termList.join(" "))
-                    }                    
+                    }
                 } else {
                     let myField = this.advancedParams[`searchField${i}`]
                     let myExpr = []
                     // To do: add a flag for case insensitive search
-                    switch(this.advancedParams[`searchType${i}`]) {
+                    switch (this.advancedParams[`searchType${i}`]) {
                         case "any":
                             // Any of the words in the given field
                             for (let term of termList) {
@@ -631,7 +632,7 @@ export let searchcomponent = {
                     }
                 }
             }
-            if (anycount > 1) {                  
+            if (anycount > 1) {
                 this.reportError("Can't have more than one \"in any field\" term")
                 throw new Error("Search cancelled");
             }
@@ -641,7 +642,7 @@ export let searchcomponent = {
                 compiledExpr.push(`${this.vcoll} AND`)
             }
             for (let i in expressions) {
-                let j = parseInt(i)+1
+                let j = parseInt(i) + 1
                 let accessor = `searchConnector${j.toString()}`
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
@@ -676,7 +677,7 @@ export let searchcomponent = {
             this.abortController.abort();
             this.start = this.end = 0;
         },
-        selectAll(e)  {
+        selectAll(e) {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
                 if (inputEl.type == "checkbox" && !inputEl.disabled && inputEl.id != "customSwitch1") {
@@ -692,6 +693,7 @@ export let searchcomponent = {
                 }
             }
         },
+        // We could instead use the result object to control this and maintain reactivity.
         enableCheckbox(recordId) {
             let el = document.getElementById(`input-${this.collection}-${recordId}`);
             el.disabled = false;
@@ -721,7 +723,7 @@ export let searchcomponent = {
                 }
             }
             if (items.length > 0) {
-                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then(() => window.location.reload(false))
             }
         },
         togglePreview(event, recordId) {
@@ -741,7 +743,7 @@ export let searchcomponent = {
                         toggleButton.className = "fas fa-window-close preview-toggle";
                         toggleButton.title = "close preview";
                     })
-                
+
                 // hide any other unhidden preview divs
                 for (let x of document.getElementsByClassName("record-preview")) {
                     if (x !== preview) {
@@ -770,12 +772,12 @@ export let searchcomponent = {
             // toggle the search type
             console.log("Toggling search engine")
             this.params.engine = e.target.checked ? "atlas" : "community"
-            this.rebuildUrl("engine", this.engine) 
+            this.rebuildUrl("engine", this.engine)
 
         }
     },
     components: {
-        'sortcomponent': sortcomponent, 
+        'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'exportmodal': exportmodal,
         'itemaddcomponent': itemaddcomponent
