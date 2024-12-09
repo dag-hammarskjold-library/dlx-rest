@@ -207,6 +207,7 @@ export let speechreviewcomponent = {
 
             this.searchTime = (Date.now() - startTime) / 1000;
             this.showSpinner = false;
+            this.submitted = true;
             let ui_url = `${this.api_prefix.replace("/api/", "")}/records/speeches/review?q=${this.foundQ}`
             window.history.replaceState({}, ui_url);
         },
