@@ -247,6 +247,7 @@ export let speechreviewcomponent = {
             this.speeches.forEach(speech => {
                 speech.selected = false
             })
+            this.selectedRows = []
         },
         /* Click and drag to select records */
         // We only end up targeting <td> elements when these events happen 
