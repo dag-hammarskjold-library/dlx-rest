@@ -228,15 +228,15 @@ export let speechreviewcomponent = {
             }
         },
         selectAll() {
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
-                i.disabled ? i.checked = false : i.checked = true
-                let recordId = i.dataset.recordid
-                if (i.checked) {
-                    this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
-                }
-            }
             this.speeches.forEach(speech => {
-                speech.selected = true
+                let i = document.querySelector(`input[data-recordid="${speech._id}"]`)
+                i.disabled ? i.checked = false : i.checked = true
+                if (i.checked) {
+                    this.selectedRecords.push({ "collection": "bibs", "record_id": speech._id })
+                    speech.selected = true
+                } else {
+                    speech.selected = false
+                }
             })
         },
         selectNone() {
