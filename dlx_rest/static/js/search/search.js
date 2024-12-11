@@ -208,7 +208,7 @@ export let searchcomponent = {
                     <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
                         <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
-                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox; result.locked=false" @disableCheckbox="disableCheckbox; result.locked=true"></itemaddcomponent>
+                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox(result)" @disableCheckbox="disableCheckbox(result)"></itemaddcomponent>
                     </div>
                 </div>
             </div>
@@ -694,14 +694,18 @@ export let searchcomponent = {
             }
         },
         // We could instead use the result object to control this and maintain reactivity.
-        enableCheckbox(recordId) {
-            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+        enableCheckbox(record) {
+            console.log("enbling checkbox")
+            let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.disabled = false;
+            record.locked = false;
         },
-        disableCheckbox(recordId) {
-            let el = document.getElementById(`input-${this.collection}-${recordId}`);
+        disableCheckbox(record) {
+            console.log("disabling checkbox")
+            let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.checked = false;
             el.disabled = true;
+            record.locked = true;
         },
         async sendToBasket(e) {
             e.preventDefault()
