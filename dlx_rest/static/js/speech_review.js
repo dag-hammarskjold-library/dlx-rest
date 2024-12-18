@@ -4,6 +4,7 @@ import basket from "./api/basket.js";
 import user from "./api/user.js";
 import { previewmodal } from "./modals/preview.js";
 import { agendamodal } from "./modals/agenda.js";
+import { recordfilecomponent } from "./recordfiles.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -69,6 +70,7 @@ export let speechreviewcomponent = {
                         <i data-target="country_org" class="fas fa-sort-alpha-up text-secondary"></i>
                         <span id="country_org-badge" class="badge badge-pill badge-dark">0</span>
                     </th>
+                    <th scope="col">Files</th>
                     <th scope="col">Agendas</th>
                     <th scope="col"></th>
                 </tr>
@@ -86,6 +88,7 @@ export let speechreviewcomponent = {
                     <td>{{speech.speaker}}</td>
                     <td>{{speech.speaker_country}}</td>
                     <td>{{speech.country_org}}</td>
+                    <td><recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" /></td>
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
                     </td>
@@ -405,6 +408,7 @@ export let speechreviewcomponent = {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'previewmodal': previewmodal,
-        'agendamodal': agendamodal
+        'agendamodal': agendamodal,
+        'recordfilecomponent': recordfilecomponent
     }
 }

@@ -1,6 +1,7 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
 import { itemaddcomponent } from "./itemadd.js";
+import { recordfilecomponent } from "../recordfiles.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
@@ -203,6 +204,7 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f520" style="white-space:nowrap">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                    <recordfilecomponent ref="recordfilecomponent" v-if="collection=='bibs'" :api_prefix="api_prefix" :record_id="result._id" />
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -784,6 +786,7 @@ export let searchcomponent = {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'exportmodal': exportmodal,
-        'itemaddcomponent': itemaddcomponent
+        'itemaddcomponent': itemaddcomponent,
+        'recordfilecomponent': recordfilecomponent
     }
 }
