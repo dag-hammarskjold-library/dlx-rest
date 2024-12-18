@@ -383,6 +383,10 @@ export class DataField {
 				for (let auth of results) {
 					// each result is a record
 					// the wanted auth field is the only 1XX field
+					// Issue #190: Exclude deprecated authority terms from the lookup
+					if (auth.getField('682').getSubfield('a').toLowerCase() == 'deprecated') {
+						continue
+					}
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
 						field.indicators = auth[tag][0].indicators;
