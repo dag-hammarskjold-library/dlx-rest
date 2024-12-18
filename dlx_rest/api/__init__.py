@@ -834,8 +834,6 @@ class RecordFilesList(Resource):
 
     @ns.doc(description='Return the files for record with the given identifier')
     def get(self, collection, record_id):
-        if (collection == 'auths'):
-            abort(404)
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         files_data = []
