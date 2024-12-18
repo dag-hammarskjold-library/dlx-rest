@@ -33,7 +33,7 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <div v-if="submitted">{{speeches.length}} results returned in {{searchTime}} seconds</div>
-        <div v-if="speeches.length > 0">
+        <div v-if="speeches.length > 0" @click.prevent>
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
@@ -74,11 +74,11 @@ export let speechreviewcomponent = {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id">
+                <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id" @mousedown="handleMouseDown" @mousemove="handleMouseMove" @mouseup="handleMouseUp" :class="{selected: speech.selected}">
                     <td>
-                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
-                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
-                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)">
+                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
+                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
+                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)">
                     </td>
                     <td>{{index + 1}}</td>
                     <td @click="togglePreview('bibs',speech._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
@@ -106,6 +106,11 @@ export let speechreviewcomponent = {
     <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Speeches"></previewmodal>
     <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
+    style:`
+        .selected {
+            background-color: #70a9e1;
+        }
+    `,
     data: function () {
         let myUIBase = this.api_prefix.replace('/api/', '')
         return {
@@ -119,7 +124,9 @@ export let speechreviewcomponent = {
             myBasket: {},
             selectedRecords: [],
             uibase: myUIBase,
-            searchTime: 0
+            searchTime: 0,
+            isDragging: false,
+            selectedRows: []
         }
     },
     computed: {
@@ -211,28 +218,75 @@ export let speechreviewcomponent = {
             let ui_url = `${this.api_prefix.replace("/api/", "")}/records/speeches/review?q=${this.foundQ}`
             window.history.replaceState({}, ui_url);
         },
-        toggleSelect(e) {
+        toggleSelect(e, speech) {
             let recordId = e.target.dataset.recordid
-            if (this.selectedRecords.includes({ "collection": "bibs", "record_id": recordId })) {
-                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
-            } else {
+            speech.selected = !speech.selected
+            if (speech.selected) {
                 this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
+            } else {
+                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
             }
         },
         selectAll() {
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
+            this.speeches.forEach(speech => {
+                let i = document.querySelector(`input[data-recordid="${speech._id}"]`)
                 i.disabled ? i.checked = false : i.checked = true
-                let recordId = i.dataset.recordid
                 if (i.checked) {
-                    this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
+                    this.selectedRecords.push({ "collection": "bibs", "record_id": speech._id })
+                    speech.selected = true
+                } else {
+                    speech.selected = false
                 }
-            }
+            })
         },
         selectNone() {
             for (let i of document.querySelectorAll("input[type=checkbox]")) {
                 i.checked = false
             }
             this.selectedRecords = []
+            this.speeches.forEach(speech => {
+                speech.selected = false
+            })
+            this.selectedRows = []
+        },
+        /* Click and drag to select records */
+        // We only end up targeting <td> elements when these events happen 
+        // so we have to target the parent element, which should be a <tr>
+        handleMouseDown(e) {
+            if (e.shiftKey) {
+                this.isDragging = true
+                if (!this.selectedRows.includes(e.target.parentElement)) {
+                    this.selectedRows.push(e.target.parentElement)
+                }
+            }
+        },
+        handleMouseMove(e) {
+            if (e.shiftKey && this.isDragging) {
+                //e.target.parentElement.setAttribute("")
+                //e.target.parentElement.style = "background-color: #70a9e1"
+                e.target.parentElement.classList.add("selected")
+                if (!this.selectedRows.includes(e.target.parentElement)) {
+                    this.selectedRows.push(e.target.parentElement)
+                }
+            }
+            
+        },
+        handleMouseUp(e) {
+            if (e.shiftKey)
+                {this.isDragging = false
+                this.selectRows()
+            }
+        },
+        selectRows() {
+            const startIdx = this.speeches.indexOf(this.dragStart)
+            const endIdx = this.speeches.indexOf(this.dragEnd)
+
+            this.selectedRows.forEach(row => {
+                let i = row.getElementsByTagName("input")[0]
+                if (!i.disabled && !i.checked) {
+                    i.click()
+                }
+            })
         },
         processSort: function (e, column) {
             // reset sort indicators
@@ -303,6 +357,9 @@ export let speechreviewcomponent = {
                     icon.classList.add("fa-folder-minus")
                 }
                 this.selectedRecords = []
+                this.speeches.forEach(speech => {
+                    speech.selected = false
+                })
                 this.refreshBasket()
             })
         },
