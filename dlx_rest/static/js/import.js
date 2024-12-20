@@ -196,7 +196,15 @@ export let importcomponent = {
             // This replaces the list of files each time. It would be better to concatenate...
             this.fileList = [...this.$refs.import.files]
             if (this.importType == "records") {
-                this.parse(this.fileList[0])
+                let type = this.fileList[0].type
+                if (type == 'text/xml') {
+                    this.parseXml(this.fileList[0])
+                } else if (type == 'text/csv') {
+                    this.parseCsv(this.fileList[0])
+                } else {
+                    this.parse(this.fileList[0])
+                }
+                
             }
         },
         handleClick: function () {
@@ -216,6 +224,12 @@ export let importcomponent = {
             this.$refs.import.files = event.dataTransfer.files
             event.currentTarget.classList.remove("bg-dark")
             this.handleChange()
+        },
+        parseXml(file) {
+
+        },
+        parseCsv(file) {
+            
         },
         parse(file) {
             /* 
