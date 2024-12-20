@@ -8,7 +8,8 @@ from datetime import datetime, timezone
 from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
-from dlx.marc import Bib, BibSet, Auth, AuthSet
+from dlx.marc import Marc, Bib, BibSet, Auth, AuthSet
+from dlx.file import File, Identifier
 from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
@@ -351,3 +352,18 @@ def parse_constraint(constraint):
         pass
 
     return return_data
+
+def get_record_files(record: Marc) -> list[File]:
+    symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+    isbns = record.get_values('020', 'a')
+    isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+    uris = record.get_values('561', 'u') # Get files by original URI which was logged in the Archive-It system
+    all_files = []
+    
+    for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
+        for id_value in id_values:
+            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+            this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+            all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+
+    return all_files
