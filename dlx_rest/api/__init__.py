@@ -1640,8 +1640,8 @@ class FilesRecordsList(Resource):
             abort(404, 'Maximum limit is 1000')
         
         if args.identifier:
-            if args.identifierType:
-                this_identifier = Identifier(args.identifierType, args.identifier)
+            if args.identifier_type:
+                this_identifier = Identifier(args.identifier_type, args.identifier)
 
                 if args.language:
                     # Get files for identifier by language
@@ -1650,9 +1650,9 @@ class FilesRecordsList(Resource):
                     # Get all files for that identifier
                     data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find_by_identifier(this_identifier)]
             else:
-                abort(404, 'Param "identifierType" required with param "identifier"')
-        elif args.identifierType and not args.identifier:
-            abort(404, 'Param "identifier" required with param "identifierType"')
+                abort(404, 'Param "identifier_type" required with param "identifier"')
+        elif args.identifier_type and not args.identifier:
+            abort(404, 'Param "identifier" required with param "identifier_type"')
         else:
             data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
         
