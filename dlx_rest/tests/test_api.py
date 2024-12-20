@@ -251,7 +251,7 @@ def test_api_record_files_list(client, marc, files):
     # get
     res = client.get(f'{API}/marc/bibs/records/1/files')
     data = check_response(res)
-    assert data['_meta']['returns'] == f'{API}/schemas/api.response'
+    assert data['_meta']['returns'] == f'{API}/schemas/api.filelist'
         
 def test_api_record(client, marc, default_users):
     from dlx_rest.api.utils import ClassDispatch
