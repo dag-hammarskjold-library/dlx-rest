@@ -154,6 +154,18 @@ class Schemas():
             }
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
+        elif schema_name == 'api.filelist':
+            data = {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'mimetype': {'type': 'string', 'pattern': '^(text|application)/'}, 
+                        'language': {'type': 'string', 'pattern': '^[a-z]{2}$'},
+                        'url': {'type': 'string', 'format': 'uri'}
+                    }   
+                } 
+            }
         elif schema_name == 'api.null':
             data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
         elif schema_name == 'api.count':

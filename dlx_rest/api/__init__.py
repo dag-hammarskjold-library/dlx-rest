@@ -832,8 +832,8 @@ class RecordFilesList(Resource):
         ]
 
         meta = {
-            'name': 'api_record',
-            'returns':  URL('api_schema', schema_name='api.response').to_str(),
+            'name': 'api_record_files_list',
+            'returns':  URL('api_schema', schema_name='api.filelist').to_str(),
             'timestamp': datetime.now(timezone.utc)
         }
 
