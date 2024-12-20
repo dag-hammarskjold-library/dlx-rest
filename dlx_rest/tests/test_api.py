@@ -695,11 +695,11 @@ def test_api_files(client, files):
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
 
-    res = client.get(f'{API}/files?identifierType=isbn&identifier=x')
+    res = client.get(f'{API}/files?identifier_type=isbn&identifier=x')
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
 
-    res = client.get(f'{API}/files?identifierType=isbn&identifier=x&language=en')
+    res = client.get(f'{API}/files?identifier_type=isbn&identifier=x&language=en')
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
 
