@@ -820,7 +820,6 @@ class Record(Resource):
 class RecordFilesList(Resource):
     @ns.doc(description='Return the files for record with the given identifier')
     def get(self, collection, record_id):
-        collection == 'bibs' or abort(404, 'Files only aviable for "bibs" collection records at this time')
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
         
