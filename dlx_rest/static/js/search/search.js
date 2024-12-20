@@ -697,13 +697,13 @@ export let searchcomponent = {
         },
         // We could instead use the result object to control this and maintain reactivity.
         enableCheckbox(record) {
-            console.log("enbling checkbox")
+            //console.log("enbling checkbox")
             let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.disabled = false;
             record.locked = false;
         },
         disableCheckbox(record) {
-            console.log("disabling checkbox")
+            //console.log("disabling checkbox")
             let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.checked = false;
             el.disabled = true;
@@ -776,7 +776,7 @@ export let searchcomponent = {
         },
         toggleEngine(e) {
             // toggle the search type
-            console.log("Toggling search engine")
+            //console.log("Toggling search engine")
             this.params.engine = e.target.checked ? "atlas" : "community"
             this.rebuildUrl("engine", this.engine)
 
