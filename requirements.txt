@@ -15,7 +15,7 @@ importlib-metadata==8.5.0
 itsdangerous==2.2.0
 mongoengine==0.29.1
 py==1.11.0
-pyparsing==3.2.0
+pyparsing==3.2.1
 python-ulid==3.0.0
 sentry-sdk==2.19.2
 troposphere==4.8.3
