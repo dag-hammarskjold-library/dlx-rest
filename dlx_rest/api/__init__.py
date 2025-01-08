@@ -29,7 +29,7 @@ from dlx.util import AsciiMap
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
 
 # Init
 
@@ -696,25 +696,12 @@ class Record(Resource):
         files_data = []
 
         if collection == 'bibs':
-            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
-            isbns = record.get_values('020', 'a')
-            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
-            # Get files by original URI which was logged in the Archive-It system
-            uris = record.get_values('561', 'u')
-            all_files = []
-            
-            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
-                for id_value in id_values:
-                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
-                    
             files_data = [
                 {
                     'mimetype': f.mimetype, 
                     'language': f.languages[0].lower(), 
                     'url': URL('api_file_record', record_id=f.id).to_str()
-                } for f in all_files
+                } for f in get_record_files(record)
             ]
                 
         data = record.to_dict()
@@ -829,53 +816,37 @@ class Record(Resource):
 
 @ns.route('/marc/<string:collection>/records/<int:record_id>/files')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', '"bibs" or "auths"')
+@ns.param('collection', '"bibs"')
 class RecordFilesList(Resource):
-
     @ns.doc(description='Return the files for record with the given identifier')
     def get(self, collection, record_id):
         cls = ClassDispatch.by_collection(collection) or abort(404)
         record = cls.from_id(record_id) or abort(404)
-        files_data = []
+        
+        files_data = [
+            {
+                'mimetype': f.mimetype, 
+                'language': f.languages[0].lower(), 
+                'url': URL('api_file_record', record_id=f.id).to_str()
+            } for f in get_record_files(record)
+        ]
 
-        if collection == 'bibs':
-            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
-            isbns = record.get_values('020', 'a')
-            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
-            # Get files by original URI which was logged in the Archive-It system
-            uris = record.get_values('561', 'u')
-            all_files = []
-            
-            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
-                for id_value in id_values:
-                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
-                    
-            files_data = [
-                {
-                    'mimetype': f.mimetype, 
-                    'language': f.languages[0].lower(), 
-                    'url': URL('api_file_record', record_id=f.id).to_str()
-                } for f in all_files
-            ]
-            print(files_data)
+        meta = {
+            'name': 'api_record_files_list',
+            'returns':  URL('api_schema', schema_name='api.filelist').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
 
-            meta = {
-                'name': 'api_record',
-                'returns':  URL('api_schema', schema_name='api.response').to_str(),
-                'timestamp': datetime.now(timezone.utc)
+        links = {
+            '_next': None,
+            '_prev': None,
+            '_self': URL('api_record_files_list', collection=collection, record_id=record_id).to_str(),
+            'related': {
+                'record': URL('api_record', collection=collection, record_id=record_id).to_str()
             }
-            links = {
-                '_next': None,
-                '_prev': None,
-                '_self': URL('api_record_files_list', collection=collection, record_id=record_id).to_str(),
-                'related': {
-                    'record': URL('api_record', collection=collection, record_id=record_id).to_str()
-                }
-            }
+        }
 
-            return ApiResponse(links=links, meta=meta, data=files_data).jsonify()
+        return ApiResponse(links=links, meta=meta, data=files_data).jsonify()
 
 @ns.route('/marc/<string:collection>/records/<int:record_id>/locked')
 @ns.param('record_id', 'The record identifier')
