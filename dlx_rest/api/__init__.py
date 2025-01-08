@@ -1622,6 +1622,9 @@ class FilesRecordsList(Resource):
     args = reqparse.RequestParser()
     args.add_argument('start')
     args.add_argument('limit')
+    args.add_argument('identifier_type', choices=('symbol', 'uri', 'isbn'), help='File content identifier type')
+    args.add_argument('identifier', help='File content identifier value')
+    args.add_argument('language', choices=('ar', 'fr', 'de', 'en', 'ru', 'es', 'zh'))
     
     @ns.doc(description='Return a list of file records')
     def get(self):
@@ -1635,8 +1638,23 @@ class FilesRecordsList(Resource):
         
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
+        
+        if args.identifier:
+            if args.identifier_type:
+                this_identifier = Identifier(args.identifier_type, args.identifier)
 
-        data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
+                if args.language:
+                    # Get files for identifier by language
+                    data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find_by_identifier_language(this_identifier, args.language)]
+                else:
+                    # Get all files for that identifier
+                    data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find_by_identifier(this_identifier)]
+            else:
+                abort(404, 'Param "identifier_type" required with param "identifier"')
+        elif args.identifier_type and not args.identifier:
+            abort(404, 'Param "identifier" required with param "identifier_type"')
+        else:
+            data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
         
         links = {
             '_self': URL('api_files_records_list', start=start, limit=limit).to_str(),
