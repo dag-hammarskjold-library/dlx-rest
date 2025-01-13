@@ -1,6 +1,7 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
 import { itemaddcomponent } from "./itemadd.js";
+import { recordfilecomponent } from "../recordfiles.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
@@ -203,6 +204,7 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f520" style="white-space:nowrap">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                    <recordfilecomponent ref="recordfilecomponent" v-if="collection=='bibs'" :api_prefix="api_prefix" :record_id="result._id" />
                 </div>
                 <div class="col-sm-1">
                     <!-- need to test if authenticated here -->
@@ -695,13 +697,13 @@ export let searchcomponent = {
         },
         // We could instead use the result object to control this and maintain reactivity.
         enableCheckbox(record) {
-            console.log("enbling checkbox")
+            //console.log("enbling checkbox")
             let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.disabled = false;
             record.locked = false;
         },
         disableCheckbox(record) {
-            console.log("disabling checkbox")
+            //console.log("disabling checkbox")
             let el = document.getElementById(`input-${this.collection}-${record._id}`);
             el.checked = false;
             el.disabled = true;
@@ -774,7 +776,7 @@ export let searchcomponent = {
         },
         toggleEngine(e) {
             // toggle the search type
-            console.log("Toggling search engine")
+            //console.log("Toggling search engine")
             this.params.engine = e.target.checked ? "atlas" : "community"
             this.rebuildUrl("engine", this.engine)
 
@@ -784,6 +786,7 @@ export let searchcomponent = {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'exportmodal': exportmodal,
-        'itemaddcomponent': itemaddcomponent
+        'itemaddcomponent': itemaddcomponent,
+        'recordfilecomponent': recordfilecomponent
     }
 }

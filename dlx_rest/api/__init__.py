@@ -816,8 +816,9 @@ class Record(Resource):
 
 @ns.route('/marc/<string:collection>/records/<int:record_id>/files')
 @ns.param('record_id', 'The record identifier')
-@ns.param('collection', '"bibs"')
+@ns.param('collection', '"bibs" or "auths"')
 class RecordFilesList(Resource):
+
     @ns.doc(description='Return the files for record with the given identifier')
     def get(self, collection, record_id):
         cls = ClassDispatch.by_collection(collection) or abort(404)
