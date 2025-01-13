@@ -1291,7 +1291,7 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
 
-            tags = [auth_tag]
+            tags = [auth_tag, '682']
 
             # exact match
             conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
