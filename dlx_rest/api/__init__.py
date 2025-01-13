@@ -1291,6 +1291,9 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
 
+            # Return the 682 field so we can check if the record is deprecated
+            # see issues #190 and #1628
+            # to do: Add this to the dlx configuration
             tags = [auth_tag, '682']
 
             # exact match
