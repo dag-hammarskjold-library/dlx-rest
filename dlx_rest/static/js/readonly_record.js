@@ -3,7 +3,7 @@ import { Jmarc } from "./jmarc.mjs"
 export let readonlyrecord = {
     props: ["api_prefix", "collection", "record_id"],
     template: `<div class="container">
-        <h5>{{record.getVirtualCollection()}}/{{record_id}}</h5>
+        <h5>{{virtualCollection}}/{{record_id}}</h5>
         <div v-for="field in record.fields" class="field" :data-tag="field.tag">
             <code class="text-primary">{{field.tag}}</code>
             <span v-if="!field.subfields">{{field.value}}</span>
@@ -14,7 +14,8 @@ export let readonlyrecord = {
     </div>`,
     data: function () {
         return {
-            record: {}
+            record: {},
+            virtualCollection: null
         }
     },
     created: function () {
@@ -24,6 +25,7 @@ export let readonlyrecord = {
 
         promise.then( jmarc => {
             this.record = jmarc
+            this.virtualCollection = jmarc.getVirtualCollection()
         })
     }
 }
