@@ -110,9 +110,11 @@ export class Subfield {
 		// date match
 		if (this.value && "isDate" in data && this.code in data.isDate) {
 			let dateStr = this.value
+				// add dashes for valdation using JS Date object, but don't update the value.
+				// dashes are added to dates in the runSaveActions method
 				.replace(" ", "-")
 				.replace(/^(\d{4})(\d{2})/, "$1-$2")
-				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3"); // add dashes
+				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3");
 
 			let date = new Date(dateStr);
 
@@ -121,8 +123,6 @@ export class Subfield {
 					new SubfieldValueValidationFlag(`${this.tag} \$${this.code}: Invalid date "${this.value}"`)
 				)
 			}
-
-			this.value = dateStr;
 		}
 
 		// regex match
@@ -383,6 +383,21 @@ export class DataField {
 				for (let auth of results) {
 					// each result is a record
 					// the wanted auth field is the only 1XX field
+					// Issue #190: Exclude deprecated authority terms from the lookup
+					let newJmarc = new Jmarc("auths").parse(auth)
+					console.log(newJmarc)
+					let this682 = newJmarc.getField('682')
+					if (this682) {
+						let this682_a = this682.getSubfield('a') 
+						if (this682_a) {
+							if(this682_a.value.toLowerCase() == 'deprecated') {
+								continue
+							}
+						}
+					}
+					//if (newJmarc.getField('682').getSubfield('a').toLowerCase() == 'deprecated') {
+					//	continue
+					//}
 					for (let tag of Object.keys(auth).filter(x => x.match(/^1\d\d/))) {
 						let field = this instanceof BibDataField ? new BibDataField(this.tag) : new AuthDataField(this.tag);
 						field.indicators = auth[tag][0].indicators;
@@ -1331,10 +1346,26 @@ export class Jmarc {
 		let addedFields = [];
 		// parse rules
 		Object.keys(validationData[this.collection]).forEach(tag => {
-			if ("saveActions" in validationData[this.collection][tag]) {
+			const data = validationData[this.collection][tag]
+
+			// add dashes to dates
+			if ("isDate" in data) {
+				for (const field of this.getFields(tag)) {
+					for (const code of Object.keys(data.isDate)) {
+						for (const subfield of field.getSubfields(code)) {
+							subfield.value = subfield.value
+								.replace(" ", "-")
+								.replace(/^(\d{4})(\d{2})/, "$1-$2")
+								.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3");
+						}
+					}
+				}
+			}
+
+			if ("saveActions" in data) {
 				this.deleteField(tag);
 
-				for (let [criteria, map] of Object.entries(validationData[this.collection][tag]["saveActions"])) {
+				for (let [criteria, map] of Object.entries(data["saveActions"])) {
 					let terms = criteria.split(/\s*(AND|OR|NOT)\s+/).filter(x => x);
 					let modifier = "";
 					let last_bool = true;
