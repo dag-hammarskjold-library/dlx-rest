@@ -751,6 +751,46 @@ export class Jmarc {
 		return true;
 	}
 
+	static async fromXml(collection, xml) {
+		if (!["bibs", "auths"].includes(collection)) {
+			throw new Error("First argument must be \"bibs\" or \"auths\"")
+		}
+
+		let jmarc = new Jmarc(collection)
+		const promises = [];
+
+		// control fields
+		xml.querySelectorAll('controlfield').forEach(fieldElement => {
+			let tag = fieldElement.attributes.getNamedItem('tag')
+			let field = jmarc.createField(tag.value)
+			field.value = fieldElement.textContent
+		}) 
+		// data fields
+		xml.querySelectorAll('datafield').forEach(fieldElement => {
+			//console.log(fieldElement)
+			let tag = fieldElement.attributes.getNamedItem('tag')
+			let field = jmarc.createField(tag.value)
+			field.indicators = [fieldElement.attributes[1].value, fieldElement.attributes[2].value]
+			let foundXref = null
+			fieldElement.querySelectorAll('subfield').forEach(subfieldElement => {
+				let subfield = field.createSubfield(subfieldElement.getAttribute('code'))
+				subfield.value = subfieldElement.textContent
+				if (subfield.code == "0") {
+					foundXref = subfield.value
+					if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+						subfield.xref = foundXref
+					} else {
+						promises.push(subfield.detectAndSetXref())
+					}
+				}
+			})
+		})
+		
+		await Promise.all(promises);
+
+		return jmarc
+	}
+
 	static async fromMrk(collection, mrk) {
 		if (!["bibs", "auths"].includes(collection)) {
 			throw new Error("First argument must be \"bibs\" or \"auths\"")

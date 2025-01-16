@@ -226,7 +226,56 @@ export let importcomponent = {
             this.handleChange()
         },
         parseXml(file) {
+            console.log("Parsing XML")
+            const reader = new FileReader()
+            reader.readAsText(file)
+            reader.onload = (res) => {
+                const parser = new DOMParser()
+                const doc = parser.parseFromString(res.target.result, 'text/xml')
+                const promises = []
 
+                doc.querySelectorAll('record').forEach(recordElement => {
+                    let promise = Jmarc.fromXml(this.collection, recordElement).then(jmarc => {
+                        let validationErrors = []
+                        let fatalErrors = []
+
+                        if (jmarc.fields.length > 0) {
+                            jmarc.symbolInUse().then(symbolInUse => {
+                                if (symbolInUse) {
+                                    this.issues += 1
+                                    validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
+                                }
+                            });
+
+                            for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
+                                for (let subfield of field.subfields.filter(x => 'xref' in x)) {
+                                    if (subfield.xref instanceof Error) {
+                                        // unresolved xrefs are set to an Error object
+                                        fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
+                                    }
+                                }
+                            }
+
+                            // Set a field indicating the record was imported
+                            let importField = jmarc.createField("999")
+                            let importSubfield = importField.createSubfield("a")
+                            const today = new Date()
+                            // user shortname
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importField.new = true
+
+                            this.records.push({ "jmarc": jmarc, "mrk": recordElement, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
+                        }
+                    }).catch(error => {
+                        throw error
+                    })
+
+                    promises.push(promise)
+
+                })
+                Promise.all(promises).then(x => this.detectedSpinner = false)
+            }
+            
         },
         parseCsv(file) {
             
