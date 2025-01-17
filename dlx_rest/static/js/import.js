@@ -1,5 +1,6 @@
 import { Jmarc } from './jmarc.mjs'
 import user from "./api/user.js"
+import { CSV } from './csv.mjs'
 
 export let importcomponent = {
     props: ["api_prefix"],
@@ -282,6 +283,19 @@ export let importcomponent = {
         },
         parseCsv(file) {
             
+            this.state = "preview"
+            const reader = new FileReader()
+            reader.readAsText(file)
+            const promises = []
+            this.detectedSpinner = true
+            reader.onload = (res) => {
+                let csv = new CSV()
+                csv.parseText(res.target.result)
+                // listMarc fails
+                for (let jmarc of csv.listJmarc(this.collection)) {
+                    console.log(jmarc)
+                }
+            }
         },
         parse(file) {
             /* 
