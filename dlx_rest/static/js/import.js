@@ -142,6 +142,7 @@ export let importcomponent = {
             showErrors: false,
             detectedSpinner: false,
             selected: 0,
+            selectedRecords: false,     // this just (de)activates the submit button
             userShort: null,
             myProfile: {}
         }
@@ -226,9 +227,11 @@ export let importcomponent = {
             this.handleChange()
         },
         parseXml(file) {
-            console.log("Parsing XML")
+            //console.log("Parsing XML")
+            this.state = "preview"
             const reader = new FileReader()
             reader.readAsText(file)
+            this.detectedSpinner = true
             reader.onload = (res) => {
                 const parser = new DOMParser()
                 const doc = parser.parseFromString(res.target.result, 'text/xml')

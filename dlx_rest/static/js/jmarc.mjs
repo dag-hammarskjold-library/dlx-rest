@@ -777,13 +777,18 @@ export class Jmarc {
 				subfield.value = subfieldElement.textContent
 				if (subfield.code == "0") {
 					foundXref = subfield.value
+					subfield.xref = foundXref
+				}
+			})
+			for (let subfield of field.subfields) {
+				if (foundXref !== null) {
 					if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
 						subfield.xref = foundXref
 					} else {
 						promises.push(subfield.detectAndSetXref())
 					}
 				}
-			})
+			}
 		})
 		
 		await Promise.all(promises);
