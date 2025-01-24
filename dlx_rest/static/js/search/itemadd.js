@@ -8,8 +8,8 @@ export let itemaddcomponent = {
         <div @click="handleClick()">
             <i v-if="statusPending" class="fas fa-2x fa-spinner fa-pulse"></i>
             <i v-else-if="itemLocked" class="fas fa-2x fa-lock" data-toggle="tooltip" :title="'Item locked by ' + lockedBy" ></i>
-            <i v-else-if="inBasket" class="fas fa-2x fa-folder-minus" data-toggle="tooltip" :title="'Remove from basket'" ></i>
-            <i v-else class="fas fa-2x fa-folder-plus" data-toggle="tooltip" title="Add to basket"></i>
+            <i v-else-if="inBasket" class="fas fa-2x fa-folder-minus item-toggle" data-toggle="tooltip" :title="'Remove from basket'" ></i>
+            <i v-else class="fas fa-2x fa-folder-plus item-toggle" data-toggle="tooltip" title="Add to basket"></i>
         </div>
     `,
     data: function() {
