@@ -22,7 +22,8 @@ use both composition API and options API in the same app.
 
 This file and the suggested composable below can also be written in TypeScript, but 
 note that doing so requires creating interfaces for data types, which is more 
-effort overall.
+effort overall. The benefit is that we can proactively define the structure of our 
+data types, which improves documentation and integrity.
 */
 const route = useRoute()
 const collection = route.params.collection
