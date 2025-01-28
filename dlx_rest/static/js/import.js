@@ -292,9 +292,11 @@ export let importcomponent = {
                 let csv = new CSV()
                 csv.parseText(res.target.result)
                 // listMarc fails
-                for (let jmarc of csv.listJmarc(this.collection)) {
-                    console.log(jmarc)
-                }
+                csv.listJmarc(this.collection).then( records => {
+                    for (let record of records) {
+                        this.records.push({ "jmarc": record, "mrk": "", "validationErrors": [], "fatalErrors": [], "checked": false })
+                    }
+                })
             }
         },
         parse(file) {

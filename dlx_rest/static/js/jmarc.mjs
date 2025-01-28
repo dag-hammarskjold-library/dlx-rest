@@ -751,6 +751,8 @@ export class Jmarc {
 		return true;
 	}
 
+	/* This function isn't used right now */
+	/*
 	static async fromCsv(collection, csv) {
 		if (!["bibs", "auths"].includes(collection)) {
 			throw new Error("First argument must be \"bibs\" or \"auths\"")
@@ -761,6 +763,7 @@ export class Jmarc {
 
 		
 	}
+	*/
 
 	static async fromXml(collection, xml) {
 		if (!["bibs", "auths"].includes(collection)) {
