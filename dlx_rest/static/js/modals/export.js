@@ -136,7 +136,7 @@ export let exportmodal = {
             csv.parseText(text);
           } else {
             // mrk is plain text
-            buffer += text
+            buffer += text + "\n"
           }
         } else {
           // end of results
