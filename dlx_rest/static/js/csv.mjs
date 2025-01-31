@@ -27,7 +27,7 @@ export class CSV {
         // header row. Multiple CSVs can be ingested in order to combine the
         // data.
 
-        const lines = text.split("\n").filter(x => x.trim() !== "");
+        const lines = text.split("\n");
         const header = parseCSVLine(lines.shift());
         header.forEach(x => this._header.add(x));
 
@@ -65,20 +65,19 @@ export class CSV {
         return buffer
     }
 
-    async listJmarc(collection) {
+    listJmarc(collection) {
         // Return a list of Jmarc objects constructed from the CSV data.
         // todo: handle auth controlled fields. CSV needs subfield $0 for xref
         // todo: support repeated subfields
 
         let records = [];
-        let promises = []
 
         for (const [row, data] of Object.entries(this.data)) {
             const jmarc = new Jmarc(collection=collection);
 
             for (const [headerField, value] of Object.entries(data)) {
                 const tag = getHeaderTag(headerField);
-                const place = parseInt(getHeaderPlace(headerField));
+                const place = parseInt(getHeaderPlace(headerField)) - 1;
                 const subfieldCode = getHeaderSub(headerField);
                 
                 let field = jmarc.getField(tag, place);
@@ -93,16 +92,12 @@ export class CSV {
 
                     if (jmarc.isAuthorityControlled(tag, subfieldCode)) {
                         // todo: get and assign the xref
-                        const xrefHeader = `${place}.${tag}$0`
-                        const xref = data[xrefHeader]
+                        const xref = row[`${place}.${tag}$${subfieldCode}`];
 
                         if (xref) {
-                            subfield.xref = xref
-                            subfield.value = value
+                            subfield.value = xref
                         } else {
-                            subfield.value = value
-                            promises.push(subfield.detectAndSetXref())
-                            //throw Error(`Xref (subfield $0) not found for auth controlled field ${tag}/${place} in row ${parseInt(row) + 1}`)
+                            throw Error(`Xref (subfield $0) not found for auth controlled field ${tag}/${place} in row ${parseInt(row) + 1}`)
                         }
 
                     } else {
@@ -113,10 +108,10 @@ export class CSV {
                     field.value = value
                 }
             }
+
             records.push(jmarc)
         }
 
-        await Promise.all(promises)
         return records
     }
 
