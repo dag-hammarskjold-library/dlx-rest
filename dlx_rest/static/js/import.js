@@ -282,21 +282,63 @@ export let importcomponent = {
             
         },
         parseCsv(file) {
-            
             this.state = "preview"
             const reader = new FileReader()
+            let fileText = ""
             reader.readAsText(file)
             const promises = []
             this.detectedSpinner = true
             reader.onload = (res) => {
-                let csv = new CSV()
-                csv.parseText(res.target.result)
-                // listMarc fails
-                csv.listJmarc(this.collection).then( records => {
-                    for (let record of records) {
-                        this.records.push({ "jmarc": record, "mrk": "", "validationErrors": [], "fatalErrors": [], "checked": false })
+                const csvText = res.target.result
+                const csvLines = csvText.split(/\r\n|\n/)
+                const headers = csvLines[0].split(",")
+
+                for (let i=1 ; i < csvLines.length ; i++) {
+                    const csvLine = csvLines[i]
+                    const csvValues = csvLine.split(",")
+                    if (csvValues.length == 0) {
+                        continue
                     }
-                })
+                    let promise = Jmarc.fromCsv(this.collection, headers, csvValues).then(jmarc => {
+                        console.log(jmarc)
+                        let validationErrors = []
+                        let fatalErrors = []
+
+                        if (jmarc.fields.length > 0) {
+                            jmarc.symbolInUse().then(symbolInUse => {
+                                if (symbolInUse) {
+                                    this.issues += 1
+                                    validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
+                                }
+                            });
+
+                            for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
+                                for (let subfield of field.subfields.filter(x => 'xref' in x)) {
+                                    if (subfield.xref instanceof Error) {
+                                        // unresolved xrefs are set to an Error object
+                                        fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
+                                    }
+                                }
+                            }
+
+                            // Set a field indicating the record was imported
+                            let importField = jmarc.createField("999")
+                            let importSubfield = importField.createSubfield("a")
+                            const today = new Date()
+                            // user shortname
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importField.new = true
+
+                            this.records.push({ "jmarc": jmarc, "mrk": csvLine, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
+                        }
+                    }).catch(error => {
+                        throw error
+                    })
+                    console.log("pushing promise")
+                    promises.push(promise)
+                }
+                console.log("waiting for promises")
+                Promise.all(promises).then(x => this.detectedSpinner = false)
             }
         },
         parse(file) {

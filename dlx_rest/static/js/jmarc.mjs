@@ -751,9 +751,7 @@ export class Jmarc {
 		return true;
 	}
 
-	/* This function isn't used right now */
-	/*
-	static async fromCsv(collection, csv) {
+	static async fromCsv(collection, headers, values) {
 		if (!["bibs", "auths"].includes(collection)) {
 			throw new Error("First argument must be \"bibs\" or \"auths\"")
 		}
@@ -761,9 +759,44 @@ export class Jmarc {
 		let jmarc = new Jmarc(collection)
 		const promises = [];
 
-		
-	}
-	*/
+        headers.forEach((header, index) => {
+			const [place, tag] = header.split(".")
+			if (tag == 'LDR') {
+				tag = '000'
+			}
+
+			let field = jmarc.createField(tag)
+			if (field instanceof ControlField) {
+				field.value = values[index]
+			} else {
+				let foundXref = null
+				let subfieldCode = header.split("$")[1]
+				field.createSubfield(subfieldCode).value = values[index]
+				if (subfieldCode == "0") {
+					foundXref = values[index]
+				}
+			}
+		})
+
+		for (let field of jmarc.fields) {
+			if (field instanceof DataField) {
+				for (let subfield of field.subfields) {
+					if (foundXref !== null) {
+						if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+							subfield.xref = foundXref
+						} else {
+							promises.push(subfield.detectAndSetXref())
+						}
+					}
+				}
+			}
+		}
+
+		await Promise.all(promises)
+
+		return jmarc
+        
+    }
 
 	static async fromXml(collection, xml) {
 		if (!["bibs", "auths"].includes(collection)) {
