@@ -1,4 +1,4 @@
-import { Jmarc } from './jmarc.mjs'
+import { DataField, Jmarc } from './jmarc.mjs'
 import user from "./api/user.js"
 import { CSV } from './csv.mjs'
 
@@ -284,61 +284,98 @@ export let importcomponent = {
         parseCsv(file) {
             this.state = "preview"
             const reader = new FileReader()
-            let fileText = ""
-            reader.readAsText(file)
-            const promises = []
             this.detectedSpinner = true
+
+            reader.readAsText(file)
+            
             reader.onload = (res) => {
                 const csvText = res.target.result
-                const csvLines = csvText.split(/\r\n|\n/)
-                const headers = csvLines[0].split(",")
+                let csv = new CSV()
+                csv.parseText(csvText)
 
-                for (let i=1 ; i < csvLines.length ; i++) {
-                    const csvLine = csvLines[i]
-                    const csvValues = csvLine.split(",")
-                    if (csvValues.length == 0) {
-                        continue
-                    }
-                    let promise = Jmarc.fromCsv(this.collection, headers, csvValues).then(jmarc => {
-                        console.log(jmarc)
-                        let validationErrors = []
-                        let fatalErrors = []
+                const promises = []
+                const foundRecords = []
 
-                        if (jmarc.fields.length > 0) {
-                            jmarc.symbolInUse().then(symbolInUse => {
-                                if (symbolInUse) {
-                                    this.issues += 1
-                                    validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
-                                }
-                            });
+                for (let [row, data] of Object.entries(csv.data)) {
+                    const jmarc = new Jmarc(this.collection)
 
-                            for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
-                                for (let subfield of field.subfields.filter(x => 'xref' in x)) {
-                                    if (subfield.xref instanceof Error) {
-                                        // unresolved xrefs are set to an Error object
-                                        fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
-                                    }
-                                }
+                    for (let [header, value] of Object.entries(data)) {
+                        console.log(header, value)
+                        const tag = header.match(/\d\.(\d+)/)[1]
+                        const place = parseInt(header.match(/^\d+/)[0]) - 1
+                        const subfieldCode = (header.match(/\$(\w)$/) || [])[1]
+
+                        if (value) {
+                            let field = jmarc.getField(tag, place)
+
+                            if (!field) {
+                                field = jmarc.createField(tag)
                             }
 
-                            // Set a field indicating the record was imported
-                            let importField = jmarc.createField("999")
-                            let importSubfield = importField.createSubfield("a")
-                            const today = new Date()
-                            // user shortname
-                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
-                            importField.new = true
+                            if (!tag.match(/^00/)) {
+                                // datafield
+                                const subfield = field.createSubfield(subfieldCode)
 
-                            this.records.push({ "jmarc": jmarc, "mrk": csvLine, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
+                                subfield.value = value
+                            } else {
+                                // controlfield
+                                field.value = value
+                            }
                         }
-                    }).catch(error => {
-                        throw error
-                    })
-                    console.log("pushing promise")
-                    promises.push(promise)
+                    }
+                    foundRecords.push(jmarc)
                 }
-                console.log("waiting for promises")
-                Promise.all(promises).then(x => this.detectedSpinner = false)
+
+                for (let jmarc of foundRecords) {
+                    let validationErrors = []
+                    let fatalErrors = []
+                    jmarc.symbolInUse().then(symbolInUse => {
+                        if (symbolInUse) {
+                            this.issues += 1
+                            validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
+                        }
+                    });
+
+                    for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
+                        for (let subfield of field.subfields.filter(x => 'xref' in x)) {
+                            if (subfield.xref instanceof Error) {
+                                // unresolved xrefs are set to an Error object
+                                fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
+                            }
+                        }
+                    }
+                    for (let field of jmarc.fields) {
+                        let foundXref = null
+                        let subfields = []
+                        if (field instanceof DataField) {
+                            for (let subfield of field.subfields) {
+                                subfields.push(subfield)
+                                if (subfield.code == "0") {
+                                    foundXref = subfield.value
+                                }
+                            }
+                        }
+                        for (let subfield of subfields) {
+                            if (foundXref !== null) {
+                                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                                    subfield.xref = foundXref
+                                } else {
+                                    promises.push(subfield.detectAndSetXref())
+                                }
+                            }
+                        }
+                    }
+                    // Set a field indicating the record was imported
+                    let importField = jmarc.createField("999")
+                    let importSubfield = importField.createSubfield("a")
+                    const today = new Date()
+                    // user shortname
+                    importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+                    importField.new = true
+
+                    Promise.all(promises).then(x => this.detectedSpinner = false)
+                    this.records.push({ "jmarc": jmarc, "mrk": "", "validationErrors": [], "fatalErrors": [], "checked": false })   
+                }
             }
         },
         parse(file) {
