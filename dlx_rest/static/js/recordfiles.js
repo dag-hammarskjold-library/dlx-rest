@@ -1,9 +1,24 @@
 export let recordfilecomponent = {
-    props: ["api_prefix", "record_id"],
+    props: {
+        api_prefix: {
+            type: String,
+            required: true
+        },
+        record_id: {
+            type: String,
+            required: true
+        },
+        desired_languages: {
+            type: Array,
+            required: false,
+            default: () => ['ar', 'zh', 'en', 'fr', 'ru', 'es']
+        }
+    },
+    //props: ["api_prefix", "record_id", "desired_languages"],
     template: /* html */ `
     <div class="files-container">
         <span v-for="file in files" :key="file.language" class="file-language">
-            <u><a :href="file.url + '?action=download'" target="_blank" :title="message" class="file-language">{{ langmap[file.language] }}</a></u>
+            <u><a :href="file.url + '?action=open'" target="_blank" :title="message" class="file-language">{{ langmap[file.language] }}</a></u>
         </span>
     </div>
     `,
@@ -20,7 +35,13 @@ export let recordfilecomponent = {
             response => response.json()
         ).then(
             json => {
-                this.files = json.data
+                //this.files = json.data
+                for (let lang of this.desired_languages) {
+                    let file = json.data.find(f => f.language === lang);
+                    if (file) {
+                        this.files.push(file);
+                    }
+                }
             }
         )
     }
