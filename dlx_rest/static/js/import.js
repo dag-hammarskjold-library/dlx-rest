@@ -123,6 +123,7 @@ export let importcomponent = {
                         </div>
                     </div>
                 </div>
+                <hr />
             </div>
             <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
         </div>
