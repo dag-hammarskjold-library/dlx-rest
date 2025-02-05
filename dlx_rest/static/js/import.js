@@ -265,7 +265,7 @@ export let importcomponent = {
                             let importSubfield = importField.createSubfield("a")
                             const today = new Date()
                             // user shortname
-                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": recordElement, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
@@ -422,7 +422,7 @@ export let importcomponent = {
                             let importSubfield = importField.createSubfield("a")
                             const today = new Date()
                             // user shortname
-                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
