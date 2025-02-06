@@ -1,4 +1,4 @@
-import { Jmarc } from './jmarc.mjs'
+import { DataField, Jmarc } from './jmarc.mjs'
 import user from "./api/user.js"
 import { CSV } from './csv.mjs'
 
@@ -123,6 +123,7 @@ export let importcomponent = {
                         </div>
                     </div>
                 </div>
+                <hr />
             </div>
             <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
         </div>
@@ -265,7 +266,7 @@ export let importcomponent = {
                             let importSubfield = importField.createSubfield("a")
                             const today = new Date()
                             // user shortname
-                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": recordElement, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
@@ -282,21 +283,100 @@ export let importcomponent = {
             
         },
         parseCsv(file) {
-            
             this.state = "preview"
             const reader = new FileReader()
-            reader.readAsText(file)
-            const promises = []
             this.detectedSpinner = true
+
+            reader.readAsText(file)
+            
             reader.onload = (res) => {
+                const csvText = res.target.result
                 let csv = new CSV()
-                csv.parseText(res.target.result)
-                // listMarc fails
-                csv.listJmarc(this.collection).then( records => {
-                    for (let record of records) {
-                        this.records.push({ "jmarc": record, "mrk": "", "validationErrors": [], "fatalErrors": [], "checked": false })
+                csv.parseText(csvText)
+
+                const promises = []
+                const foundRecords = []
+
+                for (let [row, data] of Object.entries(csv.data)) {
+                    const jmarc = new Jmarc(this.collection)
+
+                    for (let [header, value] of Object.entries(data)) {
+                        console.log(header, value)
+                        const tag = header.match(/\d\.(\d+)/)[1]
+                        const place = parseInt(header.match(/^\d+/)[0]) - 1
+                        const subfieldCode = (header.match(/\$(\w)$/) || [])[1]
+
+                        if (value) {
+                            let field = jmarc.getField(tag, place)
+
+                            if (!field) {
+                                field = jmarc.createField(tag)
+                            }
+
+                            if (!tag.match(/^00/)) {
+                                // datafield
+                                const subfield = field.createSubfield(subfieldCode)
+
+                                subfield.value = value
+                            } else {
+                                // controlfield
+                                field.value = value
+                            }
+                        }
                     }
-                })
+                    foundRecords.push(jmarc)
+                }
+
+                for (let jmarc of foundRecords) {
+                    let validationErrors = []
+                    let fatalErrors = []
+                    jmarc.symbolInUse().then(symbolInUse => {
+                        if (symbolInUse) {
+                            this.issues += 1
+                            validationErrors.push({ "message": "Duplicate Symbol Warning: The symbol for this record is already in use." })
+                        }
+                    });
+
+                    for (let field of jmarc.fields.filter(x => !x.tag.match(/^00/))) {
+                        for (let subfield of field.subfields.filter(x => 'xref' in x)) {
+                            if (subfield.xref instanceof Error) {
+                                // unresolved xrefs are set to an Error object
+                                fatalErrors.push({ "message": `Fatal: ${field.tag}$${subfield.code} ${subfield.xref.message}: ${subfield.value}` })
+                            }
+                        }
+                    }
+                    for (let field of jmarc.fields) {
+                        let foundXref = null
+                        let subfields = []
+                        if (field instanceof DataField) {
+                            for (let subfield of field.subfields) {
+                                subfields.push(subfield)
+                                if (subfield.code == "0") {
+                                    foundXref = subfield.value
+                                }
+                            }
+                        }
+                        for (let subfield of subfields) {
+                            if (foundXref !== null) {
+                                if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
+                                    subfield.xref = foundXref
+                                } else {
+                                    promises.push(subfield.detectAndSetXref())
+                                }
+                            }
+                        }
+                    }
+                    // Set a field indicating the record was imported
+                    let importField = jmarc.createField("999")
+                    let importSubfield = importField.createSubfield("a")
+                    const today = new Date()
+                    // user shortname
+                    importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+                    importField.new = true
+
+                    Promise.all(promises).then(x => this.detectedSpinner = false)
+                    this.records.push({ "jmarc": jmarc, "mrk": "", "validationErrors": [], "fatalErrors": [], "checked": false })   
+                }
             }
         },
         parse(file) {
@@ -343,7 +423,7 @@ export let importcomponent = {
                             let importSubfield = importField.createSubfield("a")
                             const today = new Date()
                             // user shortname
-                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${today.getMonth() + 1}${today.getDate()}`
+                            importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
                             importField.new = true
 
                             this.records.push({ "jmarc": jmarc, "mrk": mrk, "validationErrors": validationErrors, "fatalErrors": fatalErrors, "checked": false })
