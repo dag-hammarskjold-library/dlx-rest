@@ -2880,7 +2880,7 @@ export const validationData = {
         },
         "791": {
             "name": "UN resolution/meeting record symbol",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
