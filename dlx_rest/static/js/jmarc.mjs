@@ -788,6 +788,9 @@ export class Jmarc {
 						promises.push(subfield.detectAndSetXref())
 					}
 				}
+				if (subfield.code == "0") {
+					field.deleteSubfield(subfield)
+				}
 			}
 		})
 		
@@ -847,6 +850,9 @@ export class Jmarc {
 							}
 						} else {
 							promises.push(subfield.detectAndSetXref())
+						}
+						if (subfield.code == "0") {
+							field.deleteSubfield(subfield)
 						}
 					}
 				}

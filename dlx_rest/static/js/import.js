@@ -364,6 +364,9 @@ export let importcomponent = {
                                     promises.push(subfield.detectAndSetXref())
                                 }
                             }
+                            if (subfield.code == "0") {
+                                field.deleteSubfield(subfield)
+                            }
                         }
                     }
                     // Set a field indicating the record was imported
