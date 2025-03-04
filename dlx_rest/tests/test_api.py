@@ -317,10 +317,7 @@ def test_api_record_parse(client):
     assert res.status_code == 400
 
     # csv
-    # these are currently failing pending implentation of Marc.from_csv in dlx
-
-    return
-
+    # these are currently failing pending implementation of Marc.from_csv in a new dlx release
     res = client.get(f'{API}/marc/bibs/parse?format=csv', data='1.245$a\nTitle\n')
     assert res.status_code == 200
     data = check_response(res)
