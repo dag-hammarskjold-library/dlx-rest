@@ -90,6 +90,7 @@ class SchemasList(Resource):
             'api.basket.item',
             'api.brieflist',
             'jmarc',
+            'jmarc.preview',
             'jmarc.workform', 
             'jfile', 
             'jmarc.batch',
@@ -873,7 +874,7 @@ class RecordParse(Resource):
 
     @ns.doc(description='Parse the string and return a native JSON representation')
     @ns.expect(args)
-    def get(self, collection):
+    def post(self, collection):
         args = RecordParse.args.parse_args()
         cls = ClassDispatch.by_collection(collection) or abort(404)
 
