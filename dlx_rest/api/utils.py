@@ -79,6 +79,9 @@ class ApiResponse():
         )
    
 class Schemas():
+    # These schemas are jsonschema validation documents. The data returned by 
+    # every API response is validated by one of these schemas.
+
     def get(schema_name):
         if schema_name == 'api.urllist':
             data = {'type': 'array', 'items': {'type': 'string', 'format': 'uri'}}
@@ -119,6 +122,9 @@ class Schemas():
                     }
                 }
             }
+        elif schema_name == 'jmarc.preview':
+            data = deepcopy(DlxConfig.jmarc_schema)
+            data['required'].remove('_id')
         elif schema_name == 'jmarc.workform':
             data = deepcopy(DlxConfig.jmarc_schema)
             del data['properties']['_id']
