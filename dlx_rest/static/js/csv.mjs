@@ -27,7 +27,7 @@ export class CSV {
         // header row. Multiple CSVs can be ingested in order to combine the
         // data.
 
-        const lines = text.split("\n");
+        const lines = text.split("\n").filter(x => x.trim() !== "");
         const header = parseCSVLine(lines.shift());
         header.forEach(x => this._header.add(x));
 
