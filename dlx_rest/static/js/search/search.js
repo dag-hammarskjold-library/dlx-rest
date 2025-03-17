@@ -134,7 +134,7 @@ export let searchcomponent = {
             Filter: 
             <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
-        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params" :subtype="subtype"></sortcomponent>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
@@ -249,6 +249,7 @@ export let searchcomponent = {
             }
         }
         let myUIBase = this.api_prefix.replace('/api/', '');
+        let mySubtype = ["vote", "speech"].includes(myProps.subtype) ? myProps.subtype : this.collection
         return {
             visible: true,
             results: [],
@@ -304,7 +305,8 @@ export let searchcomponent = {
             user: null,
             collectionTitle: null,
             engine: "community",
-            previewOpen: false
+            previewOpen: false,
+            subtype: mySubtype
         }
     },
     created: async function () {
