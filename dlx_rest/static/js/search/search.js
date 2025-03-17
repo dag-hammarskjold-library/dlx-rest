@@ -441,8 +441,9 @@ export let searchcomponent = {
 
                         let rtype = result["types"].split("::")
 
-                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        myResult["second_line"] = [result['f099c'], result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                         myResult["f520"] = result["f520"]
+
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
                             myResult["f596"] = result["f596"]
