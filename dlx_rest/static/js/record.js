@@ -3228,6 +3228,17 @@ export let multiplemarcrecordcomponent = {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
 
+            // Find and remove any existing count components
+            let existingCountComponent = subfield.valueSpan.parentElement.querySelector(".count-component");
+            if (existingCountComponent) {
+                // Get the Vue instance associated with the component and destroy it
+                const vueInstance = existingCountComponent.__vue__;
+                if (vueInstance) {
+                    vueInstance.$destroy();
+                }
+                existingCountComponent.remove();
+            }
+
             // Create wrapper div for count component
             let countWrapper = document.createElement('div');
             subfield.valueSpan.parentElement.appendChild(countWrapper);
