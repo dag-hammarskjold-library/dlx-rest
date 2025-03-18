@@ -887,6 +887,7 @@ class RecordParse(Resource):
         try:
             record = getattr(cls, method)(request.data.decode())
         except Exception as e:
+            raise e
             abort(400, str(e))
 
         data = record.to_dict()
