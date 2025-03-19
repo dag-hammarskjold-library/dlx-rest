@@ -309,7 +309,7 @@ def test_api_record_parse(client):
     assert res.status_code == 400
 
     # xml
-    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml(write_id=False))
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml(write_id=False)) # write_id arg shouldn't be necessary, but currently is due to bug in dlx
     data = check_response(res)
     assert Bib(data['data']).to_xml() == test_bib.to_xml()
     
