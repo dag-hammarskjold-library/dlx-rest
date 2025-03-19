@@ -6,6 +6,7 @@ import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
 import { exportmodal } from "../modals/export.js";
+import { readonlyrecord } from "../readonly_record.js"
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -31,7 +32,7 @@ export let searchcomponent = {
             required: true
         }
     },
-    template: ` 
+    template: /* html */ `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
@@ -169,17 +170,9 @@ export let searchcomponent = {
             <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i></a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row mt-1 bg-light border-bottom">
+            <div class="row mt-1 border-bottom search-result">
                 <div class="col-sm-1" v-if="user">
                     <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
-                </div>
-                <div>
-                    <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
-                    <div :id="'preview-' + result._id" class="record-preview hidden">
-                        <span class="record-preview-id">{{result._id}}</span>
-                        </br>
-                        <span :id="'preview-text-' + result._id" class="preview-text"></span>
-                    </div>
                 </div>
                 <div class="col-sm-9 px-4">
                     <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
@@ -204,6 +197,13 @@ export let searchcomponent = {
                     <div class="row" v-for="val in result.f520" style="white-space:nowrap">
                         <span class="ml-3">{{val}}</span>
                     </div>
+                </div>
+                <div>
+                    <i v-if="previewOpen === result._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
+                    <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
+                    <readonlyrecord v-if="previewOpen === result._id" :api_prefix="api_prefix" :collection="collection" :record_id="result._id" class="record-preview"></readonlyrecord>
+                </div>
+                <div class="col">
                     <recordfilecomponent ref="recordfilecomponent" v-if="collection=='bibs'" :api_prefix="api_prefix" :record_id="result._id" />
                 </div>
                 <div class="col-sm-1">
@@ -303,7 +303,8 @@ export let searchcomponent = {
             myBasket: {},
             user: null,
             collectionTitle: null,
-            engine: "community"
+            engine: "community",
+            previewOpen: false
         }
     },
     created: async function () {
@@ -329,13 +330,12 @@ export let searchcomponent = {
                 || event.target.classList.contains("record-preview")
                 || event.target.parentElement.classList.contains("record-preview")
             ) {
+                // the target is a part of the preview (do nothing)
                 return
             }
 
             for (let x of document.getElementsByClassName("record-preview")) {
-                let match = x.id.match(/^preview\-(\d+)$/);
-                let recordId = match[1];
-                component.hidePreview(recordId);
+                component.togglePreview(event)
             }
         });
 
@@ -733,42 +733,16 @@ export let searchcomponent = {
             }
         },
         togglePreview(event, recordId) {
-            let preview = document.getElementById("preview-" + recordId);
-            let toggleButton = document.getElementById("preview-toggle-" + recordId);
+            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
 
-            if (preview.classList.contains("hidden")) {
-                // unhide the preview div
-                preview.classList.remove("hidden");
-                toggleButton.className = "fas fa-spinner preview-toggle";
-                let display = document.getElementById("preview-text-" + recordId);
-
-                // get the data
-                Jmarc.get(this.collection, recordId)
-                    .then(jmarc => {
-                        display.innerText = jmarc.toStr();
-                        toggleButton.className = "fas fa-window-close preview-toggle";
-                        toggleButton.title = "close preview";
-                    })
-
-                // hide any other unhidden preview divs
-                for (let x of document.getElementsByClassName("record-preview")) {
-                    if (x !== preview) {
-                        let match = x.id.match(/^preview\-(\d+)/);
-                        let otherId = match[1];
-                        this.hidePreview(otherId);
-                    }
-                }
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             } else {
-                // hide the preview div
-                this.hidePreview(recordId);
+                this.previewOpen = false;
             }
-        },
-        hidePreview(recordId) {
-            let preview = document.getElementById("preview-" + recordId);
-            preview.classList.add("hidden");
-            let toggleButton = document.getElementById("preview-toggle-" + recordId);
-            toggleButton.className = "fas fa-file preview-toggle";
-            toggleButton.title = "preview record";
+
+            return
         },
         showExportModal() {
             //console.log(this.links.format)
@@ -787,6 +761,7 @@ export let searchcomponent = {
         'countcomponent': countcomponent,
         'exportmodal': exportmodal,
         'itemaddcomponent': itemaddcomponent,
-        'recordfilecomponent': recordfilecomponent
+        'recordfilecomponent': recordfilecomponent,
+        'readonlyrecord': readonlyrecord
     }
 }

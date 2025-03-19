@@ -1,24 +1,32 @@
 export let recordfilecomponent = {
-    props: ["api_prefix", "record_id"],
-    template: `<ul v-if="files" class="list-group list-group-horizontal list-group-flush m-0 p-0 pb-1">
-        <li v-for="file in files" class="list-group-item border-0 m-0 p-0 mr-1 float-left">
-            <ul class="list-group list-group-horizontal list-group-flush m-0 p-0 pb-1">
-                <li class="list-group-item list-group-item-dark border-0 m-0 p-0 px-1">
-                    {{file.language}} 
-                </li>
-                <li class="list-group-item list-group-item-dark border-0 m-0 p-0 px-1">
-                    <a :href="file.url + '?action=open'" target="_blank" title="open"><i class="fas fa-file text-dark"></i></a>
-                </li>                
-                <li class="list-group-item list-group-item-dark border-0 m-0 p-0 px-1">
-                    <a :href="file.url + '?action=download'" target="_blank" title="open"><i class="fas fa-cloud-download-alt text-dark"></i></a>
-                </li>
-                
-            </ul>
-        </li>
-    </ul>`,
+    props: {
+        api_prefix: {
+            type: String,
+            required: true
+        },
+        record_id: {
+            type: String,
+            required: true
+        },
+        desired_languages: {
+            type: Array,
+            required: false,
+            default: () => ['ar', 'zh', 'en', 'fr', 'ru', 'es']
+        }
+    },
+    //props: ["api_prefix", "record_id", "desired_languages"],
+    template: /* html */ `
+    <div class="files-container">
+        <span v-for="file in files" :key="file.language" class="file-language">
+            <u><a :href="file.url + '?action=open'" target="_blank" :title="message" class="file-language">{{ langmap[file.language] }}</a></u>
+        </span>
+    </div>
+    `,
     data: function () {
         return {
-            files: null
+            message: "Download file or shift+click to open in a new browser tab",
+            langmap: {en: 'E', ar: 'A', zh: 'C', fr: 'F', ru: 'R', es: 'S'},
+            files: []
         }
     },
     created: async function() {
@@ -27,7 +35,13 @@ export let recordfilecomponent = {
             response => response.json()
         ).then(
             json => {
-                this.files = json.data
+                //this.files = json.data
+                for (let lang of this.desired_languages) {
+                    let file = json.data.find(f => f.language === lang);
+                    if (file) {
+                        this.files.push(file);
+                    }
+                }
             }
         )
     }

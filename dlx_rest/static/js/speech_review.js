@@ -88,7 +88,7 @@ export let speechreviewcomponent = {
                     <td>{{speech.speaker}}</td>
                     <td>{{speech.speaker_country}}</td>
                     <td>{{speech.country_org}}</td>
-                    <td><recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" /></td>
+                    <td><recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" :desired_languages="['en','fr','es']" /></td>
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
                     </td>
