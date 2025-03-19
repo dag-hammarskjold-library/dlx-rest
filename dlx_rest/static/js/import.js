@@ -4,7 +4,7 @@ import { CSV } from './csv.mjs'
 
 export let importcomponent = {
     props: ["api_prefix"],
-    template: `
+    template: /* html */ `
     <div id="foo" class="container">
         <h4>Import Records</h4>
         <div v-if="state == 'init'">
