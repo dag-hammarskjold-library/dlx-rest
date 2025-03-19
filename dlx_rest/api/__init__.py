@@ -887,7 +887,6 @@ class RecordParse(Resource):
         try:
             record = getattr(cls, method)(request.data.decode())
         except Exception as e:
-            raise e
             abort(400, str(e))
 
         data = record.to_dict()
@@ -903,7 +902,7 @@ class RecordParse(Resource):
             'timestamp': datetime.now(timezone.utc)
         }
         links = {
-            '_self': None, # not valid because cannot include the data payload in the link
+            '_self': URL('api_records_list', collection=collection).to_str() # None, # not valid because cannot include the data payload in the link
         }   
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()

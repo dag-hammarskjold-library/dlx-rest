@@ -305,24 +305,18 @@ def test_api_record_parse(client):
     data = check_response(res)
     assert Bib(data['data']).to_mrk() == test_bib.to_mrk()
     
-    with pytest.raises(Exception):
-        res = client.post(f'{API}/marc/bibs/parse?format=mrk', data=test_bib.to_mrk() + '\tthis line is not valid')
-        #assert res.status_code == 400
+    res = client.post(f'{API}/marc/bibs/parse?format=mrk', data=test_bib.to_mrk() + '\tthis line is not valid')
+    assert res.status_code == 400
 
     # xml
-    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml())
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml(write_id=False))
     data = check_response(res)
     assert Bib(data['data']).to_xml() == test_bib.to_xml()
     
-    with pytest.raises(Exception):
-        res = client.post(f'{API}/marc/bibs/parse?format=xml', data='<invalid xml></invalid xml>')
-        #assert res.status_code == 400
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data='<invalid xml></invalid xml>')
+    assert res.status_code == 400
 
     # csv
-    # these are currently failing pending implementation of Marc.from_csv in a new dlx release
-
-    return
-
     res = client.post(f'{API}/marc/bibs/parse?format=csv', data='1.245$a\nTitle\n')
     assert res.status_code == 200
     data = check_response(res)
@@ -894,14 +888,11 @@ def test_api_userbasket(client, default_users, users, marc):
 ### util
 
 def check_response(response):
-    client = app.test_client()
-    data = json.loads(response.data)
-    
-    if response.status_code != 200:
-        print(data)
-
     assert response.status_code == 200
     
+    client = app.test_client()
+    data = json.loads(response.data)
+
     for _ in ('_links', '_meta', 'data'):
         assert _ in data
     
