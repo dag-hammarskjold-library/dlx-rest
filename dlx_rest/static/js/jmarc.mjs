@@ -1285,6 +1285,7 @@ export class Jmarc {
 		for (const tag of ['191', '791']) {
 			// only look in same symbol fields in other records
 			for (const field of this.getFields(tag)) {
+				if (!field.getSubfield("a")) continue // field may not have subfield $a
 				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
 				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
 				const res = await fetch(url);
