@@ -97,20 +97,11 @@
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
                     {% endif %}
-                    <!-- <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li> -->
                     {% if vcoll=="auths" %}
-                    <li class="nav-item active dropdown">
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
                     {% else %}
-                    <li class="nav-item dropdown">
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
                     {% endif %}
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Auths
-                          </a>
-                          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="{{url_for('get_records_list', coll='auths')}}">Auths</a>
-                            <a class="dropdown-item" href="{{url_for('review_auth')}}">Review Auths</a>
-                          </div>
-                    </li>
                     {% if vcoll=="browse" %}
                     <li class="nav-item active dropdown">
                     {% else %}
