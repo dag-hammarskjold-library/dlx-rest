@@ -3222,10 +3222,35 @@ export let multiplemarcrecordcomponent = {
         setAuthControl(field, subfield) {
             let component = this;
             subfield.valueSpan.classList.add("authority-controlled");
+            
    
             if (! "xref" in subfield) {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
+
+            // Find and remove any existing count components
+            let existingCountComponent = subfield.valueSpan.parentElement.querySelector(".count-component");
+            if (existingCountComponent) {
+                // Get the Vue instance associated with the component and destroy it
+                const vueInstance = existingCountComponent.__vue__;
+                if (vueInstance) {
+                    vueInstance.$destroy();
+                }
+                existingCountComponent.remove();
+            }
+
+            // Create wrapper div for count component
+            let countWrapper = document.createElement('div');
+            subfield.valueSpan.parentElement.appendChild(countWrapper);
+
+            // Mount count component using Vue.extend
+            const CountComponent = Vue.extend(countcomponent);
+            new CountComponent({
+                propsData: {
+                    api_prefix: this.prefix,
+                    recordId: subfield.xref
+                }
+            }).$mount(countWrapper);
  
             if (subfield.xrefCell.children.length === 0) {
                 if (subfield.xref) {

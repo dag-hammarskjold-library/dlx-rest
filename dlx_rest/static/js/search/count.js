@@ -3,7 +3,7 @@
 export let countcomponent = {
     props: ["api_prefix", "recordId"],
     template: `
-        <span class="mx-2">
+        <span class="mx-2 count-component">
             <a class="result-link" :href="uiBase + 'records/bibs/search?q=xref:' + recordId + '&subtype=all'" :title="search_count === '⌕' ? 'Use count pending' : ''">({{search_count}})</a>
         </span>
     `,
