@@ -1489,7 +1489,7 @@ export const validationData = {
                 "089__b:B08": {"a": "Documents and Publications", "b": "Draft Reports"},
                 "089__b:B02": {"a": "Documents and Publications", "b": "Draft Resolutions and Decisions"},
                 "089__b:B20 OR 191__b:*/PRESS/*": {"a": "Documents and Publications", "b": "Press Releases"},
-                "089__b:B12 OR 191__a:/\\/(SGB|AI|IC|AFS)\\//": {"a": "Documents and Publications", "b": "Administrative Issuances"},
+                "089__b:B12": {"a": "Documents and Publications", "b": "Administrative Issuances"},
                 "089__b:A19": {"a": "Documents and Publications", "b": "Treaties and Agreements"},
                 "089__b:A15 OR 089__b:B25": {"a": "Documents and Publications", "b": "Legal Cases and Opinions"},
                 "089__b:B21 OR 191__a:*/NGO/*": {"a": "Documents and Publications", "b": "NGO Written Statements"},
