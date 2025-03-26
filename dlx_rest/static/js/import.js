@@ -241,7 +241,6 @@ export let importcomponent = {
                         break
                     case "mrk":
                         format = "mrk"
-                        console.log(fileEvent.target.result.split(/[\r\n][\r\n]/))
                         recordStrings = fileEvent.target.result.split(/[\r\n][\r\n]/)
                         break
                 }
@@ -294,7 +293,7 @@ export let importcomponent = {
                                 this.records.push({ "jmarc": jmarc, "mrk": string, "validationWarnings": validationWarnings})
                             }       
                         }).catch(error => {
-                            console.log(error)
+                            throw error
                         })
 
                     promises.push(promise)
