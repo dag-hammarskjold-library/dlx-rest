@@ -56,7 +56,6 @@ export let importcomponent = {
                                 <input type="checkbox" class="custom-control-input" id="customSwitch1" @change="showErrors = !showErrors">
                                 <label class="custom-control-label" for="customSwitch1">Show Errors and Warnings</label>
                             </div>
-                            
                         </form>
                     </div>
                     <div class="col-sm-2">{{records.length}} {{this.collection.replace("s","")}} record(s)</div>
@@ -83,6 +82,7 @@ export let importcomponent = {
                         <div v-for="field in record['jmarc'].fields" class="field" :data-tag="field.tag">
                             <div v-if="field.subfields">
                                 <code class="text-primary">{{field.tag}}</code>
+                                <code class="text-secondary">{{field.indicators.map(x => {return x === " " ? "_" : x}).join(" ")}}</code>
                                 <span v-for="subfield in field.subfields">
                                     <code>\${{subfield.code}}</code>{{subfield.value}}
                                 </span>
