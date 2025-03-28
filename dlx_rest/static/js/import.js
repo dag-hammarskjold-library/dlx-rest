@@ -237,7 +237,7 @@ export let importcomponent = {
                         // each record sting must be two lines - one with the header and one with th record data
                         const lines = fileEvent.target.result.split("\n")
                         const header = lines[0]
-                        lines.slice(1).forEach(line => {recordStrings.push(header + "\n" + line)})
+                        lines.slice(1).forEach(line => {if (line) recordStrings.push(header + "\n" + line)})
                         break
                     case "mrk":
                         format = "mrk"
@@ -265,7 +265,7 @@ export let importcomponent = {
                                 let validationWarnings = []
 
                                 if (jmarc.fields.length == 0) {
-                                    throw new Error("No data found for record")
+                                    return
                                 }
 
                                 if (!jmarc.getField("001")) {
@@ -302,7 +302,7 @@ export let importcomponent = {
                 // todo: The order of the records previews might not be in the same order
                 // as they were in the file because of async. We may need to consider preserving 
                 // the order while still maintaing async.
-                Promise.all(promises).then(x => this.detectedSpinner = false)
+                Promise.all(promises).then(x => {this.detectedSpinner = false})
             }
 
             return
