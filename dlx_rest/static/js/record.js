@@ -3228,6 +3228,7 @@ export let multiplemarcrecordcomponent = {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
 
+            /* Removed to put the count on the read-only record instead 
             // Find and remove any existing count components
             let existingCountComponent = subfield.valueSpan.parentElement.querySelector(".count-component");
             if (existingCountComponent) {
@@ -3251,13 +3252,14 @@ export let multiplemarcrecordcomponent = {
                     recordId: subfield.xref
                 }
             }).$mount(countWrapper);
+            */
  
             if (subfield.xrefCell.children.length === 0) {
                 if (subfield.xref) {
                     // exisiting field
                     let xrefLink = document.createElement("a");
                     subfield.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${subfield.xref}`;
                     xrefLink.target="_blank";
      
                     let xrefIcon = document.createElement("i");
@@ -3431,7 +3433,7 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
             
         let xrefLink = document.createElement("a");
-        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+        xrefLink.href = component.baseUrl + `editor?records=auths/${choiceSubfield.xref}`;
         xrefLink.target="_blank";
             
         let xrefIcon = document.createElement("i");
@@ -3571,7 +3573,7 @@ function keyupAuthLookup(event) {
                     // create the xref link
                     let xrefLink = document.createElement("a");
                     s.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${auth.recordId}`;
                     xrefLink.target="_blank";
      
                     let xrefIcon = document.createElement("i");
