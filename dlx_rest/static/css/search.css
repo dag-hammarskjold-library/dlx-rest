@@ -3,23 +3,52 @@ a.result-link {
     color: #0000EE
 }
 
+div.search-result {
+    background-color: #F8F8F8;
+
+}
+
+div.search-result:hover {
+    background-color: gainsboro;
+}
+
+i.preview-toggle:hover {
+    cursor: pointer
+}
+
 div.record-preview {
     position: absolute;
     display: block;
     z-index: 1;
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid black;
+    left: 9%;
+    width: 763px;
     box-shadow: -1px 2px 2px gray;
 }
 
-span.record-preview-id {
-    font-weight: bold;
-    font-style: italic;
+div.files-container {
+    display: block;
 }
 
-span.preview-text {
-    font-size: 13px;
+span.file-language {
+    padding: 1px;
+    display: inline-block;
 }
+
+a.file-language {
+    color: dimgray
+}
+
+a.file-language:hover {
+    color: lightsalmon
+}
+
+i.item-toggle:hover {
+    cursor: pointer
+}
+
+
 
 /**/
 div.hidden {

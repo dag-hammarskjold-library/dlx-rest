@@ -90,6 +90,7 @@ class SchemasList(Resource):
             'api.basket.item',
             'api.brieflist',
             'jmarc',
+            'jmarc.preview',
             'jmarc.workform', 
             'jfile', 
             'jmarc.batch',
@@ -858,6 +859,53 @@ class RecordLockStatus(Resource):
     def get(self, collection, record_id):
         lock_status= item_locked(collection, record_id)
         return lock_status, 200
+
+# Record parse
+@ns.route('/marc/<string:collection>/parse')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordParse(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'format',
+        required=True,
+        type=str, 
+        choices=['xml', 'mrk', 'csv']
+    )
+
+    @ns.doc(description='Parse the string and return a native JSON representation')
+    @ns.expect(args)
+    def post(self, collection):
+        args = RecordParse.args.parse_args()
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+
+        if not request.data:
+            # how to document the expected payload??
+            abort(400, 'Request data not found')
+
+        method = 'from_' + args.format
+
+        try:
+            record = getattr(cls, method)(request.data.decode())
+        except Exception as e:
+            abort(400, str(e))
+
+        data = record.to_dict()
+
+        if data.get('_id') is None:
+            # Remove the field if there is no ID (new record) so that the data
+            # passes type validation.
+            del data['_id']
+
+        meta = {
+            'name': 'api_record_parse',
+            'returns':  URL('api_schema', schema_name='jmarc.preview').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_self': None, # not valid because cannot include the data payload in the link
+        }   
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Fields
 '''
