@@ -280,7 +280,7 @@ export let importcomponent = {
                                 }
 
                                 validationWarnings = validationWarnings.concat(jmarc.allValidationWarnings())
-                                this.recordsWithWarnings += 1
+                                if (validationWarnings.length > 0) this.recordsWithWarnings += 1
 
                                 // Set a field indicating the record was imported
                                 let importField = jmarc.createField("999")
