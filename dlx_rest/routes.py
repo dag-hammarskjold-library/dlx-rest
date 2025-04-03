@@ -595,7 +595,7 @@ def create_record(coll):
 
 @app.route('/files')
 @login_required
-@requires_permission('readFile')
+#@requires_permission('readFile')
 def manage_files():
     this_prefix = url_for('doc', _external=True)
     return render_template('files.html', api_prefix=this_prefix, title="Files")

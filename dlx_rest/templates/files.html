@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block content %}    
 
-    <div id="files_vm" v-show="true" data-api_prefix="{{prefix}}">
+    <div id="files_vm" v-show="true">
         <filescomponent api_prefix="{{api_prefix}}"></filescomponent>
     </div>
 
@@ -9,7 +9,9 @@
 
     export let files_vm = new Vue({
         el: "#files_vm",
-        components: {filescomponent}
+        components: {
+            'filescomponent': filescomponent
+        }
     })
 </script>
 

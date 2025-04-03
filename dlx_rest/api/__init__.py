@@ -1844,12 +1844,10 @@ class FileRecord(Resource):
             
         if record.filename is None:
             ids = []
-        
             for idx in record.identifiers:
                 ids.append(idx.value)
         
             langs = []
-        
             for lang in record.languages:
                 langs.append(lang)
 
@@ -1881,21 +1879,42 @@ class FileRecord(Resource):
                 abort(500, str(e))
 
             return send_file(s3_file['Body'], as_attachment=False, download_name=output_filename)
+        
+        formatted_identifiers = [
+            {
+                'type': identifier.type,
+                'value': identifier.value
+            } for identifier in record.identifiers
+        ]
+        
+        return_data = {
+            '_id': str(record.id),
+            'filename': record.filename,
+            'mimetype': record.mimetype,
+            'languages': record.languages,
+            'identifiers': formatted_identifiers,
+            'timestamp': record.timestamp.isoformat(),
+            'updated': record.updated.isoformat() if record.updated else record.timestamp.isoformat(),
+            'size': record.size,
+            'source': record.source,
+            'uri': record.uri
+        }
             
         links = {
             '_self': URL('api_file_record', record_id=record_id).to_str(),
             'related': {
                 'files': URL('api_files_records_list').to_str(),
-                'download': URL('api_file_record', record_id=record_id, action='download').to_str()
+                'download': URL('api_file_record', record_id=record_id, action='download').to_str(),
+                'open': URL('api_file_record', record_id=record_id, action='open').to_str()
             }
         }
         
         meta = {
             'name': 'api_file_record',
-            'returns': URL('api_schema', schema_name='api.null').to_str()
+            'returns': URL('api_schema', schema_name='jfile').to_str()
         }
         
-        return ApiResponse(links=links, meta=meta, data={}).jsonify()
+        return ApiResponse(links=links, meta=meta, data=return_data).jsonify()
 
 #These routes all require a currently authenticated/authenticatable user.
 
