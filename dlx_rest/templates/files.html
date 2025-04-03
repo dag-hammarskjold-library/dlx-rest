@@ -1,0 +1,16 @@
+{% extends 'base.html' %} {% block content %}    
+
+    <div id="files_vm" v-show="true" data-api_prefix="{{prefix}}">
+        <filescomponent api_prefix="{{api_prefix}}"></filescomponent>
+    </div>
+
+<script type="module">
+    import {filescomponent} from "{{url_for('static', filename='js/files.js')}}"
+
+    export let files_vm = new Vue({
+        el: "#files_vm",
+        components: {filescomponent}
+    })
+</script>
+
+{% endblock %}

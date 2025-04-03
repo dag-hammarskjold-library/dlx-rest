@@ -126,15 +126,14 @@
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           Files
                         </a>
+                        {% if current_user.is_authenticated %}
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                          <a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a>
-                          <a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a>
-                          {% if current_user.is_authenticated %}
+                          <a class="dropdown-item" href="{{url_for('manage_files')}}">Manage Files</a>
                             {% if current_user.has_permission('importMarc') %}
                                 <a class="dropdown-item" href="{{url_for('import_marc')}}">Import Records</a>
                             {% endif %}
-                          {% endif %}
                         </div>
+                        {% endif %}
                     </li>
                     
                     {% if current_user.is_authenticated %}

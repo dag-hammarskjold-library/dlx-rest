@@ -4,7 +4,7 @@ DLX REST API
 
 # external
 from http.client import HTTPResponse
-from dlx_rest.routes import login, search_files
+from dlx_rest.routes import login
 import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
