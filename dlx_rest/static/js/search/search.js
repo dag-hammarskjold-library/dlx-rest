@@ -40,6 +40,7 @@ export let searchcomponent = {
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                     <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
+                    <li v-if="collectionTitle=='auths'" class="nav-item"><a class="nav-link" :href="uibase + '/records/auths/review'">Auth Review</a></li>
                     <li class="nav-item">
                         <div class="custom-control custom-switch nav-link ml-5">
                             <input v-if="params.engine === 'atlas'" type="checkbox" checked="true" class="custom-control-input" id="customSwitch1" @change="toggleEngine">
@@ -134,7 +135,7 @@ export let searchcomponent = {
             Filter: 
             <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
-        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params" :subtype="subtype"></sortcomponent>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
@@ -167,6 +168,7 @@ export let searchcomponent = {
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
             <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
             <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+            <a v-if="collectionTitle=='auths'" class="ml-auto result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
             <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i></a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
@@ -249,6 +251,7 @@ export let searchcomponent = {
             }
         }
         let myUIBase = this.api_prefix.replace('/api/', '');
+        let mySubtype = ["vote", "speech"].includes(myProps.subtype) ? myProps.subtype : this.collection
         return {
             visible: true,
             results: [],
@@ -304,7 +307,8 @@ export let searchcomponent = {
             user: null,
             collectionTitle: null,
             engine: "community",
-            previewOpen: false
+            previewOpen: false,
+            subtype: mySubtype
         }
     },
     created: async function () {
@@ -441,8 +445,9 @@ export let searchcomponent = {
 
                         let rtype = result["types"].split("::")
 
-                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        myResult["second_line"] = [result["f099c"].length > 0 ? result["f099c"].join(', ') : false, result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                         myResult["f520"] = result["f520"]
+
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
                             myResult["f596"] = result["f596"]

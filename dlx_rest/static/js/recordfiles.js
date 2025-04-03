@@ -5,7 +5,7 @@ export let recordfilecomponent = {
             required: true
         },
         record_id: {
-            type: String,
+            type: Number,
             required: true
         },
         desired_languages: {

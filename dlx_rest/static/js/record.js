@@ -3222,17 +3222,44 @@ export let multiplemarcrecordcomponent = {
         setAuthControl(field, subfield) {
             let component = this;
             subfield.valueSpan.classList.add("authority-controlled");
+            
    
             if (! "xref" in subfield) {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
+
+            /* Removed to put the count on the read-only record instead 
+            // Find and remove any existing count components
+            let existingCountComponent = subfield.valueSpan.parentElement.querySelector(".count-component");
+            if (existingCountComponent) {
+                // Get the Vue instance associated with the component and destroy it
+                const vueInstance = existingCountComponent.__vue__;
+                if (vueInstance) {
+                    vueInstance.$destroy();
+                }
+                existingCountComponent.remove();
+            }
+
+            // Create wrapper div for count component
+            let countWrapper = document.createElement('div');
+            subfield.valueSpan.parentElement.appendChild(countWrapper);
+
+            // Mount count component using Vue.extend
+            const CountComponent = Vue.extend(countcomponent);
+            new CountComponent({
+                propsData: {
+                    api_prefix: this.prefix,
+                    recordId: subfield.xref
+                }
+            }).$mount(countWrapper);
+            */
  
             if (subfield.xrefCell.children.length === 0) {
                 if (subfield.xref) {
                     // exisiting field
                     let xrefLink = document.createElement("a");
                     subfield.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${subfield.xref}`;
                     xrefLink.target="_blank";
      
                     let xrefIcon = document.createElement("i");
@@ -3406,7 +3433,7 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
             
         let xrefLink = document.createElement("a");
-        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
+        xrefLink.href = component.baseUrl + `editor?records=auths/${choiceSubfield.xref}`;
         xrefLink.target="_blank";
             
         let xrefIcon = document.createElement("i");
@@ -3546,7 +3573,7 @@ function keyupAuthLookup(event) {
                     // create the xref link
                     let xrefLink = document.createElement("a");
                     s.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${auth.recordId}`;
                     xrefLink.target="_blank";
      
                     let xrefIcon = document.createElement("i");

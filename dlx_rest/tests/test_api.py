@@ -309,7 +309,7 @@ def test_api_record_parse(client):
     assert res.status_code == 400
 
     # xml
-    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml())
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml(write_id=False)) # write_id arg shouldn't be necessary, but currently is due to bug in dlx
     data = check_response(res)
     assert Bib(data['data']).to_xml() == test_bib.to_xml()
     
@@ -317,9 +317,6 @@ def test_api_record_parse(client):
     assert res.status_code == 400
 
     # csv
-    # these are currently failing pending implementation of Marc.from_csv in a new dlx release
-
-    return
 
     res = client.post(f'{API}/marc/bibs/parse?format=csv', data='1.245$a\nTitle\n')
     assert res.status_code == 200
@@ -892,10 +889,11 @@ def test_api_userbasket(client, default_users, users, marc):
 ### util
 
 def check_response(response):
-    client = app.test_client()
-    data = json.loads(response.data)
     assert response.status_code == 200
     
+    client = app.test_client()
+    data = json.loads(response.data)
+
     for _ in ('_links', '_meta', 'data'):
         assert _ in data
     
