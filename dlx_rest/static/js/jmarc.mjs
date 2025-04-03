@@ -751,120 +751,6 @@ export class Jmarc {
 		return true;
 	}
 
-	static async fromXml(collection, xml) {
-		if (!["bibs", "auths"].includes(collection)) {
-			throw new Error("First argument must be \"bibs\" or \"auths\"")
-		}
-
-		let jmarc = new Jmarc(collection)
-		const promises = [];
-
-		// control fields
-		xml.querySelectorAll('controlfield').forEach(fieldElement => {
-			let tag = fieldElement.attributes.getNamedItem('tag')
-			let field = jmarc.createField(tag.value)
-			field.value = fieldElement.textContent
-		}) 
-		// data fields
-		xml.querySelectorAll('datafield').forEach(fieldElement => {
-			//console.log(fieldElement)
-			let tag = fieldElement.attributes.getNamedItem('tag')
-			let field = jmarc.createField(tag.value)
-			field.indicators = [fieldElement.attributes[1].value, fieldElement.attributes[2].value]
-			let foundXref = null
-			fieldElement.querySelectorAll('subfield').forEach(subfieldElement => {
-				let subfield = field.createSubfield(subfieldElement.getAttribute('code'))
-				subfield.value = subfieldElement.textContent
-				if (subfield.code == "0") {
-					foundXref = subfield.value
-					subfield.xref = foundXref
-				}
-			})
-			for (let subfield of field.subfields) {
-				if (foundXref !== null) {
-					if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-						subfield.xref = foundXref
-					} else {
-						promises.push(subfield.detectAndSetXref())
-					}
-				}
-				if (subfield.code == "0") {
-					field.deleteSubfield(subfield)
-				}
-			}
-		})
-		
-		await Promise.all(promises);
-
-		return jmarc
-	}
-
-	static async fromMrk(collection, mrk) {
-		if (!["bibs", "auths"].includes(collection)) {
-			throw new Error("First argument must be \"bibs\" or \"auths\"")
-		}
-
-		let jmarc = new Jmarc(collection)
-		const promises = [];
-
-		for (let line of mrk.split(/(\r\n|\n)/)) {
-			let match = line.match(/=(\w{3})  (.*)/)
-
-			if (match != null) {
-				let tag = match[1]
-				let rest = match[2]
-				if (tag == 'LDR') {
-					tag = '000'
-				}
-
-				let field = jmarc.createField(tag);
-				if (field instanceof (ControlField)) {
-					field.value = rest;
-					continue
-				} else {
-					let indicators = rest.substring(0, 2).replace(/\\/g, " ")
-					field.indicators = [indicators.charAt(0), indicators.charAt(1)]
-
-					let foundXref = null
-					let subfields = []
-
-					for (let subfield of rest.substring(2, rest.length).split("$")) {
-						if (subfield.length > 0) {
-							let code = subfield.substring(0, 1)
-							let value = subfield.substring(1, subfield.length)
-							if (code.length > 0 && value.length > 0) {
-								let newSub = field.createSubfield(code)
-								newSub.value = String(value)
-								subfields.push(newSub)
-								if (newSub.code == "0") {
-									foundXref = newSub.value
-								}
-								//promises.push(newSub.detectAndSetXref());
-							}
-						}
-					}
-					for (let subfield of subfields) {
-						if (foundXref !== null) {
-							if (jmarc.isAuthorityControlled(field.tag, subfield.code)) {
-								subfield.xref = foundXref
-							}
-						} else {
-							promises.push(subfield.detectAndSetXref())
-						}
-						if (subfield.code == "0") {
-							field.deleteSubfield(subfield)
-						}
-					}
-				}
-			}
-		}
-
-		// wait until all the xrefs have been set
-		await Promise.all(promises);
-
-		return jmarc
-	}
-
 	async post() {
 		if (this.recordId) {
 			return Promise.reject("Can't POST existing record")
@@ -1285,6 +1171,7 @@ export class Jmarc {
 		for (const tag of ['191', '791']) {
 			// only look in same symbol fields in other records
 			for (const field of this.getFields(tag)) {
+				if (!field.getSubfield("a")) continue // field may not have subfield $a
 				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
 				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
 				const res = await fetch(url);
