@@ -317,6 +317,7 @@ def test_api_record_parse(client):
     assert res.status_code == 400
 
     # csv
+
     res = client.post(f'{API}/marc/bibs/parse?format=csv', data='1.245$a\nTitle\n')
     assert res.status_code == 200
     data = check_response(res)
