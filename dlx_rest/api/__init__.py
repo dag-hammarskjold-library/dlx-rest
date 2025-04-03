@@ -22,7 +22,7 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.marc.query import InvalidQueryString, AtlasQuery
 from dlx.marc.query import Raw
-from dlx.file import File, Identifier
+from dlx.file import File, Identifier, FileExists, FileExistsConflict, FileExistsIdentifierConflict, FileExistsLanguageConflict
 from dlx.util import AsciiMap
 
 # internal
@@ -1814,6 +1814,62 @@ class FileRecord(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data={}).jsonify()
+    
+    @ns.doc(description="Submit a new file to the collection", security='basic')
+    @ns.expect(post_args)
+    @login_required
+    def post(self):
+        args = FilesRecordsList.post_args.parse_args()
+
+        if 'file' not in request.files:
+            abort(400, 'No file provided in request')
+
+        uploaded_file = request.files['file']
+
+        # Validate and parse languages
+        languages = [lang.strip().lower() for lang in args.languages.split(',')]
+        valid_langs = ['ar', 'zh', 'en', 'fr', 'ru', 'es', 'de']
+        for lang in languages:
+            if lang not in valid_langs:
+                abort(400, f'Invalid language code: {lang}')
+
+        if uploaded_file.filename == '':
+            abort(400, 'No file selected')
+
+        identifier_type = args.get('identifier_type')
+        identifier_value = args.get('identifier')
+        languages = [lang.strip().lower() for lang in args.get('languages').split(',')]
+
+        try:
+            file_identifier = Identifier(identifier_type, identifier_value)
+
+            file_record = File.import_from_handle(
+                handle=uploaded_file,
+                identifiers=[file_identifier],
+                languages=languages,
+                mimetype=uploaded_file.mimetype,
+                source='dlx-rest',
+                filename=uploaded_file.filename,
+                user=current_user.email
+            )
+
+            if file_record:
+                return {
+                    'result': URL('api_file_record', record_id=file_record.id).to_str()
+                }, 201
+            else:
+                abort(500, 'File upload failed')
+
+        except FileExists as e:
+            abort(409, str(e))
+        except FileExistsIdentifierConflict as e:
+            abort(409, str(e))
+        except FileExistsLanguageConflict as e:
+            abort(409, str(e))
+        except ValueError as e:
+            abort(400, str(e))
+        except Exception as e:
+            abort(500, str(e))
 
 #These routes all require a currently authenticated/authenticatable user.
 
