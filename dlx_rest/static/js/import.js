@@ -287,7 +287,7 @@ export let importcomponent = {
                                 let importSubfield = importField.createSubfield("a")
                                 const today = new Date()
                                 // user shortname
-                                importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+                                importSubfield.value = `${this.userShort}i${today.toISOString().replaceAll("-", "").substring(0, 8)}`
                                 importField.new = true
 
                                 this.records.push({ "jmarc": jmarc, "mrk": string, "validationWarnings": validationWarnings})
