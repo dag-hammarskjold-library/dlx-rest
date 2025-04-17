@@ -33,7 +33,7 @@ export let importcomponent = {
             <h5>Preview</h5>
             <div class="container">
                 <div class="row">
-                    <div v-if="records.length > 0" class="col alert alert-warning">
+                    <div v-if="records.length > 0 || fatalErrors" class="col alert alert-warning">
                         Target collection: {{collection}} <br>
                         Records detected: {{records.length}} 
                         <i v-if="detectedSpinner" class="fa fa-spinner fa-pulse"></i> 
@@ -43,8 +43,8 @@ export let importcomponent = {
                         Records with validation warnings that can still be imported: {{recordsWithWarnings}}
                     </div>
                 </div>
-                <div v-if="records.length === 0" class="fa fa-spinner fa-5x fa-pulse"></div>
-                <div v-if="records.length > 0" class="row py-2 border-bottom">
+                <div v-if="records.length === 0 && fatalErrors.length === 0" class="fa fa-spinner fa-5x fa-pulse"></div>
+                <div v-if="records.length > 0 || fatalErrors" class="row py-2 border-bottom">
                     <div class="col-sm-2">Select <a href="#" @click="selectAll">All</a> | <a href="#"@click="selectNone">None</a></div>
                     <div class="col">    
                         <form class="form">
@@ -257,7 +257,7 @@ export let importcomponent = {
                             return response.json()
                         }).then(json => {
                             if (!savedResponse.ok) {
-                                const errorMsg = JSON.stringify(json)
+                                const errorMsg = JSON.stringify(json.message)
                                 this.fatalErrors.push((`Invalid record: \n${errorMsg}\n${string}`))
                             } else {
                                 const jmarc = new Jmarc(this.collection)
