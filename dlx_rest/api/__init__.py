@@ -285,6 +285,8 @@ class RecordsList(Resource):
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
         
+        subfield_projection = {}
+
         if fmt == 'brief':
             tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
                 else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591']
@@ -298,16 +300,23 @@ class RecordsList(Resource):
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
-        elif fmt in ['mrk', 'xml', 'csv']:
-            project = None
+        elif fmt in ['mrk', 'xml', 'csv'] and args.get('fields'):
+            tags = []
 
-            if output_fields := args.get("fields"):
-                tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
-                
-                # make sure logical fields are available for sorting
-                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
-                project = dict.fromkeys(tags, True)
+            for f in [x.strip() for x in args.get("fields").split(',')]:
+                if match := re.match(r'(\d{3})(__([a-z0-9]))?', f):
+                    tag, code = match.group(1, 3)
+                    
+                    if code:
+                        # use this dict later to filter only the wanted subfields
+                        subfield_projection.setdefault(tag, [])
+                        subfield_projection[tag].append(code)
+                    
+                    tags.append(tag)
             
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+            project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
         else:
@@ -334,7 +343,21 @@ class RecordsList(Resource):
                 recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
             except ExecutionTimeout as e:
                 abort(408, str(e))
+        
+        if x := subfield_projection:
+            # filter only the wanted subfields
+            modified = []
 
+            for record in recordset.records:
+                for tag, codes in x.items():
+                    for field in record.get_fields(tag):
+                        field.subfields = [y for y in field.subfields if y.code in codes]
+
+                modified.append(record)
+
+            recordset = cls()
+            recordset.records = modified
+                        
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(write_id=True), mimetype='text/xml')

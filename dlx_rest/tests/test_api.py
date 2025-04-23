@@ -225,6 +225,16 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
 
+    # projection
+    bib = Bib().set('500', 'a', 'subfield 1').set('500', 'b', 'subfield 2')
+    bib.commit()
+    res = client.get(f'{API}/marc/bibs/records?search=id:{bib.id}&format=mrk&fields=500__b')
+    assert type(res.data) == bytes
+    data = res.data.decode()
+    bib = Bib.from_mrk(data)
+    assert not bib.get_value('500', 'a')
+    assert bib.get_value('500', 'b')
+
 def test_api_records_list_browse(client, marc):
     #return # to be updated in a different branch
 
