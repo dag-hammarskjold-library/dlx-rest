@@ -185,6 +185,9 @@ export let importcomponent = {
     methods: {
         reinitApp: function () {
             this.records = []
+            this.selectedRecords = false
+            this.recordsWithWarnings = 0
+            this.fatalErrors = []
             this.showErrors = false
             this.state = 'init'
             this.collection = "bibs"
