@@ -18,6 +18,6 @@ py==1.11.0
 pyparsing==3.2.3
 python-ulid==3.0.0
 sentry-sdk==2.26.1
-troposphere==4.9.1
+troposphere==4.9.2
 WTForms==3.2.1
 zipp==3.21.0
