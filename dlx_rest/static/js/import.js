@@ -33,18 +33,20 @@ export let importcomponent = {
             <h5>Preview</h5>
             <div class="container">
                 <div class="row">
-                    <div v-if="records.length > 0" class="col alert alert-warning">
+                    <div v-if="records.length > 0 || fatalErrors" class="col alert alert-warning">
                         Target collection: {{collection}} <br>
-                        Records detected: {{records.length}} 
+                        Unimportable records (fatal errors): {{fatalErrors.length}}<br>
+                        Importable records detected: {{records.length}} 
                         <i v-if="detectedSpinner" class="fa fa-spinner fa-pulse"></i> 
                         <i v-else class="fa fa-check"></i>
                         <br>
-                        Records with fatal errors preventing import: {{fatalErrors.length}}<br>
                         Records with validation warnings that can still be imported: {{recordsWithWarnings}}
+                        <i v-if="detectedSpinner" class="fa fa-spinner fa-pulse"></i> 
+                        <i v-else class="fa fa-exclamation"></i>
                     </div>
                 </div>
-                <div v-if="records.length === 0" class="fa fa-spinner fa-5x fa-pulse"></div>
-                <div v-if="records.length > 0" class="row py-2 border-bottom">
+                <div v-if="records.length === 0 && fatalErrors.length === 0" class="fa fa-spinner fa-5x fa-pulse"></div>
+                <div v-if="records.length > 0 || fatalErrors" class="row py-2 border-bottom">
                     <div class="col-sm-2">Select <a href="#" @click="selectAll">All</a> | <a href="#"@click="selectNone">None</a></div>
                     <div class="col">    
                         <form class="form">
@@ -63,14 +65,21 @@ export let importcomponent = {
                 <div v-if="showErrors && fatalErrors">
                     <!-- needs styling -->
                     <div v-for="error in fatalErrors">
-                        <pre>{{ error }}</pre>
+                        <div class="alert alert-danger">
+                            <pre>{{ error }}</pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="ml-auto mb-4">
+                        <button type="button" class="btn btn-secondary" @click="reinitApp">Start Over</button>
+                        <button v-if="selectedRecordsCount > 0" type="button" class="btn btn-primary ml-3" @click="submitSelected">Submit ({{selectedRecordsCount}}) Selected Records</button>
                     </div>
                 </div>
                 <div class="row border-bottom py-2 my-2" v-for="record in records">
                     <!-- display each record, cleaning up how it appears onscreen -->
                     <div class="col-sm-1">
-                        <!-- <input v-if="record['fatalErrors'].length == 0" type="checkbox" class="checkbox" :checked="record.checked" @change="toggleSubmit(record)"> -->
-                        <input type="checkbox" class="checkbox" :checked="record.checked" @change="toggleSubmit(record)">
+                        <input type="checkbox" class="checkbox" v-model="record.checked" v-bind:id="record.jmarc.id" @click="toggleSubmit(record)">
                     </div>
                     <div class="col-sm-9">
                         <div v-if="showErrors && record['validationWarnings'].length > 0" class="alert alert-warning">
@@ -176,6 +185,9 @@ export let importcomponent = {
     methods: {
         reinitApp: function () {
             this.records = []
+            this.selectedRecords = false
+            this.recordsWithWarnings = 0
+            this.fatalErrors = []
             this.showErrors = false
             this.state = 'init'
             this.collection = "bibs"
@@ -257,7 +269,7 @@ export let importcomponent = {
                             return response.json()
                         }).then(json => {
                             if (!savedResponse.ok) {
-                                const errorMsg = JSON.stringify(json)
+                                const errorMsg = JSON.stringify(json.message)
                                 this.fatalErrors.push((`Invalid record: \n${errorMsg}\n${string}`))
                             } else {
                                 const jmarc = new Jmarc(this.collection)
@@ -287,10 +299,10 @@ export let importcomponent = {
                                 let importSubfield = importField.createSubfield("a")
                                 const today = new Date()
                                 // user shortname
-                                importSubfield.value = `${this.userShort}i${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+                                importSubfield.value = `${this.userShort}i${today.toISOString().replaceAll("-", "").substring(0, 8)}`
                                 importField.new = true
 
-                                this.records.push({ "jmarc": jmarc, "mrk": string, "validationWarnings": validationWarnings})
+                                this.records.push({ "jmarc": jmarc, "mrk": string, "validationWarnings": validationWarnings, "checked": false})
                             }       
                         }).catch(error => {
                             throw error
@@ -331,6 +343,7 @@ export let importcomponent = {
                     this.selectedRecords = true
                 }
             }
+            console.log(this.selectedRecords, this.selectedRecordsCount)
         },
         submitSelected() {
             this.state = "review"

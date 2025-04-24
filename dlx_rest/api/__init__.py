@@ -885,7 +885,7 @@ class RecordParse(Resource):
         method = 'from_' + args.format
 
         try:
-            record = getattr(cls, method)(request.data.decode())
+            record = getattr(cls, method)(request.data.decode(), auth_control=True)
         except Exception as e:
             abort(400, str(e))
 
