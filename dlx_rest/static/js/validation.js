@@ -1479,7 +1479,7 @@ export const validationData = {
                 "089__b:B15 AND 089__b:B16 AND NOT 245:/letter.*from the Secretary-General/": {"a": "Documents and Publications", "b": "Reports", "c": "Secretary-General's Reports"},
                 "089__b:B04": {"a": "Documents and Publications", "b": "Reports", "c": "Annual and Sessional Reports"},
                 "089__b:B14 AND NOT 089__b:B04": {"a": "Documents and Publications", "b": "Reports", "c": "Periodic Reports"},
-                "089__b:B16 OR 245:*Report* AND NOT 989__b:Reports": {"a": "Documents and Publications", "b": "Reports"},
+                "089__b:B16 OR 245:*Report* AND NOT 989__a:/^(Speeches|Voting Data)/ AND NOT 989__b:Reports": {"a": "Documents and Publications", "b": "Reports"},
                 "191__a:*/PV.*": {"a": "Documents and Publications", "b": "Meeting Records", "c": "Verbatim Records"},
                 "191__a:*/SR.*": {"a": "Documents and Publications", "b": "Meeting Records", "c": "Summary Records"},
                 "089__b:B03 AND NOT 989__b:Meeting Records": {"a": "Documents and Publications", "b": "Meeting Records"},
