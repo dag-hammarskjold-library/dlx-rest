@@ -56,7 +56,8 @@ export let filescomponent = {
             <div class="row">
                 <div class="col">
                     <div class="drop-zone p-5 border rounded text-center"
-                        @dragover.prevent
+                        @dragover="handleDragOver"
+                        @dragleave="handleDragLeave"
                         @drop.prevent="handleDrop">
                         <div class="mb-3">
                             <i class="fas fa-cloud-upload-alt fa-3x"></i>
@@ -74,7 +75,62 @@ export let filescomponent = {
                     </div>
                 </div>
             </div>
+
+            <!-- File Edit Form Section -->
+            <div class="row mt-4" v-if="files.length > 0">
+                <div class="col">
+                    <h4>Edit Files Before Upload</h4>
+                    <div v-for="(file, index) in files" :key="index" class="card mb-3">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Filename</label>
+                                <input type="text" class="form-control" v-model="file.filename">
+                            </div>
+                            
+                            <!-- Identifiers -->
+                            <div class="form-group mt-3">
+                                <label>Identifiers</label>
+                                <div v-for="(value, type) in file.identifiers" :key="type" class="input-group mb-2">
+                                    <input type="text" class="form-control" v-model="file.identifiers[type]" :placeholder="type">
+                                    <button class="btn btn-danger" @click="removeIdentifier(file, type)">Remove</button>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" v-model="newIdentifierType" placeholder="Type">
+                                    <input type="text" class="form-control" v-model="newIdentifierValue" placeholder="Value">
+                                    <button class="btn btn-primary" @click="addIdentifier(file)">Add Identifier</button>
+                                </div>
+                            </div>
+
+                            <!-- Languages -->
+                            <div class="form-group mt-3">
+                                <label>Languages</label>
+                                <div v-for="(lang, index) in file.languages" :key="index" class="input-group mb-2">
+                                    <input type="text" class="form-control" v-model="file.languages[index]">
+                                    <button class="btn btn-danger" @click="removeLanguage(file, index)">Remove</button>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" v-model="newLanguage" placeholder="Language code">
+                                    <button class="btn btn-primary" @click="addLanguage(file)">Add Language</button>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary mt-3" @click="uploadFile(file)">Upload</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    `,
+    style: /* css */ `
+        .drop-zone {
+            transition: all 0.3s ease;
+            border: 2px dashed #dee2e6;
+        }
+        
+        .drop-zone.border-primary {
+            border: 2px dashed #007bff;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
     `,
     data: function () {
         return {
@@ -82,7 +138,10 @@ export let filescomponent = {
             searchQuery: "",
             identifierType: "symbol", // Default value
             results: null,
-            files: []
+            files: [],
+            newIdentifierType: '',
+            newIdentifierValue: '',
+            newLanguage: ''
         }
     },
     created: async function () {
@@ -100,6 +159,11 @@ export let filescomponent = {
             }
 
             try {
+                const url = new URL(window.location.href)
+                url.searchParams.set('identifier_type', this.identifierType)
+                url.searchParams.set('identifier', this.searchQuery)
+                window.history.pushState({}, '', url)
+                
                 // Construct URL with query parameters
                 const searchParams = new URLSearchParams({
                     identifier_type: this.identifierType,
@@ -148,8 +212,144 @@ export let filescomponent = {
                 // Add error handling UI feedback here
             }
         },
-        handleFileSelect: async function () {
-            return
+        handleDragOver: function (event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('border-primary');
+        },
+        
+        handleDragLeave: function (event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-primary');
+        },
+        handleDrop: async function (event) {
+            event.preventDefault();
+    
+            // Get the dropped files
+            const droppedFiles = event.dataTransfer.files;
+            
+            // Add visual feedback for drop zone
+            const dropZone = event.currentTarget;
+            dropZone.classList.remove('border-primary');
+            
+            if (droppedFiles.length > 0) {
+                // Process the files using the same handler as file select
+                this.handleFileSelect({
+                    target: {
+                        files: droppedFiles
+                    }
+                });
+            }
+        },
+        handleFileSelect: async function (event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            this.files = Array.from(files).map(file => {
+                // Try to parse symbol from filename
+                const symbolMatch = file.name.match(/^([A-Z])_(\d{4})_(\d+)(?:-([A-Z]{2}))?\.(.+)$/);
+                
+                let fileData = {
+                    file: file,
+                    originalName: file.name,
+                    editing: true,
+                    filename: file.name,
+                    identifiers: {},
+                    languages: []
+                };
+
+                if (symbolMatch) {
+                    const [_, type, year, number, lang, ext] = symbolMatch;
+                    const symbol = `${type}/${year}/${number}`;
+                    fileData.identifiers.symbol = symbol;
+                    
+                    if (lang) {
+                        fileData.languages.push(lang.toLowerCase());
+                    }
+                }
+
+                return fileData;
+            });
+        },
+
+        // File upload supporting methods
+        removeIdentifier(file, type) {
+            Vue.delete(file.identifiers, type);
+        },
+
+        addIdentifier(file) {
+            if (this.newIdentifierType && this.newIdentifierValue) {
+                Vue.set(file.identifiers, this.newIdentifierType, this.newIdentifierValue);
+                this.newIdentifierType = '';
+                this.newIdentifierValue = '';
+            }
+        },
+
+        addLanguage(file) {
+            if (this.newLanguage) {
+                file.languages.push(this.newLanguage.toLowerCase());
+                this.newLanguage = '';
+            }
+        },
+
+        // Add uploadFile method
+        async uploadFile(fileData) {
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('file', fileData.file);
+            
+            // Add required identifier from the identifiers object
+            // Prioritize symbol, then isbn, then uri
+            let identifierType = null;
+            let identifierValue = null;
+            
+            if ('symbol' in fileData.identifiers) {
+                identifierType = 'symbol';
+                identifierValue = fileData.identifiers.symbol;
+            } else if ('isbn' in fileData.identifiers) {
+                identifierType = 'isbn';
+                identifierValue = fileData.identifiers.isbn;
+            } else if ('uri' in fileData.identifiers) {
+                identifierType = 'uri';
+                identifierValue = fileData.identifiers.uri;
+            }
+        
+            if (!identifierType || !identifierValue) {
+                throw new Error('At least one identifier (symbol, isbn, or uri) is required');
+            }
+        
+            formData.append('identifier_type', identifierType);
+            formData.append('identifier', identifierValue);
+        
+            // Add languages as comma-separated list
+            if (!fileData.languages.length) {
+                throw new Error('At least one language is required');
+            }
+            formData.append('languages', fileData.languages.join(','));
+        
+            try {
+                const response = await fetch(`${this.api_prefix}files`, {
+                    method: 'POST',
+                    body: formData
+                });
+        
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Upload failed');
+                }
+        
+                // Remove file from editing list after successful upload
+                this.files = this.files.filter(f => f !== fileData);
+                
+                // Refresh search results if we have a search query
+                if (this.searchQuery) {
+                    await this.searchFiles();
+                }
+        
+                return await response.json();
+            } catch (error) {
+                console.error('Upload failed:', error);
+                throw error;
+            }
         }
     }
 }
