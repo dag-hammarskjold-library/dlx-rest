@@ -370,7 +370,23 @@ class RecordsList(Resource):
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
-            data = [make_brief(r) for r in recordset]
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                this_d["myBasket"] = False
+
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    this_d["locked"] = True
+
+                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                if len(basket_contains) > 0:
+                    this_d["myBasket"] = True
+                    this_d["locked"] = False
+                data.append(this_d)
+
+
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech

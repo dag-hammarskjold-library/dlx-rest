@@ -56,32 +56,40 @@ export let searchcomponent = {
                     <td>{{index + 1}}</td>
                     <td @click="togglePreview(collection,record._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i></td>
                     <td>
-                        <div v-if="collection != 'auths'">
-                            <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id" style="white-space:nowrap;overflow-x:hidden">{{record.title}}</a>
-                            <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id" style="white-space:nowrap">{{record.title}}</a>
-                            <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
-                            <br>
-                            {{[record["f099c"].length > 0 ? record["f099c"].join(', ') : false, record["symbol"], record["date"], record["types"].split("::")[record["types"].split("::").length - 1]].filter(Boolean).join(" | ")}}
-                        </div>
-                        <div v-else class="row" style="flex-wrap:inherit">
-                            <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
-                            <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
-                            <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
-                        </div>
-                        <div class="row" style="white-space:nowrap">
-                            {{record.second_line}}
-                        </div>
-                        <div class="row" v-for="agenda in record.agendas">
-                            <span class="ml-3">{{agenda}}</span>
-                        </div>
-                        <div class="row" v-for="val in record.f596">
-                            <span class="ml-3">{{val}}</span>
-                        </div>
-                        <div class="row" v-for="val in record.f520" style="white-space:nowrap">
-                            <span class="ml-3">{{val}}</span>
+                        <div class="row">
+                            <div class="col-sm">
+                                <div v-if="collection != 'auths'">
+                                    <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id">{{record.title}}</a>
+                                    <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id">{{record.title}}</a>
+                                    <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
+                                    <br>
+                                    {{[record["f099c"].length > 0 ? record["f099c"].join(', ') : false, record["symbol"], record["date"], record["types"].split("::")[record["types"].split("::").length - 1]].filter(Boolean).join(" | ")}}
+                                </div>
+                                <div v-else class="row" style="flex-wrap:inherit">
+                                    <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
+                                    <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
+                                    <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
+                                </div>
+                                <div class="row" style="white-space:nowrap">
+                                    {{record.second_line}}
+                                </div>
+                                <div class="row" v-for="agenda in record.agendas">
+                                    <span class="ml-3">{{agenda}}</span>
+                                </div>
+                                <div class="row" v-for="val in record.f596">
+                                    <span class="ml-3">{{val}}</span>
+                                </div>
+                                <div class="row" v-for="val in record.f520" style="white-space:nowrap">
+                                    <span class="ml-3">{{val}}</span>
+                                </div>
+                            </div>
                         </div>
                     </td>
-                    <td><recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['en','fr','es']" /></td>
+                    <td>
+                        <div style="white-space:pre">
+                            <recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['en','fr','es']" />
+                        </div>
+                    </td>
                     <td>
                         <i v-if="record.locked" :id="record._id + '-basket'" class="fas fa-lock"></i>
                         <i v-else-if="record.myBasket" :id="record._id + '-basket'" class="fas fa-folder-minus" @click="toggleBasket($event, record._id)"></i>
@@ -252,18 +260,20 @@ export let searchcomponent = {
         handleMouseDown(e) {
             if (e.shiftKey) {
                 this.isDragging = true
-                if (!this.selectedRows.includes(e.target.parentElement)) {
-                    this.selectedRows.push(e.target.parentElement)
+                const row = e.target.closest('tr')
+                if (row && !this.selectedRows.includes(row)) {
+                    this.selectedRows.push(row)
                 }
             }
         },
         handleMouseMove(e) {
             if (e.shiftKey && this.isDragging) {
-                //e.target.parentElement.setAttribute("")
-                //e.target.parentElement.style = "background-color: #70a9e1"
-                e.target.parentElement.classList.add("selected")
-                if (!this.selectedRows.includes(e.target.parentElement)) {
-                    this.selectedRows.push(e.target.parentElement)
+                const row = e.target.closest('tr')
+                if (row) {
+                    row.classList.add("selected")
+                    if (!this.selectedRows.includes(row)) {
+                        this.selectedRows.push(row)
+                    }
                 }
             }
             
@@ -279,9 +289,11 @@ export let searchcomponent = {
             const endIdx = this.records.indexOf(this.dragEnd)
 
             this.selectedRows.forEach(row => {
-                let i = row.getElementsByTagName("input")[0]
-                if (!i.disabled && !i.checked) {
-                    i.click()
+                const input = row.querySelector("input[type=checkbox]")
+                if (input && !input.disabled && !input.checked) {
+                    input.click()
+                } else {
+                    row.classList.remove("selected")
                 }
             })
         },
