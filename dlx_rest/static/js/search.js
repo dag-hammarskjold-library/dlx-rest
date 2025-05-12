@@ -4,6 +4,7 @@ import basket from "./api/basket.js";
 import user from "./api/user.js";
 import { previewmodal } from "./modals/preview.js";
 import { recordfilecomponent } from "./recordfiles.js";
+import { advancedsearchcomponent } from "./advancedsearch.js"
 
 export let searchcomponent = {
     props: {
@@ -17,7 +18,11 @@ export let searchcomponent = {
         },
     },
     template: `<div class="col pt-2" id="app1" style="background-color:white;">
-    <div class="col text-center">
+    <div class="col">
+        <a href="" @click.prevent="mode='simpleSearch'">Simple Search</a>
+        <a href="" @click.prevent="mode='advancedSearch'">Advanced Search</a>
+    </div>
+    <div class="col text-center" v-if="mode=='simpleSearch'">
         <form @submit.prevent="submitSearch">
             <label for="recordSearch">Search Records</label>
             <div class="input-group mb-3">
@@ -28,6 +33,9 @@ export let searchcomponent = {
                 </div>
             </div>
         </form>
+    </div>
+    <div class="col text-center" v-if="mode=='advancedSearch'">
+        <advancedsearchcomponent></advancedsearchcomponent>
     </div>
     <div class="col">
         <div id="results-spinner" class="col d-flex justify-content-center" >
@@ -87,7 +95,7 @@ export let searchcomponent = {
                     </td>
                     <td>
                         <div style="white-space:pre">
-                            <recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['en','fr','es']" />
+                            <recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['ar','zh','en','fr','ru','es']" />
                         </div>
                     </td>
                     <td>
@@ -127,7 +135,8 @@ export let searchcomponent = {
             uibase: myUIBase,
             searchTime: 0,
             isDragging: false,
-            selectedRows: []
+            selectedRows: [],
+            mode: "simpleSearch"
         }
     },
     computed: {
@@ -414,6 +423,7 @@ export let searchcomponent = {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'previewmodal': previewmodal,
-        'recordfilecomponent': recordfilecomponent
+        'recordfilecomponent': recordfilecomponent,
+        'advancedsearchcomponent': advancedsearchcomponent    
     }
 }
