@@ -143,14 +143,25 @@ class CollectionsList(Resource):
 
 # Collection        
 @ns.route('/marc/<string:collection>')
+@ns.param('collection', '"bibs" or "auths"')
 class Collection(Resource):
-    @ns.doc(description='')
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'subtype',
+        type=str,
+        choices=['default','speech','vote'],
+        help='Record collection subtype',
+        default='default'
+    )
+    @ns.doc(description='Return information about the available record collections.')
+    @ns.expect(args)
     def get(self, collection):
         collection in ClassDispatch.list_names() or abort(404)
-        
+        args = Collection.args.parse_args()
+
         meta = {
             'name': 'api_collection',
-            'returns': URL('api_schema', schema_name='api.null').to_str(),
+            'returns': URL('api_schema', schema_name='api.collection').to_str(),
             'timestamp': datetime.now(timezone.utc)
         }
         links = {
@@ -161,7 +172,20 @@ class Collection(Resource):
                 'lookup': URL('api_lookup_fields_list', collection=collection).to_str()
             }
         }
-        response = ApiResponse(links=links, meta=meta, data={})
+
+        # Get the logical field config; we could also put this in another endpoint if more appropriate
+        logical_fields = list(getattr(DlxConfig, f"{collection.strip('s')}_logical_fields").keys())
+        for f in filter(lambda x: x in logical_fields, ('notes', 'speaker', 'country_org')):
+            logical_fields.remove(f)
+
+        if args.subtype == 'speech':
+            # To do: can we list these in the DlxConfig?
+            logical_fields = ['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator']
+        elif args.subtype == 'vote':
+            logical_fields = ['symbol', 'body', 'agenda', 'bib_creator']
+
+        
+        response = ApiResponse(links=links, meta=meta, data={"logical_fields":logical_fields})
         
         return response.jsonify()
 

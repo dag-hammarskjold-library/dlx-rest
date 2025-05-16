@@ -192,6 +192,8 @@ class Schemas():
             data = {'type': "array"}
         elif schema_name == "api.view":
             data = {'type': "object"}
+        elif schema_name == 'api.collection':
+            data = {'type': 'object'}
         else:
             abort(404)
         

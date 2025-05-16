@@ -4,7 +4,6 @@ import basket from "./api/basket.js";
 import user from "./api/user.js";
 import { previewmodal } from "./modals/preview.js";
 import { recordfilecomponent } from "./recordfiles.js";
-import { advancedsearchcomponent } from "./advancedsearch.js"
 
 export let searchcomponent = {
     props: {
@@ -17,103 +16,173 @@ export let searchcomponent = {
             required: true
         },
     },
-    template: `<div class="col pt-2" id="app1" style="background-color:white;">
-    <div class="col">
-        <a href="" @click.prevent="mode='simpleSearch'">Simple Search</a>
-        <a href="" @click.prevent="mode='advancedSearch'">Advanced Search</a>
-    </div>
-    <div class="col text-center" v-if="mode=='simpleSearch'">
-        <form @submit.prevent="submitSearch">
-            <label for="recordSearch">Search Records</label>
+    template: `
+    <div class="col pt-2" id="app1" style="background-color:white;">
+        <div class="col">
+            <a class="result-link" href="" @click.prevent="mode='simpleSearch'">Simple Search</a>
+            <a class="result-link" href="" @click.prevent="mode='advancedSearch'">Advanced Search</a>
+        </div>
+        <div class="col text-center" v-if="mode=='simpleSearch'">
+            <form @submit.prevent="submitSearch">
+                <label for="recordSearch">Search Records</label>
+                <div class="input-group mb-3">
+                    <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
+                    <div class="input-group-append">
+                        <a v-if="searchTerm" class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                        <a v-else class="btn" style="color: lightgray" type="button" disabled>Submit</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col text-center" v-if="mode=='advancedSearch'">
             <div class="input-group mb-3">
-                <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
+                <div class="input-group-prepend">
+                    <button id="searchType1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType1',t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm1" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm1" @keydown.enter="submitAdvancedSearch">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField1',field)">{{field}}</option>
+                    </div>
+                </div>
                 <div class="input-group-append">
-                    <a v-if="searchTerm" class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
-                    <a v-else class="btn" style="color: lightgray" type="button" disabled>Submit</a>
+                    <button id="searchConnector1" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector1','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector1','OR')">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
-    <div class="col text-center" v-if="mode=='advancedSearch'">
-        <advancedsearchcomponent></advancedsearchcomponent>
-    </div>
-    <div class="col">
-        <div id="results-spinner" class="col d-flex justify-content-center" >
-            <div class="spinner-border" role="status" v-show="showSpinner">
-                <span class="sr-only">Loading...</span>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType2', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm2" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm2" @keydown.enter="submitAdvancedSearch">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-prepend">
+                    <button id="searchField2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField2',field)">{{field}}</option>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button id="searchConnector2" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">AND</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" value="AND" @click="setParameter('searchConnector2','AND')">AND</option>
+                        <option class="dropdown-item" value="OR" @click="setParameter('searchConnector2','OR')">OR</option>
+                        <option class="dropdown-item" value="ANDNOT" @click="setParameter('searchConnector1','AND NOT')">AND NOT</option>
+                        <option class="dropdown-item" value="ORNOT" @click="setParameter('searchConnector1','OR NOT')">OR NOT</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <button id="searchType3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">All of the words:</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="t in searchTypes" :value=t.value @click="setParameter('searchType3', t)">{{t.name}}</option>
+                    </div>
+                </div>
+                <input id="searchTerm3" type="text" class="form-control" aria-label="Text input with dropdown button" v-model="advancedParams.searchTerm3" @keydown.enter="submitAdvancedSearch">
+                <div class="input-group-prepend"><span class="input-group-text">in</span></div>
+                <div class="input-group-append">
+                    <button id="searchField3" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">any field</button>
+                    <div class="dropdown-menu">
+                        <option class="dropdown-item" v-for="field in searchFields" @click="setParameter('searchField3',field)">{{field}}</option>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group-append">
+                <a v-if="searchTerm" class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                <a v-else class="btn" style="color: lightgray" type="button" disabled>Submit</a>
             </div>
         </div>
-        <div v-if="submitted">{{records.length}} results returned in {{searchTime}} seconds</div>
-        <div v-if="records.length > 0" @click.prevent>
-            Select 
-            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
-            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
-            <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
-            <br>
-        </div>
-        <table class="table table-sm table-striped table-hover" style="width:100%" v-if="records.length > 0">
-            <tbody>
-                <tr v-for="(record, index) in records" :key="record._id" @mousedown="handleMouseDown" @mousemove="handleMouseMove" @mouseup="handleMouseUp" :class="{selected: record.selected}">
-                    
-                    <td>
-                        <input v-if="record.locked" type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)" disabled>
-                        <input v-else-if="record.myBasket" type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)" disabled>
-                        <input v-else type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)">
-                    </td>
-                    <td>{{index + 1}}</td>
-                    <td @click="togglePreview(collection,record._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i></td>
-                    <td>
-                        <div class="row">
-                            <div class="col-sm">
-                                <div v-if="collection != 'auths'">
-                                    <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id">{{record.title}}</a>
-                                    <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id">{{record.title}}</a>
-                                    <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
-                                    <br>
-                                    {{[record["f099c"].length > 0 ? record["f099c"].join(', ') : false, record["symbol"], record["date"], record["types"].split("::")[record["types"].split("::").length - 1]].filter(Boolean).join(" | ")}}
-                                </div>
-                                <div v-else class="row" style="flex-wrap:inherit">
-                                    <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
-                                    <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
-                                    <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
-                                </div>
-                                <div class="row" style="white-space:nowrap">
-                                    {{record.second_line}}
-                                </div>
-                                <div class="row" v-for="agenda in record.agendas">
-                                    <span class="ml-3">{{agenda}}</span>
-                                </div>
-                                <div class="row" v-for="val in record.f596">
-                                    <span class="ml-3">{{val}}</span>
-                                </div>
-                                <div class="row" v-for="val in record.f520" style="white-space:nowrap">
-                                    <span class="ml-3">{{val}}</span>
+        <div class="col">
+            <div id="results-spinner" class="col d-flex justify-content-center" >
+                <div class="spinner-border" role="status" v-show="showSpinner">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+            <div v-if="submitted">{{records.length}} results returned in {{searchTime}} seconds</div>
+            <div v-if="records.length > 0" @click.prevent>
+                Select 
+                <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+                <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+                <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
+                <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
+                <br>
+            </div>
+            <table class="table table-sm table-striped table-hover" style="width:100%" v-if="records.length > 0">
+                <tbody>
+                    <tr v-for="(record, index) in records" :key="record._id" @mousedown="handleMouseDown" @mousemove="handleMouseMove" @mouseup="handleMouseUp" :class="{selected: record.selected}">
+                        
+                        <td>
+                            <input v-if="record.locked" type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)" disabled>
+                            <input v-else-if="record.myBasket" type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)" disabled>
+                            <input v-else type="checkbox" :data-recordid="record._id" @change="toggleSelect($event, record)">
+                        </td>
+                        <td>{{index + 1}}</td>
+                        <td @click="togglePreview(collection,record._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i></td>
+                        <td>
+                            <div class="row">
+                                <div class="col-sm">
+                                    <div v-if="collection != 'auths'">
+                                        <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id">{{record.title}}</a>
+                                        <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id">{{record.title}}</a>
+                                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
+                                        <br>
+                                        {{[record["f099c"].length > 0 ? record["f099c"].join(', ') : false, record["symbol"], record["date"], record["types"].split("::")[record["types"].split("::").length - 1]].filter(Boolean).join(" | ")}}
+                                    </div>
+                                    <div v-else class="row" style="flex-wrap:inherit">
+                                        <a v-if="!record.locked" :id="'link-' + record._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
+                                        <a v-else class="result-link" :id="'link-' + record._id" :href="uibase + '/records/' + collection + '/' + record._id" style="overflow-wrap:break-word">{{record.heading_tag}}: {{record.heading}}</a>
+                                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="record._id"></countcomponent>
+                                    </div>
+                                    <div class="row" style="white-space:nowrap">
+                                        {{record.second_line}}
+                                    </div>
+                                    <div class="row" v-for="agenda in record.agendas">
+                                        <span class="ml-3">{{agenda}}</span>
+                                    </div>
+                                    <div class="row" v-for="val in record.f596">
+                                        <span class="ml-3">{{val}}</span>
+                                    </div>
+                                    <div class="row" v-for="val in record.f520" style="white-space:nowrap">
+                                        <span class="ml-3">{{val}}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div style="white-space:pre">
-                            <recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['ar','zh','en','fr','ru','es']" />
-                        </div>
-                    </td>
-                    <td>
-                        <i v-if="record.locked" :id="record._id + '-basket'" class="fas fa-lock"></i>
-                        <i v-else-if="record.myBasket" :id="record._id + '-basket'" class="fas fa-folder-minus" @click="toggleBasket($event, record._id)"></i>
-                        <i v-else :id="record._id + '-basket'" class="fas fa-folder-plus" @click="toggleBasket($event, record._id)"></i>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div v-if="showAgendaModal" :agendas="agendas">
-        <div class="modal fade" ref="modal">
-            <div v-for="agenda in agendas">{{agenda}}</div>
+                        </td>
+                        <td>
+                            <div style="white-space:pre">
+                                <recordfilecomponent v-if="collection !== 'auths'" :api_prefix="api_prefix" :record_id="record._id" :desired_languages="['ar','zh','en','fr','ru','es']" />
+                            </div>
+                        </td>
+                        <td>
+                            <i v-if="record.locked" :id="record._id + '-basket'" class="fas fa-lock"></i>
+                            <i v-else-if="record.myBasket" :id="record._id + '-basket'" class="fas fa-folder-minus" @click="toggleBasket($event, record._id)"></i>
+                            <i v-else :id="record._id + '-basket'" class="fas fa-folder-plus" @click="toggleBasket($event, record._id)"></i>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-    </div>
-    <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Records"></previewmodal>
-</div>`,
+        <div v-if="showAgendaModal" :agendas="agendas">
+            <div class="modal fade" ref="modal">
+                <div v-for="agenda in agendas">{{agenda}}</div>
+            </div>
+        </div>
+        <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Records"></previewmodal>
+    </div>`,
     style:`
         .selected {
             background-color: #70a9e1;
@@ -136,7 +205,28 @@ export let searchcomponent = {
             searchTime: 0,
             isDragging: false,
             selectedRows: [],
-            mode: "simpleSearch"
+            mode: "simpleSearch",
+            advancedParams: {
+                'searchType1': 'all',
+                'searchTerm1': null,
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchTerm2': null,
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchTerm3': null,
+                'searchField3': 'any'
+            },
+            searchFields: [],
+            searchTypes: [
+                { 'name': 'All of the words:', 'value': 'all' },
+                { 'name': 'Any of the words:', 'value': 'any' },
+                { 'name': 'Exact phrase:', 'value': 'exact' },
+                { 'name': 'Partial phrase:', 'value': 'partial' },
+                { 'name': 'Regular expression:', 'value': 'regex' },
+            ],
         }
     },
     computed: {
@@ -164,15 +254,29 @@ export let searchcomponent = {
             })
         }
     },
-    created: function () {
-        const urlParams = new URLSearchParams(window.location.search)
-        const searchQuery = urlParams.get("q")
+    created: async function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get("q");
+        //this.mode = urlParams.get("mode") || "simpleSearch";
+        
         if (searchQuery) {
-            this.searchTerm = searchQuery
-            this.updateSearchQuery()
-            this.submitSearch()
+            this.searchTerm = searchQuery;
+            //if (this.mode === "advancedSearch") {
+            this.parseSearchTerm();
+            //}
+            this.submitSearch();
         }
+
+        this.subtype = urlParams.get("subtype") ? urlParams.get("subtype") : ''
         this.refreshBasket()
+        let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}?subtype=${this.subtype}`
+        await fetch(logicalFieldsUrl).then(response => {
+            return response.json()
+        }).then(json => {
+            console.log(json)
+            this.searchFields = json["data"]["logical_fields"]
+            
+        })
     },
     methods: {
         async refreshBasket() {
@@ -180,10 +284,110 @@ export let searchcomponent = {
                 this.myBasket = b
             })
         },
+        parseSearchTerm() {
+            if (!this.searchTerm) return;
+            
+            // Split the search term into parts based on logical operators
+            const parts = this.searchTerm.split(/\s+(AND|OR|AND NOT|OR NOT)\s+/);
+            
+            for (let i = 0; i < parts.length; i += 2) {
+                const part = parts[i];
+                const connector = parts[i + 1];
+                const position = Math.floor(i / 2) + 1;
+                
+                // Parse field:value pattern
+                const fieldMatch = part.match(/(\w+):'([^']+)'/);
+                if (fieldMatch) {
+                    this.advancedParams[`searchField${position}`] = fieldMatch[1];
+                    this.advancedParams[`searchTerm${position}`] = fieldMatch[2];
+                    this.advancedParams[`searchType${position}`] = 'exact';
+                } else {
+                    this.advancedParams[`searchTerm${position}`] = part.replace(/['"]/g, '');
+                    this.advancedParams[`searchType${position}`] = part.includes('"') ? 'exact' : 'all';
+                }
+                
+                if (connector) {
+                    this.advancedParams[`searchConnector${position}`] = connector;
+                }
+            }
+            
+            // Update UI elements
+            if (this.mode == 'advancedSearch') {
+                this.updateAdvancedSearchUI();
+            }
+        },
+        updateAdvancedSearchUI() {
+            // Update button text for each row
+            for (let i = 1; i <= 3; i++) {
+                const type = this.advancedParams[`searchType${i}`];
+                const typeObj = this.searchTypes.find(t => t.value === type);
+                if (typeObj) {
+                    document.getElementById(`searchType${i}`).innerText = typeObj.name;
+                }
+                
+                const field = this.advancedParams[`searchField${i}`];
+                if (field && field !== 'any') {
+                    document.getElementById(`searchField${i}`).innerText = field;
+                }
+                
+                const connector = this.advancedParams[`searchConnector${i}`];
+                if (connector) {
+                    document.getElementById(`searchConnector${i}`).innerText = connector;
+                }
+            }
+        },
+        buildSearchQuery() {
+            const parts = [];
+            
+            for (let i = 1; i <= 3; i++) {
+                const term = this.advancedParams[`searchTerm${i}`];
+                if (!term) continue;
+                
+                let queryPart = '';
+                const field = this.advancedParams[`searchField${i}`];
+                const type = this.advancedParams[`searchType${i}`];
+                
+                if (field && field !== 'any') {
+                    // Handle field-specific search
+                    queryPart = `${field}:'${term}'`;
+                } else {
+                    // Handle general search based on type
+                    switch (type) {
+                        case 'exact':
+                            queryPart = `"${term}"`;
+                            break;
+                        case 'all':
+                            queryPart = term.split(' ').join(' AND ');
+                            break;
+                        case 'any':
+                            queryPart = term.split(' ').join(' OR ');
+                            break;
+                        default:
+                            queryPart = term;
+                    }
+                }
+                
+                parts.push(queryPart);
+                
+                // Add connector if not last part and has a term
+                if (i < 3 && this.advancedParams[`searchTerm${i + 1}`]) {
+                    parts.push(this.advancedParams[`searchConnector${i}`]);
+                }
+            }
+            
+            return parts.join(' ');
+        },
+        submitAdvancedSearch() {
+            this.searchTerm = this.buildSearchQuery();
+            this.updateSearchQuery();
+            this.submitSearch();
+        },
         updateSearchQuery() {
-            const url = new URL(window.location)
-            url.searchParams.set("q", this.searchTerm)
-            window.history.replaceState(null, "", url)
+            const url = new URL(window.location);
+            url.searchParams.set("q", this.searchTerm);
+            //url.searchParams.set("mode", this.mode);
+            this.parseSearchTerm()
+            window.history.replaceState(null, "", url);
         },
         async submitSearch() {
             if (!this.searchTerm) {
@@ -423,7 +627,6 @@ export let searchcomponent = {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'previewmodal': previewmodal,
-        'recordfilecomponent': recordfilecomponent,
-        'advancedsearchcomponent': advancedsearchcomponent    
+        'recordfilecomponent': recordfilecomponent,    
     }
 }
