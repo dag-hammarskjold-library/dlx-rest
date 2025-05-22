@@ -7,8 +7,13 @@ import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
 import { exportmodal } from "../modals/export.js";
 import { readonlyrecord } from "../readonly_record.js"
+import { searchHistoryComponent } from "../components/search-history.js";
+import { messagecomponent } from "../messagebar.js";
+
+console.log('Search History Component loaded:', searchHistoryComponent);
 
 export let searchcomponent = {
+    name: 'SearchComponent',
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
     props: {
         api_prefix: {
@@ -32,13 +37,23 @@ export let searchcomponent = {
             required: true
         }
     },
+    components: {
+        sortcomponent,
+        countcomponent,
+        itemaddcomponent,
+        recordfilecomponent,
+        readonlyrecord,
+        exportmodal,
+        'search-history': searchHistoryComponent,
+        messagecomponent
+    },
     template: /* html */ `
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
-                    <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
+                    <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click.prevent="toggleAdvancedSearch">Simple Search</a></li>
+                    <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click.prevent="toggleAdvancedSearch">Advanced Search</a></li>
                     <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
                     <li v-if="collectionTitle=='auths'" class="nav-item"><a class="nav-link" :href="uibase + '/records/auths/review'">Auth Review</a></li>
                     <li class="nav-item">
@@ -121,15 +136,27 @@ export let searchcomponent = {
             <input class="btn btn-primary" type="submit" id="search-btn" value="Search" @click="submitAdvancedSearch">
         </div>
         <div id="simple-search" class="row pt-2">
-            <form class="form-inline mr-auto col-lg-12" :action="action">
-                <input v-if="params.search" id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" aria-label="Search" :value="params.search">
-                <input v-else id="q" name="q" class="form-control mr-sm-2 col-lg-10" type="search" placeholder="Search" aria-label="Search">
-                <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
-                <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
-                <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" v-on:click="cancelSearch()">
-                    <span>X</span>
-                </button>
-            </form>    
+            <form class="form-inline mr-auto col-lg-12" :action="action" @submit.prevent="handleSearch">
+                <div class="input-group w-100">
+                    <input v-if="params.search" id="q" name="q" class="form-control" type="search" aria-label="Search" :value="params.search">
+                    <input v-else id="q" name="q" class="form-control" type="search" placeholder="Search" aria-label="Search">
+                    <input v-for="v,k in params" type="hidden" :id="k" :name="k" :value="v">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit" id="search-btn" value="Search">Search</button>
+                        <button class="btn btn-sm btn-default" type="button" value="Cancel search" title="Cancel" @click.prevent="cancelSearch">
+                            <span>X</span>
+                        </button>
+                        <search-history 
+                            v-if="shouldShowSearchHistory"
+                            ref="searchHistory"
+                            search-button-id="search-btn"
+                            search-input-id="q"
+                            :user-email="userEmail"
+                            :api-prefix="api_prefix"
+                        ></search-history>
+                    </div>
+                </div>
+            </form>
         </div>
         <div v-if="collection == 'auths'" id="filters" class="col text-center">
             Filter: 
@@ -164,12 +191,12 @@ export let searchcomponent = {
         <div id="message-display" class="col-xs-1 text-center"></div>
         <div class="row" v-if="user">
             Select 
-            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
-            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a class="mx-1 result-link" href="#" @click.prevent="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click.prevent="selectNone">None</a>
+            <a class="mx-1 result-link" href="#" @click.prevent="sendToBasket">Send Selected to Basket (limit: 100)</a>
             <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
             <a v-if="collectionTitle=='auths'" class="ml-auto result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
-            <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i></a>
+            <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click.prevent="showExportModal"></i></a>
         </div>
         <div id="results-list" v-for="result in this.results" :key="result._id">
             <div class="row mt-1 border-bottom search-result">
@@ -201,17 +228,15 @@ export let searchcomponent = {
                     </div>
                 </div>
                 <div>
-                    <i v-if="previewOpen === result._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
-                    <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
+                    <i v-if="previewOpen === result._id" class="fas fa-window-close preview-toggle" @click.prevent="togglePreview($event, result._id)" title="Preview record"></i>
+                    <i v-else class="fas fa-file preview-toggle" @click.prevent="togglePreview($event, result._id)" title="Preview record"></i>
                     <readonlyrecord v-if="previewOpen === result._id" :api_prefix="api_prefix" :collection="collection" :record_id="result._id" class="record-preview"></readonlyrecord>
                 </div>
                 <div class="col">
                     <recordfilecomponent ref="recordfilecomponent" v-if="collection=='bibs'" :api_prefix="api_prefix" :record_id="result._id" />
                 </div>
                 <div class="col-sm-1">
-                    <!-- need to test if authenticated here -->
                     <div class="row ml-auto">
-                        <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
                         <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox(result)" @disableCheckbox="disableCheckbox(result)"></itemaddcomponent>
                     </div>
                 </div>
@@ -240,6 +265,7 @@ export let searchcomponent = {
         <exportmodal ref="exportmodal" :links="this.links"></exportmodal>
     </div>`,
     data: function () {
+        console.log('Initializing search component with search history:', searchHistoryComponent);
         let myParams = this.search_url.split("?")[1];
         let myProps = {}
         for (let p of myParams.split("&")) {
@@ -272,13 +298,6 @@ export let searchcomponent = {
                 'searchTerm3': null,
                 'searchField3': 'any'
             },
-            // To do: Get these logical fields from the configuration
-            /*
-            bibSearchFields: ['author','title','symbol','notes','subject'],
-            authSearchFields: ['heading', 'agenda_title', 'agenda_subject'],
-            voteSearchFields: ['symbol','title','agenda','year'],
-            speechSearchFields: ['symbol'],
-            */
             searchFields: [],
             searchTypes: [
                 { 'name': 'All of the words:', 'value': 'all' },
@@ -299,7 +318,7 @@ export let searchcomponent = {
             expressions: [],
             vcoll: null,
             searchTime: "?",
-            maxTime: 20000, //milliseconds
+            maxTime: 20000,
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             abortController: new AbortController(),
             myProfile: {},
@@ -308,17 +327,34 @@ export let searchcomponent = {
             collectionTitle: null,
             engine: "community",
             previewOpen: false,
-            subtype: mySubtype
+            subtype: mySubtype,
+            userEmail: '',
+            shouldShowSearchHistory: false
         }
     },
-    created: async function () {
+    created() {
+        console.log('Search component created');
+        console.log('Registered components:', this.$options.components);
         this.allowDirectEdit = this.logged_in ? true : false;
     },
     mounted: async function () {
+        console.log('Search component mounted');
         let component = this;
         this.collectionTitle = component.collection;
         this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
         this.user = this.myProfile.data.email;
+        this.userEmail = this.user;
+        this.shouldShowSearchHistory = (this.logged_in === 'true' || this.logged_in === '1') && this.userEmail;
+        console.log('Search History Debug:', {
+            loggedIn: this.logged_in,
+            userEmail: this.userEmail,
+            shouldShow: this.shouldShowSearchHistory,
+            components: this.$options.components,
+            template: this.$options.template,
+            refs: this.$refs,
+            simpleSearchVisible: document.getElementById('simple-search').style.display !== 'none',
+            advancedSearchVisible: document.getElementById('advanced-search').style.display !== 'none'
+        });
         this.myBasket = await basket.getBasket(this.api_prefix);
         Jmarc.apiUrl = component.api_prefix;
 
@@ -531,24 +567,28 @@ export let searchcomponent = {
                 this.myBasket = b
             })
         },
-        toggleAdvancedSearch() {
-            let el = document.getElementById("advanced-search")
-            let ss = document.getElementById("simple-search")
-            let toggleASLink = document.getElementById("toggleASLink")
-            let toggleSSLink = document.getElementById("toggleSSLink")
+        toggleAdvancedSearch(event) {
+            event.preventDefault();
+            let el = document.getElementById("advanced-search");
+            let ss = document.getElementById("simple-search");
+            let toggleASLink = document.getElementById("toggleASLink");
+            let toggleSSLink = document.getElementById("toggleSSLink");
             if (el.style.display == "none") {
-                el.style.display = "block"
-                ss.style.display = "none"
-                toggleASLink.classList.add("active")
-                toggleSSLink.classList.remove("active")
-                //toggleLink.textContent = "Simple Search"
+                el.style.display = "block";
+                ss.style.display = "none";
+                toggleASLink.classList.add("active");
+                toggleSSLink.classList.remove("active");
             } else {
-                el.style.display = "none"
-                ss.style.display = "block"
-                toggleSSLink.classList.add("active")
-                toggleASLink.classList.remove("active")
-                //toggleLink.textContent = "Advanced Search"
+                el.style.display = "none";
+                ss.style.display = "block";
+                toggleSSLink.classList.add("active");
+                toggleASLink.classList.remove("active");
             }
+            console.log('Search visibility after toggle:', {
+                simpleSearchVisible: ss.style.display !== 'none',
+                advancedSearchVisible: el.style.display !== 'none',
+                shouldShowHistory: this.shouldShowSearchHistory
+            });
         },
         setParameter(which, what) {
             this.advancedParams[which] = what
@@ -680,7 +720,8 @@ export let searchcomponent = {
             document.getElementById("result-count-top").innerHTML = "0";
             document.getElementById("result-count-bottom").innerHTML = "0";
         },
-        cancelSearch() {
+        cancelSearch(event) {
+            event.preventDefault();
             this.abortController.abort();
             this.start = this.end = 0;
         },
@@ -753,20 +794,27 @@ export let searchcomponent = {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
         },
-        toggleEngine(e) {
-            // toggle the search type
-            //console.log("Toggling search engine")
-            this.params.engine = e.target.checked ? "atlas" : "community"
-            this.rebuildUrl("engine", this.engine)
-
+        toggleEngine(event) {
+            event.preventDefault();
+            this.params.engine = event.target.checked ? "atlas" : "community";
+            this.rebuildUrl("engine", this.engine);
+        },
+        async handleSearch(event) {
+            event.preventDefault();
+            console.log('Handling search submission');
+            const searchInput = document.getElementById('q');
+            const term = searchInput.value.trim();
+            if (term && this.$refs.searchHistory) {
+                console.log('Adding term to history:', term);
+                await this.$refs.searchHistory.addToHistory(term);
+            } else {
+                console.log('Could not add term to history:', {
+                    term,
+                    hasSearchHistory: !!this.$refs.searchHistory
+                });
+            }
+            // Submit the form after history is updated
+            event.target.submit();
         }
-    },
-    components: {
-        'sortcomponent': sortcomponent,
-        'countcomponent': countcomponent,
-        'exportmodal': exportmodal,
-        'itemaddcomponent': itemaddcomponent,
-        'recordfilecomponent': recordfilecomponent,
-        'readonlyrecord': readonlyrecord
     }
 }
