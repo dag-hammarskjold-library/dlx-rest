@@ -1,4 +1,24 @@
 // Wait for both DOM and MongoDB Charts SDK to be ready
+function waitForSDK(callback, maxAttempts = 50) {
+  let attempts = 0;
+  
+  function checkSDK() {
+    attempts++;
+    console.log(`Checking for MongoDB Charts SDK (attempt ${attempts}/${maxAttempts})...`);
+    
+    if (typeof window.ChartsEmbedSDK !== 'undefined') {
+      console.log('MongoDB Charts SDK found!');
+      callback();
+    } else if (attempts >= maxAttempts) {
+      console.error('MongoDB Charts SDK not found after maximum attempts');
+    } else {
+      setTimeout(checkSDK, 100);
+    }
+  }
+  
+  checkSDK();
+}
+
 function initializeCharts() {
   try {
     console.log('Initializing charts...');
@@ -6,9 +26,10 @@ function initializeCharts() {
     console.log('MongoDB Charts SDK available:', typeof window.ChartsEmbedSDK !== 'undefined');
     console.log('userCheckboxes element:', document.getElementById('userCheckboxes'));
 
-    if (typeof window.ChartsEmbedSDK === 'undefined') {
-      console.log('Waiting for MongoDB Charts SDK to load...');
-      setTimeout(initializeCharts, 100);
+    // Check if we're on the dashboard page
+    const userCheckboxesContainer = document.getElementById('userCheckboxes');
+    if (!userCheckboxesContainer) {
+      console.log('Not on dashboard page, skipping charts initialization');
       return;
     }
 
@@ -18,14 +39,6 @@ function initializeCharts() {
     });
 
     const dashboardId = '2c30ae76-5b8e-4703-af90-797962da36fd';
-    const userCheckboxesContainer = document.getElementById('userCheckboxes');
-    
-    if (!userCheckboxesContainer) {
-      console.error('Could not find userCheckboxes container. Make sure you are on the correct page.');
-      console.log('Current URL:', window.location.href);
-      console.log('Available elements:', document.body.innerHTML);
-      return;
-    }
 
     // Create a function to update filters based on selected checkboxes
     function updateDashboard() {
@@ -62,9 +75,10 @@ function initializeCharts() {
 // Start initialization when DOM is ready
 if (document.readyState === 'loading') {
   console.log('DOM is still loading, waiting for DOMContentLoaded event...');
-  document.addEventListener('DOMContentLoaded', initializeCharts);
+  document.addEventListener('DOMContentLoaded', function() {
+    waitForSDK(initializeCharts);
+  });
 } else {
   console.log('DOM is already loaded, initializing immediately...');
-  initializeCharts();
-}
-
+  waitForSDK(initializeCharts);
+} 
