@@ -20,4 +20,4 @@ python-ulid==3.0.0
 sentry-sdk==2.29.1
 troposphere==4.9.2
 WTForms==3.2.1
-zipp==3.21.0
+zipp==3.22.0
