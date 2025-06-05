@@ -747,13 +747,55 @@ def test_api_files_post(client, files, default_users):
     credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
     def create_test_file():
+        import random, string
+
         """Helper function to create a new file object for each test"""
-        return io.BytesIO(b"Test file content")
+        file_content = ''
+        for i in range(1000):
+            file_content += random.choice(string.ascii_letters + string.digits)
+
+        return io.BytesIO(bytes(file_content, encoding='utf8'))
     
-    # Test successful file upload
+    # Test successful file upload, all identifier types
     data = {
         'identifier_type': 'symbol',
         'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'uri',
+        'identifier': 'http://foo.bar/baz',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'isbn',
+        'identifier': '0-2024-1446-9',
         'languages': 'en,fr',
         'file': (create_test_file(), 'test.txt')
     }
