@@ -751,6 +751,130 @@ def test_api_files(client, files):
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
 
+def test_api_files_post(client, files, default_users):
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    def create_test_file():
+        import random, string
+
+        """Helper function to create a new file object for each test"""
+        file_content = ''
+        for i in range(1000):
+            file_content += random.choice(string.ascii_letters + string.digits)
+
+        return io.BytesIO(bytes(file_content, encoding='utf8'))
+    
+    # Test successful file upload, all identifier types
+    data = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'uri',
+        'identifier': 'http://foo.bar/baz',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'isbn',
+        'identifier': '0-2024-1446-9',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+    
+    # Test missing file
+    data_no_file = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr'
+    }
+    res = client.post(
+        f'{API}/files', 
+        data=data_no_file,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test missing required fields
+    data_missing_fields = {
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_missing_fields, 
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid language code
+    data_invalid_lang = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,invalid',
+        'file': (create_test_file, 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_lang,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid identifier type
+    data_invalid_id_type = {
+        'identifier_type': 'invalid',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_id_type,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # We could also test unauthorized access...
+
 def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3')
     data = check_response(res)
