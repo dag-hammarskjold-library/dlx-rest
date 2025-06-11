@@ -1,4 +1,4 @@
-from flask import Flask, Response, url_for, jsonify, abort as flask_abort, session
+from flask import Flask, Response, url_for, jsonify, abort as flask_abort, session, send_from_directory
 #from flask_restx import Resource, Api, reqparse
 from flask_login import LoginManager
 from mongoengine import connect, disconnect
@@ -7,6 +7,11 @@ from flask_cors import CORS
 from dlx import DB
 from dlx_rest.config import Config
 import certifi, sentry_sdk
+import mimetypes
+import os
+
+# Add .mjs MIME type
+mimetypes.add_type('application/javascript', '.mjs')
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -15,6 +20,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message =""
+
+# Custom route for .mjs files
+@app.route('/static/js/<path:filename>')
+def serve_mjs(filename):
+    if filename.endswith('.mjs'):
+        return send_from_directory(os.path.join(app.root_path, 'static', 'js'),
+                                 filename,
+                                 mimetype='application/javascript')
+    return send_from_directory(os.path.join(app.root_path, 'static', 'js'), filename)
 
 try: 
     sentry_dsn = Config.sentry_dsn

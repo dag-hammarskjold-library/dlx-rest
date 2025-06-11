@@ -2,7 +2,7 @@ from flask import abort
 from mongoengine import *
 from flask_login import UserMixin, current_user
 from mongoengine.document import Document
-from mongoengine.fields import DictField, GenericReferenceField, ListField, ReferenceField, StringField
+from mongoengine.fields import DictField, GenericReferenceField, ListField, ReferenceField, StringField, DateTimeField, EmbeddedDocumentField
 from werkzeug.security import check_password_hash, generate_password_hash
 from dlx_rest.utils import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
@@ -65,6 +65,10 @@ class RecordView(Document):
 
 
 
+class SearchHistoryEntry(EmbeddedDocument):
+    term = StringField(max_length=500, required=True)
+    datetime = DateTimeField(default=datetime.datetime.now)
+
 class User(UserMixin, Document):
     email = StringField(max_length=200, required=True, unique=True)
     username = StringField(max_length=200, required=True)
@@ -72,8 +76,19 @@ class User(UserMixin, Document):
     password_hash = StringField(max_length=200)
     roles = ListField(ReferenceField(Role))
     default_views = ListField(ReferenceField(RecordView))
+    search_history = ListField(EmbeddedDocumentField(SearchHistoryEntry), default=list)
     created = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
     updated = DateTimeField(default=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, 'search_history'):
+            self.search_history = []
+
+    def save(self, *args, **kwargs):
+        if not hasattr(self, 'search_history'):
+            self.search_history = []
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return {
@@ -151,6 +166,29 @@ class User(UserMixin, Document):
         user = User.objects.get(id=data['id'])
         return user
 
+    def add_search_term(self, term):
+        # Check if term already exists
+        existing_entry = next((entry for entry in self.search_history if entry.term == term), None)
+        if existing_entry:
+            # Update datetime for existing term
+            existing_entry.datetime = datetime.datetime.now()
+        else:
+            # Add new entry
+            self.search_history.append(SearchHistoryEntry(term=term))
+        self.save()
+
+    def get_search_history(self):
+        # Return search history sorted by datetime in descending order
+        return sorted(self.search_history, key=lambda x: x.datetime, reverse=True)
+
+    def delete_search_term(self, term):
+        self.search_history = [entry for entry in self.search_history if entry.term != term]
+        self.save()
+
+    def clear_search_history(self):
+        self.search_history = []
+        self.save()
+
 
 class Basket(Document):
     owner = ReferenceField(User)
@@ -221,7 +259,6 @@ class SyncLog(Document):
         'collection': Config.sync_log_collection,
         'strict': False
     }
-
 
 
 # This still should work for unconstrained permissions, but if we need additional
