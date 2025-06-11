@@ -2093,3 +2093,60 @@ class View(Resource):
             })
 
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
+
+@ns.route('/search-history')
+class SearchHistory(Resource):
+    @ns.doc(description='Get search history for current user', security='basic')
+    @login_required
+    def get(self):
+        user = User.objects.get(email=current_user.email)
+        history = user.get_search_history()
+        return jsonify([{
+            'id': str(i),  # Using index as ID since entries are embedded
+            'term': h.term,
+            'datetime': h.datetime.isoformat()
+        } for i, h in enumerate(history)])
+
+    @ns.doc(description='Add new search term to history', security='basic')
+    @login_required
+    def post(self):
+        data = request.get_json()
+        term = data.get('term')
+        if not term:
+            return jsonify({'error': 'Term is required'}), 400
+        
+        user = User.objects.get(email=current_user.email)
+        user.add_search_term(term)
+        
+        # Get the updated history to return
+        history = user.get_search_history()
+        latest_entry = next((h for h in history if h.term == term), None)
+        
+        return jsonify({
+            'id': str(history.index(latest_entry)),
+            'term': latest_entry.term,
+            'datetime': latest_entry.datetime.isoformat()
+        })
+
+    @ns.doc(description='Clear all search history for current user', security='basic')
+    @login_required
+    def delete(self):
+        user = User.objects.get(email=current_user.email)
+        user.clear_search_history()
+        return jsonify({'message': 'Search history cleared'})
+
+@ns.route('/search-history/<string:id>')
+class SearchHistoryItem(Resource):
+    @ns.doc(description='Delete a specific search history entry', security='basic')
+    @login_required
+    def delete(self, id):
+        try:
+            user = User.objects.get(email=current_user.email)
+            history = user.get_search_history()
+            if 0 <= int(id) < len(history):
+                term_to_delete = history[int(id)].term
+                user.delete_search_term(term_to_delete)
+                return jsonify({'message': 'Search history deleted'})
+            return jsonify({'error': 'Search history not found'}), 404
+        except:
+            return jsonify({'error': 'Search history not found'}), 404
