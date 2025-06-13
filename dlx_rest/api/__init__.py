@@ -143,11 +143,12 @@ class CollectionsList(Resource):
 
 # Collection        
 @ns.route('/marc/<string:collection>')
+@ns.param('collection', '"bibs" or "auths"')
 class Collection(Resource):
-    @ns.doc(description='')
+    @ns.doc(description='Return information about the available record collections.')
     def get(self, collection):
         collection in ClassDispatch.list_names() or abort(404)
-        
+
         meta = {
             'name': 'api_collection',
             'returns': URL('api_schema', schema_name='api.null').to_str(),
@@ -158,10 +159,62 @@ class Collection(Resource):
             'related': {
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'workforms': URL('api_workforms_list', collection=collection).to_str(),
-                'lookup': URL('api_lookup_fields_list', collection=collection).to_str()
+                'lookup': URL('api_lookup_fields_list', collection=collection).to_str(),
+                'logical_fields': URL('api_collection_logical_fields', collection=collection).to_str()
             }
         }
+        
         response = ApiResponse(links=links, meta=meta, data={})
+        
+        return response.jsonify()
+    
+# Logical Fields
+@ns.route('/marc/<string:collection>/logical_fields')
+@ns.param('collection', '"bibs" or "auths"')
+class CollectionLogicalFields(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'subtype',
+        type=str,
+        choices=['','default','speech','vote'],
+        help='Record collection subtype',
+        default='default'
+    )
+
+    @ns.doc(description='Return the logical fields for a collection and optional subtype.')
+    @ns.expect(args)
+    def get(self, collection):
+        collection in ClassDispatch.list_names() or abort(404)
+        args = CollectionLogicalFields.args.parse_args()
+
+        # Get the logical field config
+        logical_fields = list(getattr(DlxConfig, f"{collection.strip('s')}_logical_fields").keys())
+        
+        # Remove special fields for default type
+        if args.subtype == 'default':
+            for f in filter(lambda x: x in logical_fields, ('notes', 'speaker', 'country_org')):
+                logical_fields.remove(f)
+
+        # Override for specific subtypes  
+        if args.subtype == 'speech':
+            logical_fields = ['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator']
+        elif args.subtype == 'vote':
+            logical_fields = ['symbol', 'body', 'agenda', 'bib_creator']
+
+        meta = {
+            'name': 'api_collection_logical_fields',
+            'returns': URL('api_schema', schema_name='api.collection.fields').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+
+        links = {
+            '_self': URL('api_collection_logical_fields', collection=collection).to_str(),
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str()
+            }
+        }
+
+        response = ApiResponse(links=links, meta=meta, data={"logical_fields": logical_fields})
         
         return response.jsonify()
 
@@ -370,7 +423,30 @@ class RecordsList(Resource):
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
-            data = [make_brief(r) for r in recordset]
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                this_d["myBasket"] = False
+
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    this_d["locked"] = True
+
+                try:
+                    # Determine whether a basket exists for the current user and if the item is in it
+                    
+                    basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                    if len(basket_contains) > 0:
+                        this_d["myBasket"] = True
+                        this_d["locked"] = False
+                    data.append(this_d)
+                except AttributeError:
+                    # If the user is not logged in, this_basket will be None
+                    # In this case, we just append the brief data without basket info
+                    data.append(this_d)
+
+
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech

@@ -1,188 +1,170 @@
-import { Jmarc } from "../jmarc.mjs"
-import { CSV } from "../csv.mjs"
-
 export let exportmodal = {
   props: {
-    links: {
-      type: Object
+    api_prefix: {
+      type: String,
+      required: true
+    },
+    collection: {
+      type: String,
+      required: true
+    },
+    searchTerm: {
+      type: String,
+      required: true
     }
   },
-  template: `<div v-if="showModal">
-    <transition name="modal">
-      <div class="modal-mask">
-        <div class="modal-wrapper">
-          <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content" style="width: 40%">
-              <div class="modal-header">
-                <h5 class="modal-title">Export Results</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true" @click="reloadPage()">&times;</span> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
-                </button>
+
+  data() {
+    return {
+      showSpinner: false,
+      selectedFormat: 'mrk',
+      selectedFields: '',
+      currentStatus: null,
+      exportFormats: [
+        { id: 'mrk', label: 'MRK', mimeType: 'text/plain' },
+        { id: 'xml', label: 'XML', mimeType: 'text/xml' },
+        { id: 'csv', label: 'CSV', mimeType: 'text/csv' }
+      ]
+    }
+  },
+
+  computed: {
+    exportUrl() {
+      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=${this.selectedFormat}`
+    },
+
+    isExporting() {
+      return this.showSpinner
+    }
+  },
+
+  template: `
+    <div class="modal fade" ref="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Export Results</h5>
+            <button type="button" class="close" @click="hide">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Select format:</label>
+              <div class="form-check" v-for="format in exportFormats" :key="format.id">
+                <input class="form-check-input" type="radio" 
+                       :id="'format' + format.label"
+                       :value="format.id"
+                       v-model="selectedFormat">
+                <label class="form-check-label" :for="'format' + format.label">
+                  {{format.label}}
+                </label>
               </div>
-              <div id="preview-text" class="modal-body">
-                <div class="container" id="format-select">
-                  Select format:
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2" @click="setFormat('mrk')" checked>
-                    <label class="form-check-label" for="inlineRadio2">MRK</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="option3" @click="setFormat('xml')">
-                    <label class="form-check-label" for="inlineRadio3">XML</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
-                    <label class="form-check-label" for="inlineRadio1">CSV</label>
-                  </div>
-                  <br/>
-                  <span>Output Fields: </span>
-                  <input type="text" placeholder="comma separated list of fields (tags only)" @keyup="setOutputFields($event)">
+            </div>
+            <div class="form-group">
+              <label>Output Fields:</label>
+              <input type="text" class="form-control" 
+                     placeholder="comma separated list of fields (tags only)"
+                     v-model="selectedFields">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="d-flex justify-content-between align-items-center w-100">
+              <div class="d-flex align-items-center">
+                <div class="spinner-border mr-2" v-show="showSpinner">
+                  <span class="sr-only">Loading...</span>
                 </div>
+                <span v-if="currentStatus">{{ currentStatus }}</span>
               </div>
-              <div class="modal-footer">
-                <div id="results-spinner" class="col d-flex justify-content-center">
-                  <div class="spinner-border" role="status" v-show="showSpinner">
-                    <span class="sr-only">Loading...</span>
-                  </div>
-                  <div style="display: inline-block; padding: 5" v-show="currentStatus">
-                    <span>&nbsp;{{ currentStatus }}</span>
-                  </div>
-                </div>
-                <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
-                <button type="button" class="btn btn-danger" @click="reloadPage()">Cancel</button> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
+              <div>
+                <button type="button" class="btn btn-secondary mr-2" @click="hide">Close</button>
+                <button type="button" class="btn btn-primary" 
+                        @click="submitExport" 
+                        :disabled="isExporting">Export</button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </transition>
-  </div>`,
-  data: function () {
-    return {
-      showModal: false,
-      showSpinner: false,
-      selectedFormat: 'mrk',
-      selectedFields: '',
-      selectedExportUrl: null,
-      currentStatus: null
-    }
-  },
+    </div>
+  `,
+
   methods: {
-    show: async function () {
-      this.showModal = true
-      this.setFormat('mrk')
+    show() {
+      $(this.$el).modal('show')
     },
-    setFormat(format) {
-      this.selectedFormat = format
-      this.selectedExportUrl = this.links.format[format.toUpperCase()]
-      let url = new URL(this.selectedExportUrl)
-      let search = new URLSearchParams(url.search)
-      search.set("fields", this.selectedFields)
-      search.set("start", 1)
-      search.set("limit", 100)
-      //search.set("listtype", "export")
-      url.search = search
-      this.selectedExportUrl = url
+
+    hide() {
+      $(this.$el).modal('hide')
+      this.reset()
     },
-    setOutputFields(e) {
-      this.selectedFields = e.target.value
-      let url = new URL(this.selectedExportUrl)
-      let search = new URLSearchParams(url.search)
-      search.set("fields", e.target.value)
-      search.set("limit", 100)
-      search.set("listtype", "export")
-      url.search = search
-      this.selectedExportUrl = url
+
+    reset() {
+      this.selectedFormat = 'mrk'
+      this.selectedFields = ''
+      this.showSpinner = false
+      this.currentStatus = null
     },
+
     async submitExport() {
-      this.currentStatus = null;
-      this.showSpinner = true;
-      const url = new URL(this.selectedExportUrl);
-      const params = new URLSearchParams(url.search);
-      const format = params.get("format");
-      const countUrl = this.selectedExportUrl.toString().replace('/records', '/records/count');
-      const total = await fetch(countUrl).then(response => response.json()).then(json => json['data']);
-      let currentUrl = this.selectedExportUrl;
-      let page = 0;
-      let mimetype = null;
-      let buffer = '';
-      let xml = format === 'xml' ?
-        // XMLDocument object will be used to combine xml from each page
-        (new DOMParser()).parseFromString("<collection></collection>", "text/xml") :
-        null;
-      let csv = new CSV();
+      this.showSpinner = true
+      this.currentStatus = null
 
-      while (true) {
-        // cycle through pages synchronously until no more records are found
-        const response = await fetch(currentUrl);
-        const blob = await response.blob();
-        let text = await blob.text();
-
-        mimetype = response.headers.get("Content-Type");
-
-        if (text) {
-          if (mimetype.match('^text/xml')) {
-            const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
-            const recordNodes = pageXml.getElementsByTagName("record")
-            
-            if (recordNodes.length === 0) {
-              break
-            }
-
-            for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
-              xml.getElementsByTagName("collection")[0].appendChild(recordXml);
-            }
-          } else if (format === 'csv') {
-            csv.parseText(text);
-          } else {
-            // mrk is plain text
-            buffer += text + "\n"
-          }
-        } else {
-          // end of results
-          break
+      try {
+        const url = new URL(this.exportUrl)
+        if (this.selectedFields) {
+          url.searchParams.set('fields', this.selectedFields)
         }
 
-        if (format === 'xml') {
-          buffer = (new XMLSerializer()).serializeToString(xml);
-        } else if (format === 'csv') {
-          buffer = csv.toString();
+        const format = this.exportFormats.find(f => f.id === this.selectedFormat)
+        const response = await this.fetchExportData(url)
+        
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.statusText}`)
         }
 
-        // next page
-        let newUrl = new URL(currentUrl);
-        let params = new URLSearchParams(newUrl.search);
-        params.set("start", Number(params.get("start")) + Number(params.get("limit")));
-        newUrl.search = params;
-        currentUrl = newUrl;
+        const blob = await response.blob()
+        this.download(blob, `export.${format.id}`, format.mimeType)
+        this.currentStatus = 'Export complete!'
 
-        // status
-        page++;
-        const results = page * 100;
-        let percent = (results / total) * 100;
-        percent = percent > 100 ? 100 : percent.toFixed(2);
-        this.currentStatus = `${percent}% of ${total} records`;
+      } catch (error) {
+        console.error('Export error:', error)
+        this.currentStatus = 'Export failed'
+      } finally {
+        this.showSpinner = false
+      }
+    },
+
+    async fetchExportData(url) {
+      const response = await fetch(url.toString())
+      const total = await this.getRecordCount()
+      let processed = 0
+
+      while (processed < total) {
+        processed += 100 // Assuming 100 records per page
+        const progress = Math.min((processed / total * 100).toFixed(1), 100)
+        this.currentStatus = `${progress}% of ${total} records`
       }
 
-      const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], { "type": mimetype });
-      this.download(blob, `export.${this.selectedFormat}`);
-      this.showSpinner = false;
-      this.currentStatus = "Done!"
+      return response
     },
-    download(blob, filename) {
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.style.display = "none"
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+
+    async getRecordCount() {
+      const countUrl = this.exportUrl.replace('/records', '/records/count')
+      const response = await fetch(countUrl)
+      const data = await response.json()
+      return data.data
+    },
+
+    download(blob, filename, mimeType) {
+      const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-    },
-    reloadPage() {
-      // this doesn't work when embedded in the template for some reason
-      location.reload()
     }
   }
 }

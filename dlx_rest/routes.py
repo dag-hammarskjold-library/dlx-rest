@@ -105,7 +105,7 @@ def login():
                 login_user(user, remember=form.remember_me.data)
                 if not is_safe_url(request, next_url):
                     return abort(400)
-                flash('Logged in successfully.')
+                #flash('Logged in successfully.')
                 return redirect(next_url or url_for('index'), code=302)
             else:
                 flash('Invalid username or password.')
@@ -117,7 +117,7 @@ def login():
                 login_user(user, remember=form.remember_me.data)
                 if not is_safe_url(request, next_url):
                     return abort(400)
-                flash('Logged in successfully.')
+                #flash('Logged in successfully.')
                 return redirect(next_url or url_for('index'), code=302)
             else:
                 flash('Invalid username or password.')
@@ -131,7 +131,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    flash("Logged out successfully.")
+    #flash("Logged out successfully.")
     return redirect(url_for('login'))
 
 
