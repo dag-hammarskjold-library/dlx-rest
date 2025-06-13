@@ -22,7 +22,7 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.marc.query import InvalidQueryString, AtlasQuery
 from dlx.marc.query import Raw
-from dlx.file import File, Identifier
+from dlx.file import File, Identifier, FileExists, FileExistsConflict, FileExistsIdentifierConflict, FileExistsLanguageConflict
 from dlx.util import AsciiMap
 
 # internal
@@ -1756,16 +1756,42 @@ class Workform(Resource):
 # Files records list
 @ns.route('/files')
 class FilesRecordsList(Resource):
-    args = reqparse.RequestParser()
-    args.add_argument('start')
-    args.add_argument('limit')
-    args.add_argument('identifier_type', choices=('symbol', 'uri', 'isbn'), help='File content identifier type')
-    args.add_argument('identifier', help='File content identifier value')
-    args.add_argument('language', choices=('ar', 'fr', 'de', 'en', 'ru', 'es', 'zh'))
+    get_args = reqparse.RequestParser()
+    get_args.add_argument('start', type=int, default=1)
+    get_args.add_argument('limit', type=int, default=100)
+    get_args.add_argument('identifier_type', 
+        choices=('symbol', 'uri', 'isbn'), 
+        help='File content identifier type',
+        required=False)
+    get_args.add_argument('identifier', 
+        help='File content identifier value',
+        required=False)
+    get_args.add_argument('language', 
+        choices=('ar', 'fr', 'de', 'en', 'ru', 'es', 'zh'),
+        required=False)
+
+    post_args = reqparse.RequestParser()
+    post_args.add_argument('identifier_type',
+        type=str,
+        choices=('symbol', 'uri', 'isbn'),
+        help='File content identifier type',
+        required=True,
+        location='form')
+    post_args.add_argument('identifier',
+        type=str,
+        help='File content identifier value',
+        required=True,
+        location='form')
+    post_args.add_argument('languages',
+        type=str,
+        help='Comma-separated list of language codes (e.g., en,fr,es)',
+        required=True,
+        location='form')
     
     @ns.doc(description='Return a list of file records')
+    @ns.expect(get_args)
     def get(self):
-        args = FilesRecordsList.args.parse_args()
+        args = FilesRecordsList.get_args.parse_args()
         
         # start
         start = 1 if args.start is None else int(args.start)
@@ -1805,6 +1831,62 @@ class FilesRecordsList(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
+    
+    @ns.doc(description="Submit a new file to the collection", security='basic')
+    @ns.expect(post_args)
+    @login_required
+    def post(self):
+        args = FilesRecordsList.post_args.parse_args()
+
+        if 'file' not in request.files:
+            abort(400, 'No file provided in request')
+
+        uploaded_file = request.files['file']
+
+        # Validate and parse languages
+        languages = [lang.strip().lower() for lang in args.languages.split(',')]
+        valid_langs = ['ar', 'zh', 'en', 'fr', 'ru', 'es', 'de']
+        for lang in languages:
+            if lang not in valid_langs:
+                abort(400, f'Invalid language code: {lang}')
+
+        if uploaded_file.filename == '':
+            abort(400, 'No file selected')
+
+        identifier_type = args.get('identifier_type')
+        identifier_value = args.get('identifier')
+        languages = [lang.strip().lower() for lang in args.get('languages').split(',')]
+
+        try:
+            file_identifier = Identifier(identifier_type, identifier_value)
+
+            file_record = File.import_from_handle(
+                handle=uploaded_file,
+                identifiers=[file_identifier],
+                languages=languages,
+                mimetype=uploaded_file.mimetype,
+                source='dlx-rest',
+                filename=uploaded_file.filename,
+                user=current_user.email
+            )
+
+            if file_record:
+                return {
+                    'result': URL('api_file_record', record_id=file_record.id).to_str()
+                }, 201
+            else:
+                abort(500, 'File upload failed')
+
+        except FileExists as e:
+            abort(409, str(e))
+        except FileExistsIdentifierConflict as e:
+            abort(409, str(e))
+        except FileExistsLanguageConflict as e:
+            abort(409, str(e))
+        except ValueError as e:
+            abort(400, str(e))
+        except Exception as e:
+            abort(500, str(e))
         
 # File
 @ns.route('/files/<string:record_id>')
