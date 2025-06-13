@@ -401,12 +401,16 @@ export let searchcomponent = {
         this.currentSort = urlParams.get("sort") || 'updated';
         this.currentDirection = urlParams.get("direction") || 'desc';
 
-        // Get logical fields before submitting search
-        let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}?subtype=${this.subtype}`;
+        // Get logical fields from new endpoint
+        let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
+        if (this.subtype) {
+            logicalFieldsUrl += `?subtype=${this.subtype}`;
+        }
+        
         await fetch(logicalFieldsUrl).then(response => {
             return response.json()
         }).then(json => {
-            this.searchFields = json["data"]["logical_fields"];
+            this.searchFields = json.data.logical_fields;
             this.searchQuery = searchQuery;
         });
 

@@ -145,6 +145,33 @@ class CollectionsList(Resource):
 @ns.route('/marc/<string:collection>')
 @ns.param('collection', '"bibs" or "auths"')
 class Collection(Resource):
+    @ns.doc(description='Return information about the available record collections.')
+    def get(self, collection):
+        collection in ClassDispatch.list_names() or abort(404)
+
+        meta = {
+            'name': 'api_collection',
+            'returns': URL('api_schema', schema_name='api.null').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_self': URL('api_collection', collection=collection).to_str(),
+            'related': {
+                'records': URL('api_records_list', collection=collection).to_str(),
+                'workforms': URL('api_workforms_list', collection=collection).to_str(),
+                'lookup': URL('api_lookup_fields_list', collection=collection).to_str(),
+                'logical_fields': URL('api_collection_logical_fields', collection=collection).to_str()
+            }
+        }
+        
+        response = ApiResponse(links=links, meta=meta, data={})
+        
+        return response.jsonify()
+    
+# Logical Fields
+@ns.route('/marc/<string:collection>/logical_fields')
+@ns.param('collection', '"bibs" or "auths"')
+class CollectionLogicalFields(Resource):
     args = reqparse.RequestParser()
     args.add_argument(
         'subtype',
@@ -153,39 +180,41 @@ class Collection(Resource):
         help='Record collection subtype',
         default='default'
     )
-    @ns.doc(description='Return information about the available record collections.')
+
+    @ns.doc(description='Return the logical fields for a collection and optional subtype.')
     @ns.expect(args)
     def get(self, collection):
         collection in ClassDispatch.list_names() or abort(404)
-        args = Collection.args.parse_args()
+        args = CollectionLogicalFields.args.parse_args()
 
-        meta = {
-            'name': 'api_collection',
-            'returns': URL('api_schema', schema_name='api.collection').to_str(),
-            'timestamp': datetime.now(timezone.utc)
-        }
-        links = {
-            '_self': URL('api_collection', collection=collection).to_str(),
-            'related': {
-                'records': URL('api_records_list', collection=collection).to_str(),
-                'workforms': URL('api_workforms_list', collection=collection).to_str(),
-                'lookup': URL('api_lookup_fields_list', collection=collection).to_str()
-            }
-        }
-
-        # Get the logical field config; we could also put this in another endpoint if more appropriate
+        # Get the logical field config
         logical_fields = list(getattr(DlxConfig, f"{collection.strip('s')}_logical_fields").keys())
-        for f in filter(lambda x: x in logical_fields, ('notes', 'speaker', 'country_org')):
-            logical_fields.remove(f)
+        
+        # Remove special fields for default type
+        if args.subtype == 'default':
+            for f in filter(lambda x: x in logical_fields, ('notes', 'speaker', 'country_org')):
+                logical_fields.remove(f)
 
+        # Override for specific subtypes  
         if args.subtype == 'speech':
-            # To do: can we list these in the DlxConfig?
             logical_fields = ['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator']
         elif args.subtype == 'vote':
             logical_fields = ['symbol', 'body', 'agenda', 'bib_creator']
 
-        
-        response = ApiResponse(links=links, meta=meta, data={"logical_fields":logical_fields})
+        meta = {
+            'name': 'api_collection_logical_fields',
+            'returns': URL('api_schema', schema_name='api.collection.fields').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+
+        links = {
+            '_self': URL('api_collection_logical_fields', collection=collection).to_str(),
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str()
+            }
+        }
+
+        response = ApiResponse(links=links, meta=meta, data={"logical_fields": logical_fields})
         
         return response.jsonify()
 
@@ -404,11 +433,18 @@ class RecordsList(Resource):
                 if len(lock_status) > 0:
                     this_d["locked"] = True
 
-                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
-                if len(basket_contains) > 0:
-                    this_d["myBasket"] = True
-                    this_d["locked"] = False
-                data.append(this_d)
+                try:
+                    # Determine whether a basket exists for the current user and if the item is in it
+                    
+                    basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                    if len(basket_contains) > 0:
+                        this_d["myBasket"] = True
+                        this_d["locked"] = False
+                    data.append(this_d)
+                except AttributeError:
+                    # If the user is not logged in, this_basket will be None
+                    # In this case, we just append the brief data without basket info
+                    data.append(this_d)
 
 
         elif fmt == 'brief_speech':

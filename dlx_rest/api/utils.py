@@ -194,6 +194,8 @@ class Schemas():
             data = {'type': "object"}
         elif schema_name == 'api.collection':
             data = {'type': 'object'}
+        elif schema_name == 'api.collection.fields':
+            data = { 'type': 'object', 'properties': {'fields': {'type': 'array'}}}
         else:
             abort(404)
         
