@@ -145,6 +145,11 @@ export let searchcomponent = {
                                 @click.prevent="sendToBasket">
                             Send {{selectedRecords.length}} to Basket
                         </button>
+                        <button class="btn btn-danger btn-sm"
+                                @click.prevent="confirmDelete"
+                                v-if="canDelete">
+                            Delete {{selectedRecords.length}} Records
+                        </button>
                     </div>
                     <div v-if="isSearching || submitted">
                         {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
@@ -271,6 +276,33 @@ export let searchcomponent = {
             :collection="collection"
             :search-term="searchTerm">
         </exportmodal>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">Are you sure you want to delete {{selectedRecords.length}} records?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" 
+                                @click="executeDelete" 
+                                :disabled="isDeleting">
+                            <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
+                            {{isDeleting ? 'Deleting...' : 'Delete Records'}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     `,
 
@@ -385,11 +417,18 @@ export let searchcomponent = {
             currentDirection: 'desc',
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             activeFilters: null,
+            isDeleting: false,
         }
     },
     computed: {
         hasAdvancedTerms() {
             return !!(this.advancedParams.searchTerm1 || this.advancedParams.searchTerm2 || this.advancedParams.searchTerm3);
+        },
+        canDelete() {
+            return this.selectedRecords.length > 0 && 
+                !this.selectedRecords.some(r => r.locked) //&& 
+                // To do: Add an API endpoint to check current user permissions!
+                //user.hasPermission('delete'); 
         }
     },
     created: async function () {
@@ -968,6 +1007,57 @@ export let searchcomponent = {
             this.$refs.exportmodal?.hide();
         },
 
+        confirmDelete() {
+            $('#deleteConfirmModal').modal('show');
+        },
+
+        async executeDelete() {
+            this.isDeleting = true;
+            const failedDeletes = [];
+
+            try {
+                for (const record of this.selectedRecords) {
+                    try {
+                        const response = await fetch(
+                            `${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            failedDeletes.push(record.record_id);
+                        }
+                    } catch (error) {
+                        failedDeletes.push(record.record_id);
+                        console.error(`Error deleting record ${record.record_id}:`, error);
+                    }
+                }
+
+                // Remove successfully deleted records from display
+                this.records = this.records.filter(record => 
+                    !this.selectedRecords.some(sr => 
+                        sr.record_id === record._id && !failedDeletes.includes(record._id)
+                    )
+                );
+
+                // Update counts
+                this.resultCount = this.records.length;
+                if (failedDeletes.length > 0) {
+                    alert(`Failed to delete ${failedDeletes.length} records`);
+                }
+
+                // Clear selection
+                this.selectNone();
+                
+            } finally {
+                this.isDeleting = false;
+                $('#deleteConfirmModal').modal('hide');
+            }
+        }
     },
     components: {
         'sortcomponent': sortcomponent,
