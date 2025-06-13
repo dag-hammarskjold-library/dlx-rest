@@ -149,7 +149,7 @@ class Collection(Resource):
     args.add_argument(
         'subtype',
         type=str,
-        choices=['default','speech','vote'],
+        choices=['','default','speech','vote'],
         help='Record collection subtype',
         default='default'
     )

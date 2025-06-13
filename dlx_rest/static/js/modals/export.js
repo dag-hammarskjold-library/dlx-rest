@@ -4,85 +4,121 @@ import { CSV } from "../csv.mjs"
 export let exportmodal = {
   props: {
     links: {
-      type: Object
+      type: Object,
+      required: true
     }
   },
-  template: `<div v-if="showModal">
-    <transition name="modal">
-      <div class="modal-mask">
-        <div class="modal-wrapper">
-          <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content" style="width: 40%">
-              <div class="modal-header">
-                <h5 class="modal-title">Export Results</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true" @click="reloadPage()">&times;</span> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
-                </button>
+  template: `
+  <div class="modal fade" ref="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Export Results</h5>
+            <button type="button" class="close" @click="hide">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Select format:</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" 
+                       id="formatMrk" value="mrk" 
+                       v-model="selectedFormat">
+                <label class="form-check-label" for="formatMrk">MRK</label>
               </div>
-              <div id="preview-text" class="modal-body">
-                <div class="container" id="format-select">
-                  Select format:
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2" @click="setFormat('mrk')" checked>
-                    <label class="form-check-label" for="inlineRadio2">MRK</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="option3" @click="setFormat('xml')">
-                    <label class="form-check-label" for="inlineRadio3">XML</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" @click="setFormat('csv')">
-                    <label class="form-check-label" for="inlineRadio1">CSV</label>
-                  </div>
-                  <br/>
-                  <span>Output Fields: </span>
-                  <input type="text" placeholder="comma separated list of fields (tags only)" @keyup="setOutputFields($event)">
-                </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" 
+                       id="formatXml" value="xml" 
+                       v-model="selectedFormat">
+                <label class="form-check-label" for="formatXml">XML</label>
               </div>
-              <div class="modal-footer">
-                <div id="results-spinner" class="col d-flex justify-content-center">
-                  <div class="spinner-border" role="status" v-show="showSpinner">
-                    <span class="sr-only">Loading...</span>
-                  </div>
-                  <div style="display: inline-block; padding: 5" v-show="currentStatus">
-                    <span>&nbsp;{{ currentStatus }}</span>
-                  </div>
-                </div>
-                <button v-if="! showSpinner" type="button" class="btn btn-primary" @click="submitExport">Submit</button>
-                <button type="button" class="btn btn-danger" @click="reloadPage()">Cancel</button> <!-- this prevents the API page traversal from continuing after the user closes the modal -->
+              <div class="form-check">
+                <input class="form-check-input" type="radio" 
+                       id="formatCsv" value="csv" 
+                       v-model="selectedFormat">
+                <label class="form-check-label" for="formatCsv">CSV</label>
               </div>
+            </div>
+            <div class="form-group">
+              <label>Output Fields:</label>
+              <input type="text" class="form-control" 
+                     placeholder="comma separated list of fields (tags only)"
+                     v-model="selectedFields">
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <div class="spinner-border mr-2" v-show="showSpinner">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <span v-if="currentStatus">{{ currentStatus }}</span>
+            </div>
+            <div>
+              <button type="button" class="btn btn-secondary mr-2" @click="hide">Close</button>
+              <button type="button" class="btn btn-primary" 
+                      @click="submitExport" 
+                      :disabled="showSpinner">Export</button>
             </div>
           </div>
         </div>
       </div>
-    </transition>
-  </div>`,
+    </div>
+  `,
   data: function () {
     return {
-      showModal: false,
       showSpinner: false,
       selectedFormat: 'mrk',
       selectedFields: '',
-      selectedExportUrl: null,
+      selectedExportUrl: '',
       currentStatus: null
     }
   },
+  mounted: function () {
+    console.log(this.selectedFormat)
+    this.setFormat(this.selectedFormat)
+  },
   methods: {
-    show: async function () {
-      this.showModal = true
-      this.setFormat('mrk')
+    show() {
+      $(this.$el).modal('show')
+    },
+
+    hide() {
+      $(this.$el).modal('hide')
+      this.reset()
+    },
+
+    reset() {
+      this.selectedFormat = 'mrk'
+      this.selectedFields = ''
+      this.showSpinner = false
+      this.currentStatus = null
     },
     setFormat(format) {
-      this.selectedFormat = format
-      this.selectedExportUrl = this.links.format[format.toUpperCase()]
-      let url = new URL(this.selectedExportUrl)
-      let search = new URLSearchParams(url.search)
-      search.set("fields", this.selectedFields)
-      search.set("start", 1)
-      search.set("limit", 100)
-      //search.set("listtype", "export")
-      url.search = search
-      this.selectedExportUrl = url
+      this.selectedFormat = format;
+      
+      // Get the URL directly from this.links
+      console.log(this.links)
+      console.log(this.links.format)
+      this.selectedExportUrl = this.links.format[format.toUpperCase()];
+      
+      if (!this.selectedExportUrl) {
+        console.warn(`No URL found for format ${format.toUpperCase()}`);
+        return;
+      }
+
+      try {
+        let url = new URL(this.selectedExportUrl);
+        let search = new URLSearchParams(url.search);
+        search.set("fields", this.selectedFields);
+        search.set("start", 1);
+        search.set("limit", 100);
+        url.search = search;
+        this.selectedExportUrl = url;
+        console.log('Export URL set to:', this.selectedExportUrl);
+      } catch (error) {
+        console.error('Error setting export URL:', error);
+      }
     },
     setOutputFields(e) {
       this.selectedFields = e.target.value
@@ -180,9 +216,5 @@ export let exportmodal = {
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     },
-    reloadPage() {
-      // this doesn't work when embedded in the template for some reason
-      location.reload()
-    }
   }
 }
