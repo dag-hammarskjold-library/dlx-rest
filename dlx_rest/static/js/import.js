@@ -360,6 +360,9 @@ export let importcomponent = {
             // Only allow one click, so we don't accidentally post multiple records
             //e.target.classList.add("disabled")
             let existingId = jmarc.getField("001")
+            if (!existingId) {
+                return jmarc.post().catch(error => {throw error})
+            }
             Jmarc.get(this.collection, existingId.value).then(remoteJmarc => {
                 record['previousJmarc'] = remoteJmarc
                 remoteJmarc.fields = jmarc.fields
@@ -369,13 +372,7 @@ export let importcomponent = {
                     .catch(error => {
                         throw error
                     })
-            }).catch(error => {
-                return jmarc.post()
-                    .catch(error => {
-                        // may need some user notifcation here?
-                        throw error
-                    })
-            })
+            }).catch(error => {throw error})
         },
         filterView(e) {
             let values = [e.target.value]
