@@ -14,7 +14,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo.errors import ExecutionTimeout
+from pymongo.errors import ExecutionTimeout, OperationFailure
 from pymongo.collation import Collation
 from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
@@ -393,9 +393,25 @@ class RecordsList(Resource):
             sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
             
             try:
-                recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-            except ExecutionTimeout as e:
-                abort(408, str(e))
+                recordset = cls.from_query(
+                    query if query.conditions else {}, 
+                    projection=project, 
+                    skip=start-1, 
+                    limit=limit, 
+                    sort=sort, 
+                    collation=collation, 
+                    max_time_ms=Config.MAX_QUERY_TIME
+                )
+            except (ExecutionTimeout, OperationFailure) as e:
+                # Handle both timeout types
+                if 'exceeded time limit' in str(e):
+                    abort(408, {
+                        'message': 'Search query timed out',
+                        'details': str(e),
+                        'timeout': Config.MAX_QUERY_TIME,
+                        'suggestion': 'Try refining your search or using fewer terms'
+                    })
+                raise
         
         if x := subfield_projection:
             # filter only the wanted subfields
