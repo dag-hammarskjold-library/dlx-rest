@@ -145,7 +145,7 @@ export let searchcomponent = {
                                 @click.prevent="sendToBasket">
                             Send {{selectedRecords.length}} to Basket
                         </button>
-                        <button class="btn btn-danger btn-sm"
+                        <button class="btn btn-danger btn-sm ml-2"
                                 @click.prevent="confirmDelete"
                                 v-if="canDelete">
                             Delete {{selectedRecords.length}} Records
@@ -1017,9 +1017,11 @@ export let searchcomponent = {
 
         async executeDelete() {
             this.isDeleting = true;
-            const failedDeletes = [];
+            const successfulDeletes = new Set();
+            const failedDeletes = new Set();
 
             try {
+                // Process all deletes
                 for (const record of this.selectedRecords) {
                     try {
                         const response = await fetch(
@@ -1032,26 +1034,31 @@ export let searchcomponent = {
                             }
                         );
 
-                        if (!response.ok) {
-                            failedDeletes.push(record.record_id);
+                        if (response.ok) {
+                            successfulDeletes.add(record.record_id);
+                        } else {
+                            failedDeletes.add(record.record_id);
                         }
                     } catch (error) {
-                        failedDeletes.push(record.record_id);
                         console.error(`Error deleting record ${record.record_id}:`, error);
+                        failedDeletes.add(record.record_id);
                     }
                 }
 
-                // Remove successfully deleted records from display
-                this.records = this.records.filter(record => 
-                    !this.selectedRecords.some(sr => 
-                        sr.record_id === record._id && !failedDeletes.includes(record._id)
-                    )
-                );
+                // Remove successfully deleted records from the display
+                this.records = this.records.filter(record => {
+                    // Check if this record's ID is in the successfulDeletes set
+                    return !successfulDeletes.has(record._id.toString());
+                });
 
-                // Update counts
+                // Update result count
                 this.resultCount = this.records.length;
-                if (failedDeletes.length > 0) {
-                    alert(`Failed to delete ${failedDeletes.length} records`);
+
+                // Show results message
+                if (failedDeletes.size > 0) {
+                    alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
+                } else {
+                    alert(`Successfully deleted ${successfulDeletes.size} records.`);
                 }
 
                 // Clear selection
