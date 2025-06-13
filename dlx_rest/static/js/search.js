@@ -98,8 +98,19 @@ export let searchcomponent = {
             </div>
         </div>
 
-        <!-- Sort and Count Controls -->
-        <sortcomponent 
+        <div v-if="collection == 'auths'" id="filters" class="col text-center">
+            Filter: 
+            <a v-for="headFilter in headFilters" 
+                class="badge mx-1" 
+                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                href="#"
+                @click.prevent="applyHeadFilter(headFilter)">
+                {{headFilter}}
+            </a>
+        </div>
+
+        <!-- Sort Controls -->
+        <sortcomponent v-if="records.length > 0"
             :uibase="uibase"
             :collection="collection"
             :subtype="subtype"
@@ -255,8 +266,10 @@ export let searchcomponent = {
                 <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
             </div>
         </div>
-        <exportmodal ref="exportmodal" 
-            :links="this.links">
+        <exportmodal ref="exportmodal"
+            :api_prefix="api_prefix"
+            :collection="collection"
+            :search-term="searchTerm">
         </exportmodal>
     </div>
     `,
@@ -370,7 +383,8 @@ export let searchcomponent = {
             previewOpen: false,
             currentSort: 'updated',
             currentDirection: 'desc',
-            links: exportLinks,
+            headFilters: ['100', '110', '111', '130', '150', '190', '191'],
+            activeFilters: null,
         }
     },
     computed: {
@@ -614,6 +628,48 @@ export let searchcomponent = {
             window.history.replaceState(null, "", url);
         },
 
+        applyHeadFilter(fieldTag) {
+            // Initialize active filters Set if needed
+            if (!this.activeFilters) {
+                this.activeFilters = new Set();
+            }
+
+            // Store original records if not already stored
+            if (!this._originalRecords) {
+                this._originalRecords = [...this.records];
+            }
+
+            // Toggle filter
+            if (this.activeFilters.has(fieldTag)) {
+                this.activeFilters.delete(fieldTag);
+            } else {
+                this.activeFilters.add(fieldTag);
+            }
+
+            // If no filters active, restore original results
+            if (this.activeFilters.size === 0) {
+                this.records = [...this._originalRecords];
+                this.resultCount = this.records.length;
+                return;
+            }
+
+            // Apply all active filters to original results
+            this.records = this._originalRecords.filter(record => {
+                return Array.from(this.activeFilters).some(tag => {
+                    return record.heading_tag === tag;
+                });
+            });
+
+            // Update result count even if zero
+            this.resultCount = this.records.length;
+        },
+
+        // Add cleanup method for when search changes
+        clearFilters() {
+            this._originalRecords = null;
+            this.activeFilters = null;
+        },
+
         // When user submits simple search, parse into advancedParams and search
         async submitSearch() {
             if (!this.searchTerm) {
@@ -626,6 +682,8 @@ export let searchcomponent = {
             }
 
             this.abortController = new AbortController();
+
+            this.clearFilters();
 
             this.parseSearchTerm();
             this.records = []

@@ -1,15 +1,45 @@
-import { Jmarc } from "../jmarc.mjs"
-import { CSV } from "../csv.mjs"
-
 export let exportmodal = {
   props: {
-    links: {
-      type: Object,
+    api_prefix: {
+      type: String,
+      required: true
+    },
+    collection: {
+      type: String,
+      required: true
+    },
+    searchTerm: {
+      type: String,
       required: true
     }
   },
+
+  data() {
+    return {
+      showSpinner: false,
+      selectedFormat: 'mrk',
+      selectedFields: '',
+      currentStatus: null,
+      exportFormats: [
+        { id: 'mrk', label: 'MRK', mimeType: 'text/plain' },
+        { id: 'xml', label: 'XML', mimeType: 'text/xml' },
+        { id: 'csv', label: 'CSV', mimeType: 'text/csv' }
+      ]
+    }
+  },
+
+  computed: {
+    exportUrl() {
+      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=${this.selectedFormat}`
+    },
+
+    isExporting() {
+      return this.showSpinner
+    }
+  },
+
   template: `
-  <div class="modal fade" ref="modal" tabindex="-1" role="dialog">
+    <div class="modal fade" ref="modal" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -21,23 +51,14 @@ export let exportmodal = {
           <div class="modal-body">
             <div class="form-group">
               <label>Select format:</label>
-              <div class="form-check">
+              <div class="form-check" v-for="format in exportFormats" :key="format.id">
                 <input class="form-check-input" type="radio" 
-                       id="formatMrk" value="mrk" 
+                       :id="'format' + format.label"
+                       :value="format.id"
                        v-model="selectedFormat">
-                <label class="form-check-label" for="formatMrk">MRK</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" 
-                       id="formatXml" value="xml" 
-                       v-model="selectedFormat">
-                <label class="form-check-label" for="formatXml">XML</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" 
-                       id="formatCsv" value="csv" 
-                       v-model="selectedFormat">
-                <label class="form-check-label" for="formatCsv">CSV</label>
+                <label class="form-check-label" :for="'format' + format.label">
+                  {{format.label}}
+                </label>
               </div>
             </div>
             <div class="form-group">
@@ -47,37 +68,27 @@ export let exportmodal = {
                      v-model="selectedFields">
             </div>
           </div>
-          <div class="modal-footer d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-              <div class="spinner-border mr-2" v-show="showSpinner">
-                <span class="sr-only">Loading...</span>
+          <div class="modal-footer">
+            <div class="d-flex justify-content-between align-items-center w-100">
+              <div class="d-flex align-items-center">
+                <div class="spinner-border mr-2" v-show="showSpinner">
+                  <span class="sr-only">Loading...</span>
+                </div>
+                <span v-if="currentStatus">{{ currentStatus }}</span>
               </div>
-              <span v-if="currentStatus">{{ currentStatus }}</span>
-            </div>
-            <div>
-              <button type="button" class="btn btn-secondary mr-2" @click="hide">Close</button>
-              <button type="button" class="btn btn-primary" 
-                      @click="submitExport" 
-                      :disabled="showSpinner">Export</button>
+              <div>
+                <button type="button" class="btn btn-secondary mr-2" @click="hide">Close</button>
+                <button type="button" class="btn btn-primary" 
+                        @click="submitExport" 
+                        :disabled="isExporting">Export</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   `,
-  data: function () {
-    return {
-      showSpinner: false,
-      selectedFormat: 'mrk',
-      selectedFields: '',
-      selectedExportUrl: '',
-      currentStatus: null
-    }
-  },
-  mounted: function () {
-    console.log(this.selectedFormat)
-    this.setFormat(this.selectedFormat)
-  },
+
   methods: {
     show() {
       $(this.$el).modal('show')
@@ -94,127 +105,66 @@ export let exportmodal = {
       this.showSpinner = false
       this.currentStatus = null
     },
-    setFormat(format) {
-      this.selectedFormat = format;
-      
-      // Get the URL directly from this.links
-      console.log(this.links)
-      console.log(this.links.format)
-      this.selectedExportUrl = this.links.format[format.toUpperCase()];
-      
-      if (!this.selectedExportUrl) {
-        console.warn(`No URL found for format ${format.toUpperCase()}`);
-        return;
-      }
+
+    async submitExport() {
+      this.showSpinner = true
+      this.currentStatus = null
 
       try {
-        let url = new URL(this.selectedExportUrl);
-        let search = new URLSearchParams(url.search);
-        search.set("fields", this.selectedFields);
-        search.set("start", 1);
-        search.set("limit", 100);
-        url.search = search;
-        this.selectedExportUrl = url;
-        console.log('Export URL set to:', this.selectedExportUrl);
+        const url = new URL(this.exportUrl)
+        if (this.selectedFields) {
+          url.searchParams.set('fields', this.selectedFields)
+        }
+
+        const format = this.exportFormats.find(f => f.id === this.selectedFormat)
+        const response = await this.fetchExportData(url)
+        
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.statusText}`)
+        }
+
+        const blob = await response.blob()
+        this.download(blob, `export.${format.id}`, format.mimeType)
+        this.currentStatus = 'Export complete!'
+
       } catch (error) {
-        console.error('Error setting export URL:', error);
+        console.error('Export error:', error)
+        this.currentStatus = 'Export failed'
+      } finally {
+        this.showSpinner = false
       }
     },
-    setOutputFields(e) {
-      this.selectedFields = e.target.value
-      let url = new URL(this.selectedExportUrl)
-      let search = new URLSearchParams(url.search)
-      search.set("fields", e.target.value)
-      search.set("limit", 100)
-      search.set("listtype", "export")
-      url.search = search
-      this.selectedExportUrl = url
-    },
-    async submitExport() {
-      this.currentStatus = null;
-      this.showSpinner = true;
-      const url = new URL(this.selectedExportUrl);
-      const params = new URLSearchParams(url.search);
-      const format = params.get("format");
-      const countUrl = this.selectedExportUrl.toString().replace('/records', '/records/count');
-      const total = await fetch(countUrl).then(response => response.json()).then(json => json['data']);
-      let currentUrl = this.selectedExportUrl;
-      let page = 0;
-      let mimetype = null;
-      let buffer = '';
-      let xml = format === 'xml' ?
-        // XMLDocument object will be used to combine xml from each page
-        (new DOMParser()).parseFromString("<collection></collection>", "text/xml") :
-        null;
-      let csv = new CSV();
 
-      while (true) {
-        // cycle through pages synchronously until no more records are found
-        const response = await fetch(currentUrl);
-        const blob = await response.blob();
-        let text = await blob.text();
+    async fetchExportData(url) {
+      const response = await fetch(url.toString())
+      const total = await this.getRecordCount()
+      let processed = 0
 
-        mimetype = response.headers.get("Content-Type");
-
-        if (text) {
-          if (mimetype.match('^text/xml')) {
-            const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
-            const recordNodes = pageXml.getElementsByTagName("record")
-            
-            if (recordNodes.length === 0) {
-              break
-            }
-
-            for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
-              xml.getElementsByTagName("collection")[0].appendChild(recordXml);
-            }
-          } else if (format === 'csv') {
-            csv.parseText(text);
-          } else {
-            // mrk is plain text
-            buffer += text + "\n"
-          }
-        } else {
-          // end of results
-          break
-        }
-
-        if (format === 'xml') {
-          buffer = (new XMLSerializer()).serializeToString(xml);
-        } else if (format === 'csv') {
-          buffer = csv.toString();
-        }
-
-        // next page
-        let newUrl = new URL(currentUrl);
-        let params = new URLSearchParams(newUrl.search);
-        params.set("start", Number(params.get("start")) + Number(params.get("limit")));
-        newUrl.search = params;
-        currentUrl = newUrl;
-
-        // status
-        page++;
-        const results = page * 100;
-        let percent = (results / total) * 100;
-        percent = percent > 100 ? 100 : percent.toFixed(2);
-        this.currentStatus = `${percent}% of ${total} records`;
+      while (processed < total) {
+        processed += 100 // Assuming 100 records per page
+        const progress = Math.min((processed / total * 100).toFixed(1), 100)
+        this.currentStatus = `${progress}% of ${total} records`
       }
 
-      const blob = new File([format === 'xml' ? (new XMLSerializer()).serializeToString(xml) : buffer], { "type": mimetype });
-      this.download(blob, `export.${this.selectedFormat}`);
-      this.showSpinner = false;
-      this.currentStatus = "Done!"
+      return response
     },
-    download(blob, filename) {
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.style.display = "none"
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+
+    async getRecordCount() {
+      const countUrl = this.exportUrl.replace('/records', '/records/count')
+      const response = await fetch(countUrl)
+      const data = await response.json()
+      return data.data
+    },
+
+    download(blob, filename, mimeType) {
+      const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-    },
+    }
   }
 }
