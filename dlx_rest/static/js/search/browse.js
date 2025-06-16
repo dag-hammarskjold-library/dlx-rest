@@ -15,7 +15,7 @@ export let browsecomponent = {
     <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <div v-if="q && index">
             <div class="row"><h3>Browsing {{displaySubtype}}/{{index}} at {{q}}</h3></div>
-            <div class="row">
+            <div class="row" style="position:sticky;top:0;z-index:10;background:white;">
                 <form>
                     <div class="form-group">
                         <label for="searchAgain">Your search: </label>
@@ -24,13 +24,6 @@ export let browsecomponent = {
                     </div>
                 </form>
             </div>
-            <nav>
-                <ul class="pagination pagination-md justify-content-left">
-                    <li v-for="(link, key) in paginationLinks" :key="key" :class="['page-item', {disabled: !link.url}]">
-                        <a class="page-link" :href="link.url || ''">{{link.label}}</a>
-                    </li>
-                </ul>
-            </nav>
             <div class="row" v-if="user">
                 Select 
                 <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
@@ -42,7 +35,7 @@ export let browsecomponent = {
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
                 </div>
             </div>
-            <div v-for="result in results_before" class="row my-2" :key="result.value">
+            <div v-for="(result, idx) in results_before" class="row my-2" :key="result.value + '-' + idx">
                 <div class="col-1" v-if="user">
                     <input :id="'input-' + result.valueSafe" type="checkbox" :disabled="result.checkboxDisabled" data-toggle="tooltip" title="Select/deselect record"/>
                     <input type="hidden" :value="result.recordId || ''" />
@@ -53,7 +46,7 @@ export let browsecomponent = {
                         href="#"
                         @click.prevent="showPreview(result.recordId)"
                         title="Preview record (read-only)"
-                        class="ml-2 text-secondary">
+                        class="ml-2 text-dark">
                         <i class="fas fa-file"></i>
                     </a>
                     <a :id="'link-' + result.valueSafe" :href="result.recordUrl" target="_blank" class="result-link">
@@ -81,7 +74,7 @@ export let browsecomponent = {
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
                 </div>
             </div>
-            <div v-for="result in results_after" class="row my-2" :key="result.value">
+            <div v-for="(result, idx) in results_after" class="row my-2" :key="result.value + '-' + idx">
                 <div class="col-1" v-if="user">
                     <input :id="'input-' + result.valueSafe" type="checkbox" :disabled="result.checkboxDisabled" data-toggle="tooltip" title="Select/deselect record"/>
                     <input type="hidden" :value="result.recordId || ''" />
@@ -92,7 +85,7 @@ export let browsecomponent = {
                         href="#"
                         @click.prevent="showPreview(result.recordId)"
                         title="Preview record (read-only)"
-                        class="ml-2 text-secondary">
+                        class="ml-2 text-dark">
                         <i class="fas fa-file"></i>
                     </a>
                     <a :id="'link-' + result.valueSafe" :href="result.recordUrl" target="_blank" class="result-link">
@@ -112,9 +105,13 @@ export let browsecomponent = {
                 </div>
             </div>
             <!-- Preview modal -->
-            <div v-if="previewVisible" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.3)">
+            <div v-if="previewVisible"
+                class="modal fade show d-block"
+                tabindex="-1"
+                style="background:rgba(0,0,0,0.3)"
+                @mousedown.self="closePreview">
                 <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
+                    <div class="modal-content" @mousedown.stop>
                         <div class="modal-header">
                             <h5 class="modal-title">Record Preview</h5>
                             <button type="button" class="close" @click="closePreview"><span>&times;</span></button>
@@ -129,13 +126,6 @@ export let browsecomponent = {
                     </div>
                 </div>
             </div>
-            <nav>
-                <ul class="pagination pagination-md justify-content-left">
-                    <li v-for="(link, key) in paginationLinks" :key="key" :class="['page-item', {disabled: !link.url}]">
-                        <a class="page-link" :href="link.url || ''">{{link.label}}</a>
-                    </li>
-                </ul>
-            </nav>
         </div>
         <div v-else>
             <div class="row"><h3>Browsing {{displaySubtype}}</h3></div>
@@ -177,8 +167,10 @@ export let browsecomponent = {
         return {
             results_before: [],
             results_after: [],
-            next: null,
-            prev: null,
+            beforeOffset: 0,
+            afterOffset: 0,
+            hasMoreBefore: true,
+            hasMoreAfter: true,
             indexListJson: null,
             base_url: baseUrl,
             subtype,
@@ -190,6 +182,7 @@ export let browsecomponent = {
             previewCollection: null,
             previewApiPrefix: null,
             previewVisible: false,
+            scrollTimout: null,
         }
     },
     computed: {
@@ -217,6 +210,11 @@ export let browsecomponent = {
             this.fetchBrowseResults('before'),
             this.fetchBrowseResults('after')
         ]);
+        window.addEventListener('scroll', this.handleScroll);
+    },
+    beforeDestroy() {
+        window.removeEventListener('scroll', this.handleScroll);
+        if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
     },
     methods: {
         getSubtype() {
@@ -227,25 +225,18 @@ export let browsecomponent = {
             const isBefore = direction === 'before';
             const limit = isBefore ? 3 : 50;
             const compare = isBefore ? 'less' : 'greater';
-            const url = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=${compare}&limit=${limit}`;
+            const offset = isBefore ? this.beforeOffset : this.afterOffset;
+            const url = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=${compare}&limit=${limit}&offset=${offset}`;
             const spinnerId = isBefore ? 'before-spinner' : 'after-spinner';
+            this.loading[spinnerId] = true;
             try {
                 const response = await fetch(url);
                 const jsondata = await response.json();
                 if (!jsondata.data || !jsondata.data.length) {
-                    this.loading[spinnerId] = false;
-                    // Clear results if no data
-                    if (isBefore) this.results_before = [];
-                    else this.results_after = [];
+                    if (isBefore) this.hasMoreBefore = false;
+                    else this.hasMoreAfter = false;
                     return;
                 }
-                const field = jsondata.data[0].search.split('search=')[1].split(":")[0];
-                if (isBefore) {
-                    this.prev = `${this.base_url}/records/${this.collection}/browse/${field}?subtype=${encodeURIComponent(this.subtype)}&q=${encodeURIComponent(jsondata.data[0].value)}`;
-                } else {
-                    this.next = `${this.base_url}/records/${this.collection}/browse/${field}?subtype=${encodeURIComponent(this.subtype)}&q=${encodeURIComponent(jsondata.data[jsondata.data.length-1].value)}`;
-                }
-                // Build a new array and assign it
                 const newResults = [];
                 for (const result of jsondata.data) {
                     const qstr = result.search.split("?")[1];
@@ -267,10 +258,14 @@ export let browsecomponent = {
                     newResults.push(resultObj);
                     this.updateResultCountAndLink(result, resultObj);
                 }
-                if (isBefore) this.results_before = newResults;
-                else this.results_after = newResults;
-
-                //console.log(`Browse results ${direction}:`, newResults);
+                if (isBefore) {
+                    // Reverse so oldest results are at the top, newest at the bottom
+                    this.results_before = [...newResults.reverse(), ...this.results_before];
+                    this.beforeOffset += newResults.length;
+                } else {
+                    this.results_after = [...this.results_after, ...newResults];
+                    this.afterOffset += newResults.length;
+                }
             } catch (error) {
                 // Optionally handle error
             } finally {
@@ -376,6 +371,19 @@ export let browsecomponent = {
         closePreview() {
             this.previewVisible = false;
             this.previewRecordId = null;
+        },
+        handleScroll() {
+            if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = setTimeout(() => {
+                const scrollY = window.scrollY || window.pageYOffset;
+                const windowHeight = window.innerHeight;
+                const docHeight = document.documentElement.scrollHeight;
+
+                // Load more after results when near bottom
+                if (this.hasMoreAfter && !this.loading['after-spinner'] && (scrollY + windowHeight > docHeight - 200)) {
+                    this.fetchBrowseResults('after');
+                }
+            }, 200); // 200ms debounce
         },
     }
 }
