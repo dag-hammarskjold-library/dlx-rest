@@ -170,8 +170,10 @@ export let searchcomponent = {
                             <th style="width: 30px"></th>
                             <th style="width: 30px"></th>
                             <th style="width: 50px">#</th>
-                            <th>Title</th>
-                            <th style="width: 150px">Files</th>
+                            <th v-if="collection !== 'auths'">Title</th>
+                            <th v-else>Heading</th>
+                            <th v-if="collection !== 'auths'" style="width: 150px">Files</th>
+                            <th v-else></th>
                         </tr>
                     </thead>
                     <tbody>
