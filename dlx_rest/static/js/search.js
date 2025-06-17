@@ -740,7 +740,7 @@ export let searchcomponent = {
             // Build base URL with sort parameters
             let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
             
-            if (this.subtype) {
+            if (this.subtype && this.subtype !== 'default') {
                 if (this.subtype === 'speech' || this.subtype === 'vote') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
                 } else {

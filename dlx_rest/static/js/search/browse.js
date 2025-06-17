@@ -208,7 +208,7 @@ export let browsecomponent = {
         browseSearchQuery() {
             return (index, value, subtype) =>
                 this.base_url +
-                '/records/' +
+                'records/' +
                 this.collection +
                 '/search?q=' +
                 encodeURIComponent(index + ":'" + value + "'") +
