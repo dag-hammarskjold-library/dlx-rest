@@ -41,6 +41,50 @@ def test_api_collection(client):
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
+
+def test_api_collection_logical_fields(client):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/marc/{col}/logical_fields')
+        data = check_response(res)
+        
+        assert data['_meta']['returns'] == f'{API}/schemas/api.collection.fields'
+        assert 'logical_fields' in data['data']
+        assert isinstance(data['data']['logical_fields'], list)
+        
+        # For bibs collection
+        if col == 'bibs':
+            # Default type
+            expected_fields = [
+                'symbol', 'body', 'subject', 'title',  
+                'author', 'related_docs', 'prodinf', 'bib_creator',
+                'type', 'date', 'agenda', 'series'
+            ]
+            for field in expected_fields:
+                assert field in data['data']['logical_fields']
+            
+            # Test speech subtype
+            res = client.get(f'{API}/marc/{col}/logical_fields?subtype=speech')
+            data = check_response(res)
+            assert data['data']['logical_fields'] == [
+                'symbol', 'country_org', 'speaker', 'agenda', 
+                'related_docs', 'bib_creator'
+            ]
+            
+            # Test vote subtype
+            res = client.get(f'{API}/marc/{col}/logical_fields?subtype=vote')
+            data = check_response(res)
+            assert data['data']['logical_fields'] == [
+                'symbol', 'body', 'agenda', 'bib_creator'
+            ]
+                
+        # For auths collection  
+        if col == 'auths':
+            expected_fields = [
+                'heading', 'subject', 'agenda', 'agenda_title',
+                'agenda_subject', 'series', 'author', 'thesaurus', 'body'
+            ]
+            for field in expected_fields:
+                assert field in data['data']['logical_fields']
         
 def test_api_records_list(client, marc, users, roles, permissions, default_users):
     from dlx.marc import Bib, Auth
