@@ -109,6 +109,10 @@ export let browsecomponent = {
                                 >
                                     {{result.value}}
                                 </a>
+                                <span v-if="result.see || result.seeAlso">
+                                    <span v-if="result.see" class="see text-muted"><br>See: {{result.see}}</span>
+                                    <span v-if="result.seeAlso" class="see-also text-muted"><br>See also: {{result.seeAlso}}</span>
+                                </span>
                             </td>
                             <td>{{result.count !== null ? result.count : '' }}</td>
                         </tr>
