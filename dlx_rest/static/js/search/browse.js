@@ -53,15 +53,7 @@ export let browsecomponent = {
                             @mousedown="handleMouseDown($event, result, idx)"
                             @mousemove="handleMouseMove($event, result, idx)"
                             @mouseup="handleMouseUp($event)">
-                            <td>
-                                <div v-if="result.count === 1 && result.recordId">
-                                    <input type="checkbox"
-                                        :data-recordid="result.recordId"
-                                        v-model="result.selected"
-                                        :disabled="result.checkboxDisabled"
-                                        @change="toggleSelect($event, result)">
-                                </div>
-                            </td>
+                            <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
                                     <i v-if="result.locked"
@@ -132,15 +124,7 @@ export let browsecomponent = {
                             @mousedown="handleMouseDown($event, result, idx+3)"
                             @mousemove="handleMouseMove($event, result, idx+3)"
                             @mouseup="handleMouseUp($event)">
-                            <td>
-                                <div v-if="result.count === 1 && result.recordId">
-                                    <input type="checkbox"
-                                        :data-recordid="result.recordId"
-                                        v-model="result.selected"
-                                        :disabled="result.checkboxDisabled"
-                                        @change="toggleSelect($event, result)">
-                                </div>
-                            </td>
+                            <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
                                     <i v-if="result.locked"
@@ -370,7 +354,7 @@ export let browsecomponent = {
                         value: result.value,
                         valueSafe: encodeURIComponent(result.value),
                         url: searchUrl,
-                        checkboxDisabled: true,
+                        //checkboxDisabled: true,
                         recordId: null,
                         count: null,
                         recordUrl: searchUrl,
@@ -423,14 +407,14 @@ export let browsecomponent = {
                 // Basket and lock status
                 resultObj.myBasket = basket.contains(this.collection, recordId, this.myBasket);
                 resultObj.locked = false;
-                resultObj.checkboxDisabled = !!resultObj.myBasket;
+                //resultObj.checkboxDisabled = !!resultObj.myBasket;
 
                 // Check lock status if user is logged in
                 if (this.user && recordId) {
                     const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, recordId);
                     if (itemLocked.locked && itemLocked.by !== this.user) {
                         resultObj.locked = true;
-                        resultObj.checkboxDisabled = true;
+                        //resultObj.checkboxDisabled = true;
                     }
                 }
 
@@ -475,7 +459,8 @@ export let browsecomponent = {
         },
         selectAll() {
             [...this.results_before, ...this.results_after].forEach(result => {
-                if (!result.checkboxDisabled) {
+                //if (!result.checkboxDisabled) {
+                if (!result.myBasket && !result.locked) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result.recordId && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result.recordId });
@@ -529,7 +514,8 @@ export let browsecomponent = {
             let arr = [...this.results_before, ...this.results_after];
             let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
             arr.forEach((r, i) => {
-                if (!r.checkboxDisabled) r.selected = (i >= start && i <= end);
+                //if (!r.checkboxDisabled) 
+                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
                 if (r.selected) {
                     if (!this.selectedRecords.some(x => x.record_id === r.recordId && x.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: r.recordId });
@@ -551,12 +537,12 @@ export let browsecomponent = {
                 // Update myBasket and checkboxDisabled for all results
                 this.results_before.forEach(r => {
                     r.myBasket = basket.contains(this.collection, r.recordId, this.myBasket);
-                    r.checkboxDisabled = r.myBasket || r.locked;
+                    //r.checkboxDisabled = r.myBasket || r.locked;
                     r.selected = false;
                 });
                 this.results_after.forEach(r => {
                     r.myBasket = basket.contains(this.collection, r.recordId, this.myBasket);
-                    r.checkboxDisabled = r.myBasket || r.locked;
+                    //r.checkboxDisabled = r.myBasket || r.locked;
                     r.selected = false;
                 });
             }
@@ -570,13 +556,13 @@ export let browsecomponent = {
                 // Add to basket
                 await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
                 result.myBasket = true;
-                result.checkboxDisabled = true;
+                //result.checkboxDisabled = true;
                 result.selected = false; // Deselect if added to basket
             } else {
                 // Remove from basket
                 await basket.deleteItem(this.myBasket, this.collection, recordId);
                 result.myBasket = false;
-                result.checkboxDisabled = false;
+                //result.checkboxDisabled = false;
                 result.selected = false; // Deselect if removed from basket
             }
             // Refresh basket state for the component
