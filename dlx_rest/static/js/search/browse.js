@@ -17,6 +17,10 @@ export let browsecomponent = {
             <div class="controls-header mb-3 d-flex align-items-center justify-content-between" style="position:sticky;top:0;z-index:10;background:white;">
                 <div>
                     <h3 class="mb-0">Browsing {{displaySubtype}}/{{index}} at {{q}}</h3>
+                    <form class="form-inline" @submit.prevent="resubmitBrowse(index)">
+                        <input id="searchAgain" type="text" class="form-control form-control-sm mr-2" placeholder="Search again..." v-model="q" autocomplete="off">
+                        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+                    </form>
                 </div>
                 <div class="d-flex align-items-center">
                     <div class="btn-group mr-3">
@@ -40,38 +44,41 @@ export let browsecomponent = {
                             <th style="width: 50px">#</th>
                             <th>Value</th>
                             <th>Count</th>
-                            <th>See</th>
-                            <th>See Also</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(result, idx) in [...results_before, ...results_after]" 
+                        <tr v-for="(result, idx) in [...results_before]" 
                             :key="result.value + '-' + idx"
+                            :class="{selected: result.selected}"
                             @mousedown="handleMouseDown($event, result, idx)"
                             @mousemove="handleMouseMove($event, result, idx)"
                             @mouseup="handleMouseUp($event)">
                             <td>
-                                <input type="checkbox"
-                                    :data-recordid="result.recordId"
-                                    v-model="result.selected"
-                                    :disabled="result.checkboxDisabled"
-                                    @change="toggleSelect($event, result)">
+                                <div v-if="result.count === 1 && result.recordId">
+                                    <input type="checkbox"
+                                        :data-recordid="result.recordId"
+                                        v-model="result.selected"
+                                        :disabled="result.checkboxDisabled"
+                                        @change="toggleSelect($event, result)">
+                                </div>
                             </td>
                             <td>
-                                <i v-if="result.locked"
-                                   :id="result.recordId + '-basket'"
-                                   class="fas fa-lock"></i>
-                                <i v-else-if="result.myBasket"
-                                   :id="result.recordId + '-basket'"
-                                   class="fas fa-folder-minus"
-                                   @click="toggleBasket($event, result.recordId)"></i>
-                                <i v-else
-                                   :id="result.recordId + '-basket'"
-                                   class="fas fa-folder-plus"
-                                   @click="toggleBasket($event, result.recordId)"></i>
+                                <div v-if="result.count === 1 && result.recordId">
+                                    <i v-if="result.locked"
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-lock"></i>
+                                    <i v-else-if="result.myBasket"
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-folder-minus"
+                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <i v-else
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-folder-plus"
+                                        @click="toggleBasket($event, result.recordId)"></i>
+                                </div>
                             </td>
                             <td>
-                                <div>
+                                <div v-if="result.count === 1 && result.recordId" class="preview">
                                     <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
@@ -104,8 +111,85 @@ export let browsecomponent = {
                                 </a>
                             </td>
                             <td>{{result.count !== null ? result.count : '' }}</td>
-                            <td>{{result.see}}</td>
-                            <td>{{result.seeAlso}}</td>
+                        </tr>
+
+                        <tr class="table-info">
+                            <td style="width: 30px"></td>
+                            <td style="width: 30px"></td>
+                            <td style="width: 30px"></td>
+                            <td style="width: 50px"></td>
+                            <td>{{q}}</td>
+                            <td></td>
+                        </tr>
+
+                        <tr v-for="(result, idx) in [...results_after]" 
+                            :key="result.value + '-' + idx+3"
+                            :class="{selected: result.selected}"
+                            @mousedown="handleMouseDown($event, result, idx+3)"
+                            @mousemove="handleMouseMove($event, result, idx+3)"
+                            @mouseup="handleMouseUp($event)">
+                            <td>
+                                <div v-if="result.count === 1 && result.recordId">
+                                    <input type="checkbox"
+                                        :data-recordid="result.recordId"
+                                        v-model="result.selected"
+                                        :disabled="result.checkboxDisabled"
+                                        @change="toggleSelect($event, result)">
+                                </div>
+                            </td>
+                            <td>
+                                <div v-if="result.count === 1 && result.recordId">
+                                    <i v-if="result.locked"
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-lock"></i>
+                                    <i v-else-if="result.myBasket"
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-folder-minus"
+                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <i v-else
+                                        :id="result.recordId + '-basket'"
+                                        class="fas fa-folder-plus"
+                                        @click="toggleBasket($event, result.recordId)"></i>
+                                </div>
+                            </td>
+                            <td>
+                                <div v-if="result.count === 1 && result.recordId" class="preview">
+                                    <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
+                                    <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
+                                    <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
+                                </div>
+                            </td>
+                            <td>{{idx + 4}}</td>
+                            <td>
+                                <a
+                                    v-if="!result.locked && result.recordId && result.count === 1"
+                                    :id="'link-' + result.recordId"
+                                    class="result-link record-title"
+                                    :href="base_url + '/editor?records=' + collection + '/' + result.recordId"
+                                >
+                                    {{result.value}}
+                                </a>
+                                <a
+                                    v-else-if="result.count > 1"
+                                    class="result-link record-title"
+                                    :href="browseSearchQuery(index, result.value, subtype)"
+                                >
+                                    {{result.value}}
+                                </a>
+                                <a
+                                    v-else
+                                    class="result-link record-title disabled"
+                                    :id="'link-' + result.recordId"
+                                    :href="base_url + '/records/' + collection + '/' + result.recordId"
+                                >
+                                    {{result.value}}
+                                </a>
+                                <span v-if="result.see || result.seeAlso">
+                                    <span v-if="result.see" class="see text-muted"><br>See: {{result.see}}</span>
+                                    <span v-if="result.seeAlso" class="see-also text-muted"><br>See also: {{result.seeAlso}}</span>
+                                </span>
+                            </td>
+                            <td>{{result.count !== null ? result.count : '' }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -167,6 +251,11 @@ export let browsecomponent = {
         </div>
     </div>
     `,
+    style: `
+    .selected {
+        background-color: #70a9e1 !important;
+    }
+    `,
     data() {
         Jmarc.apiUrl = this.api_prefix;
         let baseUrl = this.api_prefix.replace("/api", "");
@@ -175,8 +264,8 @@ export let browsecomponent = {
         return {
             results_before: [],
             results_after: [],
-            beforeOffset: 0,
-            afterOffset: 0,
+            beforeOffset: 1,
+            afterOffset: 1,
             hasMoreBefore: true,
             hasMoreAfter: true,
             indexListJson: null,
@@ -222,18 +311,15 @@ export let browsecomponent = {
             this.user = myProfile.data.email;
             this.myBasket = await basket.getBasket(this.api_prefix);
         }
+        if (this.q && this.index) {
+            await this.initialFetch();
+        }
     },
     async mounted() {
         if (!(this.q && this.index)) {
             this.indexListJson = JSON.parse(this.index_list);
             return;
         }
-        document.title += ` Browse (${this.displaySubtype})`;
-        await Promise.all([
-            this.fetchBrowseResults('before'),
-            this.fetchBrowseResults('after')
-        ]);
-        window.addEventListener('scroll', this.handleScroll);
     },
     beforeDestroy() {
         window.removeEventListener('scroll', this.handleScroll);
@@ -244,12 +330,20 @@ export let browsecomponent = {
             const match = window.location.search.match(/subtype=(\w+)/);
             return match ? match[1] : this.collection;
         },
+        async initialFetch() {
+            document.title += ` Browse (${this.displaySubtype})`;
+            await Promise.all([
+                this.fetchBrowseResults('before'),
+                this.fetchBrowseResults('after')
+            ]);
+            window.addEventListener('scroll', this.handleScroll);
+        },
         async fetchBrowseResults(direction) {
             const isBefore = direction === 'before';
             const limit = isBefore ? 3 : 50;
             const compare = isBefore ? 'less' : 'greater';
             const offset = isBefore ? this.beforeOffset : this.afterOffset;
-            const url = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=${compare}&limit=${limit}&offset=${offset}`;
+            const url = `${this.api_prefix}marc/${this.collection}/records/browse?subtype=${encodeURIComponent(this.subtype)}&search=${this.index}:${encodeURIComponent(this.q)}&compare=${compare}&limit=${limit}&start=${offset}`;
             const spinnerId = isBefore ? 'before-spinner' : 'after-spinner';
             this.loading[spinnerId] = true;
             try {
@@ -261,6 +355,7 @@ export let browsecomponent = {
                     return;
                 }
                 const newResults = [];
+                const updatePromises = [];
                 for (const result of jsondata.data) {
                     const qstr = result.search.split("?")[1];
                     const params = new URLSearchParams(qstr);
@@ -279,15 +374,17 @@ export let browsecomponent = {
                         seeAlso: ""
                     };
                     newResults.push(resultObj);
-                    this.updateResultCountAndLink(result, resultObj);
+                    updatePromises.push(this.updateResultCountAndLink(result, resultObj));
                 }
+                await Promise.all(updatePromises);
                 if (isBefore) {
                     // Reverse so oldest results are at the top, newest at the bottom
-                    this.results_before = [...newResults.reverse(), ...this.results_before];
+                    this.results_before = [...newResults, ...this.results_before];
                     this.beforeOffset += newResults.length;
                 } else {
                     this.results_after = [...this.results_after, ...newResults];
                     this.afterOffset += newResults.length;
+                    //console.log(this.afterOffset)
                 }
             } catch (error) {
                 // Optionally handle error
@@ -297,44 +394,50 @@ export let browsecomponent = {
         },
         async updateResultCountAndLink(result, resultObj) {
             try {
-                const countResp = await fetch(result.count);
-                const countJson = await countResp.json();
-                const count = countJson.data;
+                // Fetch count if needed
+                let count = result.count;
+                if (typeof count !== "number") {
+                    const countResp = await fetch(result.count);
+                    const countJson = await countResp.json();
+                    count = countJson.data;
+                }
                 resultObj.count = count;
-                if (count === 1) {
-                    const recordResp = await fetch(result.search);
-                    const recordJson = await recordResp.json();
-                    const apiUrl = recordJson.data[0];
-                    const recordId = apiUrl.split("/").pop();
-                    resultObj.recordId = recordId;
-                    resultObj.recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
-                    if (this.user) {
-                        //recordUrl = `${this.base_url}editor?records=${this.collection}/${recordId}`;
-                        const inputEl = document.getElementById(`input-${result.value}`);
-                        const hiddenInputEl = inputEl?.nextElementSibling;
-                        if (hiddenInputEl) hiddenInputEl.value = recordId;
-                        // Enable checkbox if not in basket and not locked
-                        if (!basket.contains(this.collection, recordId, this.myBasket)) {
-                            resultObj.checkboxDisabled = false;
-                        }
-                        // Disable if locked by someone else
-                        const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, recordId);
-                        if (itemLocked.locked && itemLocked.by !== this.user) {
-                            resultObj.checkboxDisabled = true;
-                        }
-                    } else {
-                        recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
+
+                if (count !== 1) {
+                    // Not a single record, nothing else to do
+                    return;
+                }
+
+                // Fetch recordId
+                const recordResp = await fetch(result.search);
+                const recordJson = await recordResp.json();
+                const apiUrl = recordJson.data[0];
+                const recordId = apiUrl.split("/").pop();
+                resultObj.recordId = recordId;
+                resultObj.recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
+
+                // Basket and lock status
+                resultObj.myBasket = basket.contains(this.collection, recordId, this.myBasket);
+                resultObj.locked = false;
+                resultObj.checkboxDisabled = !!resultObj.myBasket;
+
+                // Check lock status if user is logged in
+                if (this.user && recordId) {
+                    const itemLocked = await basket.itemLocked(this.api_prefix, this.collection, recordId);
+                    if (itemLocked.locked && itemLocked.by !== this.user) {
+                        resultObj.locked = true;
+                        resultObj.checkboxDisabled = true;
                     }
-                    document.getElementById(`link-${result.value}`).href = recordUrl;
-                    // Show see/see also for auths
-                    if (this.collection === "auths") {
-                        const jmarc = await Jmarc.get(this.collection, recordId);
-                        let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0]?.subfields.map(x => x.value).join(" ") || "";
-                        resultObj.see = heading === resultObj.value ? "" : heading;
-                        resultObj.seeAlso = jmarc.fields.filter(x => x.tag.match(/^5/))
-                            .map(x => x.subfields.filter(sf => sf.code === "a").map(sf => sf.value))
-                            .flat(2).join(" | ");
-                    }
+                }
+
+                // For auths, fetch see/seeAlso
+                if (this.collection === "auths" && recordId) {
+                    const jmarc = await Jmarc.get(this.collection, recordId);
+                    let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0]?.subfields.map(x => x.value).join(" ") || "";
+                    resultObj.see = heading === resultObj.value ? "" : heading;
+                    resultObj.seeAlso = jmarc.fields.filter(x => x.tag.match(/^5/))
+                        .map(x => x.subfields.filter(sf => sf.code === "a").map(sf => sf.value))
+                        .flat(2).join(" | ");
                 }
             } catch (e) {
                 // Optionally handle error
@@ -383,6 +486,15 @@ export let browsecomponent = {
             this.selectedRecords = [];
         },
         handleMouseDown(e, result, idx) {
+            if (
+                e.target.classList.contains('preview-toggle') ||
+                e.target.closest('.preview-toggle') ||
+                e.target.classList.contains('folder-plus') || 
+                e.target.classList.contains('folder-minus') ||
+                e.target.classList.contains('fa-lock') 
+            ) {
+                return;
+            }
             if (e.button !== 0) return;
             this.isDragging = true;
             this.dragStartIdx = idx;
@@ -424,13 +536,50 @@ export let browsecomponent = {
                 }
             });
         },
-        sendToBasket(e) {
+        async sendToBasket(e) {
             e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
-                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
-                    .then(() => window.location.reload(false));
+                await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                await this.refreshBasket();
+                this.refreshBasket();
+                this.selectedRecords = [];
+                // Update myBasket and checkboxDisabled for all results
+                this.results_before.forEach(r => {
+                    r.myBasket = basket.contains(this.collection, r.recordId, this.myBasket);
+                    r.checkboxDisabled = r.myBasket || r.locked;
+                    r.selected = false;
+                });
+                this.results_after.forEach(r => {
+                    r.myBasket = basket.contains(this.collection, r.recordId, this.myBasket);
+                    r.checkboxDisabled = r.myBasket || r.locked;
+                    r.selected = false;
+                });
             }
+        },
+        async toggleBasket(e, recordId) {
+            // Find the result object
+            let result = [...this.results_before, ...this.results_after].find(r => r.recordId === recordId);
+            if (!result) return;
+
+            if (!result.myBasket) {
+                // Add to basket
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
+                result.myBasket = true;
+                result.checkboxDisabled = true;
+                result.selected = false; // Deselect if added to basket
+            } else {
+                // Remove from basket
+                await basket.deleteItem(this.myBasket, this.collection, recordId);
+                result.myBasket = false;
+                result.checkboxDisabled = false;
+                result.selected = false; // Deselect if removed from basket
+            }
+            // Refresh basket state for the component
+            this.refreshBasket();
+        },
+        async refreshBasket() {
+            this.myBasket = await basket.getBasket(this.api_prefix);
         },
         togglePreview(event, recordId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
