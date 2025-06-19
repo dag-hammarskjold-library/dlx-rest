@@ -717,7 +717,8 @@ def process_text(text, option):
     pipeline = []
 
     collation={
-        'locale': 'en', 
+        'locale': 'en',
+        'strength': 1,
         'numericOrdering': True
     }
 
