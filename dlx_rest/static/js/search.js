@@ -78,6 +78,7 @@ export let searchcomponent = {
                         {{ advancedParams['searchField'+i] !== 'any' ? advancedParams['searchField'+i] : 'any field' }}
                     </button>
                     <div class="dropdown-menu">
+                        <option class="dropdown-item" value="any" @click="setParameter('searchField'+i, {value: 'any'})">any field</option>
                         <option class="dropdown-item" v-for="field in searchFields" :key="field" @click="setParameter('searchField'+i, {value: field})">{{field}}</option>
                     </div>
                 </div>
@@ -121,6 +122,13 @@ export let searchcomponent = {
             @direction-changed="handleDirectionChange">
         </sortcomponent>
 
+        <div v-if="searchError" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{searchError}}
+            <button type="button" class="close" @click="searchError = null">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
         <!-- Results Area -->
         <div class="results-container col">
             <!-- Loading Spinner -->
@@ -162,8 +170,10 @@ export let searchcomponent = {
                             <th style="width: 30px"></th>
                             <th style="width: 30px"></th>
                             <th style="width: 50px">#</th>
-                            <th>Title</th>
-                            <th style="width: 150px">Files</th>
+                            <th v-if="collection !== 'auths'">Title</th>
+                            <th v-else>Heading</th>
+                            <th v-if="collection !== 'auths'" style="width: 150px">Files</th>
+                            <th v-else></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -360,17 +370,9 @@ export let searchcomponent = {
             selectedRows: [],
             mode: "simpleSearch",
             advancedParams: {
-                'searchType1': 'all',
                 'searchTerm1': null,
-                'searchField1': 'any',
-                'searchConnector1': 'AND',
-                'searchType2': 'all',
                 'searchTerm2': null,
-                'searchField2': 'any',
-                'searchConnector2': 'AND',
-                'searchType3': 'all',
                 'searchTerm3': null,
-                'searchField3': 'any'
             },
             searchFields: [],
             searchTypes: [
@@ -385,17 +387,52 @@ export let searchcomponent = {
             currentDirection: 'desc',
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             activeFilters: null,
+            searchError: null,
         }
     },
     computed: {
         hasAdvancedTerms() {
             return !!(this.advancedParams.searchTerm1 || this.advancedParams.searchTerm2 || this.advancedParams.searchTerm3);
+        },
+
+        defaultSearchParams() {
+            // Speech subtype defaults
+            if (this.subtype === 'speech') {
+                return {
+                    'searchType1': 'exact',
+                    'searchField1': 'symbol',
+                    'searchConnector1': 'AND',
+                    'searchType2': 'all',
+                    'searchField2': 'any',
+                    'searchConnector2': 'AND',
+                    'searchType3': 'all',
+                    'searchField3': 'any'
+                };
+            }
+            
+            // Default search params for other cases
+            return {
+                'searchType1': 'all',
+                'searchField1': 'any',
+                'searchConnector1': 'AND',
+                'searchType2': 'all',
+                'searchField2': 'any',
+                'searchConnector2': 'AND',
+                'searchType3': 'all',
+                'searchField3': 'any'
+            };
         }
     },
     created: async function () {
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
+
+        // Set default search parameters based on collection/subtype
+        this.advancedParams = {
+            ...this.advancedParams,
+            ...this.defaultSearchParams
+        };
         
         // Get sort parameters from URL or use defaults
         this.currentSort = urlParams.get("sort") || 'updated';
@@ -430,12 +467,14 @@ export let searchcomponent = {
             })
         },
         parseSearchTerm() {
-            // Reset advancedParams
+            // Reset advancedParams while preserving defaults
+            const defaults = this.defaultSearchParams;
+            
             for (let i = 1; i <= 3; i++) {
-                this.advancedParams[`searchField${i}`] = 'any';
+                this.advancedParams[`searchField${i}`] = defaults[`searchField${i}`];
                 this.advancedParams[`searchTerm${i}`] = '';
-                this.advancedParams[`searchType${i}`] = 'all';
-                if (i < 3) this.advancedParams[`searchConnector${i}`] = 'AND';
+                this.advancedParams[`searchType${i}`] = defaults[`searchType${i}`];
+                if (i < 3) this.advancedParams[`searchConnector${i}`] = defaults[`searchConnector${i}`];
             }
             if (!this.searchTerm) return;
 
@@ -676,8 +715,9 @@ export let searchcomponent = {
 
         // When user submits simple search, parse into advancedParams and search
         async submitSearch() {
+            this.searchError = null;
             if (!this.searchTerm) {
-                window.alert("Search term required");
+                this.searchError = "Search term required";
                 return;
             }
 
@@ -715,21 +755,30 @@ export let searchcomponent = {
             try {
                 while (1) {
                     let records;
-                    let response;
+                    
+                    try {
+                        const response = await fetch(next, {
+                            signal: this.abortController.signal,
+                        });
 
-                    await fetch(next, {
-                        signal: this.abortController.signal,
-                    }).then(response => {
-                        return response.json()
-                    }).then(json => {
-                        next = json['_links']['_next']
-                        records = json['data']
-                    }).catch(e => {
+                        if (!response.ok) {
+                            if (response.status === 408) {
+                                // Handle timeout specifically
+                                const errorData = await response.json();
+                                throw new Error(`Search timed out after ${errorData.timeout/1000} seconds. Please try refining your search.`);
+                            }
+                            throw new Error(`Search failed with status: ${response.status}`);
+                        }
+
+                        const json = await response.json();
+                        next = json['_links']['_next'];
+                        records = json['data'];
+                    } catch (e) {
                         if (e.name === 'AbortError') {
                             throw new Error("Search cancelled by user");
                         }
-                        throw e
-                    });
+                        throw e;
+                    }
 
                     if (records.length === 0) {
                         break
@@ -750,6 +799,7 @@ export let searchcomponent = {
                 } else {
                     console.error("Error during search:", error);
                 }
+                this.searchError = error.message;
             } finally {
                 clearInterval(timeUpdater);
                 this.isSearching = false;
