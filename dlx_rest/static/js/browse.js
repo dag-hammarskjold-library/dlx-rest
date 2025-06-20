@@ -1,7 +1,7 @@
-import { Jmarc } from "../jmarc.mjs";
-import user from "../api/user.js";
-import basket from "../api/basket.js";
-import { readonlyrecord } from "../readonly_record.js";
+import { Jmarc } from "./jmarc.mjs";
+import user from "./api/user.js";
+import basket from "./api/basket.js";
+import { readonlyrecord } from "./readonly_record.js";
 
 export let browsecomponent = {
     props: {
@@ -210,8 +210,10 @@ export let browsecomponent = {
                 </div>
             </div>
         </div>
-        <div v-else>
-            <div class="row"><h3>Browsing {{displaySubtype}}</h3></div>
+
+        <!-- Index browsing section -->
+        <div v-else class="col pt-2">
+            <h3>Browsing {{displaySubtype}}</h3>
             <div class="col pt-2 m-auto" style="background-color:white;">
                 <table class="table table-striped table-hover">
                     <thead>

@@ -1,14 +1,16 @@
 {% extends 'base.html' %} {% block content %}
 <div style="background-color:grey;">
     <div id="browse_vm" v-show="true">
-        <div class="row">
-            <sidebarcomponent sbtype="facet"></sidebarcomponent>
-            {% if index and q %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
-            {% else %}
-            <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}"></browsecomponent>
-            {% endif %}
-            <sidebarcomponent sbtype="other"></sidebarcomponent>
+        <div class="row justify-content-center">
+            <div class="col-2" style="background-color:white;"></div>
+            <div class="col-8" style="background-color:white;">
+                {% if index and q %}
+                <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
+                {% else %}
+                <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index_list="{{index_list}}"></browsecomponent>
+                {% endif %}
+            </div>
+            <div class="col-2" style="background-color:white;"></div>
         </div>
     </div>
 </div>
