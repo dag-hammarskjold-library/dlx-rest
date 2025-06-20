@@ -2,10 +2,10 @@ import { sortcomponent } from "./search/sort.js";
 import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
-//import { previewmodal } from "./modals/preview.js";
 import { readonlyrecord } from "./readonly_record.js"
 import { recordfilecomponent } from "./recordfiles.js";
 import { exportmodal } from "./modals/export.js";
+import { searchHistoryComponent } from "./components/search-history.js";
 
 export let searchcomponent = {
     props: {
@@ -36,7 +36,11 @@ export let searchcomponent = {
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
-                <a class="result-link text-muted" disabled>Search History</a>
+                <search-history
+                    ref="searchHistory"
+                    search-input-id="recordSearch"
+                    :api-prefix="api_prefix"
+                ></search-history>
             </div>
             <div class="d-flex align-items-center">
                 <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
@@ -422,7 +426,8 @@ export let searchcomponent = {
             logicalFieldLabels: {
                 // We can add more logical field labels here if needed
                 "body": "Series Symbol"
-            }
+            },
+            userEmail: "",
         }
     },
     computed: {
@@ -468,6 +473,11 @@ export let searchcomponent = {
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
+
+        const profile = await user.getProfile(this.api_prefix, 'my_profile');
+        if (profile && profile.data && profile.data.email) {
+            this.userEmail = profile.data.email;
+        }
 
         // Set default search parameters based on collection/subtype
         this.advancedParams = {
@@ -757,6 +767,11 @@ export let searchcomponent = {
 
         // When user submits simple search, parse into advancedParams and search
         async submitSearch() {
+            // Add to search history if possible
+            if (this.userEmail && this.$refs.searchHistory) {
+                await this.$refs.searchHistory.addToHistory(this.searchTerm);
+            }
+
             this.searchError = null;
             if (!this.searchTerm) {
                 this.searchError = "Search term required";
@@ -1115,9 +1130,9 @@ export let searchcomponent = {
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        //'previewmodal': previewmodal,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,    
         'exportmodal': exportmodal,
+        'search-history': searchHistoryComponent
     }
 }
