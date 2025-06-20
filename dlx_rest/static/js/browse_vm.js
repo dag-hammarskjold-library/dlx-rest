@@ -3,15 +3,14 @@
 /////////////////////////////////////////////////////////////////
 
 //import { Jmarc } from "./jmarc.mjs";
-import { sidebarcomponent } from "./search/sidebar.js";
-import { browsecomponent } from "./search/browse.js";
+import { browsecomponent } from "./browse.js";
 
 /////////////////////////////////////////////////////////////////
 // VIEW MODEL DEFINITION
 /////////////////////////////////////////////////////////////////
 export let vm_search_component = new Vue({
     el: '#browse_vm',
-    components: { sidebarcomponent, browsecomponent },
+    components: { browsecomponent },
     data: {
       visible: false,
     },
