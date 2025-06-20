@@ -36,6 +36,7 @@ export let searchcomponent = {
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
+                <a class="result-link text-muted" disabled>Search History</a>
             </div>
             <div class="d-flex align-items-center">
                 <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
@@ -101,7 +102,7 @@ export let searchcomponent = {
             </div>
         </div>
 
-        <div v-if="collection == 'auths' && records.length > 0" id="filters" class="col text-center">
+        <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
                 class="badge mx-1" 
@@ -737,7 +738,7 @@ export let searchcomponent = {
                 return;
             }
 
-            // Apply all active filters to original results
+            // Always filter from the original unfiltered set
             this.records = this._originalRecords.filter(record => {
                 return Array.from(this.activeFilters).some(tag => {
                     return record.heading_tag === tag;
