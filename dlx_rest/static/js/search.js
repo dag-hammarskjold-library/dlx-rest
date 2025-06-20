@@ -75,11 +75,13 @@ export let searchcomponent = {
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
                     <button :id="'searchField'+i" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ advancedParams['searchField'+i] !== 'any' ? advancedParams['searchField'+i] : 'any field' }}
+                        {{ advancedParams['searchField'+i] !== 'any'
+                            ? (logicalFieldLabels[advancedParams['searchField'+i]] || advancedParams['searchField'+i])
+                            : 'any field' }}
                     </button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" value="any" @click="setParameter('searchField'+i, {value: 'any'})">any field</option>
-                        <option class="dropdown-item" v-for="field in searchFields" :key="field" @click="setParameter('searchField'+i, {value: field})">{{field}}</option>
+                        <option class="dropdown-item" v-for="field in searchFields" :key="field" @click="setParameter('searchField'+i, {value: field})">{{logicalFieldLabels[field] || field}}</option>
                     </div>
                 </div>
                 <div class="input-group-append" v-if="i < 3">
@@ -99,7 +101,7 @@ export let searchcomponent = {
             </div>
         </div>
 
-        <div v-if="collection == 'auths'" id="filters" class="col text-center">
+        <div v-if="collection == 'auths' && records.length > 0" id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
                 class="badge mx-1" 
@@ -416,6 +418,10 @@ export let searchcomponent = {
             activeFilters: null,
             isDeleting: false,
             searchError: null,
+            logicalFieldLabels: {
+                // We can add more logical field labels here if needed
+                "body": "Series Symbol"
+            }
         }
     },
     computed: {

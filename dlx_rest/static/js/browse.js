@@ -8,8 +8,7 @@ export let browsecomponent = {
         api_prefix: { type: String, required: true },
         collection: { type: String, required: true },
         index: { type: String, required: false },
-        q: { type: String, required: false },
-        index_list: { type: String, required: false }
+        q: { type: String, required: false }
     },
     template: `
     <div class="col pt-2" id="app1" style="background-color:white;">
@@ -224,11 +223,11 @@ export let browsecomponent = {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(item, idx) in indexListJson" :key="item">
-                            <td>{{item}}</td>
+                        <tr v-for="(field, idx) in logicalFields" :key="field">
+                            <td>{{ logicalFieldLabels[field] || field }}</td>
                             <td>
                                 <form @submit.prevent="submitBrowse(idx)">
-                                    <input autofocus autocomplete="off" :id="item" placeholder="starts with..." type="text" class="form-control input">
+                                    <input autofocus autocomplete="off" :id="field" placeholder="starts with..." type="text" class="form-control input">
                                 </form>
                             </td>
                             <td>
@@ -258,7 +257,7 @@ export let browsecomponent = {
             afterOffset: 1,
             hasMoreBefore: true,
             hasMoreAfter: true,
-            indexListJson: null,
+            logicalFields: [],
             base_url: baseUrl,
             subtype,
             displaySubtype,
@@ -275,6 +274,10 @@ export let browsecomponent = {
             dragStartIdx: null,
             dragEndIdx: null,
             selectedRecords: [],
+            logicalFieldLabels: {
+                // We can add more logical field labels here if needed
+                "body": "Series Symbol"
+            }
         }
     },
     computed: {
@@ -296,6 +299,19 @@ export let browsecomponent = {
         },
     },
     async created() {
+        // Fetch logical fields for this collection/subtype
+        let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
+        if (this.subtype) {
+            logicalFieldsUrl += `?subtype=${this.subtype}`;
+        }
+        try {
+            const resp = await fetch(logicalFieldsUrl);
+            const json = await resp.json();
+            this.logicalFields = json.data.logical_fields || [];
+        } catch (e) {
+            this.logicalFields = [];
+        }
+
         const myProfile = await user.getProfile(this.api_prefix, 'my_profile');
         if (myProfile) {
             this.user = myProfile.data.email;
@@ -303,12 +319,6 @@ export let browsecomponent = {
         }
         if (this.q && this.index) {
             await this.initialFetch();
-        }
-    },
-    async mounted() {
-        if (!(this.q && this.index)) {
-            this.indexListJson = JSON.parse(this.index_list);
-            return;
         }
     },
     beforeDestroy() {
@@ -433,11 +443,11 @@ export let browsecomponent = {
                 // Optionally handle error
             }
         },
-        submitBrowse(index) {
-            const id = this.indexListJson[index];
-            const val = document.getElementById(id).value;
+        submitBrowse(idx) {
+            const field = this.logicalFields[idx];
+            const val = document.getElementById(field).value;
             if (val) {
-                const targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${id}?q=${encodeURIComponent(val)}&subtype=${this.subtype}`;
+                const targetUrl = `${this.api_prefix.replace('/api','')}records/${this.collection}/browse/${field}?q=${encodeURIComponent(val)}&subtype=${this.subtype}`;
                 history.pushState({}, window.location.href);
                 setTimeout(() => window.location.href = targetUrl, 0);
             }
