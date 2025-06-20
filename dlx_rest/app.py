@@ -74,7 +74,6 @@ from dlx_rest.routes import *
 
 # Load the API route
 from dlx_rest.api import api
-from dlx_rest.api.search_history import *
 
 # Load the commands
 from dlx_rest.commands import *
