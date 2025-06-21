@@ -73,28 +73,25 @@ export let speechreviewcomponent = {
                     <thead>
                         <tr>
                             <th></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 50px">#</th>
-                            <th @click="processSort($event, 'symbol')">Meeting Record (791)
-                                <i data-target="symbol" class="fas fa-sort-alpha-up text-secondary"></i>
-                                <span id="symbol-badge" class="badge badge-pill badge-dark">0</span>
-                            </th>
-                            <th @click="processSort($event, 'date')">Date (992)
-                                <i data-target="date" class="fas fa-sort-alpha-up text-secondary"></i>
-                                <span id="date-badge" class="badge badge-pill badge-dark">0</span>
-                            </th>
-                            <th @click="processSort($event, 'speaker')">Speaker (700 a)
-                                <i data-target="speaker" class="fas fa-sort-alpha-up text-secondary"></i>
-                                <span id="speaker-badge" class="badge badge-pill badge-dark">0</span>
-                            </th>
-                            <th @click="processSort($event, 'speaker_country')">Speaker (700 g)
-                                <i data-target="speaker_country" class="fas fa-sort-alpha-up text-secondary"></i>
-                                <span id="speaker_country-badge" class="badge badge-pill badge-dark">0</span>
-                            </th>
-                            <th @click="processSort($event, 'country_org')">Country/Organization (710 or 711)
-                                <i data-target="country_org" class="fas fa-sort-alpha-up text-secondary"></i>
-                                <span id="country_org-badge" class="badge badge-pill badge-dark">0</span>
-                            </th>
+                            <th style="width:30px"></th>
+                            <th style="width:50px">#</th>
+                            <template v-for="col in sortableColumns" :key="col.key">
+                                <th>
+                                    <div class="th-col">
+                                        <span
+                                            class="sort-btn"
+                                            @click="processSort($event, col.key)"
+                                            :aria-label="'Sort by ' + col.label"
+                                            type="button"
+                                            tabindex="0"
+                                        >
+                                            <span class="header-label">{{ col.label }}</span>
+                                            <i :class="sortIconClass(col.key)" :data-target="col.key"></i>
+                                            <span class="badge badge-pill badge-dark">{{ sortBadge(col.key) }}</span>
+                                        </span>
+                                    </div>
+                                </th>
+                            </template>
                             <th>Files</th>
                             <th>Agendas</th>
                         </tr>
@@ -186,6 +183,13 @@ export let speechreviewcomponent = {
             ],
             searchError: null,
             abortController: null,
+            sortableColumns: [
+                { key: "symbol", label: "Meeting Record (791)" },
+                { key: "date", label: "Date (992)" },
+                { key: "speaker", label: "Speaker (700 a)" },
+                { key: "speaker_country", label: "Speaker (700 g)" },
+                { key: "country_org", label: "Country/Organization (710 or 711)" }
+            ],
         }
     },
     computed: {
@@ -204,6 +208,25 @@ export let speechreviewcomponent = {
                 }
                 return 0;
             });
+        },
+        // Returns the badge number for a column, or 0 if not sorted
+        sortBadge() {
+            return (col) => {
+                const idx = this.sortColumns.findIndex(sc => sc.column === col);
+                return idx !== -1 ? idx + 1 : 0;
+            };
+        },
+        // Returns the icon class for a column
+        sortIconClass() {
+            return (col) => {
+                const sc = this.sortColumns.find(sc => sc.column === col);
+                if (!sc) return "fas fa-sort-alpha-up text-secondary";
+                return [
+                    "fas",
+                    sc.direction === "desc" ? "fa-sort-alpha-down" : "fa-sort-alpha-up",
+                    "text-dark"
+                ].join(" ");
+            };
         }
     },
     created: function () {
@@ -410,40 +433,15 @@ export let speechreviewcomponent = {
             this.$refs.agendamodal.recordId = speechId;
             this.$refs.agendamodal.showModal = true;
         },
-        sortLabel(col) {
-            // Map your column keys to user-friendly labels
-                const map = {
-                symbol: "Meeting Record",
-                date: "Date",
-                speaker: "Speaker",
-                speaker_country: "Speaker Country",
-                country_org: "Country/Org"
-            };
-            return map[col] || col;
-        },
-        clearSort() {
-            this.sortColumns = [{ column: "date", direction: "desc" }];
-            this.updateSortBadges();
-        },
-        processSort: function (e, column) {
-            for (let i of document.getElementsByTagName("i")) {
-                i.classList.replace("text-dark", "text-secondary");
-            }
-            for (let b of document.getElementsByClassName("badge")) {
-                b.innerText = "0";
-            }
+        processSort(e, column) {
             let existingColumn = this.sortColumns.find((sc) => sc.column === column);
             if (existingColumn) {
                 if (e.shiftKey) {
-                    let direction = "";
-                    existingColumn.direction == "asc" ? direction = "desc" : direction = "asc";
-                    if (existingColumn.direction === direction) {
-                        this.sortColumns.splice(this.sortColumns.indexOf(existingColumn), 1);
-                    } else {
-                        existingColumn.direction = direction;
-                    }
+                    // Remove if already present with same direction, otherwise toggle
+                    existingColumn.direction = existingColumn.direction === "asc" ? "desc" : "asc";
                 } else {
-                    existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc";
+                    // Single sort
+                    existingColumn.direction = existingColumn.direction === "asc" ? "desc" : "asc";
                     this.sortColumns = [existingColumn];
                 }
             } else {
@@ -453,48 +451,19 @@ export let speechreviewcomponent = {
                     this.sortColumns = [{ column: column, direction: "asc" }];
                 }
             }
-            var idx = 1;
-            for (let sc of this.sortColumns) {
-                for (let i of document.getElementsByTagName("i")) {
-                    if (i.getAttribute("data-target") == sc.column) {
-                        sc.direction === "desc" ? i.classList.replace("fa-sort-alpha-up", "fa-sort-alpha-down") : i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up");
-                        i.classList.replace("text-secondary", "text-dark");
-                        let badge = document.getElementById(`${sc.column}-badge`);
-                        badge.innerText = idx;
-                        idx++;
-                    }
-                }
-            }
-            this.updateSortBadges();
         },
-        updateSortBadges() {
-            // Reset all badges and icons
-            for (let i of document.getElementsByTagName("i")) {
-                i.classList.replace("text-dark", "text-secondary");
-                if (i.classList.contains("fa-sort-alpha-down")) {
-                    i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up");
-                }
-            }
-            for (let b of document.getElementsByClassName("badge")) {
-                b.innerText = "0";
-            }
-            // Set badges and icons for current sortColumns
-            let idx = 1;
-            for (let sc of this.sortColumns) {
-                for (let i of document.getElementsByTagName("i")) {
-                    if (i.getAttribute("data-target") == sc.column) {
-                        if (sc.direction === "desc") {
-                            i.classList.replace("fa-sort-alpha-up", "fa-sort-alpha-down");
-                        } else {
-                            i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up");
-                        }
-                        i.classList.replace("text-secondary", "text-dark");
-                        let badge = document.getElementById(`${sc.column}-badge`);
-                        if (badge) badge.innerText = idx;
-                        idx++;
-                    }
-                }
-            }
+        clearSort() {
+            this.sortColumns = [{ column: "date", direction: "desc" }];
+        },
+        sortLabel(col) {
+            const map = {
+            symbol: "Meeting Record",
+            date: "Date",
+            speaker: "Speaker",
+            speaker_country: "Speaker Country",
+            country_org: "Country/Org"
+            };
+            return map[col] || col;
         },
     },
     components: {
