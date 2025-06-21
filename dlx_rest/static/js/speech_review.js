@@ -2,9 +2,14 @@ import { sortcomponent } from "./search/sort.js";
 import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
-import { previewmodal } from "./modals/preview.js";
+import { readonlyrecord } from "./readonly_record.js";
 import { agendamodal } from "./modals/agenda.js";
 import { recordfilecomponent } from "./recordfiles.js";
+
+// --- DRY selection and search logic ---
+function buildSpeechSearchUrl(api_prefix, searchTerm) {
+    return `${api_prefix}marc/bibs/records?search=${encodeURIComponent(searchTerm)}&subtype=speech&format=brief_speech`;
+}
 
 export let speechreviewcomponent = {
     props: {
@@ -35,12 +40,13 @@ export let speechreviewcomponent = {
         </div>
         <div v-if="submitted">{{speeches.length}} results returned in {{searchTime}} seconds</div>
         <div v-if="speeches.length > 0" @click.prevent>
-            Select 
-            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
-            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
-            <a v-if="selectedRecords.length > 0" class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket</a>
-            <a v-else class="mx-1 result-link text-muted" href="#">Send Selected to Basket</a>
-            <br>
+            <div class="mb-2">
+                <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
+                <button v-if="selectedRecords.length > 0" class="btn btn-primary btn-sm ml-2" @click.prevent="sendToBasket">
+                    Send {{selectedRecords.length}} to Basket
+                </button>
+            </div>
             <div>Sorting:<span class="mx-1" v-for="sc in sortColumns">[{{sc.column}}: {{sc.direction}}]</span>
             <a class="ml-auto float-right result-link" :href="uibase + '/records/bibs/search?subtype=speech'">Speeches</a>
             </div>
@@ -76,14 +82,23 @@ export let speechreviewcomponent = {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id" @mousedown="handleMouseDown" @mousemove="handleMouseMove" @mouseup="handleMouseUp" :class="{selected: speech.selected}">
-                    <td>
-                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
-                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
-                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)">
-                    </td>
+                <tr v-for="(speech, index) in sortedSpeeches" 
+                    :key="speech._id" 
+                    @mousedown="handleMouseDown($event, speech, index)" 
+                    @mousemove="handleMouseMove($event, speech, index)" 
+                    @mouseup="handleMouseUp($event)"
+                    :class="{selected: speech.selected}">
+                    <td></td>
                     <td>{{index + 1}}</td>
-                    <td @click="togglePreview('bibs',speech._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
+                    <td> 
+                        <!-- Preview -->
+                        <div>
+                            <i v-if="previewOpen === speech._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
+                            <i v-else class="fas fa-file preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
+                            <readonlyrecord v-if="previewOpen === speech._id" :api_prefix="api_prefix" :collection="collection" :record_id="speech._id" class="record-preview"></readonlyrecord>
+                            {{speech.symbol}}
+                        </div>
+                    </td>
                     <td>{{speech.date}}</td>
                     <td>{{speech.speaker}}</td>
                     <td>{{speech.speaker_country}}</td>
@@ -106,7 +121,6 @@ export let speechreviewcomponent = {
             <div v-for="agenda in agendas">{{agenda}}</div>
         </div>
     </div>
-    <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Speeches"></previewmodal>
     <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
     style:`
@@ -128,24 +142,21 @@ export let speechreviewcomponent = {
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
+            isSearching: false,
             isDragging: false,
-            selectedRows: []
+            dragStartIdx: null,
+            dragEndIdx: null,
+            previewOpen: null,
+            collection: "bibs"
         }
     },
     computed: {
-        // This function performs multifield sort using the objects stored in the sortColumns array
-        // What goes in the sortColumns array, in what order, and how it gets there is handled by processSort() below
         sortedSpeeches: function () {
-            return this.speeches.sort((a, b) => {
-                // For each object in sortColumns, we want to perform the sort
-                // Each object is a defined column that exists in the incoming data
+            return this.speeches.slice().sort((a, b) => {
                 for (const i in this.sortColumns) {
                     const column = this.sortColumns[i].column
                     const direction = this.sortColumns[i].direction
-                    // localeCompare() is the acutal comparison function that performs the sort
-                    // It works on a broad range of text and can sort, e.g., 2 before 10, etc.
-                    let comparison = a[column].localeCompare(b[column])
-                    // And finally, this is how we change direction
+                    let comparison = (a[column] || '').localeCompare(b[column] || '')
                     if (direction == "desc") {
                         comparison *= -1
                     }
@@ -168,10 +179,14 @@ export let speechreviewcomponent = {
         this.refreshBasket()
     },
     methods: {
+        getSelectableRecords() {
+            return this.speeches;
+        },
         async refreshBasket() {
-            basket.getBasket(this.api_prefix).then((b) => {
-                this.myBasket = b
-            })
+            this.myBasket = await basket.getBasket(this.api_prefix);
+            this.speeches.forEach(r => {
+                r.myBasket = basket.contains("bibs", r._id, this.myBasket);
+            });
         },
         updateSearchQuery() {
             const url = new URL(window.location)
@@ -181,215 +196,144 @@ export let speechreviewcomponent = {
         async submitSearch() {
             if (!this.searchTerm) {
                 window.alert("Search term required");
-                return
+                return;
             }
-
-            this.speeches = []
-            this.showSpinner = true
+            this.speeches = [];
+            this.showSpinner = true;
+            this.isSearching = true;
+            this.selectedRecords = [];
             const startTime = Date.now();
-            const seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
-            let next = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech`;
+            const seenIds = [];
+            let next = buildSpeechSearchUrl(this.api_prefix, this.searchTerm);
 
-            while (1) {
-                let records;
-
-                await fetch(next).then(response => {
-                    return response.json()
-                }).then(json => {
-                    next = json['_links']['_next']
-                    records = json['data']
-                }).catch(e => {
-                    // todo: alert user there was an error
-                    throw e
-                });
-
-                if (records.length === 0) {
-                    break
+            try {
+                while (1) {
+                    let records;
+                    const response = await fetch(next);
+                    if (!response.ok) throw new Error("Search failed");
+                    const json = await response.json();
+                    next = json['_links']['_next'];
+                    records = json['data'];
+                    if (!records || records.length === 0) break;
+                    records.forEach(record => {
+                        if (!seenIds.includes(record._id)) {
+                            seenIds.push(record._id);
+                            this.speeches.push(record);
+                        }
+                    });
                 }
-
-                records.forEach(record => {
-                    if (!seenIds.includes(record._id)) {
-                        seenIds.push(record._id);
-                        this.speeches.push(record);
-                    }
-                });
-            }
-
-            this.searchTime = (Date.now() - startTime) / 1000;
-            this.showSpinner = false;
-            this.submitted = true;
-            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/speeches/review?q=${this.foundQ}`
-            window.history.replaceState({}, ui_url);
-        },
-        toggleSelect(e, speech) {
-            let recordId = e.target.dataset.recordid
-            speech.selected = !speech.selected
-            if (speech.selected) {
-                this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
-            } else {
-                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
+                // Update basket status for all records
+                await this.refreshBasket();
+            } catch (e) {
+                window.alert(e.message || "Search failed");
+            } finally {
+                this.searchTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.showSpinner = false;
+                this.isSearching = false;
+                this.submitted = true;
             }
         },
         selectAll() {
             this.speeches.forEach(speech => {
-                let i = document.querySelector(`input[data-recordid="${speech._id}"]`)
-                i.disabled ? i.checked = false : i.checked = true
-                if (i.checked) {
-                    this.selectedRecords.push({ "collection": "bibs", "record_id": speech._id })
-                    speech.selected = true
-                } else {
-                    speech.selected = false
+                if (!speech.myBasket && !speech.locked) {
+                    speech.selected = true;
+                    if (!this.selectedRecords.some(r => r.record_id === speech._id && r.collection === "bibs")) {
+                        this.selectedRecords.push({ collection: "bibs", record_id: speech._id });
+                    }
                 }
-            })
+            });
         },
         selectNone() {
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
-                i.checked = false
-            }
-            this.selectedRecords = []
             this.speeches.forEach(speech => {
-                speech.selected = false
-            })
-            this.selectedRows = []
+                speech.selected = false;
+            });
+            this.selectedRecords = [];
         },
-        /* Click and drag to select records */
-        // We only end up targeting <td> elements when these events happen 
-        // so we have to target the parent element, which should be a <tr>
-        handleMouseDown(e) {
-            if (e.shiftKey) {
-                this.isDragging = true
-                if (!this.selectedRows.includes(e.target.parentElement)) {
-                    this.selectedRows.push(e.target.parentElement)
-                }
+        handleMouseDown(e, speech, idx) {
+            if (
+                e.target.classList.contains('preview-toggle') ||
+                e.target.closest('.preview-toggle') ||
+                e.target.classList.contains('folder-plus') ||
+                e.target.classList.contains('folder-minus') ||
+                e.target.classList.contains('fa-lock')
+            ) {
+                return;
             }
+            if (e.button !== 0) return;
+            this.isDragging = true;
+            this.dragStartIdx = idx;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
+            document.addEventListener('mouseup', this.cancelDrag);
         },
-        handleMouseMove(e) {
-            if (e.shiftKey && this.isDragging) {
-                //e.target.parentElement.setAttribute("")
-                //e.target.parentElement.style = "background-color: #70a9e1"
-                e.target.parentElement.classList.add("selected")
-                if (!this.selectedRows.includes(e.target.parentElement)) {
-                    this.selectedRows.push(e.target.parentElement)
-                }
-            }
-            
+        handleMouseMove(e, speech, idx) {
+            if (!this.isDragging) return;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
         },
         handleMouseUp(e) {
-            if (e.shiftKey)
-                {this.isDragging = false
-                this.selectRows()
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.dragStartIdx = null;
+                this.dragEndIdx = null;
+                document.removeEventListener('mouseup', this.cancelDrag);
             }
         },
-        selectRows() {
-            const startIdx = this.speeches.indexOf(this.dragStart)
-            const endIdx = this.speeches.indexOf(this.dragEnd)
-
-            this.selectedRows.forEach(row => {
-                let i = row.getElementsByTagName("input")[0]
-                if (!i.disabled && !i.checked) {
-                    i.click()
-                }
-            })
+        cancelDrag() {
+            this.isDragging = false;
+            this.dragStartIdx = null;
+            this.dragEndIdx = null;
+            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        processSort: function (e, column) {
-            // reset sort indicators
-            for (let i of document.getElementsByTagName("i")) {
-                i.classList.replace("text-dark", "text-secondary")
-            }
-            // reset badges
-            for (let b of document.getElementsByClassName("badge")) {
-                b.innerText = "0"
-            }
-            // Figure out if we already have the indicated column in sortColumns
-            let existingColumn = this.sortColumns.find((sc) => sc.column === column)
-            if (existingColumn) {
-                // The column exists, but are we sorting it alone?
-                if (e.shiftKey) {
-                    let direction = ""
-                    existingColumn.direction == "asc" ? direction = "desc" : direction = "asc"
-                    if (existingColumn.direction === direction) {
-                        // This column and direction alreday exist in this.sortColumns, so we want to remove the object
-                        this.sortColumns.splice(existingColumn)
-                    } else {
-                        // Otherwise we are changing the sort direction
-                        existingColumn.direction = direction
+        updateDragSelection() {
+            let arr = this.speeches;
+            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
+            arr.forEach((r, i) => {
+                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
+                if (r.selected) {
+                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "bibs")) {
+                        this.selectedRecords.push({ collection: "bibs", record_id: r._id });
                     }
                 } else {
-                    existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc"
-                    this.sortColumns = [existingColumn]
+                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "bibs");
+                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
                 }
+            });
+        },
+        async sendToBasket(e) {
+            if (e) e.preventDefault();
+            const items = this.selectedRecords.slice(0, 100);
+            if (items.length > 0) {
+                await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
+                await this.refreshBasket();
+                this.selectedRecords = [];
+                this.speeches.forEach(r => {
+                    r.myBasket = basket.contains("bibs", r._id, this.myBasket);
+                    r.selected = false;
+                });
+            }
+        },
+        async toggleBasket(e, speechId) {
+            let speech = this.speeches.find(r => r._id === speechId);
+            if (!speech) return;
+            if (!speech.myBasket) {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId);
+                speech.myBasket = true;
+                speech.selected = false;
             } else {
-                if (e.shiftKey) {
-                    // There was no existing column, and we want to add this to our list of columns
-                    this.sortColumns.push({ column: column, direction: "asc" })
-                } else {
-                    // There was no existing column, and we want to make this our only sort column
-                    this.sortColumns = [{ column: column, direction: "asc" }]
-                }
+                await basket.deleteItem(this.myBasket, "bibs", speechId);
+                speech.myBasket = false;
+                speech.selected = false;
             }
-            // Finally, go through the DOM and update the icons and badges according to the contents of sortColumns
-            var idx = 1
-            for (let sc of this.sortColumns) {
-                for (let i of document.getElementsByTagName("i")) {
-                    if (i.getAttribute("data-target") == sc.column) {
-                        sc.direction === "desc" ? i.classList.replace("fa-sort-alpha-up", "fa-sort-alpha-down") : i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up")
-                        i.classList.replace("text-secondary", "text-dark")
-                        let badge = document.getElementById(`${sc.column}-badge`)
-                        badge.innerText = idx
-                        idx++
-                    }
-                }
-            }
+            await this.refreshBasket();
         },
-        sendToBasket() {
-            /*  
-            Several things need to happen here
-            1. Send all the items to the basket that have checkmarks beside them
-            2. Uncheck the checked items
-            3. Disable the checkbox for each item sent to the basket
-            4. Update the folder icon for each item sent to the basket
-            5. Empty this.selectedRecords
-            */
-            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then(() => {
-                for (let record of this.selectedRecords) {
-                    let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
-                    checkbox.checked = false
-                    checkbox.disabled = true
-                    let icon = document.querySelector(`i[id="${record.record_id}-basket"]`)
-                    icon.classList.remove("fa-folder-plus")
-                    icon.classList.add("fa-folder-minus")
-                }
-                this.selectedRecords = []
-                this.speeches.forEach(speech => {
-                    speech.selected = false
-                })
-                this.refreshBasket()
-            })
-        },
-        toggleBasket: async function (e, speechId) {
-            if (e.target.classList.contains("fa-folder-plus")) {
-                // add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then(() => {
-                    let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
-                    checkbox.disabled = true
-                    e.target.classList.remove("fa-folder-plus")
-                    e.target.classList.add("fa-folder-minus")
-                })
+        togglePreview(e, speechId) {
+            console.log("toggling preview for", speechId)
+            if (this.previewOpen === speechId) {
+                this.previewOpen = null;
             } else {
-                // remove from basket
-                await basket.deleteItem(this.myBasket, "bibs", speechId).then(() => {
-                    let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
-                    checkbox.disabled = false
-                    e.target.classList.remove("fa-folder-minus")
-                    e.target.classList.add("fa-folder-plus")
-                })
+                this.previewOpen = speechId;
             }
-            this.refreshBasket()
-        },
-        togglePreview: async function (collection, speechId) {
-            this.$refs.previewmodal.collection = collection
-            this.$refs.previewmodal.recordId = speechId
-            this.$refs.previewmodal.show()
         },
         toggleAgendas: function (e, speechId, agendas) {
             this.$refs.agendamodal.agendas = agendas
@@ -403,11 +347,52 @@ export let speechreviewcomponent = {
                 }
             }
         },
+        processSort: function (e, column) {
+            for (let i of document.getElementsByTagName("i")) {
+                i.classList.replace("text-dark", "text-secondary")
+            }
+            for (let b of document.getElementsByClassName("badge")) {
+                b.innerText = "0"
+            }
+            let existingColumn = this.sortColumns.find((sc) => sc.column === column)
+            if (existingColumn) {
+                if (e.shiftKey) {
+                    let direction = ""
+                    existingColumn.direction == "asc" ? direction = "desc" : direction = "asc"
+                    if (existingColumn.direction === direction) {
+                        this.sortColumns.splice(existingColumn)
+                    } else {
+                        existingColumn.direction = direction
+                    }
+                } else {
+                    existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc"
+                    this.sortColumns = [existingColumn]
+                }
+            } else {
+                if (e.shiftKey) {
+                    this.sortColumns.push({ column: column, direction: "asc" })
+                } else {
+                    this.sortColumns = [{ column: column, direction: "asc" }]
+                }
+            }
+            var idx = 1
+            for (let sc of this.sortColumns) {
+                for (let i of document.getElementsByTagName("i")) {
+                    if (i.getAttribute("data-target") == sc.column) {
+                        sc.direction === "desc" ? i.classList.replace("fa-sort-alpha-up", "fa-sort-alpha-down") : i.classList.replace("fa-sort-alpha-down", "fa-sort-alpha-up")
+                        i.classList.replace("text-secondary", "text-dark")
+                        let badge = document.getElementById(`${sc.column}-badge`)
+                        badge.innerText = idx
+                        idx++
+                    }
+                }
+            }
+        }
     },
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        'previewmodal': previewmodal,
+        'readonlyrecord': readonlyrecord,
         'agendamodal': agendamodal,
         'recordfilecomponent': recordfilecomponent
     }

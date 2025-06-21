@@ -2,600 +2,401 @@ import { sortcomponent } from "./search/sort.js";
 import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
+import { readonlyrecord } from "./readonly_record.js";
 
 export let authreviewcomponent = {
-    // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
     props: {
-        api_prefix: {
-            type: String,
-            required: true
-        },
-        search_url: {
-            type: String,
-            required: true
-        },
-        collection: {
-            type: String,
-            required: true
-        },
-        logged_in: {
-            type: String,
-            required: true
-        }
+        api_prefix: { type: String, required: true }
     },
-    template: ` 
-    <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
+    template: `
+    <div class="col pt-2" id="app1" style="background-color:white;">
+        <div class="col mb-2 d-flex justify-content-between">
+            <div>
+                <h1>Auth Review</h1>
+            </div>
+            <div class="d-flex align-items-center">
+                <a class="result-link px-3" :href="uibase + '/records/auths/search'">Auths</a>
+            </div>
+        </div>
         <div class="col text-center">
-            <h1>Authorities Review</h1>
-            <form :action="action">  
-                <label for="dateSelector">Authorities created/updated since</label>              
+            <form @submit.prevent="submitSearch">
                 <div class="input-group mb-3">
-                    <input id="dateSelector" type="date" class="form-control" aria-label="Date" :value="since">
+                    <input id="authDate" type="date" class="form-control" aria-label="Search Auths by Date" v-model="searchDate" @change="updateSearchQuery">
                     <div class="input-group-append">
-                        <a class="btn btn-outline-secondary" type="button" @click="changeDateAndSearch">Submit</a>
+                        <button class="btn btn-outline-secondary" type="submit" :disabled="!searchDate">Submit</button>
                     </div>
                 </div>
             </form>
         </div>
-        <div id="filters" class="col text-center">
-            Filter: 
-            <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
+        <sortcomponent v-if="auths.length > 0"
+            :uibase="uibase"
+            collection="auths"
+            :search-term="searchDate"
+            :current-sort="currentSort"
+            :current-direction="currentDirection"
+            @sort-changed="handleSortChange"
+            @direction-changed="handleDirectionChange">
+        </sortcomponent>
+        <div v-if="searchError" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{searchError}}
+            <button type="button" class="close" @click="searchError = null">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
-        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>    
-        <nav>
-            <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled">
-                    <span class="page-link">
-                        {{start}} to {{end}} of
-                        <span id="result-count-top">
-                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        </span>
-                        Records ({{searchTime}} seconds)
-                    </span>
-                </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
-            </ul>
-        </nav>
-        <div id="results-spinner" class="col d-flex justify-content-center">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-        </div>
-        <br>
-        <div id="message-display" class="col-xs-1 text-center"></div>
-        <div id="results-list" v-for="result in this.results" :key="result._id">
-            <div class="row pt-2 border-bottom">
-                <div class="col-sm-11 px-4 shadow bg-light rounded">
-                    <div class="row">
-                        <a v-if="allowDirectEdit" :id="'link-' + result._id" class="lead" :href="uibase + '/editor?records=' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <a v-else class="lead" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id">{{result.first_line}}</a>
-                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
-                    </div>
-                    <div class="row">
-                        <p>{{result.second_line}}</p>
-                    </div>
+        <div class="results-container col">
+            <div v-if="showSpinner" class="text-center mt-3">
+                <div class="spinner-border mr-2" role="status">
+                    <span class="sr-only">Loading...</span>
                 </div>
-                <div class="col-sm-1">
-                    <!-- need to test if authenticated here -->
-                    <div class="row ml-auto">
-                        <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
+                <button class="btn btn-danger btn-sm" @click="cancelSearch">
+                    Cancel Search
+                </button>
+            </div>
+            <div class="controls-header mb-3" v-if="auths.length > 0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="btn-group mr-3">
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
+                        </div>
+                        <button v-if="selectedRecords.length > 0" 
+                                class="btn btn-primary btn-sm" 
+                                @click.prevent="sendToBasket">
+                            Send {{selectedRecords.length}} to Basket
+                        </button>
+                    </div>
+                    <div v-if="isSearching || submitted">
+                        {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
+                        in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
                     </div>
                 </div>
             </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover w-100" v-if="auths.length > 0">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th style="width: 30px"></th>
+                            <th style="width: 50px">#</th>
+                            <th>Heading &amp; Details</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="(auth, index) in auths">
+                            <tr
+                                :key="auth._id"
+                                :class="{selected: auth.selected}"
+                                @mousedown="handleMouseDown($event, auth, index)" 
+                                @mousemove="handleMouseMove($event, auth, index)" 
+                                @mouseup="handleMouseUp($event)">
+                                <td></td>
+                                <td>
+                                    <i v-if="auth.locked" 
+                                        :id="auth._id + '-basket'" 
+                                        class="fas fa-lock"></i>
+                                    <i v-else-if="auth.myBasket" 
+                                        :id="auth._id + '-basket'" 
+                                        class="fas fa-folder-minus" 
+                                        @click="toggleBasket($event, auth._id)"></i>
+                                    <i v-else 
+                                        :id="auth._id + '-basket'" 
+                                        class="fas fa-folder-plus" 
+                                        @click="toggleBasket($event, auth._id)"></i>
+                                </td>
+                                <td>{{index + 1}}</td>
+                                <td>
+                                    <div>
+                                        <span class="d-flex align-items-center">
+                                            <a v-if="!auth.locked" 
+                                                :id="'link-' + auth._id" 
+                                                class="result-link record-title" 
+                                                :href="uibase + '/editor?records=auths/' + auth._id">
+                                                {{auth.heading}}
+                                            </a>
+                                            <a v-else 
+                                                class="result-link record-title" 
+                                                :id="'link-' + auth._id" 
+                                                :href="uibase + '/records/auths/' + auth._id">
+                                                {{auth.heading}}
+                                            </a>
+                                            <i v-if="previewOpen === auth._id" class="fas fa-window-close preview-toggle ml-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
+                                            <i v-else class="fas fa-file preview-toggle ml-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
+                                        </span>
+                                        <readonlyrecord v-if="previewOpen === auth._id" :api_prefix="api_prefix" collection="auths" :record_id="auth._id" class="record-preview mt-2"></readonlyrecord>
+                                        <div class="record-details mt-1">
+                                            <span v-if="auth.alt"><strong>Alt:</strong> {{auth.alt}}</span>
+                                            <span v-if="auth.symbol" class="ml-2"><strong>Symbol:</strong> {{auth.symbol}}</span>
+                                            <span v-if="auth.date" class="ml-2"><strong>Date:</strong> {{auth.date}}</span>
+                                            <span v-if="auth.types" class="ml-2"><strong>Types:</strong> {{auth.types}}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <countcomponent :api_prefix="api_prefix" :recordId="auth._id"></countcomponent>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        </br>
-        <nav>
-            <ul class="pagination pagination-md justify-content-center">
-                <li class="page-item disabled">
-                    <span class="page-link">
-                        {{start}} to {{end}} of 
-                        <span id="result-count-bottom">
-                            <div class="spinner-grow" role="status" style="width:1rem;height:1rem">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        </span>
-                        Records ({{searchTime}} seconds)
-                    </span>
-                </li>
-                <li v-if="prev" class="page-item"><a class="page-link" :href="prev">Previous</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Previous</a></li>
-                <li v-if="next" class="page-item"><a class="page-link" :href="next">Next</a></li>
-                <li v-else class="page-item disabled"><a class="page-link" href="">Next</a></li>
-            </ul>
-        </nav>
-    </div>`,
+        <div class="col">
+            <div v-if="!isSearching && submitted && auths.length === 0" class="text-center mt-3">
+                <p class="text-muted">No results found for updated > {{searchDate}}.</p>
+                <p class="text-muted">Try changing your date.</p>
+            </div>
+        </div>
+    </div>
+    `,
+    style: `
+        .selected { background-color: #70a9e1; }
+        .controls-header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .results-container { position: relative; }
+        .record-title {
+            display: block;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        .record-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+    `,
     data: function () {
-        let myParams = this.search_url.split("?")[1];
-        let myProps = {}
-        for (let p of myParams.split("&")) {
-            let thisParam = p.split("=");
-            if (thisParam[0] == "start" || thisParam[0] == "limit") {
-                myProps[thisParam[0]] = parseInt(thisParam[1]);
-            } else {
-                myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
-            }
-        }
+        let myUIBase = this.api_prefix.replace('/api/', '');
+        // Default to one week ago
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const pad = n => n.toString().padStart(2, '0');
+        const defaultDate = `${weekAgo.getFullYear()}-${pad(weekAgo.getMonth() + 1)}-${pad(weekAgo.getDate())}`;
 
-        // Get the date string we want to display
-        let updated = myProps["search"].split(/updated(>|<|=)/)[2].split(" ")[0]
-        
-        let myUIBase = this.api_prefix.replace('/api/','');
+        // Try to extract date from q param, e.g. q=updated>2025-01-01
+        let urlDate = null;
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get("q");
+            if (q) {
+                const match = q.match(/updated>(\d{4}-\d{2}-\d{2})/);
+                if (match) {
+                    urlDate = match[1];
+                }
+            }
+        } catch (e) {}
+
         return {
-            visible: true,
-            results: [],
-            links: {},
-            action: `${myUIBase}/records/${this.collection}/review`,
-            params: myProps,
+            auths: [],
+            submitted: false,
+            showSpinner: false,
+            searchDate: urlDate || defaultDate,
+            myBasket: {},
+            selectedRecords: [],
             uibase: myUIBase,
-            count: null,
-            prev: null,
-            next: null,
-            resultcount: 0,
-            start: 0,
-            end: 0,
-            basketcontents: ['foo'],
-            lookup_maps: {},
-            expressions: [],
-            vcoll: null,
             searchTime: 0,
-            maxTime: 15000, //milliseconds
-            abortController: new AbortController(),
-            headFilters: ['100','110','111', '130', '150','190','191'],
-            since: updated
+            resultCount: 0,
+            isSearching: false,
+            isDragging: false,
+            dragStartIdx: null,
+            dragEndIdx: null,
+            previewOpen: null,
+            currentSort: 'updated',
+            currentDirection: 'desc',
+            searchError: null,
         }
     },
-    created: async function() {
-        this.allowDirectEdit = this.logged_in ? true : false;
-    },
-    mounted: async function() {
-        let component = this;
-        
-        // [what is this used for?]
-        if (component.collection == "auths") {
-            this.searchFields = this.authSearchFields
-            let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
-            let authMapResponse = await fetch(authLookupMapUrl);
-            let authMapData = await authMapResponse.json();
-            component.lookup_maps['auths'] = authMapData.data;
-        
-            let bibLookupMapUrl = `${component.api_prefix}marc/bibs/lookup/map`
-            let bibMapResponse = await fetch(bibLookupMapUrl);
-            let bibMapData = await bibMapResponse.json();
-            component.lookup_maps['bibs'] = bibMapData.data;
-        } else if (component.collection == "bibs") {
-            this.searchFields = this.bibSearchFields
-        } 
-        if (this.params.search.includes("989:Voting Data")) {
-            this.searchFields = this.voteSearchFields
-            this.vcoll = "989:Voting Data"
-        } 
-        if (this.params.search.includes("989:Speeches")) {
-            this.searchFields = this.speechSearchFields
-            this.vcoll = "989:Speeches"
-        }
-
-        let myEnd = component.params.start + component.params.limit -1;
-        component.end = myEnd;
-        component.start = component.params.start;
-        let startTime = Date.now();
-
-        // start the count
-        fetch(this.search_url.replace('/records', '/records/count'), this.abortController).then(
-            response => response.json()
-        ).then(
-            jsonData => {
-                component.resultcount = jsonData["data"];
-                
-                // override the spinner
-                document.getElementById("result-count-top").innerHTML = component.resultcount;
-                document.getElementById("result-count-bottom").innerHTML = component.resultcount;
-
-                if (component.resultcount == 0) {
-                    component.start = 0;
-                }
-                
-                if (myEnd >= component.resultcount) {
-                    component.end = component.resultcount
-                    component.next = null
-                }
-            }
-        ).catch(
-            error => {
-                if (error.name === "AbortError") {
-                    document.getElementById("result-count-top").innerHTML = '⏱'
-                    document.getElementById("result-count-bottom").innerHTML = '⏱'
-                }
-            }
-        );
-        
-        fetch(this.search_url, this.abortController).then(
-            response => {
-                if (response.ok) {
-                    document.getElementById("results-spinner").remove();
-                    return response.json();
-                }
-            }
-        ).then(
-            jsonData => {
-                if (! jsonData) {
-                    throw new Error("Invalid search")
-                }
-
-                component.searchTime = (Date.now() - startTime) / 1000;
-
-                let linkKeys = Object.keys(jsonData["_links"]);
-                linkKeys.forEach((key, index) => {
-                    component.links[key] = jsonData["_links"][key];
-                });
-                if (component.links.related.count) {
-                    component.count = component.links.related.count;
-                }
-                if (component.links._prev) {
-                    component.prev = component.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
-                }
-                if (component.links._next) {
-                    component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
-                }
-                for (let result of jsonData["data"]) {
-                    let myResult = { "_id": result["_id"]}
-                    if (component.collection == "bibs") {
-                        myResult["first_line"] = result["title"]
-                        myResult["second_line"] = [result["symbol"], result["date"], result["types"]].filter(Boolean).join(" | ")
-                    } else if (component.collection == "auths") {
-                        myResult["first_line"] = result["heading"]
-                        myResult["second_line"] = result["alt"]
-                        myResult["heading_tag"] = result["heading_tag"];
-                    } else if (component.collection == "files") {
-                        // not implemented yet
-                    }
-                    component.results.push(myResult);
-                }
-            }
-        ).catch(
-            error => {
-                if ((Date.now() - startTime) >= this.maxTime) {
-                    this.reportError(`The search is taking longer than the maximum time allowed (${this.maxTime / 1000} seconds). Try narrowing the search.`)
-                } else if (error.name === "AbortError") {
-                    this.reportError("Search cancelled")
-                } else {
-                    this.reportError(error.toString())
-                }
-            }
-
-        ).then( 
-            () => {
-                user.getProfile(component.api_prefix, 'my_profile').then(
-                    myProfile => {
-                        if (myProfile) {
-                            component.user = myProfile.data.email;
-                        }
-                    
-                        if (typeof component.user !== "undefined") {
-                            basket.getBasket(component.api_prefix).then(
-                                myBasket => {
-                                    for (let result of component.results) {
-                                        let myId = `icon-${component.collection}-${result._id}`;
-                                        let iconEl = document.getElementById(myId);
-                                    
-                                        if (component.basketContains(myBasket, component.collection, result._id)) {
-                                            //iconEl.classList.remove('fa-folder-plus',);
-                                            iconEl.classList.add("fa-folder-minus");
-                                            iconEl.classList.add("text-muted");
-                                            iconEl.title = "Remove from basket";
-                                        } else {
-                                            iconEl.classList.add('fa-folder-plus');
-                                            iconEl.title = "Add to basket";
-                                        }
-
-                                        // checking if the record is locked and displaying a lock if it is.
-                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                            itemLocked => {
-                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                    // Display a lock icon
-                                                    iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.remove('fa-folder-minus',);
-                                                    iconEl.classList.add('fa-lock',);
-                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                                                    // revert link to read only view. 
-                                                    // TODO: acquire the lock status earlier 
-                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
-                                                }
-                                            }
-                                        );
-
-                                        iconEl.addEventListener("click", function() {
-                                            if (iconEl.classList.contains("fa-folder-plus")) {
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run an add
-                                                basket.createItem(component.api_prefix, 'userprofile/my_profile/basket', component.collection, result._id).then(
-                                                    function() {
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-plus");
-                                                        iconEl.classList.add("fa-folder-minus");
-                                                        iconEl.classList.add("text-muted");
-                                                        iconEl.title = "Remove from basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-folder-minus")) {
-                                                basket.getBasket(component.api_prefix)
-                                                iconEl.classList.add("fa-spinner");
-                                                // we can run a deletion
-                                                basket.deleteItem(component.api_prefix, 'userprofile/my_profile/basket', myBasket, component.collection, result._id).then(
-                                                    function() {
-                                                        iconEl.classList.remove("fa-spinner");
-                                                        iconEl.classList.remove("fa-folder-minus");
-                                                        iconEl.classList.add("fa-folder-plus");
-                                                        iconEl.classList.remove("text-muted");
-                                                        iconEl.title = "Add to basket";
-                                                    }
-                                                )
-                                            } else if (iconEl.classList.contains("fa-lock")) {
-                                                // TODO: unlock
-
-                                            }
-                                        });
-                                    }
-                                }
-                            )
-                        }        
-                    }
-                )
-            }
-        );
-        
-        // cancel the search if it takes more than 15 seconds
-        setTimeout(() => this.abortController.abort(), this.maxTime);
-
-        for (let el of document.getElementsByClassName('head-filter')) {
-            el.href = this.rebuildUrl("search", el.getAttribute("data-searchString"));
-        }
+    created: function () {
+        this.updateSearchQuery();
+        this.submitSearch();
+        this.refreshBasket();
     },
     methods: {
-        rebuildUrl(param, value) {
-            let myParams = Object.assign({},this.params);
-            let searchParam = myParams["search"]
-            let newSearchParam = ""
-            for (let hf of this.headFilters) {
-                newSearchParam = searchParam.replace(hf, "nnn")
-                if (newSearchParam.includes("nnn")) {
-                    break
-                }
-            }
-            
-            if (newSearchParam.includes("nnn")) {
-                myParams["search"] = newSearchParam.replace("nnn",value)
-            } else {
-                myParams["search"] = `${newSearchParam} AND ${value}:*`
-            }
-
-            const qs = Object.keys(myParams)
-                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
-                .join('&');
-            return `${this.action}?${qs}`;
+        async refreshBasket() {
+            this.myBasket = await basket.getBasket(this.api_prefix);
+            this.auths.forEach(r => {
+                r.myBasket = basket.contains("auths", r._id, this.myBasket);
+            });
         },
-        async getMyBasket(url) {
-            let response = await fetch(url);
-            if (response.ok) {
-                let jsonData = await response.json();
-                for (let item of jsonData.data.items) {
-                    let itemRes = await fetch(item);
-                    if (itemRes.ok) {
-                        let itemJson = await itemRes.json();
-                        this.basketcontents.push(itemJson.data);
+        updateSearchQuery() {
+            // Compose the client URL as specified
+            const query = `updated>${this.searchDate} AND NOT 999__c:'t'`;
+            const url = new URL(window.location);
+            url.searchParams.set("sort", this.currentSort);
+            url.searchParams.set("direction", this.currentDirection);
+            url.searchParams.set("q", query);
+            url.searchParams.set("format", "brief");
+            window.history.replaceState(null, "", url);
+        },
+        async submitSearch() {
+            if (!this.searchDate) {
+                this.searchError = "Date is required";
+                return;
+            }
+            this.auths = [];
+            this.showSpinner = true;
+            this.isSearching = true;
+            this.selectedRecords = [];
+            this.resultCount = 0;
+            const startTime = Date.now();
+            const seenIds = [];
+            // Compose the API URL as specified
+            const query = `updated>${this.searchDate} AND NOT 999__c:'t'`;
+            let next = `${this.api_prefix}marc/auths/records?sort=${encodeURIComponent(this.currentSort)}&direction=${encodeURIComponent(this.currentDirection)}&search=${encodeURIComponent(query)}&format=brief`;
+            try {
+                while (1) {
+                    let records;
+                    const response = await fetch(next);
+                    if (!response.ok) throw new Error("Search failed");
+                    const json = await response.json();
+                    next = json['_links'] && json['_links']['_next'];
+                    records = json['data'];
+                    if (!records || records.length === 0) break;
+                    records.forEach(record => {
+                        if (!seenIds.includes(record._id)) {
+                            seenIds.push(record._id);
+                            this.auths.push(record);
+                            this.resultCount++;
+                        }
+                    });
+                }
+                await this.refreshBasket();
+            } catch (e) {
+                this.searchError = e.message || "Search failed";
+            } finally {
+                this.searchTime = ((Date.now() - startTime) / 1000);
+                this.showSpinner = false;
+                this.isSearching = false;
+                this.submitted = true;
+            }
+            this.updateSearchQuery();
+        },
+        selectAll() {
+            this.auths.forEach(auth => {
+                if (!auth.myBasket && !auth.locked) {
+                    auth.selected = true;
+                    if (!this.selectedRecords.some(r => r.record_id === auth._id && r.collection === "auths")) {
+                        this.selectedRecords.push({ collection: "auths", record_id: auth._id });
                     }
                 }
+            });
+        },
+        selectNone() {
+            this.auths.forEach(auth => {
+                auth.selected = false;
+            });
+            this.selectedRecords = [];
+        },
+        handleMouseDown(e, auth, idx) {
+            if (
+                e.target.classList.contains('preview-toggle') ||
+                e.target.closest('.preview-toggle') ||
+                e.target.classList.contains('folder-plus') ||
+                e.target.classList.contains('folder-minus') ||
+                e.target.classList.contains('fa-lock')
+            ) {
+                return;
+            }
+            if (e.button !== 0) return;
+            this.isDragging = true;
+            this.dragStartIdx = idx;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
+            document.addEventListener('mouseup', this.cancelDrag);
+        },
+        handleMouseMove(e, auth, idx) {
+            if (!this.isDragging) return;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
+        },
+        handleMouseUp(e) {
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.dragStartIdx = null;
+                this.dragEndIdx = null;
+                document.removeEventListener('mouseup', this.cancelDrag);
             }
         },
-        basketContains(basketContents, collection, record_id) {
-            for (let item of basketContents) {
-                if (item.collection == collection && item.record_id == record_id) {
-                    return true;
-                }
-            }
-            return false;
+        cancelDrag() {
+            this.isDragging = false;
+            this.dragStartIdx = null;
+            this.dragEndIdx = null;
+            document.removeEventListener('mouseup', this.cancelDrag);
         },
-
-        toggleAddRemove(el, myBasket, collection, record_id) {
-            if (el.classList.value === "fas fa-2x fa-folder-plus") {
-                // we can run an add
-                basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-plus");
-                    el.classList.add("fa-folder-minus");
-                })
-            } else {
-                // we can run a deletion
-                basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', myBasket, collection, record_id).then( () => {
-                    el.classList.remove("fa-folder-minus");
-                    el.classList.add("fa-folder-plus");
-                })
-            }
-        },
-        toggleAdvancedSearch() {
-            let el = document.getElementById("advanced-search")
-            let ss = document.getElementById("simple-search")
-            let toggleASLink = document.getElementById("toggleASLink")
-            let toggleSSLink = document.getElementById("toggleSSLink")
-            if (el.style.display == "none"){
-                el.style.display = "block"
-                ss.style.display = "none"
-                toggleASLink.classList.add("active")
-                toggleSSLink.classList.remove("active")
-                //toggleLink.textContent = "Simple Search"
-            } else {
-                el.style.display = "none"
-                ss.style.display = "block"
-                toggleSSLink.classList.add("active")
-                toggleASLink.classList.remove("active")
-                //toggleLink.textContent = "Advanced Search"
-            }
-        },
-        setParameter(which, what) {
-            this.advancedParams[which] = what
-            let el = document.getElementById(which)
-            if (typeof what === "object") {
-                el.innerText = what.name
-                this.advancedParams[which] = what.value
-            } else {
-                el.innerText = what
-            }
-        },
-        submitAdvancedSearch() {
-            // Build the URL
-            var expressions = []
-            var anycount = 0
-            for (let i of ["1","2","3"]) {
-                let term  = this.advancedParams[`searchTerm${i}`]
-                let termList = []
-                // First figure out if there IS a search term here, then split it by space
-                if (term !== null) {
-                    termList = term.split(/\s+/)
-                }
-                // Next figure out if we're searching in a field or not
-                if (this.advancedParams[`searchField${i}`] == "any" ) {
-                    if (term) {
-                        anycount++
+        updateDragSelection() {
+            let arr = this.auths;
+            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
+            arr.forEach((r, i) => {
+                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
+                if (r.selected) {
+                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "auths")) {
+                        this.selectedRecords.push({ collection: "auths", record_id: r._id });
                     }
-                    // What kind of search are we doing?
-                    switch (this.advancedParams[`searchType${i}`]) {
-                        case "any":
-                            // Any of the words in any field
-                            // expressions.push(termList.join(" "))
-                            // break
-                            this.reportError('"Any of the words" "in any field" is not currently supported');
-                            throw new Error("Search cancelled");
-                        case "all":
-                            // All of the words in any field
-                            expressions.push(termList.join(" "))
-                            break
-                        case "exact":
-                            // Exact phrase in any field
-                            expressions.push(`'${termList.join(" ")}'`)
-                            break
-                        case "partial":
-                            // Partial phrase in any field
-                            expressions.push(`"${termList.join(" ")}"`)
-                            break
-                        case "regex":
-                            // This can't be done like this on MDB, so we should disable the option
-                            //break
-                            this.reportError('"Regular expression" "in any field" is not currently supported');
-                            throw new Error("Search cancelled");
-                        default:
-                            expressions.push(termList.join(" "))
-                    }                    
                 } else {
-                    let myField = this.advancedParams[`searchField${i}`]
-                    let myExpr = []
-                    // To do: add a flag for case insensitive search
-                    switch(this.advancedParams[`searchType${i}`]) {
-                        case "any":
-                            // Any of the words in any field
-                            for (let term of termList) {
-                                myExpr.push(`${myField}:${term}`)
-                            }
-                            expressions.push(myExpr.join(" OR "))
-                            break
-                        case "all":
-                            // All of the words in any field
-                            expressions.push(`${myField}:${termList.join(" ")}`)
-                            break
-                        case "exact":
-                            // Exact phrase in any field
-                            expressions.push(`${myField}:'${termList.join(" ")}'`)
-                            break
-                        case "partial":
-                            // Partial phrase in any field
-                            expressions.push(`${myField}:"${termList.join(" ")}"`)
-                            break
-                        case "regex":
-                            // Regular expression; this probably needs additional validation to make sure it IS a regex
-                            // Also it doesn't work quite right...
-                            expressions.push(`${myField}:${termList.join(" ")}`)
-                            break
-                        default:
-                            expressions.push(termList.join(" "))
-                    }
+                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "auths");
+                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
                 }
-            }
-            if (anycount > 1) {                  
-                this.reportError("Can't have more than one \"in any field\" term")
-                throw new Error("Search cancelled");
-            }
-            this.expressions = expressions
-            let compiledExpr = []
-            if (this.vcoll) {
-                compiledExpr.push(`${this.vcoll} AND`)
-            }
-            for (let i in expressions) {
-                let j = parseInt(i)+1
-                let accessor = `searchConnector${j.toString()}`
-                if (expressions[i] !== "") {
-                    compiledExpr.push(expressions[i])
-                }
-                if (this.advancedParams[accessor]) {
-                    compiledExpr.push(this.advancedParams[accessor])
-                }
-            }
-            // Get rid of any trailing boolean connectors if they don't connect to another expression
-            while (compiledExpr[compiledExpr.length - 1] === 'AND') {
-                compiledExpr.pop()
-            }
-            while (compiledExpr[compiledExpr.length - 1] === 'OR') {
-                compiledExpr.pop()
-            }
-
-            // Catch and warn of invalid searches
-            // ...
-
-            let url = `${this.action}?q=${encodeURIComponent(compiledExpr.join(" "))}`
-            
-            window.location = url
+            });
         },
-        reportError(message) {
-            let display = document.getElementById("results-spinner");
-            display = display || document.getElementById("message-display");
-            display.innerText = message;
-            this.results = []; // clear any exisiting results
-            document.getElementById("result-count-top").innerHTML = "0";
-            document.getElementById("result-count-bottom").innerHTML = "0";
+        async sendToBasket(e) {
+            if (e) e.preventDefault();
+            const items = this.selectedRecords.slice(0, 100);
+            if (items.length > 0) {
+                await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
+                await this.refreshBasket();
+                this.selectedRecords = [];
+                this.auths.forEach(r => {
+                    r.myBasket = basket.contains("auths", r._id, this.myBasket);
+                    r.selected = false;
+                });
+            }
+        },
+        async toggleBasket(e, authId) {
+            let auth = this.auths.find(r => r._id === authId);
+            if (!auth) return;
+            if (!auth.myBasket) {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "auths", authId);
+                auth.myBasket = true;
+                auth.selected = false;
+            } else {
+                await basket.deleteItem(this.myBasket, "auths", authId);
+                auth.myBasket = false;
+                auth.selected = false;
+            }
+            await this.refreshBasket();
+        },
+        togglePreview(event, authId) {
+            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
+                this.previewOpen = null;
+            } else if (authId) {
+                this.previewOpen = authId;
+            } else {
+                this.previewOpen = null;
+            }
+        },
+        handleSortChange({ sort, direction }) {
+            this.currentSort = sort;
+            this.currentDirection = direction;
+            if (this.searchDate) {
+                this.submitSearch();
+            }
+        },
+        handleDirectionChange(direction) {
+            this.currentDirection = direction;
+            if (this.searchDate) {
+                this.submitSearch();
+            }
         },
         cancelSearch() {
-            this.abortController.abort();
-            this.start = this.end = 0;
-        },
-        changeDateAndSearch() {
-            // this.action is where we start
-            let myParams = Object.assign({},this.params);
-            let newDate = document.getElementById("dateSelector").value
-            //el.href = this.rebuildUrl("updated", el.getAttribute("data-searchString"));
-            let searchParam = myParams["search"]
-            let newSearchParams = []
-            //let newSearchParam = searchParam.replace("updated", newDate)
-            for (let p of searchParam.split(" ")) {
-                let newP = p
-                if (p.includes("updated")) {
-                    let v = p.split(/(<|=|>)/)
-                    newP = p.replace(v[2],newDate)
-                }
-                newSearchParams.push(newP)
-            }
-                
-            myParams["search"] = newSearchParams.join(" ")
-        
-            const qs = Object.keys(myParams)
-                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
-                .join('&');
-            window.location = `${this.action}?${qs}`;
+            this.showSpinner = false;
+            this.isSearching = false;
         }
     },
     components: {
-        'sortcomponent': sortcomponent, 
-        'countcomponent': countcomponent
+        'sortcomponent': sortcomponent,
+        'countcomponent': countcomponent,
+        'readonlyrecord': readonlyrecord
     }
 }
