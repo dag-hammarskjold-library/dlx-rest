@@ -108,6 +108,8 @@ export let authreviewcomponent = {
                                 <td>
                                     <div>
                                         <span class="d-flex align-items-center">
+                                            <i v-if="previewOpen === auth._id" class="fas fa-window-close preview-toggle mr-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
+                                            <i v-else class="fas fa-file preview-toggle mr-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
                                             <a v-if="!auth.locked" 
                                                 :id="'link-' + auth._id" 
                                                 class="result-link record-title" 
@@ -120,8 +122,6 @@ export let authreviewcomponent = {
                                                 :href="uibase + '/records/auths/' + auth._id">
                                                 {{auth.heading}}
                                             </a>
-                                            <i v-if="previewOpen === auth._id" class="fas fa-window-close preview-toggle ml-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
-                                            <i v-else class="fas fa-file preview-toggle ml-2" v-on:click="togglePreview($event, auth._id)" title="Preview record"></i>
                                         </span>
                                         <readonlyrecord v-if="previewOpen === auth._id" :api_prefix="api_prefix" collection="auths" :record_id="auth._id" class="record-preview mt-2"></readonlyrecord>
                                         <div class="record-details mt-1">
