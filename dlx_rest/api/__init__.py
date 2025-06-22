@@ -14,7 +14,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
-from pymongo.errors import ExecutionTimeout
+from pymongo.errors import ExecutionTimeout, OperationFailure
 from pymongo.collation import Collation
 from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
@@ -143,11 +143,12 @@ class CollectionsList(Resource):
 
 # Collection        
 @ns.route('/marc/<string:collection>')
+@ns.param('collection', '"bibs" or "auths"')
 class Collection(Resource):
-    @ns.doc(description='')
+    @ns.doc(description='Return information about the available record collections.')
     def get(self, collection):
         collection in ClassDispatch.list_names() or abort(404)
-        
+
         meta = {
             'name': 'api_collection',
             'returns': URL('api_schema', schema_name='api.null').to_str(),
@@ -158,10 +159,62 @@ class Collection(Resource):
             'related': {
                 'records': URL('api_records_list', collection=collection).to_str(),
                 'workforms': URL('api_workforms_list', collection=collection).to_str(),
-                'lookup': URL('api_lookup_fields_list', collection=collection).to_str()
+                'lookup': URL('api_lookup_fields_list', collection=collection).to_str(),
+                'logical_fields': URL('api_collection_logical_fields', collection=collection).to_str()
             }
         }
+        
         response = ApiResponse(links=links, meta=meta, data={})
+        
+        return response.jsonify()
+    
+# Logical Fields
+@ns.route('/marc/<string:collection>/logical_fields')
+@ns.param('collection', '"bibs" or "auths"')
+class CollectionLogicalFields(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'subtype',
+        type=str,
+        choices=['','default','speech','vote'],
+        help='Record collection subtype',
+        default='default'
+    )
+
+    @ns.doc(description='Return the logical fields for a collection and optional subtype.')
+    @ns.expect(args)
+    def get(self, collection):
+        collection in ClassDispatch.list_names() or abort(404)
+        args = CollectionLogicalFields.args.parse_args()
+
+        # Get the logical field config
+        logical_fields = list(getattr(DlxConfig, f"{collection.strip('s')}_logical_fields").keys())
+        
+        # Remove special fields for default type
+        if args.subtype == 'default':
+            for f in filter(lambda x: x in logical_fields, ('notes', 'speaker', 'country_org')):
+                logical_fields.remove(f)
+
+        # Override for specific subtypes  
+        if args.subtype == 'speech':
+            logical_fields = ['symbol', 'country_org', 'speaker', 'agenda', 'related_docs', 'bib_creator']
+        elif args.subtype == 'vote':
+            logical_fields = ['symbol', 'body', 'agenda', 'bib_creator']
+
+        meta = {
+            'name': 'api_collection_logical_fields',
+            'returns': URL('api_schema', schema_name='api.collection.fields').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+
+        links = {
+            '_self': URL('api_collection_logical_fields', collection=collection).to_str(),
+            'related': {
+                'collection': URL('api_collection', collection=collection).to_str()
+            }
+        }
+
+        response = ApiResponse(links=links, meta=meta, data={"logical_fields": logical_fields})
         
         return response.jsonify()
 
@@ -340,9 +393,25 @@ class RecordsList(Resource):
             sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
             
             try:
-                recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
-            except ExecutionTimeout as e:
-                abort(408, str(e))
+                recordset = cls.from_query(
+                    query if query.conditions else {}, 
+                    projection=project, 
+                    skip=start-1, 
+                    limit=limit, 
+                    sort=sort, 
+                    collation=collation, 
+                    max_time_ms=Config.MAX_QUERY_TIME
+                )
+            except (ExecutionTimeout, OperationFailure) as e:
+                # Handle both timeout types
+                if 'exceeded time limit' in str(e):
+                    abort(408, {
+                        'message': 'Search query timed out',
+                        'details': str(e),
+                        'timeout': Config.MAX_QUERY_TIME,
+                        'suggestion': 'Try refining your search or using fewer terms'
+                    })
+                raise
         
         if x := subfield_projection:
             # filter only the wanted subfields
@@ -370,7 +439,30 @@ class RecordsList(Resource):
         elif fmt == 'brief':
             schema_name='api.brieflist'
             make_brief = brief_bib if recordset.record_class == Bib else brief_auth
-            data = [make_brief(r) for r in recordset]
+            #data = [make_brief(r) for r in recordset]
+            data = []
+            for r in recordset:
+                this_d = make_brief(r)
+                this_d["myBasket"] = False
+
+                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
+                if len(lock_status) > 0:
+                    this_d["locked"] = True
+
+                try:
+                    # Determine whether a basket exists for the current user and if the item is in it
+                    
+                    basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
+                    if len(basket_contains) > 0:
+                        this_d["myBasket"] = True
+                        this_d["locked"] = False
+                    data.append(this_d)
+                except AttributeError:
+                    # If the user is not logged in, this_basket will be None
+                    # In this case, we just append the brief data without basket info
+                    data.append(this_d)
+
+
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech
@@ -2175,3 +2267,68 @@ class View(Resource):
             })
 
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
+
+'''
+Search history.
+
+To do: Return as an ApiResponse
+'''
+@ns.route('/search-history')
+class SearchHistory(Resource):
+    @ns.doc(description='Get search history for current user', security='basic')
+    @login_required
+    def get(self):
+        user = User.objects.get(email=current_user.email)
+        history = user.get_search_history()
+        return [{
+            'id': str(i),  # Using index as ID since entries are embedded
+            'term': h.term,
+            'datetime': h.datetime.isoformat()
+        } for i, h in enumerate(history)], 200
+
+    @ns.doc(description='Add new search term to history', security='basic')
+    @login_required
+    def post(self):
+        data = request.get_json()
+        term = data.get('term')
+        if not term:
+            return {'error': 'Term is required'}, 400
+        
+        user = User.objects.get(email=current_user.email)
+        user.add_search_term(term)
+        
+        # Get the updated history to return
+        history = user.get_search_history()
+        latest_entry = next((h for h in history if h.term == term), None)
+        
+        return {
+            'id': str(history.index(latest_entry)),
+            'term': latest_entry.term,
+            'datetime': latest_entry.datetime.isoformat()
+        }, 200
+
+    @ns.doc(description='Clear all search history for current user', security='basic')
+    @login_required
+    def delete(self):
+        try:
+            user = User.objects.get(email=current_user.email)
+            user.clear_search_history()
+            return {'message': 'Search history cleared'}, 200
+        except:
+            return {'error': 'There was an error clearing the history.'}, 400
+
+@ns.route('/search-history/<string:id>')
+class SearchHistoryItem(Resource):
+    @ns.doc(description='Delete a specific search history entry', security='basic')
+    @login_required
+    def delete(self, id):
+        try:
+            user = User.objects.get(email=current_user.email)
+            history = user.get_search_history()
+            if 0 <= int(id) < len(history):
+                term_to_delete = history[int(id)].term
+                user.delete_search_term(term_to_delete)
+                return {'message': 'Search history deleted'}, 200
+            return {'error': 'Search history not found'}, 404
+        except:
+            return {'error': 'Search history not found'}, 404
