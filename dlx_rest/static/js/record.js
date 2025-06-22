@@ -3209,7 +3209,8 @@ export let multiplemarcrecordcomponent = {
         setAuthControl(field, subfield) {
             let component = this;
             subfield.valueSpan.classList.add("authority-controlled");
-
+            
+   
             if (! "xref" in subfield) {
                 subfield.valueSpan.classList.add("authority-controlled-unmatched")
             }
@@ -3219,9 +3220,9 @@ export let multiplemarcrecordcomponent = {
                     // exisiting field
                     let xrefLink = document.createElement("a");
                     subfield.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${subfield.xref}`;
-                    xrefLink.target = "_blank";
-
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${subfield.xref}`;
+                    xrefLink.target="_blank";
+     
                     let xrefIcon = document.createElement("i");
                     xrefIcon.className = "fas fa-link float-left mr-2";
                     xrefLink.appendChild(xrefIcon);
@@ -3393,9 +3394,9 @@ function selectAuthority(component, subfield, choice) {
         currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
 
         let xrefLink = document.createElement("a");
-        xrefLink.href = component.baseUrl + `records/auths/${choiceSubfield.xref}`;
-        xrefLink.target = "_blank";
-
+        xrefLink.href = component.baseUrl + `editor?records=auths/${choiceSubfield.xref}`;
+        xrefLink.target="_blank";
+            
         let xrefIcon = document.createElement("i");
         xrefIcon.className = "fas fa-link float-left mr-2";
         xrefLink.appendChild(xrefIcon);
@@ -3444,7 +3445,9 @@ function keyupAuthLookup(event) {
             // the dropdown list is being navigated. not sure why it triggers the inupt event
             return
         }
-
+        // Comment via #1530: This does trim the value currently stored, but
+        // it doesn't appear to update the value submitted via the "+" icon 
+        // that saves the record.
         subfield.value = subfield.valueSpan.innerText.trim();
     } else if (event.type == "paste") {
         subfield.value = event.clipboardData.getData("text").trim();
@@ -3479,7 +3482,10 @@ function keyupAuthLookup(event) {
         let newField = auth.createField(tag); // .createSubfield(subfield.code).value = subfield.value;
 
         for (let s of field.subfields.filter(x => jmarc.isAuthorityControlled(field.tag, x.code))) {
-            newField.createSubfield(s.code).value = s.value
+            // Comment via #1530: The trim method added here saves the value properly, but
+            // it still doesn't show up in the record without the leading space until the 
+            // record is saved. 
+            newField.createSubfield(s.code).value = s.value.trim()
         }
 
         newField = auth.createField("040", "a");
@@ -3528,9 +3534,9 @@ function keyupAuthLookup(event) {
                     // create the xref link
                     let xrefLink = document.createElement("a");
                     s.xrefCell.appendChild(xrefLink);
-                    xrefLink.href = component.baseUrl + `records/auths/${auth.recordId}`;
-                    xrefLink.target = "_blank";
-
+                    xrefLink.href = component.baseUrl + `editor?records=auths/${auth.recordId}`;
+                    xrefLink.target="_blank";
+     
                     let xrefIcon = document.createElement("i");
                     xrefIcon.className = "fas fa-link float-left mr-2";
                     xrefLink.appendChild(xrefIcon);

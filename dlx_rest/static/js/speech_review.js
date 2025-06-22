@@ -4,6 +4,7 @@ import basket from "./api/basket.js";
 import user from "./api/user.js";
 import { previewmodal } from "./modals/preview.js";
 import { agendamodal } from "./modals/agenda.js";
+import { recordfilecomponent } from "./recordfiles.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -20,7 +21,8 @@ export let speechreviewcomponent = {
             <div class="input-group mb-3">
                 <input id="speechSearch" type="text" class="form-control" aria-label="Search Speeches" v-model="searchTerm" @keyup="updateSearchQuery">
                 <div class="input-group-append">
-                    <a class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                    <a v-if="searchTerm" class="btn btn-outline-secondary" type="button" @click="submitSearch">Submit</a>
+                    <a v-else class="btn" style="color: lightgray" type="button" disabled>Submit</a>
                 </div>
             </div>
         </form>
@@ -32,7 +34,7 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <div v-if="submitted">{{speeches.length}} results returned in {{searchTime}} seconds</div>
-        <div v-if="speeches.length > 0">
+        <div v-if="speeches.length > 0" @click.prevent>
             Select 
             <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
             <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
@@ -71,16 +73,17 @@ export let speechreviewcomponent = {
                         <i data-target="country_org" class="fas fa-sort-alpha-up text-secondary"></i>
                         <span id="country_org-badge" class="badge rounded-pill text-bg-dark mx-2">0</span>
                     </th>
+                    <th scope="col">Files</th>
                     <th scope="col">Agendas</th>
                     <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id">
+                <tr v-for="(speech, index) in sortedSpeeches" :key="speech._id" @mousedown="handleMouseDown" @mousemove="handleMouseMove" @mouseup="handleMouseUp" :class="{selected: speech.selected}">
                     <td>
-                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
-                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)" disabled>
-                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event)">
+                        <input v-if="speech.locked" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
+                        <input v-else-if="speech.myBasket" type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)" disabled>
+                        <input v-else type="checkbox" :data-recordid="speech._id" @change="toggleSelect($event, speech)">
                     </td>
                     <td>{{index + 1}}</td>
                     <td @click="togglePreview('bibs',speech._id)" title="Toggle Record Preview"><i class="fas fa-file mr-2"></i>{{speech.symbol}}</td>
@@ -88,6 +91,7 @@ export let speechreviewcomponent = {
                     <td>{{speech.speaker}}</td>
                     <td>{{speech.speaker_country}}</td>
                     <td>{{speech.country_org}}</td>
+                    <td><recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" :desired_languages="['en','fr','es']" /></td>
                     <td title="Toggle Agenda View">
                         <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
                     </td>
@@ -108,8 +112,13 @@ export let speechreviewcomponent = {
     <previewmodal ref="previewmodal" :api_prefix="api_prefix" collection_name="Speeches"></previewmodal>
     <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
 </div>`,
-    data: function() {
-        let myUIBase = this.api_prefix.replace('/api/','')
+    style:`
+        .selected {
+            background-color: #70a9e1;
+        }
+    `,
+    data: function () {
+        let myUIBase = this.api_prefix.replace('/api/', '')
         return {
             speeches: [],
             submitted: false,
@@ -121,14 +130,16 @@ export let speechreviewcomponent = {
             myBasket: {},
             selectedRecords: [],
             uibase: myUIBase,
-            searchTime: 0
+            searchTime: 0,
+            isDragging: false,
+            selectedRows: []
         }
     },
     computed: {
         // This function performs multifield sort using the objects stored in the sortColumns array
         // What goes in the sortColumns array, in what order, and how it gets there is handled by processSort() below
         sortedSpeeches: function () {
-            return this.speeches.sort( (a, b) => {
+            return this.speeches.sort((a, b) => {
                 // For each object in sortColumns, we want to perform the sort
                 // Each object is a defined column that exists in the incoming data
                 for (const i in this.sortColumns) {
@@ -161,7 +172,7 @@ export let speechreviewcomponent = {
     },
     methods: {
         async refreshBasket() {
-            basket.getBasket(this.api_prefix).then( (b) => {
+            basket.getBasket(this.api_prefix).then((b) => {
                 this.myBasket = b
             })
         },
@@ -170,49 +181,120 @@ export let speechreviewcomponent = {
             url.searchParams.set("q", this.searchTerm)
             window.history.replaceState(null, "", url)
         },
-        submitSearch() {
-            // Do the search and update this.speeches
-            let search_url = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech&start=1&limit=50000`
-            let ui_url = `${this.api_prefix.replace("/api/","")}/records/speeches/review?q=${this.foundQ}`
-            let startTime = Date.now()
-            this.showSpinner = true
-            fetch(search_url).then(response => {
-                response.json().then(jsonData => {
-                    this.speeches = jsonData.data
-                }).then( () => {
-                    this.submitted = true
-                })
-            }).then( () => {this.showSpinner = false}).then(() => {
-                window.history.replaceState({},ui_url)
-            }).then( () => {
-                this.searchTime = (Date.now() - startTime) / 1000
-            })
-        },
-        toggleSelect(e) {
-            let recordId = e.target.dataset.recordid
-            if (this.selectedRecords.includes({"collection": "bibs", "record_id": recordId})) {
-                this.selectedRecords.splice(this.selectedRecords.indexOf({"collection": "bibs", "record_id": recordId}),1)
-            } else {
-                this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+        async submitSearch() {
+            if (!this.searchTerm) {
+                window.alert("Search term required");
+                return
             }
-            
+
+            this.speeches = []
+            this.showSpinner = true
+            const startTime = Date.now();
+            const seenIds = []; // temporarily necessasry due to pagination bug https://github.com/dag-hammarskjold-library/dlx-rest/issues/1586
+            let next = `${this.api_prefix}marc/bibs/records?search=${this.searchTerm}&subtype=speech&format=brief_speech`;
+
+            while (1) {
+                let records;
+
+                await fetch(next).then(response => {
+                    return response.json()
+                }).then(json => {
+                    next = json['_links']['_next']
+                    records = json['data']
+                }).catch(e => {
+                    // todo: alert user there was an error
+                    throw e
+                });
+
+                if (records.length === 0) {
+                    break
+                }
+
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id);
+                        this.speeches.push(record);
+                    }
+                });
+            }
+
+            this.searchTime = (Date.now() - startTime) / 1000;
+            this.showSpinner = false;
+            this.submitted = true;
+            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/speeches/review?q=${this.foundQ}`
+            window.history.replaceState({}, ui_url);
+        },
+        toggleSelect(e, speech) {
+            let recordId = e.target.dataset.recordid
+            speech.selected = !speech.selected
+            if (speech.selected) {
+                this.selectedRecords.push({ "collection": "bibs", "record_id": recordId })
+            } else {
+                this.selectedRecords.splice(this.selectedRecords.indexOf({ "collection": "bibs", "record_id": recordId }), 1)
+            }
         },
         selectAll() {
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
+            this.speeches.forEach(speech => {
+                let i = document.querySelector(`input[data-recordid="${speech._id}"]`)
                 i.disabled ? i.checked = false : i.checked = true
-                let recordId = i.dataset.recordid
                 if (i.checked) {
-                    this.selectedRecords.push({"collection": "bibs", "record_id": recordId})
+                    this.selectedRecords.push({ "collection": "bibs", "record_id": speech._id })
+                    speech.selected = true
+                } else {
+                    speech.selected = false
                 }
-            }
+            })
         },
         selectNone() {
             for (let i of document.querySelectorAll("input[type=checkbox]")) {
                 i.checked = false
             }
             this.selectedRecords = []
+            this.speeches.forEach(speech => {
+                speech.selected = false
+            })
+            this.selectedRows = []
         },
-        processSort: function(e, column) {
+        /* Click and drag to select records */
+        // We only end up targeting <td> elements when these events happen 
+        // so we have to target the parent element, which should be a <tr>
+        handleMouseDown(e) {
+            if (e.shiftKey) {
+                this.isDragging = true
+                if (!this.selectedRows.includes(e.target.parentElement)) {
+                    this.selectedRows.push(e.target.parentElement)
+                }
+            }
+        },
+        handleMouseMove(e) {
+            if (e.shiftKey && this.isDragging) {
+                //e.target.parentElement.setAttribute("")
+                //e.target.parentElement.style = "background-color: #70a9e1"
+                e.target.parentElement.classList.add("selected")
+                if (!this.selectedRows.includes(e.target.parentElement)) {
+                    this.selectedRows.push(e.target.parentElement)
+                }
+            }
+            
+        },
+        handleMouseUp(e) {
+            if (e.shiftKey)
+                {this.isDragging = false
+                this.selectRows()
+            }
+        },
+        selectRows() {
+            const startIdx = this.speeches.indexOf(this.dragStart)
+            const endIdx = this.speeches.indexOf(this.dragEnd)
+
+            this.selectedRows.forEach(row => {
+                let i = row.getElementsByTagName("input")[0]
+                if (!i.disabled && !i.checked) {
+                    i.click()
+                }
+            })
+        },
+        processSort: function (e, column) {
             // reset sort indicators
             for (let i of document.getElementsByTagName("i")) {
                 i.classList.replace("text-dark", "text-secondary")
@@ -235,17 +317,17 @@ export let speechreviewcomponent = {
                         // Otherwise we are changing the sort direction
                         existingColumn.direction = direction
                     }
-                } else {                    
+                } else {
                     existingColumn.direction == "asc" ? existingColumn.direction = "desc" : existingColumn.direction = "asc"
                     this.sortColumns = [existingColumn]
                 }
             } else {
                 if (e.shiftKey) {
                     // There was no existing column, and we want to add this to our list of columns
-                    this.sortColumns.push({column: column, direction: "asc"})
+                    this.sortColumns.push({ column: column, direction: "asc" })
                 } else {
                     // There was no existing column, and we want to make this our only sort column
-                    this.sortColumns = [{column:column, direction:"asc"}]
+                    this.sortColumns = [{ column: column, direction: "asc" }]
                 }
             }
             // Finally, go through the DOM and update the icons and badges according to the contents of sortColumns
@@ -271,7 +353,7 @@ export let speechreviewcomponent = {
             4. Update the folder icon for each item sent to the basket
             5. Empty this.selectedRecords
             */
-            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then( () => {
+            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then(() => {
                 for (let record of this.selectedRecords) {
                     let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
                     checkbox.checked = false
@@ -281,13 +363,16 @@ export let speechreviewcomponent = {
                     icon.classList.add("fa-folder-minus")
                 }
                 this.selectedRecords = []
+                this.speeches.forEach(speech => {
+                    speech.selected = false
+                })
                 this.refreshBasket()
             })
         },
         toggleBasket: async function (e, speechId) {
             if (e.target.classList.contains("fa-folder-plus")) {
                 // add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then( () => {
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId).then(() => {
                     let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
                     checkbox.disabled = true
                     e.target.classList.remove("fa-folder-plus")
@@ -295,7 +380,7 @@ export let speechreviewcomponent = {
                 })
             } else {
                 // remove from basket
-                await basket.deleteItem(this.myBasket, "bibs", speechId).then( () => {
+                await basket.deleteItem(this.myBasket, "bibs", speechId).then(() => {
                     let checkbox = document.querySelector(`input[data-recordid="${speechId}"]`)
                     checkbox.disabled = false
                     e.target.classList.remove("fa-folder-minus")
@@ -323,9 +408,10 @@ export let speechreviewcomponent = {
         },
     },
     components: {
-        'sortcomponent': sortcomponent, 
+        'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
         'previewmodal': previewmodal,
-        'agendamodal': agendamodal
+        'agendamodal': agendamodal,
+        'recordfilecomponent': recordfilecomponent
     }
 }

@@ -1,5 +1,5 @@
 export let sortcomponent = {
-    props: ['uibase', 'collection', 'params'],
+    props: ['uibase', 'collection', 'subtype', 'params'],
     template: `
     <div class="container-fluid pt-1">
         <div class="row d-flex w-100 justify-content-center">
@@ -57,7 +57,8 @@ export let sortcomponent = {
     </div>
     `,
     data: function() {
-        let vcoll = this.collection
+        let vcoll = ["vote", "speech"].includes(this.subtype) ? this.subtype : this.collection
+        
         if (this.params.search) {
             /* TODO get query "type" from backend [not implemented yet] */
             for (let term of this.params.search.split(/ +/)) {
@@ -66,38 +67,34 @@ export let sortcomponent = {
                     this.isFreeText = true
                 }
             }
-            if (this.params.subtype === "speech") {
-                vcoll = "speeches"
-            }
-            // todo: remove the type cretieria from the search input, update criteria
-            if (this.params.subtype === "vote") {
-                vcoll = "votes"
-            }
         }
         let mySortFields = [
             {'displayName':'updated', 'searchString': 'updated', 'sortDir': 'desc'},
             {'displayName': 'created', 'searchString': 'created', 'sortDir': 'desc'}
         ];
-        /* Once we have more fields to use for sorting, we can add them here */
-        if (this.collection == "bibs") {
-            if (vcoll == "bibs") {
-                mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
-                mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
-                mySortFields.push({'displayName':'title', 'searchString': 'title', 'sortDir': 'asc'});    
-            } else if (vcoll == "votes") {
-                mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
-                mySortFields.push({'displayName':'body', 'searchString': 'body', 'sortDir': 'asc'});
-                mySortFields.push({'displayName':'agenda', 'searchString': 'agenda', 'sortDir': 'asc'});
-            } else if (vcoll == "speeches") {
-                mySortFields.push({'displayName':'meeting date', 'searchString': 'date', 'sortDir': 'asc'});
-                mySortFields.push({'displayName':'meeting record', 'searchString': 'symbol', 'sortDir': 'desc'});
-                mySortFields.push({'displayName':'speaker', 'searchString': 'speaker', 'sortDir': 'asc'});
-                mySortFields.push({'displayName':'country/org', 'searchString': 'country_org', 'sortDir': 'asc'});
-            }
+
+        if (vcoll === "bibs") {
+            mySortFields.push({'displayName':'publication date', 'searchString': 'date', 'sortDir': 'desc'});
+            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'title', 'searchString': 'title', 'sortDir': 'asc'});    
             mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
-        } else if (this.collection == "auths") {
+        } else if (vcoll === "vote") {
+            mySortFields.push({'displayName':'voting date', 'searchString': 'date', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'symbol', 'searchString': 'symbol', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'body', 'searchString': 'body', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'agenda', 'searchString': 'agenda', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
+        } else if (vcoll === "speech") {
+            mySortFields.push({'displayName':'meeting date', 'searchString': 'date', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'meeting record', 'searchString': 'symbol', 'sortDir': 'desc'});
+            mySortFields.push({'displayName':'speaker', 'searchString': 'speaker', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'country/org', 'searchString': 'country_org', 'sortDir': 'asc'});
+            mySortFields.push({'displayName':'relevance', 'searchString': 'relevance', 'sortDir': 'desc'});
+        } else if (vcoll === "auths") {
             mySortFields.push({'displayName':'heading', 'searchString': 'heading', 'sortDir': 'asc'})
         }
+
+        console.log(vcoll)
         
         return {
             rpp: [

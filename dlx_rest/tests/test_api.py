@@ -225,6 +225,16 @@ def test_api_records_list(client, marc, users, roles, permissions, default_users
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.brieflist'
 
+    # projection
+    bib = Bib().set('500', 'a', 'subfield 1').set('500', 'b', 'subfield 2')
+    bib.commit()
+    res = client.get(f'{API}/marc/bibs/records?search=id:{bib.id}&format=mrk&fields=500__b')
+    assert type(res.data) == bytes
+    data = res.data.decode()
+    bib = Bib.from_mrk(data)
+    assert not bib.get_value('500', 'a')
+    assert bib.get_value('500', 'b')
+
 def test_api_records_list_browse(client, marc):
     #return # to be updated in a different branch
 
@@ -244,6 +254,14 @@ def test_api_records_list_count(client, marc):
         res = client.get(f'{API}/marc/{col}/records/count')
         data = json.loads(res.data)
         assert data['data'] == 4
+
+def test_api_record_files_list(client, marc, files):
+    from dlx_rest.api.utils import ClassDispatch
+    
+    # get
+    res = client.get(f'{API}/marc/bibs/records/1/files')
+    data = check_response(res)
+    assert data['_meta']['returns'] == f'{API}/schemas/api.filelist'
         
 def test_api_record(client, marc, default_users):
     from dlx_rest.api.utils import ClassDispatch
@@ -288,6 +306,36 @@ def test_api_record(client, marc, default_users):
     geAuth.set('100', 'a', 'Updated GE Heading by Global Admin')
     res = client.put(f'{API}/marc/auths/records/5', data=geAuth.to_json(), headers={"Authorization": f"Basic {admin_credentials}"})
     assert res.status_code == 200
+
+def test_api_record_parse(client):
+    test_bib = Bib().set('008', None, 'test').set('245', 'a', 'Title')
+
+    # mrk
+    res = client.post(f'{API}/marc/bibs/parse?format=mrk', data=test_bib.to_mrk())
+    data = check_response(res)
+    assert Bib(data['data']).to_mrk() == test_bib.to_mrk()
+    
+    res = client.post(f'{API}/marc/bibs/parse?format=mrk', data=test_bib.to_mrk() + '\tthis line is not valid')
+    assert res.status_code == 400
+
+    # xml
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data=test_bib.to_xml(write_id=False)) # write_id arg shouldn't be necessary, but currently is due to bug in dlx
+    data = check_response(res)
+    assert Bib(data['data']).to_xml() == test_bib.to_xml()
+    
+    res = client.post(f'{API}/marc/bibs/parse?format=xml', data='<invalid xml></invalid xml>')
+    assert res.status_code == 400
+
+    # csv
+
+    res = client.post(f'{API}/marc/bibs/parse?format=csv', data='1.245$a\nTitle\n')
+    assert res.status_code == 200
+    data = check_response(res)
+    bib = Bib(data['data'])
+    assert bib.get_value('245', 'a') == 'Title'
+    
+    res = client.post(f'{API}/marc/bibs/parse?format=csv', data='invalid data')
+    assert res.status_code == 400
 
 def test_api_record_update_collection_admin(client, marc, default_users):
     from dlx_rest.api.utils import ClassDispatch
@@ -695,6 +743,138 @@ def test_api_files(client, files):
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
 
+    res = client.get(f'{API}/files?identifier_type=isbn&identifier=x')
+    data = check_response(res)
+    assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
+
+    res = client.get(f'{API}/files?identifier_type=isbn&identifier=x&language=en')
+    data = check_response(res)
+    assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
+
+def test_api_files_post(client, files, default_users):
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    def create_test_file():
+        import random, string
+
+        """Helper function to create a new file object for each test"""
+        file_content = ''
+        for i in range(1000):
+            file_content += random.choice(string.ascii_letters + string.digits)
+
+        return io.BytesIO(bytes(file_content, encoding='utf8'))
+    
+    # Test successful file upload, all identifier types
+    data = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'uri',
+        'identifier': 'http://foo.bar/baz',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'isbn',
+        'identifier': '0-2024-1446-9',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+    
+    # Test missing file
+    data_no_file = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr'
+    }
+    res = client.post(
+        f'{API}/files', 
+        data=data_no_file,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test missing required fields
+    data_missing_fields = {
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_missing_fields, 
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid language code
+    data_invalid_lang = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,invalid',
+        'file': (create_test_file, 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_lang,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid identifier type
+    data_invalid_id_type = {
+        'identifier_type': 'invalid',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_id_type,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # We could also test unauthorized access...
+
 def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3')
     data = check_response(res)
@@ -843,11 +1023,11 @@ def test_api_userbasket(client, default_users, users, marc):
 ### util
 
 def check_response(response):
+    assert response.status_code == 200
+    
     client = app.test_client()
     data = json.loads(response.data)
 
-    assert response.status_code == 200
-    
     for _ in ('_links', '_meta', 'data'):
         assert _ in data
     

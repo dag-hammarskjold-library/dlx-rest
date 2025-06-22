@@ -23,69 +23,81 @@ def default_users():
         'admin': {
             'email':'test_user@un.org',
             'username': 'admcat',
+            'shortname': 'adm',
             'password': 'password',
             'role': 'admin'
         },
         'non-admin': {
             'email':'user@un.org',
             'username': 'nacat',
+            'shortname': 'na',
             'password': 'password'
         },
         'invalid': {
             'email':'invalid@un.org',
             'username': 'invcat',
+            'shortname': 'inv',
             'password': 'password'
         },
         'new': {
             'email': 'new_test_user@un.org',
             'username': 'ntucat',
+            'shortname': 'ntu',
             'password': 'password'
         },
         'bib-admin': {
             'email': 'bib_admin@un.org',
             'username': 'bibcat',
+            'shortname': 'bib',
             'password': 'password',
             'role': 'bibs-admin'
         },
         'auth-admin': {
             'email': 'auth_admin@un.org',
             'username': 'authcat',
+            'shortname': 'aut',
             'password': 'password',
             'role': 'auths-admin'
         },
         'file-admin': {
             'email': 'file_admin@un.org',
             'username': 'filecat',
+            'shortname': 'fil',
             'password': 'password',
             'role': 'files-admin'
         },
         'bib-NY-admin': {
             'email': 'bib_ny_admin@un.org',
             'username': 'bibnycat',
+            'shortname': 'bna',
             'password': 'password',
             'role': 'bibs-NY-admin'
         },
         'auth-NY-admin': {
             'email': 'auth_ny_admin@un.org',
             'username': 'authnycat',
+            'shortname': 'ana',
             'password': 'password',
             'role': 'auths-NY-admin'
         },
         'bib-GE-admin': {
             'email': 'bib_ge_admin@un.org',
             'username': 'bibgecat',
+            'shortname': 'bga',
             'password': 'password',
             'role': 'bibs-GE-admin'
         },
         'auth-GE-admin': {
             'email': 'auth_ge_admin@un.org',
             'username': 'authgecat',
+            'shortname': 'aga',
             'password': 'password',
             'role': 'auths-GE-admin'
         },
         'bib-NY-indexer': {
             'email': 'bib_ny_indexer@un.org',
             'username': 'bibnyicat',
+            'shortname': 'bni',
             'password': 'password',
             'role': 'bibs-NY-indexer'
         },
@@ -136,6 +148,10 @@ def roles(permissions):
     merge_auth = Permission(action="mergeAuthority")
     merge_auth.save()
     admin_permissions.append(merge_auth)
+
+    import_marc = Permission(action="importMarc")
+    import_marc.save()
+    admin_permissions.append(import_marc)
     
     admin_role = Role(name="admin")
     admin_role.permissions = admin_permissions
@@ -213,7 +229,7 @@ def users(roles, default_users):
     for utype in default_users:
         if utype not in ["invalid","new"]:
             u = default_users[utype]
-            user = User(email = u['email'], username=u['username'], created=datetime.now())
+            user = User(email = u['email'], username=u['username'], shortname=u["shortname"], created=datetime.now())
             user.set_password(u['password'])
             try:
                 user.add_role_by_name(u['role'])

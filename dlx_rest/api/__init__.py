@@ -14,6 +14,7 @@ from flask_restx import Resource, Api, reqparse, fields
 from flask_login import login_required, current_user
 from base64 import b64decode
 from mongoengine.document import Document
+from pymongo.errors import ExecutionTimeout
 from pymongo.collation import Collation
 from bson import Regex, SON
 from dlx import DB, Config as DlxConfig
@@ -21,14 +22,14 @@ from dlx.marc import MarcSet, BibSet, Bib, AuthSet, Auth, Field, Controlfield, D
     Query, Condition, Or, InvalidAuthValue, InvalidAuthXref, AuthInUse
 from dlx.marc.query import InvalidQueryString, AtlasQuery
 from dlx.marc.query import Raw
-from dlx.file import File, Identifier
+from dlx.file import File, Identifier, FileExists, FileExistsConflict, FileExistsIdentifierConflict, FileExistsLanguageConflict
 from dlx.util import AsciiMap
 
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
-from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission
+from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
 
 # Init
 
@@ -89,6 +90,7 @@ class SchemasList(Resource):
             'api.basket.item',
             'api.brieflist',
             'jmarc',
+            'jmarc.preview',
             'jmarc.workform', 
             'jfile', 
             'jmarc.batch',
@@ -269,7 +271,7 @@ class RecordsList(Resource):
             except InvalidQueryString as e:
                 abort(422, str(e))
         else:
-            query = Query({}) 
+            query = Query({})
 
         # start
         start = 1 if args.start is None else int(args.start)
@@ -280,11 +282,13 @@ class RecordsList(Resource):
         # format
         fmt = args['format'] or None
 
-        if fmt != 'brief_speech' and limit > 1000:
+        if limit > 1000:
             abort(404, 'Maximum limit is 1000')
         
+        subfield_projection = {}
+
         if fmt == 'brief':
-            tags = ['191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
+            tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
                 else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591']
             
             # make sure logical fields are available for sorting
@@ -296,16 +300,23 @@ class RecordsList(Resource):
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
-        elif fmt in ['mrk', 'xml', 'csv']:
-            project = None
+        elif fmt in ['mrk', 'xml', 'csv'] and args.get('fields'):
+            tags = []
 
-            if output_fields := args.get("fields"):
-                tags = [f.strip().split('__')[0] for  f in output_fields.split(',')]
-                
-                # make sure logical fields are available for sorting
-                tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
-                project = dict.fromkeys(tags, True)
+            for f in [x.strip() for x in args.get("fields").split(',')]:
+                if match := re.match(r'(\d{3})(__([a-z0-9]))?', f):
+                    tag, code = match.group(1, 3)
+                    
+                    if code:
+                        # use this dict later to filter only the wanted subfields
+                        subfield_projection.setdefault(tag, [])
+                        subfield_projection[tag].append(code)
+                    
+                    tags.append(tag)
             
+            # make sure logical fields are available for sorting
+            tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
+            project = dict.fromkeys(tags, True)
         elif fmt:
             project = None
         else:
@@ -315,6 +326,7 @@ class RecordsList(Resource):
         sort_by = args.get('sort') or 'updated'
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
+        sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
@@ -326,8 +338,26 @@ class RecordsList(Resource):
             recordset = cls.from_aggregation(pipeline, collation=collation)
         else:
             sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
-            recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
+            
+            try:
+                recordset = cls.from_query(query if query.conditions else {}, projection=project, skip=start-1, limit=limit, sort=sort, collation=collation, max_time_ms=Config.MAX_QUERY_TIME)
+            except ExecutionTimeout as e:
+                abort(408, str(e))
         
+        if x := subfield_projection:
+            # filter only the wanted subfields
+            modified = []
+
+            for record in recordset.records:
+                for tag, codes in x.items():
+                    for field in record.get_fields(tag):
+                        field.subfields = [y for y in field.subfields if y.code in codes]
+
+                modified.append(record)
+
+            recordset = cls()
+            recordset.records = modified
+                        
         # process
         if fmt == 'xml':
             return Response(recordset.to_xml(write_id=True), mimetype='text/xml')
@@ -495,12 +525,15 @@ class RecordsListCount(Resource):
                 pipeline.append({'$count': 'count'})
                 data = list(cls().handle.aggregate(pipeline))[0]['count']
             else:
-                data = cls().handle.count_documents(
-                    query.compile(),
-                    # collation is not implemented in mongomock
-                    collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
-                    maxTimeMS=Config.MAX_QUERY_TIME
-                )
+                try:
+                    data = cls().handle.count_documents(
+                        query.compile(),
+                        # collation is not implemented in mongomock
+                        collation=Collation(locale='en', strength=1, numericOrdering=True) if Config.TESTING == False else None,
+                        maxTimeMS=Config.MAX_QUERY_TIME
+                    )
+                except ExecutionTimeout as e:
+                    abort(408, str(e))
         else:
             data = cls().handle.estimated_document_count()
         
@@ -687,25 +720,12 @@ class Record(Resource):
         files_data = []
 
         if collection == 'bibs':
-            symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
-            isbns = record.get_values('020', 'a')
-            isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
-            # Get files by original URI which was logged in the Archive-It system
-            uris = record.get_values('561', 'u')
-            all_files = []
-            
-            for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
-                for id_value in id_values:
-                    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-                    this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-                    all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
-                    
             files_data = [
                 {
                     'mimetype': f.mimetype, 
                     'language': f.languages[0].lower(), 
                     'url': URL('api_file_record', record_id=f.id).to_str()
-                } for f in all_files
+                } for f in get_record_files(record)
             ]
                 
         data = record.to_dict()
@@ -732,7 +752,8 @@ class Record(Resource):
                 'fields': URL('api_record_fields_list', collection=collection, record_id=record_id).to_str(),
                 'history': URL('api_record_history', collection=collection, record_id=record_id).to_str(),
                 'records': URL('api_records_list', collection=collection).to_str(),
-                'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str()
+                'subfields': URL('api_record_subfields_list', collection=collection, record_id=record_id).to_str(),
+                'files': URL('api_record_files_list', collection=collection, record_id=record_id).to_str()
             }
         }
         
@@ -817,6 +838,41 @@ class Record(Resource):
         else:
             abort(500)
 
+@ns.route('/marc/<string:collection>/records/<int:record_id>/files')
+@ns.param('record_id', 'The record identifier')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordFilesList(Resource):
+
+    @ns.doc(description='Return the files for record with the given identifier')
+    def get(self, collection, record_id):
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+        record = cls.from_id(record_id) or abort(404)
+        
+        files_data = [
+            {
+                'mimetype': f.mimetype, 
+                'language': f.languages[0].lower(), 
+                'url': URL('api_file_record', record_id=f.id).to_str()
+            } for f in get_record_files(record)
+        ]
+
+        meta = {
+            'name': 'api_record_files_list',
+            'returns':  URL('api_schema', schema_name='api.filelist').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+
+        links = {
+            '_next': None,
+            '_prev': None,
+            '_self': URL('api_record_files_list', collection=collection, record_id=record_id).to_str(),
+            'related': {
+                'record': URL('api_record', collection=collection, record_id=record_id).to_str()
+            }
+        }
+
+        return ApiResponse(links=links, meta=meta, data=files_data).jsonify()
+
 @ns.route('/marc/<string:collection>/records/<int:record_id>/locked')
 @ns.param('record_id', 'The record identifier')
 @ns.param('collection', '"bibs" or "auths"')
@@ -826,6 +882,53 @@ class RecordLockStatus(Resource):
     def get(self, collection, record_id):
         lock_status= item_locked(collection, record_id)
         return lock_status, 200
+
+# Record parse
+@ns.route('/marc/<string:collection>/parse')
+@ns.param('collection', '"bibs" or "auths"')
+class RecordParse(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'format',
+        required=True,
+        type=str, 
+        choices=['xml', 'mrk', 'csv']
+    )
+
+    @ns.doc(description='Parse the string and return a native JSON representation')
+    @ns.expect(args)
+    def post(self, collection):
+        args = RecordParse.args.parse_args()
+        cls = ClassDispatch.by_collection(collection) or abort(404)
+
+        if not request.data:
+            # how to document the expected payload??
+            abort(400, 'Request data not found')
+
+        method = 'from_' + args.format
+
+        try:
+            record = getattr(cls, method)(request.data.decode(), auth_control=True)
+        except Exception as e:
+            abort(400, str(e))
+
+        data = record.to_dict()
+
+        if data.get('_id') is None:
+            # Remove the field if there is no ID (new record) so that the data
+            # passes type validation.
+            del data['_id']
+
+        meta = {
+            'name': 'api_record_parse',
+            'returns':  URL('api_schema', schema_name='jmarc.preview').to_str(),
+            'timestamp': datetime.now(timezone.utc)
+        }
+        links = {
+            '_self': None, # not valid because cannot include the data payload in the link
+        }   
+        
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
 # Fields
 '''
@@ -1259,7 +1362,10 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
 
-            tags = [auth_tag]
+            # Return the 682 field so we can check if the record is deprecated
+            # see issues #190 and #1628
+            # to do: Add this to the dlx configuration
+            tags = [auth_tag, '682']
 
             # exact match
             conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
@@ -1610,13 +1716,42 @@ class Workform(Resource):
 # Files records list
 @ns.route('/files')
 class FilesRecordsList(Resource):
-    args = reqparse.RequestParser()
-    args.add_argument('start')
-    args.add_argument('limit')
+    get_args = reqparse.RequestParser()
+    get_args.add_argument('start', type=int, default=1)
+    get_args.add_argument('limit', type=int, default=100)
+    get_args.add_argument('identifier_type', 
+        choices=('symbol', 'uri', 'isbn'), 
+        help='File content identifier type',
+        required=False)
+    get_args.add_argument('identifier', 
+        help='File content identifier value',
+        required=False)
+    get_args.add_argument('language', 
+        choices=('ar', 'fr', 'de', 'en', 'ru', 'es', 'zh'),
+        required=False)
+
+    post_args = reqparse.RequestParser()
+    post_args.add_argument('identifier_type',
+        type=str,
+        choices=('symbol', 'uri', 'isbn'),
+        help='File content identifier type',
+        required=True,
+        location='form')
+    post_args.add_argument('identifier',
+        type=str,
+        help='File content identifier value',
+        required=True,
+        location='form')
+    post_args.add_argument('languages',
+        type=str,
+        help='Comma-separated list of language codes (e.g., en,fr,es)',
+        required=True,
+        location='form')
     
     @ns.doc(description='Return a list of file records')
+    @ns.expect(get_args)
     def get(self):
-        args = FilesRecordsList.args.parse_args()
+        args = FilesRecordsList.get_args.parse_args()
         
         # start
         start = 1 if args.start is None else int(args.start)
@@ -1626,8 +1761,23 @@ class FilesRecordsList(Resource):
         
         if limit > 1000:
             abort(404, 'Maximum limit is 1000')
+        
+        if args.identifier:
+            if args.identifier_type:
+                this_identifier = Identifier(args.identifier_type, args.identifier)
 
-        data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
+                if args.language:
+                    # Get files for identifier by language
+                    data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find_by_identifier_language(this_identifier, args.language)]
+                else:
+                    # Get all files for that identifier
+                    data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find_by_identifier(this_identifier)]
+            else:
+                abort(404, 'Param "identifier_type" required with param "identifier"')
+        elif args.identifier_type and not args.identifier:
+            abort(404, 'Param "identifier" required with param "identifier_type"')
+        else:
+            data = [URL('api_file_record', record_id=f.id).to_str() for f in File.find({}, skip=start - 1, limit=limit)]
         
         links = {
             '_self': URL('api_files_records_list', start=start, limit=limit).to_str(),
@@ -1641,6 +1791,62 @@ class FilesRecordsList(Resource):
         }
         
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
+    
+    @ns.doc(description="Submit a new file to the collection", security='basic')
+    @ns.expect(post_args)
+    @login_required
+    def post(self):
+        args = FilesRecordsList.post_args.parse_args()
+
+        if 'file' not in request.files:
+            abort(400, 'No file provided in request')
+
+        uploaded_file = request.files['file']
+
+        # Validate and parse languages
+        languages = [lang.strip().lower() for lang in args.languages.split(',')]
+        valid_langs = ['ar', 'zh', 'en', 'fr', 'ru', 'es', 'de']
+        for lang in languages:
+            if lang not in valid_langs:
+                abort(400, f'Invalid language code: {lang}')
+
+        if uploaded_file.filename == '':
+            abort(400, 'No file selected')
+
+        identifier_type = args.get('identifier_type')
+        identifier_value = args.get('identifier')
+        languages = [lang.strip().lower() for lang in args.get('languages').split(',')]
+
+        try:
+            file_identifier = Identifier(identifier_type, identifier_value)
+
+            file_record = File.import_from_handle(
+                handle=uploaded_file,
+                identifiers=[file_identifier],
+                languages=languages,
+                mimetype=uploaded_file.mimetype,
+                source='dlx-rest',
+                filename=uploaded_file.filename,
+                user=current_user.email
+            )
+
+            if file_record:
+                return {
+                    'result': URL('api_file_record', record_id=file_record.id).to_str()
+                }, 201
+            else:
+                abort(500, 'File upload failed')
+
+        except FileExists as e:
+            abort(409, str(e))
+        except FileExistsIdentifierConflict as e:
+            abort(409, str(e))
+        except FileExistsLanguageConflict as e:
+            abort(409, str(e))
+        except ValueError as e:
+            abort(400, str(e))
+        except Exception as e:
+            abort(500, str(e))
         
 # File
 @ns.route('/files/<string:record_id>')
@@ -1726,6 +1932,7 @@ class MyUserProfileRecord(Resource):
         this_u = User.objects.get(id=current_user.id)
         user_id = this_u['id']
         return_data['email'] = this_u.email
+        return_data['shortname'] = this_u.shortname
         return_data['roles'] = []
         return_data['default_views'] = []
             

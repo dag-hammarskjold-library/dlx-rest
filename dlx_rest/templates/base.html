@@ -76,61 +76,42 @@
 
 <body class="d-flex flex-column h-100">
     <header>
-        <nav class="navbar navbar-expand-lg bg-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{{url_for('search_records', coll='bibs')}}">
-                    <img src="{{url_for('static', filename='img/dhl.png')}}" style="width: 60px;height: 60px;">MARC Editor
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                      {% if (vcoll=="bibs" or vcoll=="all") %}
-                      <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs')}}">Bibs</a>
-                      </li>
-                      {% else %}
-                      <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('search_records', coll='bibs')}}">Bibs</a>
-                      </li>
-                      {% endif %}
-                      {% if (vcoll=="speeches" or vcoll=="all") %}
-                      <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a>
-                      </li>
-                      {% else %}
-                      <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a>
-                      </li>
-                      {% endif %}
-                      {% if (vcoll=="votes" or vcoll=="all") %}
-                      <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a>
-                      </li>
-                      {% else %}
-                      <li class="nav-item">
-                        <a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a>
-                      </li>
-                      {% endif %}
-                      <li class="nav-item dropdown">
-                        {% if vcoll=="auths" %}
-                        <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-current="page">
-                          Auths
-                        </a>
-                        {% else %}
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Auths
-                          </a>
-                        {% endif %}
-                        <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="{{url_for('search_records', coll='auths')}}">Auths</a></li>
-                          <li><a class="dropdown-item" href="{{url_for('review_auth')}}">Review Auths</a></li>
-                        </ul>
-                      </li>
-                      <li class="nav-item dropdown">
-                        {% if vcoll=="browse" %}
-                        <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-current="page">
+        <!-- Fixed navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light text-center">
+            <a class="navbar-brand" href="{{url_for('get_records_list', coll='bibs')}}">
+                <img src="{{ url_for('static', filename='img/dhl.png') }}" style="width:60px;height:60px;">
+                MARC Editor
+                <span style="font-size: 9px">{{ version }}</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"> </span></button>
+            <div class="collapse navbar-collapse" id="navbarToggler">
+                <ul class="navbar-nav mr-auto">
+                    {% if (vcoll=="bibs" or vcoll=="all") %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='bibs')}}">Bibs</a></li>
+                    {% endif %}
+                    {% if (vcoll=="speeches" or vcoll=="all") %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='speech')}}">Speeches</a></li>
+                    {% endif %}
+                    {% if (vcoll == "votes" or vcoll=="all") %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('search_records', coll='bibs', subtype='vote')}}">Votes</a></li>
+                    {% endif %}
+                    {% if vcoll=="auths" %}
+                        <li class="nav-item active"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{url_for('get_records_list', coll='auths')}}">Auths</a></li>
+                    {% endif %}
+                    {% if vcoll=="browse" %}
+                    <li class="nav-item active dropdown">
+                    {% else %}
+                    <li class="nav-item dropdown">
+                    {% endif %}
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                           Browse
                         </a>
                         {% else %}
@@ -150,50 +131,21 @@
                         <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-current="page">
                           Files
                         </a>
-                        {% else %}
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Files
-                        </a>
-                        {% endif %}
-                        <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a></li>
-                          <li><a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a></li>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                          <a class="dropdown-item" href="{{url_for('upload_files')}}">Upload Files</a>
+                          <a class="dropdown-item" href="{{url_for('search_files')}}">Manage Files</a>
                           {% if current_user.is_authenticated %}
-                          {% if current_user.has_permission('importMarc') %}
-                            <li><a class="dropdown-item" href="{{url_for('import_marc')}}">Import Records</a></li>
+                            {% if current_user.has_permission('importMarc') %}
+                                <a class="dropdown-item" href="{{url_for('import_marc')}}">Import Records</a>
                             {% endif %}
                           {% endif %}
-                        </ul>
-                      </li>
-                      {% if vcoll=="editor" %}
-                      <li><a class="nav-link active" aria-current="page" href="{{url_for('editor')}}">Editor</a></li>
-                      {% else %}
-                      <li><a class="nav-link" href="{{url_for('editor')}}">Editor</a></li>
-                      {% endif %}
-                      <li class="nav-item dropdown">
-                        {% if vcoll=="dashboards" %}
-                        <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-current="page">
-                            Dashboards
-                        </a>
-                        {% else %}
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dashboards
-                        </a>
-                        {% endif %}
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{url_for('show_dashboard02')}}">File Upload Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('show_dashboard03')}}">IAMU KPIs</a></li>
-                        </ul>
-                      </li>
-                      {% if vcoll=="help" %}
-                      <li><a class="nav-link active" aria-current="page" href="{{url_for('help')}}">Help</a></li>
-                      {% else %}
-                      <li><a class="nav-link" href="{{url_for('help')}}">Help</a></li>
-                      {% endif %}       
-                      {% if current_user.is_authenticated %}
-                        {% if current_user.has_role('admin') %}
-                            {% if vcoll=="admin" %}
-                            <li><a class="nav-link active" aria-current="page" href="{{url_for('admin_index')}}">Admin</a></li>
+                        </div>
+                    </li>
+                    
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.has_permission('updateRecord') %}
+                            {% if vcoll=="editor" %}
+                                <li class="nav-item active"><a class="nav-link" href="{{url_for('newui')}}">Record Editor</a></li>
                             {% else %}
                             <li><a class="nav-link" href="{{url_for('admin_index')}}">Admin</a></li>
                             {% endif %}

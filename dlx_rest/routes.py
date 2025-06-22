@@ -39,6 +39,11 @@ return_configs = {
     "ver": Config.VERSION
 }
 
+
+@app.context_processor
+def get_version():
+    return dict(version=Config.VERSION)
+
 # Main app routes
 @app.route('/')
 def index():
@@ -173,6 +178,7 @@ def create_user():
     if request.method == 'POST':
         email = request.form.get('email')
         username = request.form.get('username')
+        shortname = request.form.get('shortname')
         roles = form.roles.data
         default_views = form.views.data
         password = request.form.get('password')
@@ -181,6 +187,7 @@ def create_user():
         user = User(email=email, created=created)
         user.set_password(password)
         user.username = username
+        user.shortname = shortname
         for role in roles:
             try:
                 r = Role.objects.get(name=role)
@@ -222,12 +229,14 @@ def update_user(id):
         user = User.objects.get(id=id)
         email = request.form.get('email', user.email)
         username = request.form.get('username', user.username)
+        shortname = request.form.get('shortname')
         roles = request.form.getlist('roles')
         default_views = request.form.getlist('views')
         password = request.form.get('password', user.password_hash)
 
         user.email = email  #unsure if this is a good idea
         user.username = username
+        user.shortname = shortname
         if password:
             user.set_password(password)
         user.roles = []
@@ -788,7 +797,7 @@ def update_file():
 
 @app.route('/import')
 @login_required
-#@requires_permission('importMarc')
+@requires_permission('importMarc')
 def import_marc():
     this_prefix = url_for('doc', _external=True)
     print(this_prefix)

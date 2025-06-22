@@ -1,9 +1,12 @@
 import { sortcomponent } from "./sort.js";
 import { countcomponent } from "./count.js";
+import { itemaddcomponent } from "./itemadd.js";
+import { recordfilecomponent } from "../recordfiles.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { Jmarc } from "../jmarc.mjs";
 import { exportmodal } from "../modals/export.js";
+import { readonlyrecord } from "../readonly_record.js"
 
 export let searchcomponent = {
     // onclick="addRemoveBasket("add","{{record['id']}}","{{coll}}","{{prefix}}")"
@@ -29,16 +32,15 @@ export let searchcomponent = {
             required: true
         }
     },
-    template: ` 
-    <div class="container pt-2" id="app1" style="background-color:white;">
+    template: /* html */ `
+    <div class="col-sm-8 pt-2" id="app1" style="background-color:white;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white text-center">
             <div class="collapse navbar-collapse" id="advancedSearchToggle">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item"><a id="toggleSSLink" class="nav-link active" href="#" @click="toggleAdvancedSearch()">Simple Search</a></li>
                     <li class="nav-item"><a id="toggleASLink" class="nav-link" href="#" @click="toggleAdvancedSearch()">Advanced Search</a></li>
                     <li v-if="collectionTitle=='speeches'" class="nav-item"><a class="nav-link" :href="uibase + '/records/speeches/review'">Speech Review</a></li>
-                </ul>
-                <ul class="navbar-nav me-auto">
+                    <li v-if="collectionTitle=='auths'" class="nav-item"><a class="nav-link" :href="uibase + '/records/auths/review'">Auth Review</a></li>
                     <li class="nav-item">
                         <div class="form-check form-switch nav-link">
                             <input v-if="params.engine === 'atlas'" type="checkbox" role="switch" checked="true" class="form-check-input" id="customSwitch1" @change="toggleEngine">
@@ -134,7 +136,7 @@ export let searchcomponent = {
             Filter: 
             <a v-for="headFilter in headFilters" class="badge badge-light mx-1 head-filter" :data-searchString="headFilter">{{headFilter}}</a>
         </div>
-        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params"></sortcomponent>
+        <sortcomponent v-bind:uibase="uibase" v-bind:collection="collection" v-bind:params="params" :subtype="subtype"></sortcomponent>
         <nav>
             <ul class="pagination pagination-md justify-content-center">
                 <li class="page-item disabled">
@@ -161,64 +163,60 @@ export let searchcomponent = {
         </div>
         <br>
         <div id="message-display" class="col-xs-1 text-center"></div>
-        <div class="row">
-            <div class="col">
-                <ul class="list-inline">
-                    <li class="list-inline-item">Select</li>
-                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="selectAll">All</a></li>
-                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="selectNone">None</a></li>
-                    <li class="list-inline-item"><a class="mx-1 nav-link result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a></li>
-                </ul>
-            </div>
+        <div class="row" v-if="user">
+            Select 
+            <a class="mx-1 result-link" href="#" @click="selectAll">All</a>
+            <a class="mx-1 result-link" href="#" @click="selectNone">None</a>
+            <a class="mx-1 result-link" href="#" @click="sendToBasket">Send Selected to Basket (limit: 100)</a>
+            <a v-if="collectionTitle=='speeches'" class="ml-auto result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+            <a v-if="collectionTitle=='auths'" class="ml-auto result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
+            <a class="ml-auto result-link"><i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i></a>
         </div>
-
-        <div id="results-list">
-            <table class="table table-striped table-borderless" style="table-layout: fixed">
-                <tbody>
-                    <tr v-for="result in this.results" :key="result._id">
-                        <td class="col-lg-1">
-                            <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
-                        </td>
-                        <td class="col" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                            <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
-                                <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
-                                <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
-                                <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
-                            </div>
-                            <div v-else class="row" style="flex-wrap:inherit">
-                                <a v-if="allowDirectEdit" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
-                                <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
-                                <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
-                            </div>
-                            <div class="row" style="white-space:nowrap">
-                            
-                                <span class="ml-3">
-                                <span>
-                                <i :id="'preview-toggle-' + result._id"  class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="preview record"></i>
-                                <div :id="'preview-' + result._id" class="record-preview hidden">
-                                    <span class="record-preview-id">{{result._id}}</span>
-                                    </br>
-                                    <span :id="'preview-text-' + result._id" class="preview-text"></span>
-                                </div>
-                            </span>
-                                    {{result.second_line}}</span>
-                            </div>
-                            <div class="row" v-for="agenda in result.agendas">
-                                <span class="ml-6">{{agenda}}</span>
-                            </div>
-                            <div class="row" v-for="val in result.f596">
-                                <span class="ml-6">{{val}}</span>
-                            </div>
-                            <div class="row" v-for="val in result.f520" style="white-space:nowrap">
-                                <span class="ml-6">{{val}}</span>
-                            </div>
-                        </td>
-                        <td class="col-1 text-end">
-                             <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to your basket"></i></a>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div id="results-list" v-for="result in this.results" :key="result._id">
+            <div class="row mt-1 border-bottom search-result">
+                <div class="col-sm-1" v-if="user">
+                    <input :id="'input-' + collection + '-' + result._id" type="checkbox" disabled="true" data-toggle="tooltip" title="Select/deselect record"/>
+                </div>
+                <div class="col-sm-9 px-4">
+                    <div v-if="collection != 'auths'" class="row" style="overflow-x:hidden">
+                        <a v-if="!result.locked" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="white-space:nowrap">{{result.first_line}}</a>
+                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
+                    </div>
+                    <div v-else class="row" style="flex-wrap:inherit">
+                        <a v-if="!result.locked" :id="'link-' + result._id" class="result-link" :href="uibase + '/editor?records=' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                        <a v-else class="result-link" :id="'link-' + result._id" :href="uibase + '/records/' + collection + '/' + result._id" style="overflow-wrap:break-word">{{result.first_line}}</a>
+                        <countcomponent v-if="collection == 'auths'" :api_prefix="api_prefix" :recordId="result._id"></countcomponent>
+                    </div>
+                    <div class="row" style="white-space:nowrap">
+                        {{result.second_line}}
+                    </div>
+                    <div class="row" v-for="agenda in result.agendas">
+                        <span class="ml-3">{{agenda}}</span>
+                    </div>
+                    <div class="row" v-for="val in result.f596">
+                        <span class="ml-3">{{val}}</span>
+                    </div>
+                    <div class="row" v-for="val in result.f520" style="white-space:nowrap">
+                        <span class="ml-3">{{val}}</span>
+                    </div>
+                </div>
+                <div>
+                    <i v-if="previewOpen === result._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
+                    <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result._id)" title="Preview record"></i>
+                    <readonlyrecord v-if="previewOpen === result._id" :api_prefix="api_prefix" :collection="collection" :record_id="result._id" class="record-preview"></readonlyrecord>
+                </div>
+                <div class="col">
+                    <recordfilecomponent ref="recordfilecomponent" v-if="collection=='bibs'" :api_prefix="api_prefix" :record_id="result._id" />
+                </div>
+                <div class="col-sm-1">
+                    <!-- need to test if authenticated here -->
+                    <div class="row ml-auto">
+                        <!-- <a><i :id="'icon-' + collection + '-' + result._id" class="fas fa-2x" data-toggle="tooltip" title="Add to basket"></i></a> -->
+                        <itemaddcomponent ref="itemaddcomponent" v-if="myBasket" :api_prefix="api_prefix" :myBasket="myBasket" :collection="collection" :recordId="result._id" @enableCheckbox="enableCheckbox(result)" @disableCheckbox="disableCheckbox(result)"></itemaddcomponent>
+                    </div>
+                </div>
+            </div>
         </div>
         </br>
         <nav>
@@ -253,7 +251,8 @@ export let searchcomponent = {
                 myProps[thisParam[0]] = decodeURIComponent(thisParam[1]).replace(/\+/g, ' ');
             }
         }
-        let myUIBase = this.api_prefix.replace('/api/','');
+        let myUIBase = this.api_prefix.replace('/api/', '');
+        let mySubtype = ["vote", "speech"].includes(myProps.subtype) ? myProps.subtype : this.collection
         return {
             visible: true,
             results: [],
@@ -283,11 +282,11 @@ export let searchcomponent = {
             */
             searchFields: [],
             searchTypes: [
-                {'name': 'All of the words:', 'value': 'all'},
-                {'name': 'Any of the words:', 'value': 'any'},
-                {'name': 'Exact phrase:', 'value': 'exact'},
-                {'name': 'Partial phrase:', 'value': 'partial'},
-                {'name': 'Regular expression:', 'value': 'regex'},
+                { 'name': 'All of the words:', 'value': 'all' },
+                { 'name': 'Any of the words:', 'value': 'any' },
+                { 'name': 'Exact phrase:', 'value': 'exact' },
+                { 'name': 'Partial phrase:', 'value': 'partial' },
+                { 'name': 'Regular expression:', 'value': 'regex' },
             ],
             uibase: myUIBase,
             count: null,
@@ -300,26 +299,32 @@ export let searchcomponent = {
             lookup_maps: {},
             expressions: [],
             vcoll: null,
-            searchTime: 0,
+            searchTime: "?",
             maxTime: 20000, //milliseconds
-            headFilters: ['100','110','111', '130', '150','190','191'],
+            headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             abortController: new AbortController(),
+            myProfile: {},
             myBasket: {},
             user: null,
             collectionTitle: null,
-            engine: "community"
+            engine: "community",
+            previewOpen: false,
+            subtype: mySubtype
         }
     },
-    created: async function() {
+    created: async function () {
         this.allowDirectEdit = this.logged_in ? true : false;
     },
-    mounted: async function() {
+    mounted: async function () {
         let component = this;
         this.collectionTitle = component.collection;
+        this.myProfile = await user.getProfile(component.api_prefix, 'my_profile');
+        this.user = this.myProfile.data.email;
+        this.myBasket = await basket.getBasket(this.api_prefix);
         Jmarc.apiUrl = component.api_prefix;
 
         // cancel record preview if clicking anywhere besides the preview
-        window.addEventListener("click", function(event) {
+        window.addEventListener("click", function (event) {
             if (event.target.parentElement === null) {
                 // probably a modal
                 return
@@ -330,23 +335,21 @@ export let searchcomponent = {
                 || event.target.classList.contains("record-preview")
                 || event.target.parentElement.classList.contains("record-preview")
             ) {
+                // the target is a part of the preview (do nothing)
                 return
             }
 
             for (let x of document.getElementsByClassName("record-preview")) {
-                let match = x.id.match(/^preview\-(\d+)$/);
-                let recordId = match[1];
-                component.hidePreview(recordId);
+                component.togglePreview(event)
             }
         });
 
         //let searchstr = document.getElementById('q').value;
         this.searchFields = JSON.parse(this.index_list)
-        
+
         // [what is this used for?]
         if (component.collection == "auths") {
-            
-            let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
+            /* let authLookupMapUrl = `${component.api_prefix}marc/${component.collection}/lookup/map`
             let authMapResponse = await fetch(authLookupMapUrl);
             let authMapData = await authMapResponse.json();
             component.lookup_maps['auths'] = authMapData.data;
@@ -354,7 +357,7 @@ export let searchcomponent = {
             let bibLookupMapUrl = `${component.api_prefix}marc/bibs/lookup/map`
             let bibMapResponse = await fetch(bibLookupMapUrl);
             let bibMapData = await bibMapResponse.json();
-            component.lookup_maps['bibs'] = bibMapData.data;
+            component.lookup_maps['bibs'] = bibMapData.data; */
         } else if (component.collection == "bibs") {
             //this.searchFields = this.bibSearchFields
         }
@@ -369,7 +372,7 @@ export let searchcomponent = {
             this.collectionTitle = "votes"
         }
 
-        let myEnd = component.params.start + component.params.limit -1;
+        let myEnd = component.params.start + component.params.limit - 1;
         component.end = myEnd;
         component.start = component.params.start;
         let startTime = Date.now();
@@ -380,7 +383,7 @@ export let searchcomponent = {
         ).then(
             jsonData => {
                 component.resultcount = jsonData["data"];
-                
+
                 // override the spinner
                 document.getElementById("result-count-top").innerHTML = component.resultcount;
                 document.getElementById("result-count-bottom").innerHTML = component.resultcount;
@@ -388,7 +391,7 @@ export let searchcomponent = {
                 if (component.resultcount == 0) {
                     component.start = 0;
                 }
-                
+
                 if (myEnd >= component.resultcount) {
                     component.end = component.resultcount
                     component.next = null
@@ -430,21 +433,22 @@ export let searchcomponent = {
                     component.count = component.links.related.count;
                 }
                 if (component.links._prev) {
-                    component.prev = component.links._prev.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                    component.prev = component.links._prev.replace('&search', '&q').replace('/records', '/search').replace('/api/marc', '/records');
                 }
                 if (component.links._next) {
-                    component.next = component.links._next.replace('&search','&q').replace('/records','/search').replace('/api/marc','/records');
+                    component.next = component.links._next.replace('&search', '&q').replace('/records', '/search').replace('/api/marc', '/records');
                 }
                 for (let result of jsonData["data"]) {
-                    let myResult = { "_id": result["_id"]}
+                    let myResult = { "_id": result["_id"] }
                     if (component.collection == "bibs") {
                         myResult["first_line"] = result["title"]
                         //.split("::")[result["types"].split("::").length-1]]
 
                         let rtype = result["types"].split("::")
 
-                        myResult["second_line"] = [result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
+                        myResult["second_line"] = [result["f099c"].length > 0 ? result["f099c"].join(', ') : false, result["symbol"], result["date"], rtype[rtype.length - 1]].filter(Boolean).join(" | ")
                         myResult["f520"] = result["f520"]
+
                         if (this.vcoll == "089:'B22'") {
                             myResult["agendas"] = result["agendas"]
                             myResult["f596"] = result["f596"]
@@ -456,6 +460,7 @@ export let searchcomponent = {
                     } else if (component.collection == "files") {
                         // not implemented yet
                     }
+                    myResult.locked = false
                     component.results.push(myResult);
                 }
             }
@@ -469,63 +474,8 @@ export let searchcomponent = {
                     this.reportError(error.toString())
                 }
             }
-        ).then( 
-            () => {
-                user.getProfile(component.api_prefix, 'my_profile').then(
-                    myProfile => {
-                        if (myProfile) {
-                            component.user = myProfile.data.email;
-                        }
-                    
-                        if (typeof component.user !== "undefined") {
-                            basket.getBasket(component.api_prefix).then(
-                                myBasket => {
-                                    this.myBasket = myBasket
-                                    for (let result of component.results) {
-                                        let myId = `icon-${component.collection}-${result._id}`;
-                                        let iconEl = document.getElementById(myId);
+        )
 
-                                        let myCheckboxId = `input-${component.collection}-${result._id}`;
-                                        let inputEl = document.getElementById(myCheckboxId);
-                                    
-                                        if (component.basketContains(myBasket, component.collection, result._id)) {
-                                            //iconEl.classList.remove('fa-folder-plus',);
-                                            iconEl.classList.add("fa-folder-minus");
-                                            iconEl.classList.add("text-muted");
-                                            iconEl.title = "Remove from basket";
-                                        } else {
-                                            iconEl.classList.add('fa-folder-plus');
-                                            iconEl.title = "Add to basket";
-                                            inputEl.disabled = false
-                                        }
-
-                                        // checking if the record is locked and displaying a lock if it is.
-                                        basket.itemLocked(this.api_prefix, this.collection, result._id).then(
-                                            itemLocked => {
-                                                if (itemLocked["locked"] == true && itemLocked["by"] != this.user) {
-                                                    // Display a lock icon
-                                                    iconEl.classList.remove('fa-folder-plus',);
-                                                    iconEl.classList.remove('fa-folder-minus',);
-                                                    iconEl.classList.add('fa-lock',);
-                                                    iconEl.title = `This item is locked by ${itemLocked["by"]}`;
-                                                    // revert link to read only view. 
-                                                    // TODO: acquire the lock status earlier 
-                                                    document.getElementById("link-" + result._id).href = this.uibase + '/records/' + this.collection + '/' + result._id;
-                                                    inputEl.disabled = true
-                                                } else {
-                                                    iconEl.addEventListener("click", component.handleIconClick, true)
-                                                }
-                                            }
-                                        );
-                                    }
-                                }
-                            )
-                        }        
-                    }
-                )
-            }
-        );
-        
         // cancel the search if it takes more than 15 seconds
         setTimeout(() => this.abortController.abort(), this.maxTime);
 
@@ -535,7 +485,7 @@ export let searchcomponent = {
     },
     methods: {
         rebuildUrl(param, value) {
-            let myParams = Object.assign({},this.params);
+            let myParams = Object.assign({}, this.params);
             let searchParam = myParams["search"]
             let newSearchParam = ""
             for (let hf of this.headFilters) {
@@ -544,23 +494,23 @@ export let searchcomponent = {
                     break
                 }
             }
-            
+
             if (newSearchParam.includes("nnn")) {
-                myParams["search"] = newSearchParam.replace("nnn",value)
+                myParams["search"] = newSearchParam.replace("nnn", value)
             } else {
                 if (newSearchParam.length > 0) {
                     myParams["search"] = `${newSearchParam} AND ${value}:*`
                 } else {
                     myParams["search"] = `${value}:*`
                 }
-                
+
             }
 
             // Set the search type to whatever we've set it to with our toggle 
             myParams["engine"] = this.engine
 
             const qs = Object.keys(myParams)
-                .map(key => `${key.replace('search','q')}=${encodeURIComponent(myParams[key])}`)
+                .map(key => `${key.replace('search', 'q')}=${encodeURIComponent(myParams[key])}`)
                 .join('&');
             return `${this.action}?${qs}`;
         },
@@ -577,54 +527,17 @@ export let searchcomponent = {
                 }
             }
         },
-        basketContains(basketContents, collection, record_id) {
-            for (let item of basketContents) {
-                if (item.collection == collection && item.record_id == record_id) {
-                    return true;
-                }
-            }
-            return false;
-        },
         refreshBasket() {
-            basket.getBasket(this.api_prefix).then( (b) => {
+            basket.getBasket(this.api_prefix).then((b) => {
                 this.myBasket = b
             })
-        },
-        async handleIconClick(e) {
-            let collection = e.target.id.split("-")[1]
-            let record_id = e.target.id.split("-")[2]
-            e.target.classList.add("fa-spinner");
-            if (e.target.classList.contains("fa-folder-plus")) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-plus");
-                    e.target.classList.add("fa-folder-minus");
-                    e.target.classList.add("text-muted");
-                    e.target.title = "Remove from basket";
-                })
-            } else if (e.target.classList.contains("fa-folder-minus")) {
-                await basket.deleteItem(this.myBasket, collection, record_id).then( () => {
-                    e.target.classList.remove("fa-spinner");
-                    e.target.classList.remove("fa-folder-minus");
-                    e.target.classList.add("fa-folder-plus");
-                    e.target.classList.remove("text-muted");
-                    e.target.title = "Add to basket";
-                })
-            } //else if (e.target.classList.contains("fa-lock")) {
-                // To do: unlock
-            //} 
-            else {
-                return false
-            }
-            this.refreshBasket()
-            return true
         },
         toggleAdvancedSearch() {
             let el = document.getElementById("advanced-search")
             let ss = document.getElementById("simple-search")
             let toggleASLink = document.getElementById("toggleASLink")
             let toggleSSLink = document.getElementById("toggleSSLink")
-            if (el.style.display == "none"){
+            if (el.style.display == "none") {
                 el.style.display = "block"
                 ss.style.display = "none"
                 toggleASLink.classList.add("active")
@@ -646,15 +559,15 @@ export let searchcomponent = {
             // Build the URL
             var expressions = []
             var anycount = 0
-            for (let i of ["1","2","3"]) {
-                let term  = this.advancedParams[`searchTerm${i}`]
+            for (let i of ["1", "2", "3"]) {
+                let term = this.advancedParams[`searchTerm${i}`]
                 let termList = []
                 // First figure out if there IS a search term here, then split it by space
                 if (term !== null) {
                     termList = term.split(/\s+/)
                 }
                 // Next figure out if we're searching in a field or not
-                if (this.advancedParams[`searchField${i}`] == "any" ) {
+                if (this.advancedParams[`searchField${i}`] == "any") {
                     if (term) {
                         anycount++
                     }
@@ -685,12 +598,12 @@ export let searchcomponent = {
                             throw new Error("Search cancelled");
                         default:
                             expressions.push(termList.join(" "))
-                    }                    
+                    }
                 } else {
                     let myField = this.advancedParams[`searchField${i}`]
                     let myExpr = []
                     // To do: add a flag for case insensitive search
-                    switch(this.advancedParams[`searchType${i}`]) {
+                    switch (this.advancedParams[`searchType${i}`]) {
                         case "any":
                             // Any of the words in the given field
                             for (let term of termList) {
@@ -721,7 +634,7 @@ export let searchcomponent = {
                     }
                 }
             }
-            if (anycount > 1) {                  
+            if (anycount > 1) {
                 this.reportError("Can't have more than one \"in any field\" term")
                 throw new Error("Search cancelled");
             }
@@ -731,7 +644,7 @@ export let searchcomponent = {
                 compiledExpr.push(`${this.vcoll} AND`)
             }
             for (let i in expressions) {
-                let j = parseInt(i)+1
+                let j = parseInt(i) + 1
                 let accessor = `searchConnector${j.toString()}`
                 if (expressions[i] !== "") {
                     compiledExpr.push(expressions[i])
@@ -766,10 +679,10 @@ export let searchcomponent = {
             this.abortController.abort();
             this.start = this.end = 0;
         },
-        selectAll(e)  {
+        selectAll(e) {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox" && !inputEl.disabled) {
+                if (inputEl.type == "checkbox" && !inputEl.disabled && inputEl.id != "customSwitch1") {
                     inputEl.checked = true
                 }
             }
@@ -777,10 +690,24 @@ export let searchcomponent = {
         selectNone(e) {
             e.preventDefault()
             for (let inputEl of document.getElementsByTagName("input")) {
-                if (inputEl.type == "checkbox") {
+                if (inputEl.type == "checkbox" && inputEl.id != "customSwitch1") {
                     inputEl.checked = false
                 }
             }
+        },
+        // We could instead use the result object to control this and maintain reactivity.
+        enableCheckbox(record) {
+            //console.log("enbling checkbox")
+            let el = document.getElementById(`input-${this.collection}-${record._id}`);
+            el.disabled = false;
+            record.locked = false;
+        },
+        disableCheckbox(record) {
+            //console.log("disabling checkbox")
+            let el = document.getElementById(`input-${this.collection}-${record._id}`);
+            el.checked = false;
+            el.disabled = true;
+            record.locked = true;
         },
         async sendToBasket(e) {
             e.preventDefault()
@@ -802,64 +729,39 @@ export let searchcomponent = {
                 }
             }
             if (items.length > 0) {
-                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then( () => window.location.reload(false) )
+                basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items)).then(() => window.location.reload(false))
             }
         },
         togglePreview(event, recordId) {
-            let preview = document.getElementById("preview-" + recordId);
-            let toggleButton = document.getElementById("preview-toggle-" + recordId);
+            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
 
-            if (preview.classList.contains("hidden")) {
-                // unhide the preview div
-                preview.classList.remove("hidden");
-                toggleButton.className = "fas fa-spinner preview-toggle";
-                let display = document.getElementById("preview-text-" + recordId);
-
-                // get the data
-                Jmarc.get(this.collection, recordId)
-                    .then(jmarc => {
-                        display.innerText = jmarc.toStr();
-                        toggleButton.className = "fas fa-window-close preview-toggle";
-                        toggleButton.title = "close preview";
-                    })
-                
-                // hide any other unhidden preview divs
-                for (let x of document.getElementsByClassName("record-preview")) {
-                    if (x !== preview) {
-                        let match = x.id.match(/^preview\-(\d+)/);
-                        let otherId = match[1];
-                        this.hidePreview(otherId);
-                    }
-                }
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             } else {
-                // hide the preview div
-                this.hidePreview(recordId);
+                this.previewOpen = false;
             }
-        },
-        hidePreview(recordId) {
-            let preview = document.getElementById("preview-" + recordId);
-            preview.classList.add("hidden");
-            let toggleButton = document.getElementById("preview-toggle-" + recordId);
-            toggleButton.className = "fas fa-file preview-toggle";
-            toggleButton.title = "preview record";
-        },
 
+            return
+        },
         showExportModal() {
             //console.log(this.links.format)
             this.$refs.exportmodal.show()
         },
-          
         toggleEngine(e) {
             // toggle the search type
-            console.log("Toggling search engine")
+            //console.log("Toggling search engine")
             this.params.engine = e.target.checked ? "atlas" : "community"
-            this.rebuildUrl("engine", this.engine) 
+            this.rebuildUrl("engine", this.engine)
 
         }
     },
     components: {
-        'sortcomponent': sortcomponent, 
+        'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        'exportmodal': exportmodal
+        'exportmodal': exportmodal,
+        'itemaddcomponent': itemaddcomponent,
+        'recordfilecomponent': recordfilecomponent,
+        'readonlyrecord': readonlyrecord
     }
 }

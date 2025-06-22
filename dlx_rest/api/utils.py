@@ -8,7 +8,8 @@ from datetime import datetime, timezone
 from dlx import DB
 from dlx import Config as DlxConfig
 from dlx_rest.config import Config
-from dlx.marc import Bib, BibSet, Auth, AuthSet
+from dlx.marc import Marc, Bib, BibSet, Auth, AuthSet
+from dlx.file import File, Identifier
 from dlx_rest.models import Basket, User
 from flask import abort as flask_abort, url_for, jsonify
 from flask_restx import reqparse
@@ -78,6 +79,9 @@ class ApiResponse():
         )
    
 class Schemas():
+    # These schemas are jsonschema validation documents. The data returned by 
+    # every API response is validated by one of these schemas.
+
     def get(schema_name):
         if schema_name == 'api.urllist':
             data = {'type': 'array', 'items': {'type': 'string', 'format': 'uri'}}
@@ -118,6 +122,9 @@ class Schemas():
                     }
                 }
             }
+        elif schema_name == 'jmarc.preview':
+            data = deepcopy(DlxConfig.jmarc_schema)
+            data['required'].remove('_id')
         elif schema_name == 'jmarc.workform':
             data = deepcopy(DlxConfig.jmarc_schema)
             del data['properties']['_id']
@@ -153,6 +160,18 @@ class Schemas():
             }
         elif schema_name == 'jfile':
             data = DlxConfig.jfile_schema
+        elif schema_name == 'api.filelist':
+            data = {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'mimetype': {'type': 'string', 'pattern': '^(text|application)/'}, 
+                        'language': {'type': 'string', 'pattern': '^[a-z]{2}$'},
+                        'url': {'type': 'string', 'format': 'uri'}
+                    }   
+                } 
+            }
         elif schema_name == 'api.null':
             data = {'type': 'object', 'properties': {}, 'additionalProperties': False}
         elif schema_name == 'api.count':
@@ -212,6 +231,8 @@ def brief_bib(record):
     # Should be truncated in display with hover showing the rest
     f520 = [record.get_value('520', 'a')]
 
+    f099c = record.get_values('099', 'c')
+
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
@@ -221,7 +242,8 @@ def brief_bib(record):
         'types': '; '.join(ctypes),
         'agendas': agendas,
         'f596': f596,
-        'f520': f520
+        'f520': f520,
+        'f099c': f099c
     }
 
 def brief_speech(record):
@@ -351,3 +373,18 @@ def parse_constraint(constraint):
         pass
 
     return return_data
+
+def get_record_files(record: Marc) -> list[File]:
+    symbols = record.get_values('191', 'a') + record.get_values('191', 'z') + record.get_values('791', 'a')
+    isbns = record.get_values('020', 'a')
+    isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
+    uris = record.get_values('561', 'u') # Get files by original URI which was logged in the Archive-It system
+    all_files = []
+    
+    for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
+        for id_value in id_values:
+            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
+            this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
+            all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+
+    return all_files

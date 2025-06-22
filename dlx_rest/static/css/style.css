@@ -393,3 +393,7 @@ button:focus {
   from {top:-300px; opacity:0}
   to {top:0; opacity:1}
 } 
+
+.selected {
+  background-color: #70a9e1 !important;
+}
