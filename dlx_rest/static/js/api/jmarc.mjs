@@ -1,6 +1,6 @@
 "use strict";
 
-import { validationData } from "./validation.js";
+import { validationData } from "../utils/validation.js";
 
 // todo: fetch this data from the API to avoid redundancy
 const authMap = {
@@ -385,7 +385,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					// Issue #190: Exclude deprecated authority terms from the lookup
 					let newJmarc = new Jmarc("auths").parse(auth)
-					console.log(newJmarc)
+					//console.log(newJmarc)
 					let this682 = newJmarc.getField('682')
 					if (this682) {
 						let this682_a = this682.getSubfield('a') 

@@ -1,0 +1,6 @@
+{% extends 'base.html' %} {% block content %} 
+<div>
+    <div id="editor-root"></div>
+</div>
+<script type="module" src="{{url_for('static', filename='js/mount.js')}}"></script>
+{% endblock %}

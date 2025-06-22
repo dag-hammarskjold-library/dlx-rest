@@ -1,13 +1,13 @@
 {% extends 'base.html' %} {% block content %}
 <div style="background-color:grey;">
-    <div id="browse_vm" v-show="true">
+    <div>
         <div class="row justify-content-center">
             <div class="col-2" style="background-color:white;"></div>
             <div class="col-8" style="background-color:white;">
                 {% if index and q %}
-                <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
+                <div id="browse-root" data-collection="{{coll}}" data-index="{{index}}" data-q="{{q}}"></div>
                 {% else %}
-                <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}"></browsecomponent>
+                <div id="browse-root" data-collection="{{coll}}"></div>
                 {% endif %}
             </div>
             <div class="col-2" style="background-color:white;"></div>
@@ -15,6 +15,6 @@
     </div>
 </div>
 
-<script type="module" src="{{url_for('static', filename='js/browse_vm.js')}}"></script>
+<script type="module" src="{{url_for('static', filename='js/mount.js')}}"></script>
 
 {% endblock %}

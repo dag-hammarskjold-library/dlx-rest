@@ -1,14 +1,11 @@
 {% extends 'base.html' %} {% block content %}    
 
-    <div id="auth_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
-        <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
+    <div>
         <div class="row">
-            
-            <authreviewcomponent api_prefix="{{api_prefix}}"></authreviewcomponent>
-            
+            <div id="auth-review-root" data-api-prefix="{{api_prefix}}"></div>
         </div>
     </div>
 
-<script type="module" src="{{url_for('static', filename='js/auth_review_vm.js')}}" ></script>
+<script type="module" src="{{url_for('static', filename='js/mount.js')}}" ></script>
 
 {% endblock %}

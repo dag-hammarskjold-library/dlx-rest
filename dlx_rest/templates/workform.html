@@ -2,16 +2,11 @@
 {% block content %}
 
 <div style="background-color:grey;">
-    <div id="workform_vm" v-show="true">
-        <messagecomponent></messagecomponent>
-        <div class="row">
-            <sidebarcomponent sbtype="other"></sidebarcomponent>
-            <workformcomponent api_prefix="{{api_prefix}}"></workformcomponent>
-            <sidebarcomponent sbtype="other"></sidebarcomponent>
-        </div>
+    <div>
+        <div id="workform-root"></div>
     </div>
 </div>
 
-<script type="module" src="{{url_for('static', filename='js/workform_vm.js')}}"></script>
+<script type="module" src="{{url_for('static', filename='js/mount.js')}}"></script>
 
 {% endblock %}

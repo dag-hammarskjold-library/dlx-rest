@@ -10,16 +10,17 @@ import {
     Indicator2ValidationFlag,
     SubfieldCodeValidationFlag,
     SubfieldValueValidationFlag
-} from "./jmarc.mjs";
-import user from "./api/user.js";
-import basket from "./api/basket.js";
-import { basketcomponent } from "./basket.js";
-import { countcomponent } from "./search/count.js";
-import { validationData } from "./validation.js";
-import { renderingData } from "./rendering.js";
+} from "../api/jmarc.mjs";
+import user from "../api/user.js";
+import basket from "../api/basket.js";
+import { basketcomponent } from "./basket_old.js";
+import { countcomponent } from "./count.js";
+import { validationData } from "../utils/validation.js";
+import { renderingData } from "../utils/rendering.js";
+import { EventBus } from "../utils/event-bus.js";
 
 // Modals
-import {batcheditmodal} from "./modals/batch_edit.js"
+import {batcheditmodal} from "./batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT
@@ -27,7 +28,7 @@ import {batcheditmodal} from "./modals/batch_edit.js"
  
 export let multiplemarcrecordcomponent = {
     props: {
-        prefix: {
+        api_prefix: {
             type: String,
             required: true
         },
@@ -43,7 +44,7 @@ export let multiplemarcrecordcomponent = {
             type: Boolean,
             default: false
         },
-        fromworkform: {
+        fromWorkform: {
             type: String,
             required: false
         }
@@ -77,7 +78,7 @@ export let multiplemarcrecordcomponent = {
             </div>
 
             <!-- Modal for batch edit -->
-            <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
+            <batcheditmodal ref="batcheditmodal" :api_prefix="api_prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
         <div id="modal" v-show="this.showModal">
@@ -218,18 +219,18 @@ export let multiplemarcrecordcomponent = {
     
 
         let component = this;
-        Jmarc.apiUrl = this.prefix;
-        this.baseUrl = this.prefix.replace("/api", "");
+        Jmarc.apiUrl = this.api_prefix;
+        this.baseUrl = this.api_prefix.replace("/api", "");
        
         this.copiedFields = [];
         this.$root.$refs.multiplemarcrecordcomponent = this;
 
-        let myProfile = await user.getProfile(this.prefix, 'my_profile');
+        let myProfile = await user.getProfile(this.api_prefix, 'my_profile');
         
         if (myProfile != null) {
             this.user = myProfile.data.email;
             this.myDefaultViews = myProfile.data.default_views;
-            let myBasket = await basket.getBasket(this.prefix);
+            let myBasket = await basket.getBasket(this.api_prefix);
             
             if (this.records !== "None") {
                 // "<col>/<id>"
@@ -244,8 +245,8 @@ export let multiplemarcrecordcomponent = {
                     if (! jmarc) continue
                     
                     if (this.readonly && this.user !== null) {
-                        //this.recordLocked = await basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId);
-                        basket.itemLocked(this.prefix, jmarc.collection, jmarc.recordId).then( () => {
+                        //this.recordLocked = await basket.itemLocked(this.api_prefix, jmarc.collection, jmarc.recordId);
+                        basket.itemLocked(this.api_prefix, jmarc.collection, jmarc.recordId).then( () => {
                             this.displayMarcRecord(jmarc, true)
                         })
 
@@ -255,7 +256,7 @@ export let multiplemarcrecordcomponent = {
                         if (basket.contains(jmarc.collection, jmarc.recordId, myBasket)) {
                             this.displayMarcRecord(jmarc);
                         } else {
-                            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
+                            basket.createItem(this.api_prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then( () => {
                                 this.$root.$refs.basketcomponent.rebuildBasket()
 
                                 // wait for basket to display record so the display method can update the basket styling 
@@ -265,7 +266,7 @@ export let multiplemarcrecordcomponent = {
                         }
                     }
                 }
-            } else if (this.workform !== 'None') {
+            } else if (this.workForm || this.workform !== 'None') {
                 let wfCollection = this.workform.split('/')[0];
                 let wfRecordId = this.workform.split('/')[1]
 
@@ -273,10 +274,11 @@ export let multiplemarcrecordcomponent = {
                 Jmarc.fromWorkform(wfCollection, wfRecordId).then( jmarc => {
                     this.displayMarcRecord(jmarc, false);
                 })
-            } else if (this.fromworkform !== 'None') {
+            } else if (this.workForm || this.fromWorkform !== 'None') {
+                console.log(this.fromWorkform)
                 // Create a record from a workform. This makes the method directly navigable, e.g., for the menu
-                let wfCollection = this.fromworkform.split('/')[0];
-                let wfRecordId = this.fromworkform.split('/')[1]
+                let wfCollection = this.fromWorkform.split('/')[0];
+                let wfRecordId = this.fromWorkform.split('/')[1]
 
 
                 //let jmarc = await Jmarc.fromWorkform(wfCollection, wfRecordId);
@@ -332,7 +334,39 @@ export let multiplemarcrecordcomponent = {
             dropdown && dropdown.remove();
         });
     },
+    mounted() {
+        EventBus.$on('open-record', async ({ collection, record_id, jmarc }) => {
+            //console.log("opening")
+            let recordObj = jmarc;
+            if (!recordObj) {
+                // If jmarc not provided, fetch it
+                recordObj = await this.fetchJmarc(collection, record_id);
+            }
+            if (recordObj) {
+                this.displayMarcRecord(recordObj,false, true);
+            }
+        });
+        EventBus.$on('remove-record', ({ collection, record_id }) => {
+            const jmarc = this.currentRecordObjects.find(
+                obj => obj.collection === collection && String(obj.recordId) === String(record_id)
+            );
+            if (jmarc) {
+                this.removeRecordFromEditor(jmarc);
+            }
+        });
+    },
     methods: {
+
+        async fetchJmarc(collection, record_id) {
+            // Implement this method to fetch a jmarc object as needed
+            //if (window.Jmarc && typeof window.Jmarc.get === 'function') {
+                //return await window.Jmarc.get(collection, record_id);
+            //}
+            // If Jmarc is imported as a module:
+            // import { Jmarc } from '../api/jmarc.mjs';
+            return await Jmarc.get(collection, record_id);
+            //return null;
+        },
 
         log(message) {
             console.log(message);
@@ -552,7 +586,7 @@ export let multiplemarcrecordcomponent = {
 
                     if (recordExists === false) {
                         // new record
-                        basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
+                        basket.createItem(this.api_prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId)
                         // todo: update the basket display instantly
                     }
                 }).catch(error => {
@@ -603,7 +637,7 @@ export let multiplemarcrecordcomponent = {
            
             this.displayMarcRecord(recup, false);
             // Adding to basket happens now whenever the record is saved.
-            //basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, recup.recordId)
+            //basket.createItem(this.api_prefix, "userprofile/my_profile/basket", jmarc.collection, recup.recordId)
             recup.saveButton.classList.add("text-danger");
             //recup.saveButton.classList.remove("text-primary");
             recup.saveButton.title = "unsaved changes";
@@ -1007,9 +1041,9 @@ export let multiplemarcrecordcomponent = {
         },
  
         async editRecord(jmarc) {
-            let uibase = this.prefix.replace("/api/","");
+            let uibase = this.api_prefix.replace("/api/","");
             let editLink = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`;
-            basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
+            basket.createItem(this.api_prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId).then(res => {
                 window.location.href = editLink;
             })
         },
@@ -1034,10 +1068,10 @@ export let multiplemarcrecordcomponent = {
             if (idRow) {idRow.style.backgroundColor = "#009edb"}
         },
         async unlockRecord(jmarc, lockedBy) {
-            let uibase = this.prefix.replace("/api/","")
+            let uibase = this.api_prefix.replace("/api/","")
             let editHref = `${uibase}/editor?records=${jmarc.collection}/${jmarc.recordId}`
             if(confirm(`This will remove the item from the basket belonging to ${lockedBy}. Click OK to proceed.`) == true) {
-                basket.createItem(this.prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
+                basket.createItem(this.api_prefix, "userprofile/my_profile/basket", jmarc.collection, jmarc.recordId, true).then(res => {
                     window.location.href = editHref;
                 })
             }
@@ -1343,7 +1377,7 @@ export let multiplemarcrecordcomponent = {
         async removeFromBasket(recId, coll) {
  
             basketcomponent.removeRecordFromList(recId, coll)
-            basket.deleteItem(this.prefix, 'userprofile/my_profile/basket', this.myBasket, coll, recId).then( () => {
+            basket.deleteItem(this.api_prefix, 'userprofile/my_profile/basket', this.myBasket, coll, recId).then( () => {
                 return true;
             })
  
@@ -1378,7 +1412,7 @@ export let multiplemarcrecordcomponent = {
         
         async getRecordView(collection) {
             let content= `/views/${collection}`
-            let url = `${this.prefix}${content}`
+            let url = `${this.api_prefix}${content}`
             let recordCollection=[]
             try {
                 const response = await fetch(url);
@@ -2170,8 +2204,8 @@ export let multiplemarcrecordcomponent = {
                     } else if (this.historyMode==true){
                         controlButton.innerText = `${jmarc.collection}/${jmarc.recordId} (history record)`;
                     } else if (control["name"] == "countField" && jmarc.recordId && jmarc.collection == "auths") {
-                        let url = `${this.prefix}marc/auths/records/${jmarc.recordId}/use_count?use_type=bibs`;
-                        let uiBase = this.prefix.replace("/api", "")
+                        let url = `${this.api_prefix}marc/auths/records/${jmarc.recordId}/use_count?use_type=bibs`;
+                        let uiBase = this.api_prefix.replace("/api", "")
                         fetch(url).then(
                             response => response.json()
                         ).then( json => {

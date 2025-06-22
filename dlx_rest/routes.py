@@ -60,7 +60,7 @@ def editor():
     records = request.args.get('records', None)
     workform = request.args.get('workform', None)
     fromWorkform = request.args.get('fromWorkform', None)
-    return render_template('new_ui.html', title="Editor", prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
+    return render_template('editor.html', title="Editor", api_prefix=this_prefix, records=records, workform=workform, fromWorkform=fromWorkform, vcoll="editor")
 
 @app.route('/help')
 @login_required

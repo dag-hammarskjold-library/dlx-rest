@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-100">
 
-<!--<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.6.0/stitch.js"></script> -->
-<script src="{{url_for('static', filename='js/mongodb-charts/mongodb-charts3-3.js')}}"></script> <!-- from https://unpkg.com/@mongodb-js/charts-embed-dom@3.3.1/dist/charts-embed-dom.umd.min.js -->
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -38,14 +35,19 @@
         crossorigin="anonymous"
     ></script>
 
+    <!-- Set the api prefix globally -->
+    <script>
+        window.API_PREFIX = "{{ api_prefix }}";
+    </script>
+
     <!-- Vue local source -->
-    <script src="{{url_for('static', filename='js/vue/vue2.js')}}"></script>
+    <script src="{{url_for('static', filename='js/lib/vue2.js')}}"></script>
 
     <!-- jQuery 3 -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 
     <!-- Bootstrap local source -->
-    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script> 
+    <script src="{{url_for('static', filename='js/lib/bootstrap.bundle.min.js')}}"></script> 
 
     <style>
         .bd-placeholder-img {
@@ -194,9 +196,9 @@
     </main> 
 
     <!-- MongoDB Charts SDK -->
-    <script src="{{url_for('static', filename='js/mongodb-charts/mongodb-charts3-3.js')}}"></script>
+    <script src="{{url_for('static', filename='js/lib/mongodb-charts3-3.js')}}"></script>
     <!-- Charts initialization -->
-    <script src="{{url_for('static', filename='js/charts-init.js')}}"></script>
+    <script src="{{url_for('static', filename='js/utils/charts-init.js')}}"></script>
 </body>
   
 </html>

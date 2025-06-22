@@ -1,5 +1,5 @@
-//import { basket } from '../api/basket.js' 
-import { Jmarc } from '../jmarc.mjs'
+import basket from '../api/basket.js';
+import { Jmarc } from '../api/jmarc.mjs'
 
 /* 
 Modal for batch editing records using basket functionality
@@ -23,7 +23,6 @@ export let batcheditmodal = {
                                         </li>
                                     </ul>
                                 </p>
-                                <!-- <p v-for="field in result.fields">{{field.field}} -- {{field.message}}</p> -->
                                 <p v-else class="borderless">
                                     {{result.record}}
                                     <ul>
@@ -76,7 +75,7 @@ export let batcheditmodal = {
                             </div>
                             <table class="table table-striped table-hover">
                                 <tbody>
-                                <tr v-for="item in $root.$refs.basketcomponent.basketItems" :key="item._id">
+                                <tr v-for="item in basketItems" :key="item._id">
                                     <td>
                                         <input v-if="matchesReferrer(item.collection, item._id) && includeReferrer" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
                                         <input v-if="!matchesReferrer(item.collection, item._id)" class="field-checkbox record-selector" type="checkbox" :id="item._id" :data-collection="item.collection" @click="toggleSelect">
@@ -109,32 +108,61 @@ export let batcheditmodal = {
         }
     },
     emits: ['update-records'],
-    created: function () {
-        // basketItems should change when the actual basket contents change, but this isn't happening
-        this.basketItems = this.$root.$refs.basketcomponent.basketItems
-        // Initialize Jmarc 
-        Jmarc.api_prefix = this.api_prefix
-    },
-    watch: {
-        selectedRecords() {
-            let button = document.getElementById("batchUpdateSubmit")
-            if (button) {
-                button.disabled = this.selectedRecords.length == 0
-            }
-        },
-        includeReferrer() {
-            if (!this.includeReferrer) {
-                this.selectedRecords.splice(this.selectedRecords.indexOf(this.referringRecord), 1)
-            }
-        }
+    async created() {
+        await this.loadBasketItems();
+        Jmarc.api_prefix = this.api_prefix;
     },
     methods: {
+        async loadBasketItems() {
+            // Fetch the basket items using the API
+            const basketSet = await basket.getBasket(this.api_prefix);
+            // Convert Set to Array if needed
+            const items = Array.from(basketSet);
+            // For each item, fetch details for title and vcoll
+            this.basketItems = await Promise.all(items.map(async item => {
+                let title = "[No Title]";
+                let vcoll = item.collection;
+                try {
+                    const jmarc = await Jmarc.get(item.collection, item.record_id);
+                    if (item.collection === "bibs") {
+                        let titleField = jmarc.getField("249") || jmarc.getField("245") || jmarc.getField("700");
+                        if (titleField && titleField.getSubfield("a")) {
+                            title = titleField.getSubfield("a").value || "[No Title]";
+                        }
+                        let rtype = jmarc.getField("089");
+                        if (rtype && rtype.getSubfield("b")) {
+                            if (rtype.getSubfield("b").value === "B22") vcoll = "speeches";
+                            if (rtype.getSubfield("b").value === "B23") vcoll = "votes";
+                        }
+                    } else if (item.collection === "auths") {
+                        let headingField;
+                        for (let tag of ["100", "110", "111", "130", "150", "190", "191"]) {
+                            if (jmarc.getField(tag)) headingField = jmarc.getField(tag);
+                        }
+                        if (headingField) {
+                            let text = [];
+                            for (let sub of ["a", "b", "c", "d"]) {
+                                text.push(headingField.getSubfield(sub) ? headingField.getSubfield(sub).value : "");
+                            }
+                            title = text.join(" ");
+                        }
+                    }
+                } catch (e) {
+                    title = "[Failed to load]";
+                }
+                return {
+                    collection: item.collection,
+                    vcoll,
+                    _id: item.record_id,
+                    title
+                };
+            }));
+        },
         reinitialize() {
             this.includeReferrer = false
             this.confirm = false
             this.results = []
             this.selectedRecords = []
-            
         },
         matchesReferrer: function (collection, recordId) {
             let testRecord = [collection, recordId].join("/")
@@ -160,16 +188,14 @@ export let batcheditmodal = {
                         this.selectedRecords.push(record)
                     }
                 } else if (which == "none") {
-                    checkbox.checked = checkbox.checked == false ? false : false
+                    checkbox.checked = false
                     this.selectedRecords.splice(this.selectedRecords.indexOf(record), 1)
                 }
             }
         },
         previewSelection() {
-            // Find which radio button is selected and call the corresponding function when the Update Records button is clicked
             let selected = document.querySelector('input[name="actions"]:checked').value
             if (this.selectedRecords.length > 0) {
-                // Just in case something gave us a bunch of duplicates
                 var selectedRecords = this.selectedRecords.filter((value, index, array) => array.indexOf(value) === index)
                 var selectedFields = this.selectedFields.filter((value, index, array) => array.indexOf(value) === index)
                 if (selected == "add") {
@@ -185,27 +211,18 @@ export let batcheditmodal = {
             for (let jmarc of this.stagedChanges) {
                 jmarc.put().catch(err => {
                     throw err
-                    //errors += 1
                 })
             }
-            // If nothing else has been emitted by this point, return a processed response
             this.$emit('update-records', { "message": this.stagedOperationMessage, "status": "success" } )
             this.stagedChanges = []
         },
         async addToAll(selectedFields, selectedRecords) {
-            // Add the selected fields to the selected records in the basket
-            // We need jmarc for each of the selected records, which we will update
-            // by adding the selected fields.
-            // ** TODO: Make all the messaging consistent **
-            
-            // collect the promises so we can await all of them in parrallel
             let promises = []
             let errors = 0
             
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
                 let recordId = record.split("/")[1]
-                // add the promise to the list
                 promises.push(Jmarc.get(collection, recordId))
             }
 
@@ -214,10 +231,7 @@ export let batcheditmodal = {
             for (let jmarc of jmarcRecords) {
                 let result = {"record": `${jmarc.collection}/${jmarc.recordId}`, "fields": []}
                 
-                // iterate through the selected fields and add them to the record
                 for (let field of selectedFields) {
-                    // add a copy of the field, not the reference to the origianl field object
-                    // todo: add this as a clone field method in Jmarc
                     let newField = jmarc.createField(field.tag)
                     newField.indicators = field.indicators
 
@@ -232,19 +246,16 @@ export let batcheditmodal = {
                     result["fields"].push({"field": field.tag, "subfields": subfields, "action": "will be added"})
                 }
 
-                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                let validationFlags = jmarc.allValidationWarnings()
                 result["invalid"] = false
                 if (validationFlags.length > 0) {
-                    // Check if we can save on invalid; see record.js L#443 for comparison
                     if (!jmarc.getField("998")) {
-                        // We have an error
                         result["invalid"] = true
                         result["message"] = validationFlags.map(x => x.message)
                         errors += 1
                     } else {
                         this.stagedChanges.push(jmarc)
                     }
-                    
                 } else {
                     this.stagedChanges.push(jmarc)
                 }
@@ -254,26 +265,15 @@ export let batcheditmodal = {
             }
 
             this.stagedOperationMessage = `Added fields to ${this.results.filter(x => x.invalid === false).length} record(s). ${errors} validation error(s) encountered.`
-            
-            // Show the confirmation screen
             this.confirm = true
-
-            // If nothing else has been emitted by this point, return a processed response
-            // this.$emit('update-records', { "message":  , "status": "success"})  
         },
         async deleteFromAll(selectedFields, selectedRecords) {
-            // Delete the selected fields from the selected records in the basket
-            // We need jmarc for each of the selected records, which we will update
-            // by deleting the selected fields.
-            // Update via ah/1148: Only delete fields whose subfield values match the selection
-            // collect the promises so we can await all of them in parrallel
             let promises = []
             let errors = 0
             
             for (let record of selectedRecords) {
                 let collection = record.split("/")[0]
                 let recordId = record.split("/")[1]
-                // add the promise to the list
                 promises.push(Jmarc.get(collection, recordId))
             }
 
@@ -285,27 +285,22 @@ export let batcheditmodal = {
                 for (let field of selectedFields) {
                     for (let targetField of jmarc.fields) {
                         if (targetField.tag == field.tag && targetField.toStr() == field.toStr()) {
-                            // delete the field
                             jmarc.deleteField(targetField)
                             result["fields"].push({"field": field.tag, "subfields":field.subfields, "action": "will be deleted"})
                         }
                     }
-                    
                 }
 
-                let validationFlags = jmarc.allValidationWarnings() // new method added to Jmarc to get flags at all levels (record, field, subfield)
+                let validationFlags = jmarc.allValidationWarnings()
                 result["invalid"] = false
                 if (validationFlags.length > 0) {
-                    // Check if we can save on invalid; see record.js L#443 for comparison
                     if (!jmarc.getField("998")) {
-                        // We have an error
                         result["invalid"] = true
                         result["message"] = validationFlags.map(x => x.message)
                         errors += 1
                     } else {
                         this.stagedChanges.push(jmarc)
                     }
-                    
                 } else {
                     this.stagedChanges.push(jmarc)
                 }
@@ -315,11 +310,16 @@ export let batcheditmodal = {
             }
 
             this.stagedOperationMessage = `Deleted fields from ${this.results.filter(x => x.invalid === false).length} record(s). ${errors} validation error(s) encounterd.`
-
-            // Show the confirmation screen
             this.confirm = true
-
-            
+        }
+    },
+    // Reload basket items every time the modal is shown
+    mounted() {
+        const modal = this.$refs.modal;
+        if (modal && modal.addEventListener) {
+            modal.addEventListener('shown.bs.modal', async () => {
+                await this.loadBasketItems();
+            });
         }
     }
 }

@@ -1,11 +1,11 @@
 {% extends 'base.html' %} {% block content %}
-<div id="search_vm" v-show="true" data-api_prefix="{{api_prefix}}">
+<div>
     <div class="row">
-        <searchcomponent api_prefix="{{api_prefix}}" collection="{{collection}}" search_url="{{search_url}}" index_list="{{index_list}}"></searchcomponent>
+        <div id="search-root" data-api-prefix="{{api_prefix}}" data-collection="{{collection}}"></div>
     </div>
 </div>
 
 
-<script type="module" src="{{url_for('static', filename='js/search_vm.js')}}"></script>
+<script type="module" src="{{url_for('static', filename='js/mount.js')}}"></script>
 
 {% endblock %}

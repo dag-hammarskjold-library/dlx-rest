@@ -1,4 +1,6 @@
 /* Used to display the use count in auth search results */
+// This could be turned into a Vue mixin or composable if 
+// we remove the template 
 
 export let countcomponent = {
     props: ["api_prefix", "recordId"],

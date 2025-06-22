@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////
 // IMPORTS
 /////////////////////////////////////////////////////////////////
-import { multiplemarcrecordcomponent } from "./record.js";
+import { multiplemarcrecordcomponent } from "./record_old.js";
 import { messagecomponent } from "./messagebar.js";
 
 

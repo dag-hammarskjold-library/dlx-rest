@@ -1,9 +1,10 @@
 /////////////////////////////////////////////////////////////////
 // BASKET COMPONENT
 
-import { Jmarc } from "./jmarc.mjs";
-import basket from "./api/basket.js";
-import { multiplemarcrecordcomponent } from "./record.js";
+import { Jmarc } from "../api/jmarc.mjs";
+import basket from "../api/basket.js";
+import { multiplemarcrecordcomponent } from "./record_old.js";
+import { EventBus } from "../utils/event-bus.js";
 
 /////////////////////////////////////////////////////////////////
 export let basketcomponent = {
@@ -60,10 +61,10 @@ export let basketcomponent = {
     methods: {
         handleClick(e, record_id, collection) {
             if (e.srcElement.id == "closeRecord") {
-                e.stopPropagation()
-                this.removeRecordFromList(collection, record_id)
+                e.stopPropagation();
+                EventBus.$emit('remove-record', { collection, record_id });
             } else {
-                this.displayRecord(record_id, collection)
+                EventBus.$emit('open-record', { collection, record_id });
             }
         },
         removeRecordFromRecordDisplayed(recordToDelete){
