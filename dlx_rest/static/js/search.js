@@ -388,6 +388,7 @@ export let searchcomponent = {
             searchTerm: "",
             searchQuery: "",
             myBasket: {},
+            myProfile: {},
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
@@ -423,10 +424,11 @@ export let searchcomponent = {
             return !!(this.advancedParams.searchTerm1 || this.advancedParams.searchTerm2 || this.advancedParams.searchTerm3);
         },
         canDelete() {
+            if (!user.hasPermission(this.myProfile, 'batchDelete')) {
+                return false
+            }
             return this.selectedRecords.length > 0 && 
-                !this.selectedRecords.some(r => r.locked) //&& 
-                // To do: Add an API endpoint to check current user permissions!
-                //user.hasPermission('delete'); 
+                !this.selectedRecords.some(r => r.locked) 
         },
 
         defaultSearchParams() {
@@ -458,6 +460,10 @@ export let searchcomponent = {
         }
     },
     created: async function () {
+        // Get the user profile for permissions checking
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        console.log(this.myProfile)
+
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
@@ -1051,6 +1057,7 @@ export let searchcomponent = {
         },
 
         async executeDelete() {
+            if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
             this.isDeleting = true;
             const successfulDeletes = new Set();
             const failedDeletes = new Set();

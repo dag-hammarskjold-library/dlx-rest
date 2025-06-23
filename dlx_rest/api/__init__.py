@@ -2026,10 +2026,15 @@ class MyUserProfileRecord(Resource):
         return_data['email'] = this_u.email
         return_data['shortname'] = this_u.shortname
         return_data['roles'] = []
+        return_data['permissions'] = []
         return_data['default_views'] = []
             
         for r in this_u.roles:
             return_data['roles'].append(r.name or '')
+            for p in r.permissions:
+                if not p.constraint_must and  not p.constraint_must_not:
+                    # basic unconstrained permissions
+                    return_data['permissions'].append(p.action)
         
         try:
             for v in this_u.default_views:
