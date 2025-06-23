@@ -41,6 +41,50 @@ def test_api_collection(client):
         data = check_response(res)
         assert data['_meta']['returns'] == f'{API}/schemas/api.null'
         assert data['data'] == {}
+
+def test_api_collection_logical_fields(client):
+    for col in ('bibs', 'auths'):
+        res = client.get(f'{API}/marc/{col}/logical_fields')
+        data = check_response(res)
+        
+        assert data['_meta']['returns'] == f'{API}/schemas/api.collection.fields'
+        assert 'logical_fields' in data['data']
+        assert isinstance(data['data']['logical_fields'], list)
+        
+        # For bibs collection
+        if col == 'bibs':
+            # Default type
+            expected_fields = [
+                'symbol', 'body', 'subject', 'title',  
+                'author', 'related_docs', 'prodinf', 'bib_creator',
+                'type', 'date', 'agenda', 'series'
+            ]
+            for field in expected_fields:
+                assert field in data['data']['logical_fields']
+            
+            # Test speech subtype
+            res = client.get(f'{API}/marc/{col}/logical_fields?subtype=speech')
+            data = check_response(res)
+            assert data['data']['logical_fields'] == [
+                'symbol', 'country_org', 'speaker', 'agenda', 
+                'related_docs', 'bib_creator'
+            ]
+            
+            # Test vote subtype
+            res = client.get(f'{API}/marc/{col}/logical_fields?subtype=vote')
+            data = check_response(res)
+            assert data['data']['logical_fields'] == [
+                'symbol', 'body', 'agenda', 'bib_creator'
+            ]
+                
+        # For auths collection  
+        if col == 'auths':
+            expected_fields = [
+                'heading', 'subject', 'agenda', 'agenda_title',
+                'agenda_subject', 'series', 'author', 'thesaurus', 'body'
+            ]
+            for field in expected_fields:
+                assert field in data['data']['logical_fields']
         
 def test_api_records_list(client, marc, users, roles, permissions, default_users):
     from dlx.marc import Bib, Auth
@@ -750,6 +794,130 @@ def test_api_files(client, files):
     res = client.get(f'{API}/files?identifier_type=isbn&identifier=x&language=en')
     data = check_response(res)
     assert f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3' in data['data']
+
+def test_api_files_post(client, files, default_users):
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    def create_test_file():
+        import random, string
+
+        """Helper function to create a new file object for each test"""
+        file_content = ''
+        for i in range(1000):
+            file_content += random.choice(string.ascii_letters + string.digits)
+
+        return io.BytesIO(bytes(file_content, encoding='utf8'))
+    
+    # Test successful file upload, all identifier types
+    data = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'uri',
+        'identifier': 'http://foo.bar/baz',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+
+    data = {
+        'identifier_type': 'isbn',
+        'identifier': '0-2024-1446-9',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    
+    res = client.post(
+        f'{API}/files',
+        data=data,
+        headers={
+            'Authorization': f'Basic {credentials}',
+            'Content-Type': 'multipart/form-data'
+        }
+    )
+    assert res.status_code == 201
+    assert 'result' in json.loads(res.data)
+    
+    # Test missing file
+    data_no_file = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr'
+    }
+    res = client.post(
+        f'{API}/files', 
+        data=data_no_file,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test missing required fields
+    data_missing_fields = {
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_missing_fields, 
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid language code
+    data_invalid_lang = {
+        'identifier_type': 'symbol',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,invalid',
+        'file': (create_test_file, 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_lang,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # Test invalid identifier type
+    data_invalid_id_type = {
+        'identifier_type': 'invalid',
+        'identifier': 'A/TEST/123',
+        'languages': 'en,fr',
+        'file': (create_test_file(), 'test.txt')
+    }
+    res = client.post(
+        f'{API}/files',
+        data=data_invalid_id_type,
+        headers={'Authorization': f'Basic {credentials}'}
+    )
+    assert res.status_code == 400
+    
+    # We could also test unauthorized access...
 
 def test_api_file(client, files):
     res = client.get(f'{API}/files/f20d9f2072bbeb6691c0f9c5099b01f3')

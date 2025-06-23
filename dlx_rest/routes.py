@@ -105,7 +105,7 @@ def login():
                 login_user(user, remember=form.remember_me.data)
                 if not is_safe_url(request, next_url):
                     return abort(400)
-                flash('Logged in successfully.')
+                #flash('Logged in successfully.')
                 return redirect(next_url or url_for('index'), code=302)
             else:
                 flash('Invalid username or password.')
@@ -117,7 +117,7 @@ def login():
                 login_user(user, remember=form.remember_me.data)
                 if not is_safe_url(request, next_url):
                     return abort(400)
-                flash('Logged in successfully.')
+                #flash('Logged in successfully.')
                 return redirect(next_url or url_for('index'), code=302)
             else:
                 flash('Invalid username or password.')
@@ -131,7 +131,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    flash("Logged out successfully.")
+    #flash("Logged out successfully.")
     return redirect(url_for('login'))
 
 
@@ -717,7 +717,8 @@ def process_text(text, option):
     pipeline = []
 
     collation={
-        'locale': 'en', 
+        'locale': 'en',
+        'strength': 1,
         'numericOrdering': True
     }
 
@@ -771,26 +772,23 @@ def update_file():
     Updates the file entry based on record id
     """
     DB.connect(Config.connect_string, database=Config.dbname)
+    S3.connect(bucket='undl-files')
 
     record_id = request.form.get('record_id')
     docsymbol = request.form.get('docsymbol')
-    lang = request.form.getlist('lang')
+    langs = request.form.getlist('lang')
+
+    f = File.from_id(record_id)
 
     try:
-        response = DB.files.update_one(
-	        {'_id': record_id, 
-	        "identifiers.type": "symbol"}, 
-	        { '$set': { 
-	            "identifiers.$.value": docsymbol,
-	            "languages": lang
-                } 
-            }
-        )
-        
-        return "Record updated."
-
+        f.identifiers = [Identifier('symbol', docsymbol)]
+        f.filename = File.encode_fn([docsymbol], langs, 'pdf')
+        f.languages = langs
+        f.commit()
+        return jsonify({'updated': True})
     except Exception as e:
-        return e
+        # todo? notify the user that the update failed 
+        return jsonify({'updated': False, 'message': str(e)}), 400
 
 @app.route('/import')
 @login_required
