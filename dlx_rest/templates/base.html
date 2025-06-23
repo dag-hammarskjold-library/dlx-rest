@@ -16,6 +16,7 @@
     <link href="{{url_for('static', filename='css/record.css')}}" rel="stylesheet">
     <link href="{{url_for('static', filename='css/search.css')}}" rel="stylesheet">
     <link href="{{url_for('static', filename='css/un_template.css')}}" rel="stylesheet">
+    <link href="{{url_for('static', filename='css/search-history.css')}}?v=2" rel="stylesheet">
 
     <link rel="apple-touch-icon" sizes="76x76" href="{{url_for('static', filename='img/apple-touch-icon.png')}}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{url_for('static', filename='img/favicon-32x32.png')}}">
@@ -45,12 +46,6 @@
 
     <!-- Bootstrap local source -->
     <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script> 
-
-   
-
-   <script  type="module" src="{{url_for('static', filename='js/charts.js')}}"></script>
-
-
 
     <style>
         .bd-placeholder-img {
@@ -197,6 +192,11 @@
 
 
     </main> 
+
+    <!-- MongoDB Charts SDK -->
+    <script src="{{url_for('static', filename='js/mongodb-charts/mongodb-charts3-3.js')}}"></script>
+    <!-- Charts initialization -->
+    <script src="{{url_for('static', filename='js/charts-init.js')}}"></script>
 </body>
   
 </html>
