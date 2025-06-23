@@ -18,11 +18,11 @@ export let editorcomponent = {
           <div class="col-md-3 col-lg-2 pr-0" style="min-width:260px;max-width:350px;">
             <basketcomponent
               :api_prefix="api_prefix"
-              style="height: 100vh; overflow-y: auto; border-right: 1px solid #dee2e6;"
+              style="height: 100vh; overflow-y: truncate;"
             ></basketcomponent>
           </div>
           <!-- Record editor(s) in right column -->
-          <div class="col-md-9 pl-0" style="background:#fff;">
+          <div class="col-md-9 ml-3" style="background:#fff;">
             <div class="row" id="records">
               <recordcomponent
                 v-for="rec in displayedRecords"
@@ -30,7 +30,7 @@ export let editorcomponent = {
                 :api_prefix="api_prefix"
                 :_id="rec.recordId"
                 :collection="rec.collection"
-                class="col-sm-6 mt-1 pb-2 div_editor"
+                class="col-sm-6 mt-1 pb-2 pl-0 div_editor"
                 style="overflow-y: scroll; min-height:650px; position: relative"
               ></recordcomponent>
             </div>

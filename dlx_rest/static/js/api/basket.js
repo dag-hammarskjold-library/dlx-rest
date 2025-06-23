@@ -21,7 +21,7 @@ export default {
         }
     },
     async getItem(api_prefix, collection, record_id) {
-        Jmarc.api_prefix = api_prefix;
+        Jmarc.apiUrl = api_prefix;
         let returnObj = {};
         await Jmarc.get(collection, record_id).then(jmarc => {
             returnObj = jmarc;

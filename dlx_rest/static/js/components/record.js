@@ -11,8 +11,8 @@ export let recordcomponent = {
     components: { recordcontrols },
     template: `
       <div class="record-component" v-if="!loading && jmarc">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5>{{ collection }}/{{ _id }}</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2 alert-info text-dark">
+          <h5 class="ml-1">{{ collection }}/{{ _id }}</h5>
           <div>
             <recordcontrols
               :jmarc="jmarc"
@@ -24,30 +24,51 @@ export let recordcomponent = {
           </div>
         </div>
         <div v-if="error" class="alert alert-danger">{{ error }}</div>
-        <table class="table table-bordered table-sm">
+        <table class="table table-bordered table-sm table-hover">
+          
           <thead>
             <tr>
-              <th>Tag</th>
-              <th>Indicators</th>
-              <th>Subfields</th>
-              <th>Actions</th>
+              <th style="width:3em;"></th>
+              <th style="width:3em;"></th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
+          
           <tbody>
+            <tr v-if="jmarc.flags" class="alert alert-danger">
+              <td colspan="4">
+                <ul>
+                  <li v-for="flag in jmarc.flags">{{flag.message}}</li>
+                </ul>
+              </td>
+            </tr>
             <tr v-for="(field, idx) in jmarc.fields" :key="field.tag + '-' + idx">
+              
+              <!-- Tag -->
               <td>
                 <template v-if="editField && editField.tag === field.tag && editField.idx === idx">
-                  <input
-                    v-model="editTag"
+                  <input 
+                    type="text" 
+                    :id="field.tag + '-' + idx"
+                    v-model.trim="editTag"
                     maxlength="3"
                     style="width:3.5em; text-align:center;"
                     class="form-control form-control-sm d-inline"
+                    @blur="saveEditField(field)"
+                    :tabindex="idx"
                   />
                 </template>
                 <template v-else>
-                  <code class="text-primary">{{ field.tag }}</code>
+                  <code v-if="!isControlField(field)" class="text-primary" 
+                    @click="startEditField(field, idx)"
+                    @keydown.enter.prevent="startEditField(field, idx)"
+                    @keydown.space.prevent="startEditField(field, idx)">{{ field.tag }}</code>
+                  <code v-else class="text-primary">{{ field.tag }}</code>
                 </template>
               </td>
+
+              <!-- Indicators -->
               <td>
                 <template v-if="editField && editField.tag === field.tag && editField.idx === idx">
                   <input
@@ -55,18 +76,28 @@ export let recordcomponent = {
                     maxlength="1"
                     style="width:2em; text-align:center;"
                     class="form-control form-control-sm d-inline"
+                    @blur="saveEditField(field)"
+                    :tabindex="idx+1"
                   />
                   <input
                     v-model="editIndicators[1]"
                     maxlength="1"
                     style="width:2em; text-align:center; margin-left:0.5em;"
                     class="form-control form-control-sm d-inline"
+                    @blur="saveEditField(field)"
+                    :tabindex="idx+2"
                   />
                 </template>
                 <template v-else>
-                  <span v-if="field.indicators">{{ field.indicators.join(' ') }}</span>
+                  <span v-if="field.indicators" 
+                    @click="startEditField(field, idx)"
+                    @keydown.enter.prevent="startEditField(field, idx)"
+                    @keydown.space.prevent="startEditField(field, idx)">{{ field.indicators.join(' ') }}
+                  </span>
                 </template>
               </td>
+
+              <!-- Subfields -->
               <td>
                 <template v-if="!isControlField(field)">
                   <div v-if="editField && editField.tag === field.tag && editField.idx === idx">
@@ -87,7 +118,7 @@ export let recordcomponent = {
                         :tabindex="sidx + 1"
                         @focus="$event.target.select(); autoResizeTextarea('editInput-' + field.tag + '-' + idx + '-' + sidx)"
                         @input="autoResizeTextarea('editInput-' + field.tag + '-' + idx + '-' + sidx); handleSubfieldInput($event, field, idx, sidx)"
-                        @blur="saveEditField(field)"
+                        
                         rows="1"
                         :title="'Press Enter to save, Shift+Enter for newline, Tab to move, Esc to cancel'"
                       ></textarea>
@@ -131,6 +162,7 @@ export let recordcomponent = {
                       @click="startEditField(field, idx, sidx)"
                       @keydown.enter.prevent="startEditField(field, idx, sidx)"
                       @keydown.space.prevent="startEditField(field, idx, sidx)"
+                      @blur="saveEditField(field)"
                       title="Click or press Enter/Space to edit"
                       style="cursor:pointer;"
                     >
@@ -155,9 +187,7 @@ export let recordcomponent = {
                   </span>
                 </template>
               </td>
-              <td>
-                <!-- Actions column left intentionally blank -->
-              </td>
+
             </tr>
           </tbody>
         </table>
@@ -171,7 +201,6 @@ export let recordcomponent = {
             loading: true,
             error: null,
             selectedFields: [],
-            unsaved: false,
             editField: null, // { tag, idx }
             editSubfields: [], // For editing subfields
             editSubfieldIndex: 0, // Track which subfield is being edited
@@ -184,6 +213,7 @@ export let recordcomponent = {
         Jmarc.apiUrl = this.api_prefix;
         try {
             this.jmarc = await Jmarc.get(this.collection, this._id);
+            this.validateRecord();
             this.loading = false;
         } catch (e) {
             this.error = e.message || "Failed to load record";
@@ -209,7 +239,7 @@ export let recordcomponent = {
         },
         startEditField(field, fieldIdx, subfieldIdx = 0) {
             this.editField = { tag: field.tag, idx: fieldIdx };
-            this.editSubfields = field.subfields.map(sf => ({ code: sf.code, value: sf.value, xref: sf.xref }));
+            this.editSubfields = field.subfields;
             this.editSubfieldIndex = subfieldIdx;
             this.editTag = field.tag;
             this.editIndicators = field.indicators ? [...field.indicators] : ["", ""];
@@ -227,14 +257,10 @@ export let recordcomponent = {
             field.tag = this.editTag;
             field.indicators = this.editIndicators.map(i => i || " ");
             // Save subfields
-            field.subfields = this.editSubfields.map(sf => ({
-                code: sf.code,
-                value: sf.value,
-                xref: sf.xref
-            }));
+            field.subfields = this.editSubfields;
             this.editField = null;
             this.lookupDropdown = null;
-            this.unsaved = true;
+            this.validateRecord()
         },
         cancelEditField() {
             // Revert all edited subfields to their original values if authority controlled
@@ -435,14 +461,24 @@ export let recordcomponent = {
                 }
             }
         },
+        validateRecord() {
+          // Perform comprehensive validation
+          // We can still do indicator and subfield level validations
+          this.jmarc.flags = this.jmarc.allValidationWarnings();
+          if (this.jmarc.flags.length > 0) {
+            return false;
+          }
+          return true;
+        },
         async saveRecord() {
-            try {
-                await this.jmarc.put();
-                this.unsaved = false;
-                this.$emit('saved', this.jmarc);
-            } catch (e) {
-                this.error = e.message || "Failed to save record";
-            }
+          if (!this.validateRecord()) return;
+          if (this.jmarc.saved) return;
+          try {
+              await this.jmarc.put();
+              this.$emit('saved', this.jmarc);
+          } catch (e) {
+              this.error = e.message || "Failed to save record";
+          }
         },
         async deleteRecord() {
             if (!confirm("Are you sure you want to delete this record?")) return;
@@ -453,13 +489,16 @@ export let recordcomponent = {
                 this.error = e.message || "Failed to delete record";
             }
         },
-        markUnsaved() {
-            this.unsaved = true;
-        },
+        
         onControl(action, jmarc) {
             if (action === 'save-record') this.saveRecord();
             if (action === 'delete-record') this.deleteRecord();
-            if (action === 'close-record') EventBus.$emit('remove-record', { collection: this.collection, record_id: this._id });
+            if (action === 'close-record') {
+              if (!this.jmarc.saved) {
+                if(!confirm("You have unsaved changes. Are you sure you want to close the record?")) return;
+              }
+              EventBus.$emit('remove-record', { collection: this.collection, record_id: this._id });
+            }
         }
     }
 };

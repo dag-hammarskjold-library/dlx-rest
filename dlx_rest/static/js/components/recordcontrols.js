@@ -14,7 +14,8 @@ export const recordcontrols = {
         <!-- Save -->
         <i v-if="!historyMode && !readonly"
            class="fas fa-save p-1 record-control"
-           title="Save Record"
+           :class = "jmarc.saved ? 'text-muted' : ''"
+           :title="jmarc.saved ? 'No unsaved changes' : 'Save Record'"
            @click="emitAction('save-record')"></i>
         <!-- Clone -->
         <i v-if="!historyMode && !readonly"

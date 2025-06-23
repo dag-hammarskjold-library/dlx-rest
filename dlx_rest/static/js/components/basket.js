@@ -5,7 +5,7 @@ export let basketcomponent = {
     props: ["api_prefix", "basket_id"],
     template: `
     <div class="basket-list" style="background-color:white; height:100vh; overflow-y:auto;">
-        <div class="d-flex justify-content-between align-items-center p-2">
+        <div class="record-controls d-flex flex-wrap align-items-center p-2">
             <div>
                 <i class="fas fa-sync p-1 record-control" title="Reload Basket Now" @click="rebuildBasket"></i>
                 <i class="fas fa-cut p-1 record-control" title="Clear Basket Contents" @click="clearBasket"></i>
@@ -45,7 +45,7 @@ export let basketcomponent = {
             });
         }
     },
-    created() {
+    async created() {
         this.loadBasket();
     },
     methods: {
@@ -93,6 +93,7 @@ export let basketcomponent = {
                         }
                     }
                 } catch (e) {
+                    console.error(e)
                     data.title = "[Failed to load]";
                 }
                 this.basketItems.push(data);
