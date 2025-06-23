@@ -140,6 +140,7 @@ export let searchcomponent = {
                     Cancel Search
                 </button>
             </div>
+
             <!-- Record Set Controls -->
             <div class="controls-header mb-3" v-if="records.length > 0">
                 <div class="d-flex align-items-center justify-content-between">
@@ -171,42 +172,36 @@ export let searchcomponent = {
                 <table class="table table-sm table-striped table-hover w-100" v-if="records.length > 0">
                     <thead>
                         <tr>
-                            <th style="width: 30px"></th>
+                            <th></th>
                             <th style="width: 30px"></th>
                             <th style="width: 30px"></th>
                             <th style="width: 50px">#</th>
-                            <th v-if="collection !== 'auths'">Title</th>
-                            <th v-else>Heading</th>
                             <th v-if="collection !== 'auths'" style="width: 150px">Files</th>
                             <th v-else></th>
+                            <th v-if="collection !== 'auths'">Title</th>
+                            <th v-else>Heading</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(record, index) in records" 
                             :key="record._id" 
-                            @mousedown="handleMouseDown" 
-                            @mousemove="handleMouseMove" 
-                            @mouseup="handleMouseUp" 
-                            :class="{selected: record.selected}">
-                            <!-- Row Controls -->
-                            <td>
-                                <input type="checkbox" 
-                                    :data-recordid="record._id" 
-                                    @change="toggleSelect($event, record)"
-                                    :disabled="record.locked || record.myBasket">
-                            </td>
+                            :class="{selected: record.selected}"
+                            @mousedown="handleMouseDown($event, record, index)" 
+                            @mousemove="handleMouseMove($event, record, index)" 
+                            @mouseup="handleMouseUp($event)">
+                            <td></td>
                             <td>
                                 <i v-if="record.locked" 
-                                :id="record._id + '-basket'" 
-                                class="fas fa-lock"></i>
+                                    :id="record._id + '-basket'" 
+                                    class="fas fa-lock"></i>
                                 <i v-else-if="record.myBasket" 
-                                :id="record._id + '-basket'" 
-                                class="fas fa-folder-minus" 
-                                @click="toggleBasket($event, record._id)"></i>
+                                    :id="record._id + '-basket'" 
+                                    class="fas fa-folder-minus" 
+                                    @click="toggleBasket($event, record._id)"></i>
                                 <i v-else 
-                                :id="record._id + '-basket'" 
-                                class="fas fa-folder-plus" 
-                                @click="toggleBasket($event, record._id)"></i>
+                                    :id="record._id + '-basket'" 
+                                    class="fas fa-folder-plus" 
+                                    @click="toggleBasket($event, record._id)"></i>
                             </td>
                             <td> 
                                 <!-- Preview -->
@@ -219,6 +214,12 @@ export let searchcomponent = {
                             
                             <!-- Record Data -->
                             <td>{{index + 1}}</td>
+                            <td>
+                                <recordfilecomponent v-if="collection !== 'auths'" 
+                                                :api_prefix="api_prefix" 
+                                                :record_id="record._id" 
+                                                :desired_languages="['ar','zh','en','fr','ru','es']" />
+                            </td>
                             <td class="title-cell">
                                 <div>
                                     <a v-if="!record.locked" 
@@ -262,12 +263,6 @@ export let searchcomponent = {
                                         <span class="ml-3">{{val}}</span>
                                     </div>
                                 </div>
-                            </td>
-                            <td>
-                                <recordfilecomponent v-if="collection !== 'auths'" 
-                                                :api_prefix="api_prefix" 
-                                                :record_id="record._id" 
-                                                :desired_languages="['ar','zh','en','fr','ru','es']" />
                             </td>
                         </tr>
                     </tbody>
@@ -501,9 +496,10 @@ export let searchcomponent = {
     },
     methods: {
         async refreshBasket() {
-            basket.getBasket(this.api_prefix).then((b) => {
-                this.myBasket = b
-            })
+            this.myBasket = await basket.getBasket(this.api_prefix);
+            this.records.forEach(r => {
+                r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+            });
         },
         parseSearchTerm() {
             // Reset advancedParams while preserving defaults
@@ -779,7 +775,7 @@ export let searchcomponent = {
             // Build base URL with sort parameters
             let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
             
-            if (this.subtype) {
+            if (this.subtype && this.subtype !== 'default') {
                 if (this.subtype === 'speech' || this.subtype === 'vote') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
                 } else {
@@ -846,6 +842,9 @@ export let searchcomponent = {
                 this.abortController = null;
                 this.searchTime = ((Date.now() - startTime) / 1000);
                 this.submitted = true;
+                this.records.forEach(r => {
+                    r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+                });
                 let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
                 window.history.replaceState({}, ui_url);
             }
@@ -894,132 +893,118 @@ export let searchcomponent = {
         setParameter(cls, field) {
             this.advancedParams[cls] = field.value;
         },
-        toggleSelect(e, record) {
-            let recordId = e.target.dataset.recordid
-            record.selected = !record.selected
-            if (record.selected) {
-                if (!this.selectedRecords.some(r => r.record_id === recordId && r.collection === this.collection)) {
-                    this.selectedRecords.push({ "collection": this.collection, "record_id": recordId })
+
+        toggleSelect(e, result) {
+            result.selected = !result.selected;
+            if (result.selected) {
+                if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
+                    this.selectedRecords.push({ collection: this.collection, record_id: result._id });
                 }
             } else {
-                const idx = this.selectedRecords.findIndex(r => r.record_id === recordId && r.collection === this.collection);
-                if (idx !== -1) {
-                    this.selectedRecords.splice(idx, 1);
-                }
+                const idx = this.selectedRecords.findIndex(r => r.record_id === result._id && r.collection === this.collection);
+                if (idx !== -1) this.selectedRecords.splice(idx, 1);
             }
         },
         selectAll() {
-            this.records.forEach(record => {
-                let i = document.querySelector(`input[data-recordid="${record._id}"]`)
-                if (!i) return; // skip if checkbox not found
-                if (!i.disabled) i.checked = true
-                if (i.checked) {
-                    if (!this.selectedRecords.some(r => r.record_id === record._id && r.collection === this.collection)) {
-                        this.selectedRecords.push({ "collection": this.collection, "record_id": record._id })
+            [...this.records].forEach(result => {
+                if (!result.myBasket && !result.locked) {
+                    result.selected = true;
+                    if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
+                        this.selectedRecords.push({ collection: this.collection, record_id: result._id });
                     }
-                    record.selected = true
-                } else {
-                    record.selected = false
                 }
-            })
+            });
         },
         selectNone() {
-            for (let i of document.querySelectorAll("input[type=checkbox]")) {
-                i.checked = false
-            }
-            this.selectedRecords = []
-            this.records.forEach(record => {
-                record.selected = false
-            })
-            this.selectedRows = []
+            [...this.records].forEach(result => {
+                result.selected = false;
+            });
+            this.selectedRecords = [];
         },
-        /* Shift, Click and drag to select records */
-        // We only end up targeting <td> elements when these events happen 
-        // so we have to target the parent element, which should be a <tr>
-        handleMouseDown(e) {
-            if (e.shiftKey) {
-                this.isDragging = true
-                const row = e.target.closest('tr')
-                if (row && !this.selectedRows.includes(row)) {
-                    this.selectedRows.push(row)
-                }
+        handleMouseDown(e, result, idx) {
+            if (
+                e.target.classList.contains('preview-toggle') ||
+                e.target.closest('.preview-toggle') ||
+                e.target.classList.contains('folder-plus') || 
+                e.target.classList.contains('folder-minus') ||
+                e.target.classList.contains('fa-lock') 
+            ) {
+                return;
             }
+            if (e.button !== 0) return;
+            this.isDragging = true;
+            this.dragStartIdx = idx;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
+            document.addEventListener('mouseup', this.cancelDrag);
         },
-        handleMouseMove(e) {
-            if (e.shiftKey && this.isDragging) {
-                const row = e.target.closest('tr')
-                if (row) {
-                    row.classList.add("selected")
-                    if (!this.selectedRows.includes(row)) {
-                        this.selectedRows.push(row)
-                    }
-                }
-            }
-            
+        handleMouseMove(e, result, idx) {
+            if (!this.isDragging) return;
+            this.dragEndIdx = idx;
+            this.updateDragSelection();
         },
         handleMouseUp(e) {
-            if (e.shiftKey)
-                {this.isDragging = false
-                this.selectRows()
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.dragStartIdx = null;
+                this.dragEndIdx = null;
+                document.removeEventListener('mouseup', this.cancelDrag);
             }
         },
-        selectRows() {
-            const startIdx = this.records.indexOf(this.dragStart)
-            const endIdx = this.records.indexOf(this.dragEnd)
-
-            this.selectedRows.forEach(row => {
-                const input = row.querySelector("input[type=checkbox]")
-                if (input && !input.disabled && !input.checked) {
-                    input.click()
+        cancelDrag: function() {
+            this.isDragging = false;
+            this.dragStartIdx = null;
+            this.dragEndIdx = null;
+            document.removeEventListener('mouseup', this.cancelDrag);
+        },
+        updateDragSelection() {
+            let arr = [...this.records];
+            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
+            arr.forEach((r, i) => {
+                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
+                if (r.selected) {
+                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === this.collection)) {
+                        this.selectedRecords.push({ collection: this.collection, record_id: r._id });
+                    }
                 } else {
-                    row.classList.remove("selected")
+                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === this.collection);
+                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
                 }
-            })
+            });
         },
-        sendToBasket() {
-            /*  
-            Several things need to happen here
-            1. Send all the items to the basket that have checkmarks beside them
-            2. Uncheck the checked items
-            3. Disable the checkbox for each item sent to the basket
-            4. Update the folder icon for each item sent to the basket
-            5. Empty this.selectedRecords
-            */
-            basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(this.selectedRecords)).then(() => {
-                for (let record of this.selectedRecords) {
-                    let checkbox = document.querySelector(`input[data-recordid="${record.record_id}"]`)
-                    checkbox.checked = false
-                    checkbox.disabled = true
-                    let icon = document.querySelector(`i[id="${record.record_id}-basket"]`)
-                    icon.classList.remove("fa-folder-plus")
-                    icon.classList.add("fa-folder-minus")
-                }
-                this.selectedRecords = []
-                this.records.forEach(record => {
-                    record.selected = false
-                })
-                this.refreshBasket()
-            })
-        },
-        toggleBasket: async function (e, recordId) {
-            if (e.target.classList.contains("fa-folder-plus")) {
-                // add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId).then(() => {
-                    let checkbox = document.querySelector(`input[data-recordid="${recordId}"]`)
-                    checkbox.disabled = true
-                    e.target.classList.remove("fa-folder-plus")
-                    e.target.classList.add("fa-folder-minus")
-                })
-            } else {
-                // remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId).then(() => {
-                    let checkbox = document.querySelector(`input[data-recordid="${recordId}"]`)
-                    checkbox.disabled = false
-                    e.target.classList.remove("fa-folder-minus")
-                    e.target.classList.add("fa-folder-plus")
-                })
+        async sendToBasket(e) {
+            e.preventDefault();
+            const items = this.selectedRecords.slice(0, 100);
+            if (items.length > 0) {
+                await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                await this.refreshBasket();
+                this.refreshBasket();
+                this.selectedRecords = [];
+                // Update myBasket for all results
+                this.records.forEach(r => {
+                    r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+                    r.selected = false;
+                });
             }
-            this.refreshBasket()
+        },
+        async toggleBasket(e, recordId) {
+            // Find the result object
+            let result = [...this.records].find(r => r._id === recordId);
+            if (!result) return;
+
+            if (!result.myBasket) {
+                // Add to basket
+                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
+                result.myBasket = true;
+                result.selected = false; // Deselect if added to basket
+            } else {
+                // Remove from basket
+                await basket.deleteItem(this.myBasket, this.collection, recordId);
+                result.myBasket = false;
+                result.selected = false; // Deselect if removed from basket
+            }
+            // Refresh basket state for the component
+            this.refreshBasket();
         },
         togglePreview(event, recordId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
