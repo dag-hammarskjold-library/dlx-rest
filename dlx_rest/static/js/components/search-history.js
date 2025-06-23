@@ -1,7 +1,18 @@
 export let searchHistoryComponent = {
     name: 'SearchHistory',
     props: {
+
+        searchButtonId: {
+            type: String,
+            required: true
+        },
+
         searchInputId: {
+            type: String,
+            required: true
+        },
+
+        userEmail: {
             type: String,
             required: true
         },
@@ -12,6 +23,7 @@ export let searchHistoryComponent = {
     },
     template: `
         <span class="d-inline-block">
+
             <a class="result-link" @click.stop.prevent="toggleModal" href="">
                 Search History
             </a>
