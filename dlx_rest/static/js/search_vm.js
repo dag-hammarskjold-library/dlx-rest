@@ -5,7 +5,7 @@
 //import { Jmarc } from "./jmarc.mjs";
 import { messagecomponent } from "./messagebar.js";
 import { sidebarcomponent } from "./search/sidebar.js";
-import { searchcomponent } from "./search/search.js";
+import { searchcomponent } from "./search.js";
 import { basketcomponent } from "./basket.js";
 
 /////////////////////////////////////////////////////////////////
