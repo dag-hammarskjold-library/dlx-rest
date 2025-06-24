@@ -749,7 +749,6 @@ export let searchcomponent = {
             }
 
             // Always filter from the original unfiltered set
-
             this.records = this._originalRecords.filter(record => {
                 return Array.from(this.activeFilters).some(tag => {
                     return record.heading_tag === tag;

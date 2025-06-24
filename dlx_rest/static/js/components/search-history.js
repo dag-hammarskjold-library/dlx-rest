@@ -1,14 +1,17 @@
 export let searchHistoryComponent = {
     name: 'SearchHistory',
     props: {
+
         searchButtonId: {
             type: String,
             required: true
         },
+
         searchInputId: {
             type: String,
             required: true
         },
+
         userEmail: {
             type: String,
             required: true
