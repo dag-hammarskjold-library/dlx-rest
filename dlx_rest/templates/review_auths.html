@@ -3,9 +3,9 @@
     <div id="auth_review_vm" v-show="true" data-api_prefix="{{api_prefix}}">
         <messagecomponent prefix="{{api_prefix}}"></messagecomponent>
         <div class="row">
-            <sidebarcomponent sbtype="facet"></sidebarcomponent>
-            <authreviewcomponent api_prefix="{{api_prefix}}" search_url="{{search_url}}" logged_in="{{'1' if current_user.is_authenticated else ''}}" collection="{{collection}}" since="{{since}}"></authreviewcomponent>
-            <sidebarcomponent sbtype="other"></sidebarcomponent>
+            
+            <authreviewcomponent api_prefix="{{api_prefix}}"></authreviewcomponent>
+            
         </div>
     </div>
 

@@ -2,10 +2,10 @@ import { sortcomponent } from "./search/sort.js";
 import { countcomponent } from "./search/count.js";
 import basket from "./api/basket.js";
 import user from "./api/user.js";
-//import { previewmodal } from "./modals/preview.js";
 import { readonlyrecord } from "./readonly_record.js"
 import { recordfilecomponent } from "./recordfiles.js";
 import { exportmodal } from "./modals/export.js";
+import { searchHistoryComponent } from "./components/search-history.js";
 
 export let searchcomponent = {
     props: {
@@ -36,6 +36,11 @@ export let searchcomponent = {
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
+                <search-history
+                    ref="searchHistory"
+                    search-input-id="recordSearch"
+                    :api-prefix="api_prefix"
+                ></search-history>
             </div>
             <div class="d-flex align-items-center">
                 <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
@@ -75,11 +80,13 @@ export let searchcomponent = {
                 <div class="input-group-prepend"><span class="input-group-text">in</span></div>
                 <div class="input-group-prepend">
                     <button :id="'searchField'+i" class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ advancedParams['searchField'+i] !== 'any' ? advancedParams['searchField'+i] : 'any field' }}
+                        {{ advancedParams['searchField'+i] !== 'any'
+                            ? (logicalFieldLabels[advancedParams['searchField'+i]] || advancedParams['searchField'+i])
+                            : 'any field' }}
                     </button>
                     <div class="dropdown-menu">
                         <option class="dropdown-item" value="any" @click="setParameter('searchField'+i, {value: 'any'})">any field</option>
-                        <option class="dropdown-item" v-for="field in searchFields" :key="field" @click="setParameter('searchField'+i, {value: field})">{{field}}</option>
+                        <option class="dropdown-item" v-for="field in searchFields" :key="field" @click="setParameter('searchField'+i, {value: field})">{{logicalFieldLabels[field] || field}}</option>
                     </div>
                 </div>
                 <div class="input-group-append" v-if="i < 3">
@@ -99,7 +106,7 @@ export let searchcomponent = {
             </div>
         </div>
 
-        <div v-if="collection == 'auths'" id="filters" class="col text-center">
+        <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
                 class="badge mx-1" 
@@ -416,6 +423,11 @@ export let searchcomponent = {
             activeFilters: null,
             isDeleting: false,
             searchError: null,
+            logicalFieldLabels: {
+                // We can add more logical field labels here if needed
+                "body": "Series Symbol"
+            },
+            userEmail: "",
         }
     },
     computed: {
@@ -461,6 +473,11 @@ export let searchcomponent = {
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
+
+        const profile = await user.getProfile(this.api_prefix, 'my_profile');
+        if (profile && profile.data && profile.data.email) {
+            this.userEmail = profile.data.email;
+        }
 
         // Set default search parameters based on collection/subtype
         this.advancedParams = {
@@ -731,7 +748,7 @@ export let searchcomponent = {
                 return;
             }
 
-            // Apply all active filters to original results
+            // Always filter from the original unfiltered set
             this.records = this._originalRecords.filter(record => {
                 return Array.from(this.activeFilters).some(tag => {
                     return record.heading_tag === tag;
@@ -750,6 +767,11 @@ export let searchcomponent = {
 
         // When user submits simple search, parse into advancedParams and search
         async submitSearch() {
+            // Add to search history if possible
+            if (this.userEmail && this.$refs.searchHistory) {
+                await this.$refs.searchHistory.addToHistory(this.searchTerm);
+            }
+
             this.searchError = null;
             if (!this.searchTerm) {
                 this.searchError = "Search term required";
@@ -1108,9 +1130,9 @@ export let searchcomponent = {
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        //'previewmodal': previewmodal,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,    
         'exportmodal': exportmodal,
+        'search-history': searchHistoryComponent
     }
 }
