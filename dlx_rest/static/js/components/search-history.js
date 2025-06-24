@@ -23,7 +23,6 @@ export let searchHistoryComponent = {
     },
     template: `
         <span class="d-inline-block">
-
             <a class="result-link" @click.stop.prevent="toggleModal" href="">
                 Search History
             </a>
