@@ -80,10 +80,12 @@ def init_roles():
             admin_permissions.append(this_permission)
 
     import_marc = Permission(action='importMarc')
+    batch_delete = Permission(action='batchDelete')
     
     admin_permissions.append(auth_review)
     admin_permissions.append(merge_auth)
     admin_permissions.append(import_marc)
+    admin_permissions.append(batch_delete)
     admin_role = Role(name="admin")
     admin_role.permissions = admin_permissions
     admin_role.save()
@@ -155,3 +157,19 @@ def init_roles():
         this_u = User.objects.get(email=r["email"])
         this_u.roles = r["roles"]
         this_u.save()
+
+@app.cli.command('create-permission')
+@click.argument('action')
+@click.option('--constraint_must', default=None, help='Constraints that must be met for this permission to apply, e.g., "bibs|040|a|NNUN"')
+@click.option('--constraint_must_not', default=None, help='Constraints that must not be met for this permission to apply, e.g., "biba|999|c|t"')
+def create_permission(action, constraint_must=None, constraint_must_not=None):
+    try:
+        permission = Permission(action=action)
+        if constraint_must:
+            permission.constraint_must = constraint_must.split(',')
+        if constraint_must_not:
+            permission.constraint_must_not = constraint_must_not.split(',')
+        permission.save()
+        print(f"Permission {action} has been created.")
+    except Exception as e:
+        print(f"Error creating permission: {e}")
