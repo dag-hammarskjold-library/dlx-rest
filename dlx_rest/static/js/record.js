@@ -3635,7 +3635,7 @@ function keyupAuthLookup(event) {
                         if (event.keyCode === 40) {
                             // down arrow key
                             dropdown.list = list;
-                            list.focus(); // list now navigable by default <select> behavior
+                            list.focus({ preventScroll: true }); // list now navigable by default <select> behavior
                             list.firstChild.selected = true; // jump to to first choice
                         }
                     });
