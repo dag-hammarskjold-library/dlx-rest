@@ -8,5 +8,13 @@ export default {
             let jsonData = await response.json();
             return jsonData;
         }
+    },
+
+    hasPermission(user, action) {
+        console.log("checking", user, action)
+        if (user.data.permissions.includes(action)) {
+            return true;
+        }
+        return false;
     }
 }
