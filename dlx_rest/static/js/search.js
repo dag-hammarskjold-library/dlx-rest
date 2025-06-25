@@ -474,7 +474,7 @@ export let searchcomponent = {
     created: async function () {
         // Get the user profile for permissions checking
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
-        console.log(this.myProfile)
+        //console.log(this.myProfile)
 
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
