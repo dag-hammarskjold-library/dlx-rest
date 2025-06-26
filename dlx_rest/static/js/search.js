@@ -254,7 +254,7 @@ export let searchcomponent = {
                                         {{record.alt}}
                                     </div>
                                     <div class="record-details mt-1">
-                                        {{[record["f099c"]?.length > 0 ? record["f099c"].join(', ') : false, 
+                                        {{[record["f099c"]?.length > 0 && !record["symbol"] ? record["f099c"].join(', ') : false, 
                                         record["symbol"], 
                                         record["date"], 
                                         record["types"]?.split("::").slice(-1)[0]
