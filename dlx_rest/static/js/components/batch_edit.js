@@ -1,5 +1,5 @@
 //import { basket } from '../api/basket.js' 
-import { Jmarc } from '../jmarc.mjs'
+import { Jmarc } from '../api/jmarc.mjs'
 
 /* 
 Modal for batch editing records using basket functionality

@@ -1,6 +1,6 @@
-import { DataField, Jmarc } from './jmarc.mjs'
-import user from "./api/user.js"
-import { CSV } from './csv.mjs'
+import { DataField, Jmarc } from '../api/jmarc.mjs'
+import user from "../api/user.js"
+import { CSV } from '../utils/csv.mjs'
 
 export let importcomponent = {
     props: ["api_prefix"],

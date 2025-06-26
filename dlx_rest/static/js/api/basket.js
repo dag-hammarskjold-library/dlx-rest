@@ -1,4 +1,4 @@
-import { Jmarc } from "../jmarc.mjs";
+import { Jmarc } from "./jmarc.mjs";
 
 export default {
     // Individual item methods

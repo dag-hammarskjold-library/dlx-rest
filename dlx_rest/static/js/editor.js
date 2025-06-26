@@ -2,13 +2,13 @@
 // Imports
 /////////////////////////////////////////////////////////////////
 
-import { Jmarc } from "./jmarc.mjs";
-import { headercomponent } from "./header.js";
-import { basketcomponent } from "./basket.js";
-import { multiplemarcrecordcomponent } from "./record.js";
-import { messagecomponent } from "./messagebar.js";
-import { modalmergecomponent } from "./merge.js";
-import { selectworkform } from "./modals/select_workform.js";
+import { Jmarc } from "./api/jmarc.mjs";
+import { headercomponent } from "./components/header.js";
+import { basketcomponent } from "./components/basket.js";
+import { multiplemarcrecordcomponent } from "./components/record.js";
+import { messagecomponent } from "./components/messagebar.js";
+import { modalmergecomponent } from "./components/merge.js";
+import { selectworkform } from "./components/select_workform.js";
 
 /////////////////////////////////////////////////////////////////
 // VIEW MODEL DEFINITION

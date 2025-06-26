@@ -10,16 +10,16 @@ import {
     Indicator2ValidationFlag,
     SubfieldCodeValidationFlag,
     SubfieldValueValidationFlag
-} from "./jmarc.mjs";
-import user from "./api/user.js";
-import basket from "./api/basket.js";
+} from "../api/jmarc.mjs";
+import user from "../api/user.js";
+import basket from "../api/basket.js";
 import { basketcomponent } from "./basket.js";
-import { countcomponent } from "./search/count.js";
-import { validationData } from "./validation.js";
-import { renderingData } from "./rendering.js";
+import { countcomponent } from "./count.js";
+import { validationData } from "../utils/validation.js";
+import { renderingData } from "../utils/rendering.js";
 
 // Modals
-import {batcheditmodal} from "./modals/batch_edit.js"
+import {batcheditmodal} from "./batch_edit.js"
  
 /////////////////////////////////////////////////////////////////
 // MARC RECORD COMPONENT

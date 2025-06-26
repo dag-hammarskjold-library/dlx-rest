@@ -1,10 +1,10 @@
-import { sortcomponent } from "./search/sort.js";
-import { countcomponent } from "./search/count.js";
-import basket from "./api/basket.js";
-import user from "./api/user.js";
+import { sortcomponent } from "./sort.js";
+import { countcomponent } from "./count.js";
+import basket from "../api/basket.js";
+import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { recordfilecomponent } from "./recordfiles.js";
-import { agendamodal } from "./modals/agenda.js";
+import { agendamodal } from "./agenda.js";
 
 export let speechreviewcomponent = {
     props: {
