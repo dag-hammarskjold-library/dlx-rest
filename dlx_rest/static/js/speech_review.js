@@ -57,6 +57,11 @@ export let speechreviewcomponent = {
                                 @click.prevent="sendToBasket">
                             Send {{selectedRecords.length}} to Basket
                         </button>
+                        <button class="btn btn-danger btn-sm ml-2"
+                                @click.prevent="confirmDelete"
+                                v-if="canDelete">
+                            Delete {{selectedRecords.length}} Records
+                        </button>
                     </div>
                     <div v-if="isSearching || submitted">
                         {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
@@ -75,8 +80,8 @@ export let speechreviewcomponent = {
                             <th></th>
                             <th style="width:30px"></th>
                             <th style="width:50px">#</th>
-                            <template v-for="col in sortableColumns" :key="col.key">
-                                <th>
+                            <template>
+                                <th v-for="col in sortableColumns" :key="col.key">
                                     <div class="th-col">
                                         <span
                                             class="sort-btn"
@@ -169,6 +174,7 @@ export let speechreviewcomponent = {
             showSpinner: false,
             searchTerm: "",
             myBasket: {},
+            myProfile: null,
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
@@ -227,9 +233,18 @@ export let speechreviewcomponent = {
                     "text-dark"
                 ].join(" ");
             };
-        }
+        },
+
+        canDelete() {
+            if (!user.hasPermission(this.myProfile, 'batchDelete')) {
+                return false
+            }
+            return this.selectedRecords.length > 0 && 
+                !this.selectedRecords.some(r => r.locked) 
+        },
     },
-    created: function () {
+    created: async function () {
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         if (searchQuery) {
@@ -465,6 +480,61 @@ export let speechreviewcomponent = {
             };
             return map[col] || col;
         },
+        async executeDelete() {
+            if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
+            this.isDeleting = true;
+            const successfulDeletes = new Set();
+            const failedDeletes = new Set();
+
+            try {
+                // Process all deletes
+                for (const record of this.selectedRecords) {
+                    try {
+                        const response = await fetch(
+                            `${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            }
+                        );
+
+                        if (response.ok) {
+                            successfulDeletes.add(record.record_id);
+                        } else {
+                            failedDeletes.add(record.record_id);
+                        }
+                    } catch (error) {
+                        console.error(`Error deleting record ${record.record_id}:`, error);
+                        failedDeletes.add(record.record_id);
+                    }
+                }
+
+                // Remove successfully deleted records from the display
+                this.records = this.records.filter(record => {
+                    // Check if this record's ID is in the successfulDeletes set
+                    return !successfulDeletes.has(record._id.toString());
+                });
+
+                // Update result count
+                this.resultCount = this.records.length;
+
+                // Show results message
+                if (failedDeletes.size > 0) {
+                    alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
+                } else {
+                    alert(`Successfully deleted ${successfulDeletes.size} records.`);
+                }
+
+                // Clear selection
+                this.selectNone();
+                
+            } finally {
+                this.isDeleting = false;
+                $('#deleteConfirmModal').modal('hide');
+            }
+        }
     },
     components: {
         'countcomponent': countcomponent,
