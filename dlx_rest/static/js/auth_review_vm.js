@@ -3,8 +3,8 @@
 /////////////////////////////////////////////////////////////////
 
 //import { Jmarc } from "./jmarc.mjs";
-import { messagecomponent } from "./messagebar.js";
-import { authreviewcomponent } from "./auth_review.js";
+import { messagecomponent } from "./components/messagebar.js";
+import { authreviewcomponent } from "./components/auth_review.js";
 //import { browsecomponent } from "./search/browse.js";
 
 

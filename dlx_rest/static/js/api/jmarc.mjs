@@ -1,6 +1,6 @@
 "use strict";
 
-import { validationData } from "./validation.js";
+import { validationData } from "../utils/validation.js";
 
 // todo: fetch this data from the API to avoid redundancy
 const authMap = {

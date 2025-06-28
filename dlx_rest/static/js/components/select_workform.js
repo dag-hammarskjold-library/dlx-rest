@@ -1,4 +1,4 @@
-import { Jmarc } from "../jmarc.mjs"
+import { Jmarc } from "../api/jmarc.mjs"
 
 export let selectworkform = {
     props: ["api_prefix", "collection"],

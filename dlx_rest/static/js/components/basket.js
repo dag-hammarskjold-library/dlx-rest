@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////
 // BASKET COMPONENT
 
-import { Jmarc } from "./jmarc.mjs";
-import basket from "./api/basket.js";
+import { Jmarc } from "../api/jmarc.mjs";
+import basket from "../api/basket.js";
 import { multiplemarcrecordcomponent } from "./record.js";
 
 /////////////////////////////////////////////////////////////////

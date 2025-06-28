@@ -1,6 +1,6 @@
-import { Jmarc } from "./jmarc.mjs";
-import user from "./api/user.js";
-import basket from "./api/basket.js";
+import { Jmarc } from "../api/jmarc.mjs";
+import user from "../api/user.js";
+import basket from "../api/basket.js";
 import { readonlyrecord } from "./readonly_record.js";
 
 export let browsecomponent = {
