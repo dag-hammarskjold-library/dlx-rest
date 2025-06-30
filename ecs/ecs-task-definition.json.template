@@ -26,7 +26,15 @@
           "name": "DLX_REST_DEV",
           "value": "True"
         }
-      ]
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dlx-rest-nightly",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
     }
   ]
 }
