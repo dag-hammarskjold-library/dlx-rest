@@ -32,7 +32,8 @@
         "options": {
           "awslogs-group": "/ecs/dlx-rest-nightly",
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
         }
       }
     }
