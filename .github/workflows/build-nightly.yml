@@ -60,7 +60,7 @@ jobs:
 
             - name: Substitute AWS Account ID in task definition
               run: |
-                sed -i 's|<AWS_ACCOUNT_ID>|'"${{ secrets.AWS_ACCOUNT_ID }}"'|g' ./ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
+                sed "s|<account_id>|${{ secrets.AWS_ACCOUNT_ID }}|g" ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
 
             - name: Fill in image id in ECS task definition
               id: task-def
