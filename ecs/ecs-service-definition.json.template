@@ -1,0 +1,20 @@
+{
+  "serviceName": "dlx-rest-nightly-service",
+  "taskDefinition": "dlx-rest-task",
+  "desiredCount": 1,
+  "launchType": "FARGATE",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-xxxxxx"],
+      "securityGroups": ["sg-xxxxxx"],
+      "assignPublicIp": "ENABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:region:account-id:targetgroup/dlx-rest-nightly-target-group",
+      "containerName": "dlx-rest-nightly",
+      "containerPort": 5000
+    }
+  ]
+}
