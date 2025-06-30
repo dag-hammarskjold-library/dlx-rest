@@ -13,16 +13,6 @@ jobs:
               uses: actions/checkout@v3
               with:
                 fetch-depth: 0  # Fetch all history for all branches and tags
-            
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: us-east-1
-
-            - name: Login to ECR
-              uses: aws-actions/amazon-ecr-login@v2
 
             - name: Install test dependencies
               run: |
@@ -34,18 +24,33 @@ jobs:
               run: |
                 pytest --maxfail=1 --disable-warnings -q
 
+            - name: Configure AWS Credentials
+              if: success()  # Only continue if tests pass
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: us-east-1
+
+            - name: Login to ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
             - name: Build Docker image
-              if: success()  # Only build if tests pass
               id: build-image
               env:
-                ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                 ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
               run: |
                 docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:nightly .
 
+            - name: Tag Docker image
+              run: |
+                docker tag $ECR_REGISTRY/$ECR_REPOSITORY:nightly $ECR_REGISTRY/$ECR_REPOSITORY:nightly
+
             - name: Push Docker image
               env:
-                ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                 ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
               run: |
                 docker push $ECR_REGISTRY/$ECR_REPOSITORY:nightly
