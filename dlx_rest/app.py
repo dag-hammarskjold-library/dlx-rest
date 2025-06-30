@@ -78,6 +78,9 @@ uat_app = DispatcherMiddleware(Flask('dummy_root'), {
     '/uat-editor': app,
 })
 
+dev_app.config['PREFERRED_URL_SCHEME'] = 'https'
+uat_app.config['PREFERRED_URL_SCHEME'] = 'https'
+
 # Main app routes
 from dlx_rest.routes import *
 
