@@ -1,0 +1,32 @@
+{
+  "family": "dlx-rest-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::950236537949:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::950236537949:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "dlx-rest-nightly",
+      "image": "public.ecr.aws/placeholder/placeholder:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "FLASK_APP",
+          "value": "dlx_rest.app"
+        },
+        {
+          "name": "DLX_REST_DEV",
+          "value": "True"
+        }
+      ]
+    }
+  ]
+}

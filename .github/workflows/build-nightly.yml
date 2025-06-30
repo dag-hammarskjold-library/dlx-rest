@@ -65,10 +65,13 @@ jobs:
             - name: Fill in image id in ECS task definition
               id: task-def
               uses: aws-actions/amazon-ecs-render-task-definition@v1
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
               with:
                 task-definition: ./ecs/ecs-task-definition.json
                 container-name: dlx-rest-nightly
-                image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:nightly
+                image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly
 
             - name: Deploy to ECS
               uses: aws-actions/amazon-ecs-deploy-task-definition@v2
