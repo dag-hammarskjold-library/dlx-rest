@@ -2,8 +2,8 @@
   "family": "dlx-rest-task",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
+  "cpu": "1024",
+  "memory": "4096",
   "executionRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
   "taskRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
   "containerDefinitions": [
