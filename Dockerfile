@@ -18,4 +18,4 @@ ENV DLX_REST_DEV=True
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "dlx_rest.app:app", "--workers", "4", "--timeout", "120"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "dlx_rest.app:dev_app", "--workers", "4", "--timeout", "120"]
