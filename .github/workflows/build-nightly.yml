@@ -24,7 +24,18 @@ jobs:
             - name: Login to ECR
               uses: aws-actions/amazon-ecr-login@v2
 
+            - name: Install test dependencies
+              run: |
+                python -m pip install --upgrade pip
+                pip install pytest
+                pip install -r requirements.txt
+
+            - name: Run tests
+              run: |
+                pytest --maxfail=1 --disable-warnings -q
+
             - name: Build Docker image
+              if: success()  # Only build if tests pass
               id: build-image
               env:
                 ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
