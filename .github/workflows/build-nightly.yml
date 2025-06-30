@@ -81,7 +81,7 @@ jobs:
             - name: Update ECS Service (optional, if you want to update service config)
               run: |
                 aws ecs update-service \
-                  --cli-input-json file://ecs/ecs-service-definition.json \
+                  --cli-input-json ecs/ecs-service-definition.json \
                   --cluster dlx-rest-nightly-cluster \
                   --service dlx-rest-nightly-service \
                   --task-definition ${{ steps.task-def.outputs.task-definition }} \
