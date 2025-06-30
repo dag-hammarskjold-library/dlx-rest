@@ -45,6 +45,9 @@ jobs:
                 docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:nightly .
 
             - name: Tag Docker image
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
               run: |
                 docker tag $ECR_REGISTRY/$ECR_REPOSITORY:nightly $ECR_REGISTRY/$ECR_REPOSITORY:nightly
 
