@@ -222,10 +222,14 @@ export let searchcomponent = {
                             <!-- Record Data -->
                             <td>{{index + 1}}</td>
                             <td>
-                                <recordfilecomponent v-if="collection !== 'auths'" 
+                                <recordfilecomponent v-if="collection === 'bibs' && subtype !== 'speech'" 
                                                 :api_prefix="api_prefix" 
                                                 :record_id="record._id" 
                                                 :desired_languages="['ar','zh','en','fr','ru','es']" />
+                                <recordfilecomponent v-if="subtype === 'speech'"
+                                                :api_prefix="api_prefix"
+                                                :record_id="record._id"
+                                                :desired_languages="['en','fr','es']" />
                             </td>
                             <td class="title-cell">
                                 <div>
