@@ -2,6 +2,7 @@ from flask import Flask, Response, url_for, jsonify, abort as flask_abort, sessi
 #from flask_restx import Resource, Api, reqparse
 from flask_login import LoginManager
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from werkzeug.middleware.proxy_fix import ProxyFix
 from mongoengine import connect, disconnect
 from mongomock import MongoClient as MockClient
 from flask_cors import CORS
@@ -16,6 +17,7 @@ mimetypes.add_type('application/javascript', '.mjs')
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 CORS(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
