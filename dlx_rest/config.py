@@ -9,6 +9,8 @@ class Config(object):
     VERSION = "v2.11"     # Set this in each new milestone/release.
 
     bucket = 'undl-files'
+
+    PREFERRED_URL_SCHEME = 'http'
     
     if 'DLX_REST_TESTING' in os.environ:
         environment = 'test'
@@ -26,6 +28,7 @@ class Config(object):
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_DEV' in os.environ:
+        PREFERRED_URL_SCHEME = 'https'
         environment = 'dev'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
@@ -51,6 +54,7 @@ class Config(object):
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_UAT' in os.environ:
+        PREFERRED_URL_SCHEME = 'https'
         environment = 'uat'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
@@ -65,6 +69,7 @@ class Config(object):
         sync_log_collection = 'sync_log'
         bucket = 'dev-undl-files'
     elif 'DLX_REST_PRODUCTION' in os.environ:
+        PREFERRED_URL_SCHEME = 'https'
         environment = 'prod'
         client = boto3.client('ssm')
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']

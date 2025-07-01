@@ -1,82 +1,56 @@
 name: Build and push nightly image
+
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs every day at midnight UTC
+    - cron: '0 0 * * *'  # Every day at midnight UTC
   workflow_dispatch:
 
 jobs:
-    build:
-        name: Build and push Docker image
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v3
-              with:
-                fetch-depth: 0  # Fetch all history for all branches and tags
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-            - name: Install test dependencies
-              run: |
-                python -m pip install --upgrade pip
-                pip install pytest
-                pip install -r requirements.txt
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-            - name: Run tests
-              run: |
-                pytest --maxfail=1 --disable-warnings -q
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-            - name: Configure AWS Credentials
-              if: success()  # Only continue if tests pass
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: us-east-1
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly .
 
-            - name: Login to ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
+      - name: Run tests
+        run: |
+          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly pytest
 
-            - name: Build Docker image
-              id: build-image
-              env:
-                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-              run: |
-                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:nightly .
+      - name: Push Docker image
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly
 
-            - name: Tag Docker image
-              env:
-                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-              run: |
-                docker tag $ECR_REGISTRY/$ECR_REPOSITORY:nightly $ECR_REGISTRY/$ECR_REPOSITORY:nightly
+      - name: Prepare ECS task definition
+        run: |
+          sed "s|<account_id>|${{ secrets.AWS_ACCOUNT_ID }}|g" ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
 
-            - name: Push Docker image
-              env:
-                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-              run: |
-                docker push $ECR_REGISTRY/$ECR_REPOSITORY:nightly
+      - name: Fill in image id in ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./ecs/ecs-task-definition.json
+          container-name: dlx-rest-nightly
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly
 
-            - name: Substitute AWS Account ID in task definition
-              run: |
-                sed "s|<account_id>|${{ secrets.AWS_ACCOUNT_ID }}|g" ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
-
-            - name: Fill in image id in ECS task definition
-              id: task-def
-              uses: aws-actions/amazon-ecs-render-task-definition@v1
-              env:
-                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-                ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-              with:
-                task-definition: ./ecs/ecs-task-definition.json
-                container-name: dlx-rest-nightly
-                image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:nightly
-
-            - name: Deploy to ECS
-              uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-              with:
-                cluster: dlx-rest-nightly-cluster
-                service: dlx-rest-nightly-service
-                task-definition: ${{ steps.task-def.outputs.task-definition }}
-                wait-for-service-stability: true
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          cluster: dlx-rest-nightly-cluster
+          service: dlx-rest-task-service-4dkyfv2k
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          wait-for-service-stability: true
