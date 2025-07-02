@@ -1,7 +1,10 @@
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ARG APP="dev_app"
+ARG DLX_REST_ENV="DEV"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -14,8 +17,8 @@ RUN pip install --no-cache-dir gunicorn
 COPY . .
 
 ENV FLASK_APP=dlx_rest.app
-ENV DLX_REST_DEV=True
+ENV DLX_REST_${DLX_REST_ENV}=True
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "dlx_rest.app:dev_app", "--workers", "4", "--timeout", "120"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "dlx_rest.app:${APP}", "--workers", "4", "--timeout", "120"]
