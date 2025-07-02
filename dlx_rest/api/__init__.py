@@ -342,7 +342,7 @@ class RecordsList(Resource):
 
         if fmt == 'brief':
             tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
-                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591']
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591', '667']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
