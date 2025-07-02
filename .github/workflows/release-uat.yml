@@ -16,10 +16,6 @@ jobs:
           fetch-depth: 0  # Fetch all history for accurate tagging
           ref: ${{ github.ref }}  # Use the tag ref for the build
 
-      - name: Extract version from github.ref
-        id: extract_version
-        run: echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -33,18 +29,18 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{env.VERSION}} \
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:uat \
             --build-arg APP=uat_app \
             --build-arg DLX_REST_ENV=UAT \
             -f Dockerfile .
 
       - name: Run tests
         run: |
-          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{env.VERSION}} pytest
+          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:uat pytest
     
       - name: Push Docker image
         run: |
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{env.VERSION}}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:uat
 
       - name: Prepare ECS task definition
         run: |

@@ -36,18 +36,18 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ steps.get_latest_release.outputs.latest_tag }} \
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:prod \
             --build-arg APP=app \
             --build-arg DLX_REST_ENV=PRODUCTION \
             -f Dockerfile .
 
       - name: Run tests
         run: |
-          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{steps.get_latest_release.outputs.latest_tag}} pytest
+          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:prod pytest
     
       - name: Push Docker image
         run: |
-          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{steps.get_latest_release.outputs.latest_tag}}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:prod
 
       - name: Prepare ECS task definition
         run: |
@@ -60,7 +60,7 @@ jobs:
         with:
           task-definition: ./ecs/ecs-task-definition.json
           container-name: dlx-rest-prod
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ steps.get_latest_release.outputs.latest_tag }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:prod
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
