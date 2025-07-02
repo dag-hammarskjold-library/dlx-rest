@@ -21,4 +21,7 @@ ENV DLX_REST_${DLX_REST_ENV}=True
 
 EXPOSE 5000
 
-CMD gunicorn -b 0.0.0.0:5000 dlx_rest.app:$APP --workers 4 --timeout 120
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
