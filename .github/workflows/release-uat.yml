@@ -1,0 +1,64 @@
+name: Build and push UAT image on release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for accurate tagging
+          ref: ${{ github.ref }}  # Use the tag ref for the build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{github.ref}} \
+            --build-arg APP=uat_app \
+            --build-arg DLX_REST_ENV=UAT \
+            -f Dockerfile .
+
+      - name: Run tests
+        run: |
+          docker run --rm ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{github.ref}} pytest
+    
+      - name: Push Docker image
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{github.ref}}
+
+      - name: Prepare ECS task definition
+        run: |
+          sed "s|<account_id>|${{ secrets.AWS_ACCOUNT_ID }}|g" ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
+          sed "s|nightly|uat|g" ecs/ecs-task-definition.json > ecs/ecs-task-definition.json
+
+      - name: Fill in image id in ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./ecs/ecs-task-definition.json
+          container-name: dlx-rest-uat
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:uat
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          cluster: dlx-rest-uat-cluster
+          service: dlx-rest-task-service-4dkyfv2k
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          wait-for-service-stability: true

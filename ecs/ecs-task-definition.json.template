@@ -1,5 +1,5 @@
 {
-  "family": "dlx-rest-task",
+  "family": "dlx-rest-nightly-task",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
