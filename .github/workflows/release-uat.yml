@@ -59,6 +59,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           cluster: dlx-rest-uat-cluster
-          service: dlx-rest-task-service-4dkyfv2k
+          service: dlx-rest-uat-task-service
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           wait-for-service-stability: true
