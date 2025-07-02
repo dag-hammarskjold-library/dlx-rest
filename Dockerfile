@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 ARG APP="dev_app"
 ARG DLX_REST_ENV="DEV"
+ENV APP=${APP}
+ENV DLX_REST_ENV=${DLX_REST_ENV}
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV AWS_REGION=us-east-1
-ENV AWS_DEFAULT_REGION=us-east-1
 
 WORKDIR /app
 
@@ -23,7 +23,4 @@ ENV DLX_REST_${DLX_REST_ENV}=True
 
 EXPOSE 5000
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+CMD gunicorn -b 0.0.0.0:5000 dlx_rest.app:$APP --workers 4 --timeout 120
