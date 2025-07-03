@@ -12,6 +12,28 @@ export let browsecomponent = {
     },
     template: `
     <div class="col pt-2" id="app1" style="background-color:white;">
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            :collection="collection"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
         <div v-if="q && index">
             <div class="controls-header mb-3 d-flex align-items-center justify-content-between" style="position:sticky;top:0;z-index:10;background:white;">
                 <div>
@@ -72,7 +94,7 @@ export let browsecomponent = {
                                 <div v-if="result.count === 1 && result.recordId" class="preview">
                                     <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
+                                    <!-- <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord> -->
                                 </div>
                             </td>
                             <td>{{idx + 1}}</td>
@@ -143,7 +165,6 @@ export let browsecomponent = {
                                 <div v-if="result.count === 1 && result.recordId" class="preview">
                                     <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
                                 </div>
                             </td>
                             <td>{{idx + 4}}</td>
@@ -184,28 +205,6 @@ export let browsecomponent = {
             <div class="row">
                 <div id="after-spinner" class="col d-flex justify-content-center" v-if="loading['after-spinner']">
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
-                </div>
-            </div>
-            <!-- Preview modal for mobile/small screens -->
-            <div v-if="previewVisible"
-                class="modal fade show d-block"
-                tabindex="-1"
-                style="background:rgba(0,0,0,0.3)"
-                @mousedown.self="closePreview">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content" @mousedown.stop>
-                        <div class="modal-header">
-                            <h5 class="modal-title">Record Preview</h5>
-                            <button type="button" class="close" @click="closePreview"><span>&times;</span></button>
-                        </div>
-                        <div class="modal-body">
-                            <readonlyrecord
-                                :api_prefix="previewApiPrefix"
-                                :collection="previewCollection"
-                                :record_id="previewRecordId"
-                            />
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -264,10 +263,6 @@ export let browsecomponent = {
             user: null,
             myBasket: {},
             loading: { 'before-spinner': true, 'after-spinner': true },
-            previewRecordId: null,
-            previewCollection: null,
-            previewApiPrefix: null,
-            previewVisible: false,
             scrollTimeout: null,
             previewOpen: false,
             isDragging: false,
@@ -584,23 +579,13 @@ export let browsecomponent = {
             this.myBasket = await basket.getBasket(this.api_prefix);
         },
         togglePreview(event, recordId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
-
+            if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {
                 this.previewOpen = recordId;
-            } else {
-                this.previewOpen = false;
             }
 
             return
-        },
-        dismissPreview: function () {
-            for (let d of document.getElementsByClassName("preview")) {
-                if (!d.classList.contains("hidden")) {
-                    d.classList.toggle("hidden")
-                }
-            }
         },
         handleScroll() {
             if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
