@@ -17,6 +17,14 @@ export let searchcomponent = {
             type: String,
             required: true
         },
+        sort: {
+            type: String,
+            required: false,
+        },
+        direction: {
+            type: String,
+            required: false,
+        },
     },
     template: `
     <div class="col pt-2" id="app1" style="background-color:white;">
@@ -496,8 +504,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = urlParams.get("sort") || 'updated';
-        this.currentDirection = urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || urlParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || urlParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
