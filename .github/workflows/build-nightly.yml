@@ -1,6 +1,9 @@
-name: Build and push nightly image
+name: Build and push nightly image; push on updates to main; or trigger manually
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '0 0 * * *'  # Every day at midnight UTC
   workflow_dispatch:

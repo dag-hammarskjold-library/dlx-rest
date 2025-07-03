@@ -1,9 +1,11 @@
-name: Build and push UAT image on release
+name: Build and push UAT image on release or push to 'uat' branch
 
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - 'uat'
   workflow_dispatch:
 
 jobs:
