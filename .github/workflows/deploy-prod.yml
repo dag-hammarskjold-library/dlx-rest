@@ -52,7 +52,8 @@ jobs:
       - name: Prepare ECS task definition
         run: |
           sed "s|<account_id>|${{ secrets.AWS_ACCOUNT_ID }}|g" ecs/ecs-task-definition.json.template > ecs/ecs-task-definition.json
-          sed "s|nightly|prod|g" ecs/ecs-task-definition.json > ecs/ecs-task-definition.json
+          sed "s|nightly|prod|g" ecs/ecs-task-definition.json > ecs/ecs-task-definition.json.tmp2
+          sed "s|DLX_REST_DEV|DLX_REST_PROD|g" ecs/ecs-task-definition.json.tmp2 > ecs/ecs-task-definition.json
 
       - name: Fill in image id in ECS task definition
         id: task-def
