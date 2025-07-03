@@ -579,7 +579,6 @@ export let browsecomponent = {
             this.myBasket = await basket.getBasket(this.api_prefix);
         },
         togglePreview(event, recordId) {
-            console.log(event, recordId)
             if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {

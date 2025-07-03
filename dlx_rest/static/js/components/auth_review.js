@@ -128,7 +128,6 @@ export let authreviewcomponent = {
                                                 {{auth.heading}}
                                             </a>
                                         </span>
-                                        <readonlyrecord v-if="previewOpen === auth._id" :api_prefix="api_prefix" collection="auths" :record_id="auth._id" class="record-preview mt-2"></readonlyrecord>
                                         <div class="record-details mt-1">
                                             <span v-if="auth.alt"><strong>Alt:</strong> {{auth.alt}}</span>
                                             <span v-if="auth.symbol" class="ml-2"><strong>Symbol:</strong> {{auth.symbol}}</span>
@@ -150,6 +149,29 @@ export let authreviewcomponent = {
             <div v-if="!isSearching && submitted && auths.length === 0" class="text-center mt-3">
                 <p class="text-muted">No results found for updated > {{searchDate}}.</p>
                 <p class="text-muted">Try changing your date.</p>
+            </div>
+        </div>
+
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="auths"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -383,14 +405,14 @@ export let authreviewcomponent = {
             }
             await this.refreshBasket();
         },
-        togglePreview(event, authId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
-                this.previewOpen = null;
-            } else if (authId) {
-                this.previewOpen = authId;
-            } else {
-                this.previewOpen = null;
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
+
+            return
         },
         handleSortChange({ sort, direction }) {
             this.currentSort = sort;
