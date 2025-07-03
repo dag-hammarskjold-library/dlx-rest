@@ -6,7 +6,7 @@ import boto3
 class Config(object):
     DEBUG = False
     TESTING = False
-    VERSION = "v2.12.1"     # Set this in each new milestone/release.
+    VERSION = "v2.12.0.dev"     # Set this in each new milestone/release.
 
     bucket = 'undl-files'
 
