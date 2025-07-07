@@ -56,7 +56,7 @@ export let authreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -291,7 +291,7 @@ export let authreviewcomponent = {
         },
         selectAll() {
             this.auths.forEach(auth => {
-                if (!auth.myBasket && !auth.locked) {
+                if (!auth.myBasket && !auth.locked && this.selectedRecords.length < 100) {
                     auth.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === auth._id && r.collection === "auths")) {
                         this.selectedRecords.push({ collection: "auths", record_id: auth._id });

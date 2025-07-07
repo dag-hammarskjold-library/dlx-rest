@@ -23,7 +23,7 @@ export let browsecomponent = {
                 </div>
                 <div class="d-flex align-items-center">
                     <div class="btn-group mr-3">
-                        <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                        <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                         <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                     </div>
                     <button v-if="selectedRecords.length > 0" 
@@ -472,7 +472,7 @@ export let browsecomponent = {
         selectAll() {
             [...this.results_before, ...this.results_after].forEach(result => {
                 //if (!result.checkboxDisabled) {
-                if (!result.myBasket && !result.locked) {
+                if (!result.myBasket && !result.locked && this.selectedRecords.length < 100) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result.recordId && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result.recordId });
