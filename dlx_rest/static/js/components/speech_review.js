@@ -402,7 +402,7 @@ export let speechreviewcomponent = {
             });
         },
         selectNone() {
-            [...this.speeches].forEach(speech => {
+            this.speeches.forEach(speech => {
                 speech.selected = false;
             });
             this.selectedRecords = [];
@@ -432,7 +432,7 @@ export let speechreviewcomponent = {
                     const start = Math.min(this.lastSelectedIdx, idx);
                     const end = Math.max(this.lastSelectedIdx, idx);
                     for (let i = start; i <= end; i++) {
-                        const rec = this.speeches[i];
+                        const rec = this.sortedSpeeches[i];
                         if (!rec.myBasket && !rec.locked && !rec.selected) {
                             rec.selected = true;
                             this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
