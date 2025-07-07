@@ -50,7 +50,7 @@ export let speechreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -361,7 +361,7 @@ export let speechreviewcomponent = {
         },
         selectAll() {
             this.speeches.forEach(speech => {
-                if (!speech.myBasket && !speech.locked) {
+                if (!speech.myBasket && !speech.locked && this.selectedRecords.length < 100) {
                     speech.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === speech._id && r.collection === "bibs")) {
                         this.selectedRecords.push({ collection: "bibs", record_id: speech._id });

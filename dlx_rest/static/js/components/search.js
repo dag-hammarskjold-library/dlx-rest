@@ -162,7 +162,7 @@ export let searchcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -973,7 +973,7 @@ export let searchcomponent = {
         },
         selectAll() {
             [...this.records].forEach(result => {
-                if (!result.myBasket && !result.locked) {
+                if (!result.myBasket && !result.locked && this.selectedRecords.length < 100) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result._id });
