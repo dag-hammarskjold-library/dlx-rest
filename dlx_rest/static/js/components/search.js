@@ -767,6 +767,22 @@ export let searchcomponent = {
             window.history.replaceState(null, "", url);
         },
 
+        normalizeSymbolSearch(q) {
+            // Split on AND/OR/NOT (case-insensitive, surrounded by spaces)
+            const terms = q.split(/ *(AND|OR|NOT) +/i).filter(Boolean);
+
+            if (
+                terms.length === 1 &&
+                !/[:<>]/.test(terms[0]) &&
+                !['AND', 'OR', 'NOT'].includes(terms[0].toUpperCase()) &&
+                /^[A-Za-z]+\/.+/.test(terms[0])
+            ) {
+                // Looks like a symbol, rewrite as symbol:"TERM"
+                return `symbol:"${terms[0]}"`;
+            }
+            return q;
+        },
+
         applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
@@ -821,6 +837,9 @@ export let searchcomponent = {
                 this.searchError = "Search term required";
                 return;
             }
+
+            this.searchTerm = this.normalizeSymbolSearch(this.searchTerm);
+            this.updateSearchQuery();
 
             if (this.abortController) {
                 this.abortController.abort();
