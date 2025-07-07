@@ -247,7 +247,12 @@ export let searchcomponent = {
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        {{record.title}}
+                                        <span v-if="collection == 'auths'">
+                                            {{record.heading}}
+                                        </span>
+                                        <span v-else>
+                                            {{record.title}}
+                                        </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
                                                 :api_prefix="api_prefix" 
