@@ -5,6 +5,7 @@ import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { recordfilecomponent } from "./recordfiles.js";
 import { agendamodal } from "./agenda.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -49,7 +50,7 @@ export let speechreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -111,24 +112,21 @@ export let speechreviewcomponent = {
                                 @mouseup="handleMouseUp($event)">
                                 <td></td>
                                 <td>
-                                    <i v-if="speech.locked" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="speech.myBasket" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
-                                    <i v-else 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="bibs"
+                                        :recordId="speech._id"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
                                     <div>
                                         <i v-if="previewOpen === speech._id" class="fas fa-window-close preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
                                         <i v-else class="fas fa-file preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
-                                        <readonlyrecord v-if="previewOpen === speech._id" :api_prefix="api_prefix" collection="bibs" :record_id="speech._id" class="record-preview"></readonlyrecord>
                                         {{speech.symbol}}
                                     </div>
                                 </td>
@@ -155,6 +153,7 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
+        
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
             <div class="modal-dialog" role="document">
@@ -177,6 +176,26 @@ export let speechreviewcomponent = {
                             <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
                             {{isDeleting ? 'Deleting...' : 'Delete Records'}}
                         </button>
+
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="bibs"
+                            :record_id="previewOpen"
+                        />
+
                     </div>
                 </div>
             </div>
@@ -272,6 +291,7 @@ export let speechreviewcomponent = {
     },
     created: async function () {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myBasket = await basket.getBasket(this.api_prefix);
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         if (searchQuery) {
@@ -279,7 +299,7 @@ export let speechreviewcomponent = {
             this.updateSearchQuery();
             this.submitSearch();
         }
-        this.refreshBasket();
+        //this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -367,7 +387,7 @@ export let speechreviewcomponent = {
         },
         selectAll() {
             this.speeches.forEach(speech => {
-                if (!speech.myBasket && !speech.locked) {
+                if (!speech.myBasket && !speech.locked && this.selectedRecords.length < 100) {
                     speech.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === speech._id && r.collection === "bibs")) {
                         this.selectedRecords.push({ collection: "bibs", record_id: speech._id });
@@ -447,20 +467,6 @@ export let speechreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, speechId) {
-            let speech = this.speeches.find(r => r._id === speechId);
-            if (!speech) return;
-            if (!speech.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId);
-                speech.myBasket = true;
-                speech.selected = false;
-            } else {
-                await basket.deleteItem(this.myBasket, "bibs", speechId);
-                speech.myBasket = false;
-                speech.selected = false;
-            }
-            await this.refreshBasket();
-        },
         togglePreview(event, speechId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === speechId) {
                 this.previewOpen = null;
@@ -469,6 +475,8 @@ export let speechreviewcomponent = {
             } else {
                 this.previewOpen = null;
             }
+
+            return
         },
         toggleAgendas: function (e, speechId, agendas) {
             this.$refs.agendamodal.agendas = agendas;
@@ -572,6 +580,7 @@ export let speechreviewcomponent = {
         'countcomponent': countcomponent,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,
-        'agendamodal': agendamodal
+        'agendamodal': agendamodal,
+        'itemadd': itemaddcomponent,
     }
 }

@@ -176,7 +176,7 @@ class CollectionLogicalFields(Resource):
     args.add_argument(
         'subtype',
         type=str,
-        choices=['','default','speech','vote'],
+        choices=['','all','default','speech','vote'],
         help='Record collection subtype',
         default='default'
     )

@@ -2,6 +2,7 @@ import { Jmarc } from "../api/jmarc.mjs";
 import user from "../api/user.js";
 import basket from "../api/basket.js";
 import { readonlyrecord } from "./readonly_record.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let browsecomponent = {
     props: {
@@ -12,6 +13,28 @@ export let browsecomponent = {
     },
     template: `
     <div class="col pt-2" id="app1" style="background-color:white;">
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            :collection="collection"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
         <div v-if="q && index">
             <div class="controls-header mb-3 d-flex align-items-center justify-content-between" style="position:sticky;top:0;z-index:10;background:white;">
                 <div>
@@ -23,7 +46,7 @@ export let browsecomponent = {
                 </div>
                 <div class="d-flex align-items-center">
                     <div class="btn-group mr-3">
-                        <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                        <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                         <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                     </div>
                     <button v-if="selectedRecords.length > 0" 
@@ -55,24 +78,22 @@ export let browsecomponent = {
                             <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
-                                    <i v-if="result.locked"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="result.myBasket"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-minus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
-                                    <i v-else
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-plus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        :collection="collection"
+                                        :recordId="result.recordId"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </div>
                             </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId" class="preview">
                                     <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
+                                    <!-- <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord> -->
                                 </div>
                             </td>
                             <td>{{idx + 1}}</td>
@@ -126,24 +147,21 @@ export let browsecomponent = {
                             <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
-                                    <i v-if="result.locked"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="result.myBasket"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-minus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
-                                    <i v-else
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-plus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        :collection="collection"
+                                        :recordId="result.recordId"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </div>
                             </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId" class="preview">
                                     <i v-if="previewOpen === result.recordId" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, result.recordId)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === result.recordId" :api_prefix="api_prefix" :collection="collection" :record_id="result.recordId" class="record-preview"></readonlyrecord>
                                 </div>
                             </td>
                             <td>{{idx + 4}}</td>
@@ -184,28 +202,6 @@ export let browsecomponent = {
             <div class="row">
                 <div id="after-spinner" class="col d-flex justify-content-center" v-if="loading['after-spinner']">
                     <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
-                </div>
-            </div>
-            <!-- Preview modal for mobile/small screens -->
-            <div v-if="previewVisible"
-                class="modal fade show d-block"
-                tabindex="-1"
-                style="background:rgba(0,0,0,0.3)"
-                @mousedown.self="closePreview">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content" @mousedown.stop>
-                        <div class="modal-header">
-                            <h5 class="modal-title">Record Preview</h5>
-                            <button type="button" class="close" @click="closePreview"><span>&times;</span></button>
-                        </div>
-                        <div class="modal-body">
-                            <readonlyrecord
-                                :api_prefix="previewApiPrefix"
-                                :collection="previewCollection"
-                                :record_id="previewRecordId"
-                            />
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -264,10 +260,6 @@ export let browsecomponent = {
             user: null,
             myBasket: {},
             loading: { 'before-spinner': true, 'after-spinner': true },
-            previewRecordId: null,
-            previewCollection: null,
-            previewApiPrefix: null,
-            previewVisible: false,
             scrollTimeout: null,
             previewOpen: false,
             isDragging: false,
@@ -472,7 +464,7 @@ export let browsecomponent = {
         selectAll() {
             [...this.results_before, ...this.results_after].forEach(result => {
                 //if (!result.checkboxDisabled) {
-                if (!result.myBasket && !result.locked) {
+                if (!result.myBasket && !result.locked && this.selectedRecords.length < 100) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result.recordId && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result.recordId });
@@ -559,48 +551,17 @@ export let browsecomponent = {
                 });
             }
         },
-        async toggleBasket(e, recordId) {
-            // Find the result object
-            let result = [...this.results_before, ...this.results_after].find(r => r.recordId === recordId);
-            if (!result) return;
-
-            if (!result.myBasket) {
-                // Add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
-                result.myBasket = true;
-                //result.checkboxDisabled = true;
-                result.selected = false; // Deselect if added to basket
-            } else {
-                // Remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId);
-                result.myBasket = false;
-                //result.checkboxDisabled = false;
-                result.selected = false; // Deselect if removed from basket
-            }
-            // Refresh basket state for the component
-            this.refreshBasket();
-        },
         async refreshBasket() {
             this.myBasket = await basket.getBasket(this.api_prefix);
         },
         togglePreview(event, recordId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
-
+            if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {
                 this.previewOpen = recordId;
-            } else {
-                this.previewOpen = false;
             }
 
             return
-        },
-        dismissPreview: function () {
-            for (let d of document.getElementsByClassName("preview")) {
-                if (!d.classList.contains("hidden")) {
-                    d.classList.toggle("hidden")
-                }
-            }
         },
         handleScroll() {
             if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
@@ -617,6 +578,7 @@ export let browsecomponent = {
         },
     },
     components: {
-        readonlyrecord
+        'readonlyrecord': readonlyrecord,
+        'itemadd': itemaddcomponent
     }
 }

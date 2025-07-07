@@ -3,6 +3,7 @@ import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let authreviewcomponent = {
     props: {
@@ -68,7 +69,7 @@ export let authreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -109,17 +110,15 @@ export let authreviewcomponent = {
                                 @mouseup="handleMouseUp($event)">
                                 <td></td>
                                 <td>
-                                    <i v-if="auth.locked" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="auth.myBasket" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
-                                    <i v-else 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="auths"
+                                        :recordId="auth._id"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
@@ -140,7 +139,6 @@ export let authreviewcomponent = {
                                                 {{auth.heading}}
                                             </a>
                                         </span>
-                                        <readonlyrecord v-if="previewOpen === auth._id" :api_prefix="api_prefix" collection="auths" :record_id="auth._id" class="record-preview mt-2"></readonlyrecord>
                                         <div class="record-details mt-1">
                                             <span v-if="auth.alt"><strong>Alt:</strong> {{auth.alt}}</span>
                                             <span v-if="auth.symbol" class="ml-2"><strong>Symbol:</strong> {{auth.symbol}}</span>
@@ -187,6 +185,25 @@ export let authreviewcomponent = {
                             <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
                             {{isDeleting ? 'Deleting...' : 'Delete Records'}}
                         </button>
+                        
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="auths"
+                            :record_id="previewOpen"
+                        />
                     </div>
                 </div>
             </div>
@@ -266,10 +283,11 @@ export let authreviewcomponent = {
         },
     },
     created: async function () {
-        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+        this.myBasket = await basket.getBasket(this.api_prefix);
         this.updateSearchQuery();
+        //this.refreshBasket();
         this.submitSearch();
-        this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -378,7 +396,7 @@ export let authreviewcomponent = {
 
         selectAll() {
             this.auths.forEach(auth => {
-                if (!auth.myBasket && !auth.locked) {
+                if (!auth.myBasket && !auth.locked && this.selectedRecords.length < 100) {
                     auth.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === auth._id && r.collection === "auths")) {
                         this.selectedRecords.push({ collection: "auths", record_id: auth._id });
@@ -456,20 +474,7 @@ export let authreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, authId) {
-            let auth = this.auths.find(r => r._id === authId);
-            if (!auth) return;
-            if (!auth.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "auths", authId);
-                auth.myBasket = true;
-                auth.selected = false;
-            } else {
-                await basket.deleteItem(this.myBasket, "auths", authId);
-                auth.myBasket = false;
-                auth.selected = false;
-            }
-            await this.refreshBasket();
-        },
+
         togglePreview(event, authId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
                 this.previewOpen = null;
@@ -478,6 +483,8 @@ export let authreviewcomponent = {
             } else {
                 this.previewOpen = null;
             }
+
+            return
         },
         handleSortChange({ sort, direction }) {
             this.currentSort = sort;
@@ -560,6 +567,7 @@ export let authreviewcomponent = {
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        'readonlyrecord': readonlyrecord
+        'readonlyrecord': readonlyrecord,
+        'itemadd': itemaddcomponent
     }
 }

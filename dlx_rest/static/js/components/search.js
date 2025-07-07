@@ -6,6 +6,7 @@ import { readonlyrecord } from "./readonly_record.js"
 import { recordfilecomponent } from "./recordfiles.js";
 import { exportmodal } from "./export.js";
 import { searchHistoryComponent } from "./search-history.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let searchcomponent = {
     props: {
@@ -16,6 +17,14 @@ export let searchcomponent = {
         collection: {
             type: String,
             required: true
+        },
+        sort: {
+            type: String,
+            required: false,
+        },
+        direction: {
+            type: String,
+            required: false,
         },
     },
     template: `
@@ -153,7 +162,7 @@ export let searchcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -198,24 +207,21 @@ export let searchcomponent = {
                             @mouseup="handleMouseUp($event)">
                             <td></td>
                             <td>
-                                <i v-if="record.locked" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-lock"></i>
-                                <i v-else-if="record.myBasket" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-minus" 
-                                    @click="toggleBasket($event, record._id)"></i>
-                                <i v-else 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-plus" 
-                                    @click="toggleBasket($event, record._id)"></i>
+                                <itemadd
+                                    :api_prefix="api_prefix"
+                                    :collection="collection"
+                                    :recordId="record._id"
+                                    :myBasket="myBasket"
+                                    @mousedown.native.stop
+                                    @mouseup.native.stop
+                                    @click.native.stop
+                                ></itemadd>
                             </td>
                             <td> 
                                 <!-- Preview -->
                                 <div>
                                     <i v-if="previewOpen === record._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === record._id" :api_prefix="api_prefix" :collection="collection" :record_id="record._id" class="record-preview"></readonlyrecord>
                                 </div>
                             </td>
                             
@@ -248,7 +254,12 @@ export let searchcomponent = {
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        {{record.title}}
+                                        <span v-if="collection == 'auths'">
+                                            {{record.heading}}
+                                        </span>
+                                        <span v-else>
+                                            {{record.title}}
+                                        </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
                                                 :api_prefix="api_prefix" 
@@ -292,6 +303,29 @@ export let searchcomponent = {
             :collection="collection"
             :search-term="searchTerm">
         </exportmodal>
+
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            :collection="collection"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
@@ -496,8 +530,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = urlParams.get("sort") || 'updated';
-        this.currentDirection = urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || urlParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || urlParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
@@ -808,7 +842,7 @@ export let searchcomponent = {
             let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
             
             if (this.subtype && this.subtype !== 'default') {
-                if (this.subtype === 'speech' || this.subtype === 'vote') {
+                if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
                 } else {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}`;
@@ -939,7 +973,7 @@ export let searchcomponent = {
         },
         selectAll() {
             [...this.records].forEach(result => {
-                if (!result.myBasket && !result.locked) {
+                if (!result.myBasket && !result.locked && this.selectedRecords.length < 100) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result._id });
@@ -1019,33 +1053,11 @@ export let searchcomponent = {
                 });
             }
         },
-        async toggleBasket(e, recordId) {
-            // Find the result object
-            let result = [...this.records].find(r => r._id === recordId);
-            if (!result) return;
-
-            if (!result.myBasket) {
-                // Add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
-                result.myBasket = true;
-                result.selected = false; // Deselect if added to basket
-            } else {
-                // Remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId);
-                result.myBasket = false;
-                result.selected = false; // Deselect if removed from basket
-            }
-            // Refresh basket state for the component
-            this.refreshBasket();
-        },
         togglePreview(event, recordId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
-
+            if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {
                 this.previewOpen = recordId;
-            } else {
-                this.previewOpen = false;
             }
 
             return
@@ -1144,6 +1156,7 @@ export let searchcomponent = {
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,    
         'exportmodal': exportmodal,
-        'search-history': searchHistoryComponent
+        'search-history': searchHistoryComponent,
+        'itemadd': itemaddcomponent,
     }
 }
