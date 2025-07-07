@@ -265,6 +265,7 @@ export let browsecomponent = {
             isDragging: false,
             dragStartIdx: null,
             dragEndIdx: null,
+            lastSelectedIdx: null,
             selectedRecords: [],
             logicalFieldLabels: {
                 // We can add more logical field labels here if needed
@@ -477,59 +478,48 @@ export let browsecomponent = {
                 result.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
+
+        // Handle click and drag selection and shift+click and drag selection
         handleMouseDown(e, result, idx) {
-            if (
-                e.target.classList.contains('preview-toggle') ||
-                e.target.closest('.preview-toggle') ||
-                e.target.classList.contains('folder-plus') || 
-                e.target.classList.contains('folder-minus') ||
-                e.target.classList.contains('fa-lock') 
-            ) {
-                return;
-            }
             if (e.button !== 0) return;
+
+            if (!e.shiftKey) {
+                this.results_before.forEach(r => r.selected = false);
+                this.results_after.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+            }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
+
         handleMouseMove(e, result, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+            let arr = [...this.results_before, ...this.results_after];
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = arr[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag: function() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            let arr = [...this.results_before, ...this.results_after];
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                //if (!r.checkboxDisabled) 
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r.recordId && x.collection === this.collection)) {
-                        this.selectedRecords.push({ collection: this.collection, record_id: r.recordId });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r.recordId && x.collection === this.collection);
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+        
         async sendToBasket(e) {
             e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
