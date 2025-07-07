@@ -5,6 +5,7 @@ import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { recordfilecomponent } from "./recordfiles.js";
 import { agendamodal } from "./agenda.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let speechreviewcomponent = {
     props: {
@@ -111,17 +112,15 @@ export let speechreviewcomponent = {
                                 @mouseup="handleMouseUp($event)">
                                 <td></td>
                                 <td>
-                                    <i v-if="speech.locked" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="speech.myBasket" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
-                                    <i v-else 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="bibs"
+                                        :recordId="speech._id"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
@@ -245,6 +244,7 @@ export let speechreviewcomponent = {
     },
     created: async function () {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myBasket = await basket.getBasket(this.api_prefix);
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         if (searchQuery) {
@@ -252,7 +252,7 @@ export let speechreviewcomponent = {
             this.updateSearchQuery();
             this.submitSearch();
         }
-        this.refreshBasket();
+        //this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -420,20 +420,6 @@ export let speechreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, speechId) {
-            let speech = this.speeches.find(r => r._id === speechId);
-            if (!speech) return;
-            if (!speech.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId);
-                speech.myBasket = true;
-                speech.selected = false;
-            } else {
-                await basket.deleteItem(this.myBasket, "bibs", speechId);
-                speech.myBasket = false;
-                speech.selected = false;
-            }
-            await this.refreshBasket();
-        },
         togglePreview(event, speechId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === speechId) {
                 this.previewOpen = null;
@@ -540,6 +526,7 @@ export let speechreviewcomponent = {
         'countcomponent': countcomponent,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,
-        'agendamodal': agendamodal
+        'agendamodal': agendamodal,
+        'itemadd': itemaddcomponent,
     }
 }

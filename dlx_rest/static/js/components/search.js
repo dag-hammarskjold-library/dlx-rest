@@ -6,6 +6,7 @@ import { readonlyrecord } from "./readonly_record.js"
 import { recordfilecomponent } from "./recordfiles.js";
 import { exportmodal } from "./export.js";
 import { searchHistoryComponent } from "./search-history.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let searchcomponent = {
     props: {
@@ -198,17 +199,15 @@ export let searchcomponent = {
                             @mouseup="handleMouseUp($event)">
                             <td></td>
                             <td>
-                                <i v-if="record.locked" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-lock"></i>
-                                <i v-else-if="record.myBasket" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-minus" 
-                                    @click="toggleBasket($event, record._id)"></i>
-                                <i v-else 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-plus" 
-                                    @click="toggleBasket($event, record._id)"></i>
+                                <itemadd
+                                    :api_prefix="api_prefix"
+                                    :collection="collection"
+                                    :recordId="record._id"
+                                    :myBasket="myBasket"
+                                    @mousedown.native.stop
+                                    @mouseup.native.stop
+                                    @click.native.stop
+                                ></itemadd>
                             </td>
                             <td> 
                                 <!-- Preview -->
@@ -1019,25 +1018,6 @@ export let searchcomponent = {
                 });
             }
         },
-        async toggleBasket(e, recordId) {
-            // Find the result object
-            let result = [...this.records].find(r => r._id === recordId);
-            if (!result) return;
-
-            if (!result.myBasket) {
-                // Add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
-                result.myBasket = true;
-                result.selected = false; // Deselect if added to basket
-            } else {
-                // Remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId);
-                result.myBasket = false;
-                result.selected = false; // Deselect if removed from basket
-            }
-            // Refresh basket state for the component
-            this.refreshBasket();
-        },
         togglePreview(event, recordId) {
             if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
 
@@ -1144,6 +1124,7 @@ export let searchcomponent = {
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,    
         'exportmodal': exportmodal,
-        'search-history': searchHistoryComponent
+        'search-history': searchHistoryComponent,
+        'itemadd': itemaddcomponent,
     }
 }

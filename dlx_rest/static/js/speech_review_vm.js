@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////
 
 //import { Jmarc } from "./jmarc.mjs";
-import { speechreviewcomponent } from "./speech_review.js";
+import { speechreviewcomponent } from "./components/speech_review.js";
 
 
 /////////////////////////////////////////////////////////////////
