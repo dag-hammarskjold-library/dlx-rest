@@ -153,6 +153,30 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
+        
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">Are you sure you want to delete {{selectedRecords.length}} records?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" 
+                                @click="executeDelete" 
+                                :disabled="isDeleting">
+                            <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
+                            {{isDeleting ? 'Deleting...' : 'Delete Records'}}
+                        </button>
+
         <!-- Preview modal -->
         <div v-if="previewOpen"
             class="modal fade show d-block"
@@ -171,6 +195,7 @@ export let speechreviewcomponent = {
                             collection="bibs"
                             :record_id="previewOpen"
                         />
+
                     </div>
                 </div>
             </div>
@@ -216,6 +241,7 @@ export let speechreviewcomponent = {
                 { key: "speaker_country", label: "Speaker (700 g)" },
                 { key: "country_org", label: "Country/Organization (710 or 711)" }
             ],
+            isDeleting: false
         }
     },
     computed: {
@@ -489,6 +515,11 @@ export let speechreviewcomponent = {
             };
             return map[col] || col;
         },
+
+        confirmDelete() {
+            $('#deleteConfirmModal').modal('show');
+        },
+
         async executeDelete() {
             if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
             this.isDeleting = true;

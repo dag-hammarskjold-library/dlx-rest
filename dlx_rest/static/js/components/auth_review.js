@@ -29,6 +29,18 @@ export let authreviewcomponent = {
                 </div>
             </form>
         </div>
+
+        <div v-if="auths.length > 0" id="filters" class="col text-center">
+            Filter: 
+            <a v-for="headFilter in headFilters" 
+                class="badge mx-1" 
+                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                href="#"
+                @click.prevent="applyHeadFilter(headFilter)">
+                {{headFilter}}
+            </a>
+        </div>
+
         <sortcomponent v-if="auths.length > 0"
             :uibase="uibase"
             collection="auths"
@@ -151,6 +163,29 @@ export let authreviewcomponent = {
             </div>
         </div>
 
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">Are you sure you want to delete {{selectedRecords.length}} records?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" 
+                                @click="executeDelete" 
+                                :disabled="isDeleting">
+                            <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
+                            {{isDeleting ? 'Deleting...' : 'Delete Records'}}
+                        </button>
+                        
         <!-- Preview modal -->
         <div v-if="previewOpen"
             class="modal fade show d-block"
@@ -233,6 +268,9 @@ export let authreviewcomponent = {
             currentSort: 'updated',
             currentDirection: 'desc',
             searchError: null,
+            headFilters: ['100', '110', '111', '130', '150', '190', '191'],
+            activeFilters: null,
+            isDeleting: false,
         }
     },
     computed: {
@@ -310,7 +348,52 @@ export let authreviewcomponent = {
                 this.submitted = true;
             }
             this.updateSearchQuery();
+
+            this.clearFilters();
         },
+
+        applyHeadFilter(fieldTag) {
+            // Initialize active filters Set if needed
+            if (!this.activeFilters) {
+                this.activeFilters = new Set();
+            }
+
+            // Store original records if not already stored
+            if (!this._originalRecords) {
+                this._originalRecords = [...this.records];
+            }
+
+            // Toggle filter
+            if (this.activeFilters.has(fieldTag)) {
+                this.activeFilters.delete(fieldTag);
+            } else {
+                this.activeFilters.add(fieldTag);
+            }
+
+            // If no filters active, restore original results
+            if (this.activeFilters.size === 0) {
+                this.records = [...this._originalRecords];
+                this.resultCount = this.records.length;
+                return;
+            }
+
+            // Always filter from the original unfiltered set
+            this.records = this._originalRecords.filter(record => {
+                return Array.from(this.activeFilters).some(tag => {
+                    return record.heading_tag === tag;
+                });
+            });
+
+            // Update result count even if zero
+            this.resultCount = this.records.length;
+        },
+
+        // Add cleanup method for when search changes
+        clearFilters() {
+            this._originalRecords = null;
+            this.activeFilters = null;
+        },
+
         selectAll() {
             this.auths.forEach(auth => {
                 if (!auth.myBasket && !auth.locked && this.selectedRecords.length < 100) {
@@ -420,6 +503,11 @@ export let authreviewcomponent = {
             this.showSpinner = false;
             this.isSearching = false;
         },
+
+        confirmDelete() {
+            $('#deleteConfirmModal').modal('show');
+        },
+
         async executeDelete() {
             if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
             this.isDeleting = true;
