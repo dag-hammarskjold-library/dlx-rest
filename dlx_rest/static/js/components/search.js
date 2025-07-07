@@ -18,6 +18,14 @@ export let searchcomponent = {
             type: String,
             required: true
         },
+        sort: {
+            type: String,
+            required: false,
+        },
+        direction: {
+            type: String,
+            required: false,
+        },
     },
     template: `
     <div class="col pt-2" id="app1" style="background-color:white;">
@@ -214,7 +222,6 @@ export let searchcomponent = {
                                 <div>
                                     <i v-if="previewOpen === record._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === record._id" :api_prefix="api_prefix" :collection="collection" :record_id="record._id" class="record-preview"></readonlyrecord>
                                 </div>
                             </td>
                             
@@ -247,7 +254,12 @@ export let searchcomponent = {
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        {{record.title}}
+                                        <span v-if="collection == 'auths'">
+                                            {{record.heading}}
+                                        </span>
+                                        <span v-else>
+                                            {{record.title}}
+                                        </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
                                                 :api_prefix="api_prefix" 
@@ -291,6 +303,29 @@ export let searchcomponent = {
             :collection="collection"
             :search-term="searchTerm">
         </exportmodal>
+
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            :collection="collection"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
@@ -495,8 +530,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = urlParams.get("sort") || 'updated';
-        this.currentDirection = urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || urlParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || urlParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
@@ -807,7 +842,7 @@ export let searchcomponent = {
             let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
             
             if (this.subtype && this.subtype !== 'default') {
-                if (this.subtype === 'speech' || this.subtype === 'vote') {
+                if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
                 } else {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}`;
@@ -1019,13 +1054,10 @@ export let searchcomponent = {
             }
         },
         togglePreview(event, recordId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
-
+            if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {
                 this.previewOpen = recordId;
-            } else {
-                this.previewOpen = false;
             }
 
             return

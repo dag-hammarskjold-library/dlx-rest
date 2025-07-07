@@ -127,7 +127,6 @@ export let speechreviewcomponent = {
                                     <div>
                                         <i v-if="previewOpen === speech._id" class="fas fa-window-close preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
                                         <i v-else class="fas fa-file preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
-                                        <readonlyrecord v-if="previewOpen === speech._id" :api_prefix="api_prefix" collection="bibs" :record_id="speech._id" class="record-preview"></readonlyrecord>
                                         {{speech.symbol}}
                                     </div>
                                 </td>
@@ -154,6 +153,28 @@ export let speechreviewcomponent = {
             </div>
         </div>
         <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="bibs"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     `,
     style: `
@@ -428,6 +449,8 @@ export let speechreviewcomponent = {
             } else {
                 this.previewOpen = null;
             }
+
+            return
         },
         toggleAgendas: function (e, speechId, agendas) {
             this.$refs.agendamodal.agendas = agendas;
