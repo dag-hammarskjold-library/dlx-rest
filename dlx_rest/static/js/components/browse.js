@@ -2,6 +2,7 @@ import { Jmarc } from "../api/jmarc.mjs";
 import user from "../api/user.js";
 import basket from "../api/basket.js";
 import { readonlyrecord } from "./readonly_record.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let browsecomponent = {
     props: {
@@ -77,17 +78,15 @@ export let browsecomponent = {
                             <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
-                                    <i v-if="result.locked"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="result.myBasket"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-minus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
-                                    <i v-else
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-plus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        :collection="collection"
+                                        :recordId="result.recordId"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </div>
                             </td>
                             <td>
@@ -148,17 +147,15 @@ export let browsecomponent = {
                             <td></td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
-                                    <i v-if="result.locked"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="result.myBasket"
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-minus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
-                                    <i v-else
-                                        :id="result.recordId + '-basket'"
-                                        class="fas fa-folder-plus"
-                                        @click="toggleBasket($event, result.recordId)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        :collection="collection"
+                                        :recordId="result.recordId"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </div>
                             </td>
                             <td>
@@ -554,27 +551,6 @@ export let browsecomponent = {
                 });
             }
         },
-        async toggleBasket(e, recordId) {
-            // Find the result object
-            let result = [...this.results_before, ...this.results_after].find(r => r.recordId === recordId);
-            if (!result) return;
-
-            if (!result.myBasket) {
-                // Add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
-                result.myBasket = true;
-                //result.checkboxDisabled = true;
-                result.selected = false; // Deselect if added to basket
-            } else {
-                // Remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId);
-                result.myBasket = false;
-                //result.checkboxDisabled = false;
-                result.selected = false; // Deselect if removed from basket
-            }
-            // Refresh basket state for the component
-            this.refreshBasket();
-        },
         async refreshBasket() {
             this.myBasket = await basket.getBasket(this.api_prefix);
         },
@@ -602,6 +578,7 @@ export let browsecomponent = {
         },
     },
     components: {
-        readonlyrecord
+        'readonlyrecord': readonlyrecord,
+        'itemadd': itemaddcomponent
     }
 }

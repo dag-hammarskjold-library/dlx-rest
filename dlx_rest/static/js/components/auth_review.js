@@ -3,6 +3,7 @@ import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let authreviewcomponent = {
     props: {
@@ -97,17 +98,15 @@ export let authreviewcomponent = {
                                 @mouseup="handleMouseUp($event)">
                                 <td></td>
                                 <td>
-                                    <i v-if="auth.locked" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="auth.myBasket" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
-                                    <i v-else 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="auths"
+                                        :recordId="auth._id"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
@@ -246,10 +245,11 @@ export let authreviewcomponent = {
         },
     },
     created: async function () {
-        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+        this.myBasket = await basket.getBasket(this.api_prefix);
         this.updateSearchQuery();
+        //this.refreshBasket();
         this.submitSearch();
-        this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -391,25 +391,14 @@ export let authreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, authId) {
-            let auth = this.auths.find(r => r._id === authId);
-            if (!auth) return;
-            if (!auth.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "auths", authId);
-                auth.myBasket = true;
-                auth.selected = false;
+
+        togglePreview(event, authId) {
+            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
+                this.previewOpen = null;
+            } else if (authId) {
+                this.previewOpen = authId;
             } else {
-                await basket.deleteItem(this.myBasket, "auths", authId);
-                auth.myBasket = false;
-                auth.selected = false;
-            }
-            await this.refreshBasket();
-        },
-        togglePreview(event, recordId) {
-            if (this.previewOpen === recordId) {
-                this.previewOpen = false;
-            } else if (recordId) {
-                this.previewOpen = recordId;
+                this.previewOpen = null;
             }
 
             return
@@ -490,6 +479,7 @@ export let authreviewcomponent = {
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        'readonlyrecord': readonlyrecord
+        'readonlyrecord': readonlyrecord,
+        'itemadd': itemaddcomponent
     }
 }
