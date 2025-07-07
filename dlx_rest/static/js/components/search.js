@@ -744,7 +744,7 @@ export let searchcomponent = {
                 /^[A-Za-z]+\/.+/.test(terms[0])
             ) {
                 // Looks like a symbol, rewrite as symbol:"TERM"
-                return `symbol:'${terms[0].toUpperCase()}'`;
+                return `symbol:"${terms[0]}"`;
             }
             return q;
         },
