@@ -176,6 +176,10 @@ export let speechreviewcomponent = {
                             <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
                             {{isDeleting ? 'Deleting...' : 'Delete Records'}}
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Preview modal -->
         <div v-if="previewOpen"
@@ -241,7 +245,9 @@ export let speechreviewcomponent = {
                 { key: "speaker_country", label: "Speaker (700 g)" },
                 { key: "country_org", label: "Country/Organization (710 or 711)" }
             ],
-            isDeleting: false
+            isDeleting: false,
+            lastSelectedIdx: null,
+            collection: "bibs"
         }
     },
     computed: {
@@ -400,60 +406,46 @@ export let speechreviewcomponent = {
                 speech.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
-        handleMouseDown(e, speech, idx) {
-            // Only left mouse button
+
+        // Handle click and drag selection and shift+click and drag selection
+        handleMouseDown(e, result, idx) {
             if (e.button !== 0) return;
-            // Ignore clicks on interactive elements
-            if (
-                e.target.closest('.preview-toggle') ||
-                e.target.closest('.fa-folder-plus') ||
-                e.target.closest('.fa-folder-minus') ||
-                e.target.closest('.fa-lock')
-            ) {
-                return;
+
+            if (!e.shiftKey) {
+                this.speeches.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
             }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
-        handleMouseMove(e, speech, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+
+        handleMouseMove(e, result, idx) {
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = this.sortedSpeeches[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            // Use sortedSpeeches for index mapping
-            let arr = this.sortedSpeeches;
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "bibs")) {
-                        this.selectedRecords.push({ collection: "bibs", record_id: r._id });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "bibs");
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+
         async sendToBasket(e) {
             if (e) e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);

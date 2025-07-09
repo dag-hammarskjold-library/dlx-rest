@@ -185,6 +185,10 @@ export let authreviewcomponent = {
                             <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
                             {{isDeleting ? 'Deleting...' : 'Delete Records'}}
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
                         
         <!-- Preview modal -->
         <div v-if="previewOpen"
@@ -271,6 +275,8 @@ export let authreviewcomponent = {
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
             activeFilters: null,
             isDeleting: false,
+            collection: "auths",
+            lastSelectedIdx: null,
         }
     },
     computed: {
@@ -405,62 +411,50 @@ export let authreviewcomponent = {
             });
         },
         selectNone() {
-            this.auths.forEach(auth => {
-                auth.selected = false;
+            [...this.auths].forEach(result => {
+                result.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
-        handleMouseDown(e, auth, idx) {
-            if (
-                e.target.classList.contains('preview-toggle') ||
-                e.target.closest('.preview-toggle') ||
-                e.target.classList.contains('folder-plus') ||
-                e.target.classList.contains('folder-minus') ||
-                e.target.classList.contains('fa-lock')
-            ) {
-                return;
-            }
+        
+        // Handle click and drag selection and shift+click and drag selection
+        handleMouseDown(e, result, idx) {
             if (e.button !== 0) return;
+
+            if (!e.shiftKey) {
+                this.auths.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+            }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
-        handleMouseMove(e, auth, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+
+        handleMouseMove(e, result, idx) {
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = this.auths[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            let arr = this.auths;
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "auths")) {
-                        this.selectedRecords.push({ collection: "auths", record_id: r._id });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "auths");
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+
         async sendToBasket(e) {
             if (e) e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
