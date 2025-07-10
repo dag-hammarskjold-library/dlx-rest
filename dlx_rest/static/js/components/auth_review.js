@@ -30,7 +30,7 @@ export let authreviewcomponent = {
             </form>
         </div>
 
-        <div v-if="auths.length > 0" id="filters" class="col text-center">
+        <div id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
                 class="badge mx-1" 
@@ -366,7 +366,7 @@ export let authreviewcomponent = {
 
             // Store original records if not already stored
             if (!this._originalRecords) {
-                this._originalRecords = [...this.records];
+                this._originalRecords = [...this.auths];
             }
 
             // Toggle filter
@@ -378,20 +378,20 @@ export let authreviewcomponent = {
 
             // If no filters active, restore original results
             if (this.activeFilters.size === 0) {
-                this.records = [...this._originalRecords];
-                this.resultCount = this.records.length;
+                this.auths = [...this._originalRecords];
+                this.resultCount = this.auths.length;
                 return;
             }
 
             // Always filter from the original unfiltered set
-            this.records = this._originalRecords.filter(record => {
+            this.auths = this._originalRecords.filter(record => {
                 return Array.from(this.activeFilters).some(tag => {
                     return record.heading_tag === tag;
                 });
             });
 
             // Update result count even if zero
-            this.resultCount = this.records.length;
+            this.resultCount = this.auths.length;
         },
 
         // Add cleanup method for when search changes
@@ -534,13 +534,13 @@ export let authreviewcomponent = {
                 }
 
                 // Remove successfully deleted records from the display
-                this.records = this.records.filter(record => {
+                this.auths = this.auths.filter(record => {
                     // Check if this record's ID is in the successfulDeletes set
                     return !successfulDeletes.has(record._id.toString());
                 });
 
                 // Update result count
-                this.resultCount = this.records.length;
+                this.resultCount = this.auths.length;
 
                 // Show results message
                 if (failedDeletes.size > 0) {
