@@ -438,6 +438,7 @@ export let searchcomponent = {
             uibase: myUIBase,
             searchTime: 0,
             resultCount: 0,
+            resultsPerPage: 100,
             isSearching: false,
             isDragging: false,
             selectedRows: [],
@@ -859,7 +860,7 @@ export let searchcomponent = {
             const seenIds = [];
 
             // Build base URL with sort parameters
-            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
+            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=${this.resultsPerPage}`;
             
             if (this.subtype && this.subtype !== 'default') {
                 if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
@@ -873,37 +874,35 @@ export let searchcomponent = {
                 this.searchTime = ((Date.now() - startTime) / 1000)
             }, 100)
             
-            try {
-                while (1) {
-                    let records;
-                    
-                    try {
-                        const response = await fetch(next, {
-                            signal: this.abortController.signal,
+            
+            while (1) {
+                let records = [];
+                
+                const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                    if (!response.ok) {
+                        response.json().then(json => {
+                            this.searchError = `${json['message']} (${response.status})`;
+                            throw new Error(this.searchError);
                         });
-
-                        if (!response.ok) {
-                            if (response.status === 408) {
-                                // Handle timeout specifically
-                                const errorData = await response.json();
-                                throw new Error(`Search timed out after ${errorData.timeout/1000} seconds. Please try refining your search.`);
-                            }
-                            throw new Error(`Search failed with status: ${response.status}`);
-                        }
-
-                        const json = await response.json();
-                        next = json['_links']['_next'];
-                        records = json['data'];
-                    } catch (e) {
-                        if (e.name === 'AbortError') {
-                            throw new Error("Search cancelled by user");
-                        }
-                        throw e;
+                        return null
                     }
+                    return response.json()
+                }).catch(e => {
+                    clearInterval(timeUpdater);
+                    this.endSearch();
 
-                    if (records.length === 0) {
-                        break
+                    if (e.name === 'AbortError') {
+                        const message = "Search cancelled by user";
+                        this.searchError = message;
+                        throw new Error(message);
                     }
+                    this.searchError = e.message;
+                    throw e
+                })
+                
+                if (json) {
+                    next = json['_links']['_next'];
+                    records = json['data'];
 
                     records.forEach(record => {
                         if (!seenIds.includes(record._id)) {
@@ -913,29 +912,26 @@ export let searchcomponent = {
                         }
                     });
                 }
-                
-            } catch (error) {
-                if (error.message === "Search cancelled by user") {
-                    console.log("Search cancelled by user");
-                } else {
-                    console.error("Error during search:", error);
+
+                if (records.length < this.resultsPerPage) {
+                    this.endSearch();
+                    clearInterval(timeUpdater);
+                    break
                 }
-                this.searchError = error.message;
-            } finally {
-                clearInterval(timeUpdater);
-                this.isSearching = false;
-                this.showSpinner = false;
-                this.abortController = null;
-                this.searchTime = ((Date.now() - startTime) / 1000);
-                this.submitted = true;
-                this.records.forEach(r => {
-                    r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
-                });
-                let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
-                window.history.replaceState({}, ui_url);
             }
         },
-
+        endSearch() {
+            this.isSearching = false;
+            this.showSpinner = false;
+            this.abortController = null;
+            //this.searchTime = ((Date.now() - startTime) / 1000); # this is being done twice
+            this.submitted = true;
+            this.records.forEach(r => {
+                r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+            });
+            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
+            window.history.replaceState({}, ui_url);
+        },
         cancelSearch() {
             if (this.abortController) {
                 this.abortController.abort();
