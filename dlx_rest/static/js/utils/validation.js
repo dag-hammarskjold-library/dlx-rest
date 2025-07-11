@@ -1773,7 +1773,7 @@ export const validationData = {
             "validSubfields": ["a","9","g"],
             "defaultSubfields": ["a"],
             "validStrings": {
-                "9": ["ms","fs"]
+                "9": ["ms","fs","oc","os"]
             }
         },
         "111": {
