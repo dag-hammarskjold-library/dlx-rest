@@ -391,6 +391,7 @@ class RecordsList(Resource):
             recordset = cls.from_aggregation(pipeline, collation=collation)
         else:
             sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
+            sort_by = 'created' if sort_by == '_id' else sort_by # reverts param back to "created" when constructing the "_next" url
             
             try:
                 recordset = cls.from_query(
