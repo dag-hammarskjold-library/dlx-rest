@@ -1051,8 +1051,8 @@ export let searchcomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
-                this.refreshBasket();
                 this.selectedRecords = [];
                 // Update myBasket for all results
                 this.records.forEach(r => {

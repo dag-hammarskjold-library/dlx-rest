@@ -492,7 +492,7 @@ export let browsecomponent = {
             }
             if (!result.selected && !result.myBasket && !result.locked) {
                 result.selected = true;
-                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+                this.selectedRecords.push({ collection: this.collection, record_id: result.recordId });
             }
             this.isDragging = true;
             this.lastSelectedIdx = idx;
@@ -509,7 +509,7 @@ export let browsecomponent = {
                         const rec = arr[i];
                         if (!rec.myBasket && !rec.locked && !rec.selected) {
                             rec.selected = true;
-                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec.recordId });
                         }
                     }
                 }
@@ -525,8 +525,8 @@ export let browsecomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
-                this.refreshBasket();
                 this.selectedRecords = [];
                 // Update myBasket and checkboxDisabled for all results
                 this.results_before.forEach(r => {

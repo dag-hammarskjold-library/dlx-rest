@@ -451,7 +451,7 @@ export let speechreviewcomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
-                await this.refreshBasket();
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 this.selectedRecords = [];
                 this.speeches.forEach(r => {
                     r.myBasket = basket.contains("bibs", r._id, this.myBasket);

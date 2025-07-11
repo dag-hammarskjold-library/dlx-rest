@@ -21,31 +21,40 @@ export let itemaddcomponent = {
         }
     },
     mounted: async function() {
-        this.myBasket.forEach(item => {
-            if (item.collection === this.collection && item.record_id == this.recordId) {
-                this.inBasket = true;
-                this.itemLocked = false;
-                //this.$emit("disableCheckbox", this.recordId);
-            }
-        });
-
-        if (! this.inBasket) {
-            let lockedStatus = await basket.itemLocked(this.api_prefix, this.collection, this.recordId);
-            
-            if (lockedStatus["locked"] == true) {
-                this.lockedBy = lockedStatus["by"];
-                this.itemLocked = true;
-                //ßthis.$emit("disableCheckbox", this.recordId);
-            } else {
-                this.inBasket = false;
-                this.itemLocked = false;
-                //this.$emit("enableCheckbox", this.recordId);
-            }
+        this.initBasket()
+    },
+    watch: {
+        myBasket: {
+            handler: function() {
+                this.initBasket();
+            },
+            deep: true
         }
-
-        this.statusPending = false;
     },
     methods: {
+        async initBasket() {
+
+            this.myBasket.forEach(item => {
+                if (item.collection === this.collection && item.record_id === this.recordId) {
+                    this.inBasket = true;
+                    this.itemLocked = false;
+                }
+            });
+
+            if (! this.inBasket) {
+                let lockedStatus = await basket.itemLocked(this.api_prefix, this.collection, this.recordId);
+                
+                if (lockedStatus["locked"] == true) {
+                    this.lockedBy = lockedStatus["by"];
+                    this.itemLocked = true;
+                } else {
+                    this.inBasket = false;
+                    this.itemLocked = false;
+                }
+            }
+
+            this.statusPending = false;
+        },
         async handleClick(event) {
             if (this.itemLocked || this.statusPending) {
                 return
@@ -56,11 +65,9 @@ export let itemaddcomponent = {
             if (this.inBasket) {
                 await basket.deleteItem(this.myBasket, this.collection, this.recordId);
                 this.inBasket = false;
-                //this.$emit("enableCheckbox", this.recordId);
             } else {
                 await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, this.recordId);
                 this.inBasket = true;
-                //this.$emit("disableCheckbox", this.recordId);
             }
 
             this.statusPending = false;   

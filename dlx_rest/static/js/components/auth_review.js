@@ -460,6 +460,7 @@ export let authreviewcomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
                 this.selectedRecords = [];
                 this.auths.forEach(r => {
