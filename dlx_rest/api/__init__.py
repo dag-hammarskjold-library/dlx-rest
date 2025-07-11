@@ -242,7 +242,8 @@ class RecordsList(Resource):
     args.add_argument(
         'direction', type=str, 
         choices=['asc', 'desc'],
-        help='Sort direction', 
+        help='Sort direction',
+        default='asc'
     )
     args.add_argument(
         'format', 
@@ -380,38 +381,42 @@ class RecordsList(Resource):
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
         sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
+        sort_object = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
-        # exec query
-        if isinstance(query, AtlasQuery):
-            pipeline = query.compile()
-            pipeline += [{'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}}, {'$skip': start-1}, {'$limit': limit}]
-            recordset = cls.from_aggregation(pipeline, collation=collation)
+        # accurate pagination requires aggregation https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
+        pipeline = [
+            {'$match': query.match.compile()} if isinstance(query, AtlasQuery) else {'$match': query.compile()},
+            {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}},
+            {'$project': {'_id': 1}},
+            {
+                '$facet': {
+                    'metadata': [{'$count': 'total'}],
+                    'data': [{'$skip': start - 1}, {'$limit': limit}]
+                }
+            }
+        ]
+
+        try:
+            data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
+        except ExecutionTimeout as e:
+            abort(408, f'Search query timed out ({Config.MAX_QUERY_TIME / 1000} seconds)')
+        except Exception as e:
+            raise e
+        
+        if metadata := data['metadata']:
+            total = metadata[0]['total'], # is a tuple for some reason
         else:
-            sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
+            total = (0,)
             
-            try:
-                recordset = cls.from_query(
-                    query if query.conditions else {}, 
-                    projection=project, 
-                    skip=start-1, 
-                    limit=limit, 
-                    sort=sort, 
-                    collation=collation, 
-                    max_time_ms=Config.MAX_QUERY_TIME
-                )
-            except (ExecutionTimeout, OperationFailure) as e:
-                # Handle both timeout types
-                if 'exceeded time limit' in str(e):
-                    abort(408, {
-                        'message': 'Search query timed out',
-                        'details': str(e),
-                        'timeout': Config.MAX_QUERY_TIME,
-                        'suggestion': 'Try refining your search or using fewer terms'
-                    })
-                raise
+        recordset =  cls.from_query(
+            {'_id': {'$in': [x['_id'] for x in data['data']]}},
+            projection=project,
+            sort=sort_object,
+            collation=collation
+        )
         
         if x := subfield_projection:
             # filter only the wanted subfields
@@ -512,7 +517,8 @@ class RecordsList(Resource):
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search).to_str()
-            }
+            },
+            'count': total
         }
         
         response = ApiResponse(links=links, meta=meta, data=data)
@@ -569,7 +575,6 @@ class RecordsList(Resource):
                 return data, 201
             else:
                 abort(500, 'POST request failed for unknown reasons')
-
 
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')
