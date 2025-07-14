@@ -111,20 +111,38 @@ export let exportmodal = {
       this.currentStatus = null
 
       try {
-        const url = new URL(this.exportUrl)
-        if (this.selectedFields) {
-          url.searchParams.set('fields', this.selectedFields)
-        }
-
+        const total = await this.getRecordCount()
+        const limit = 100 // 100 records per page call
+        let start = 1
+        let allData = []
         const format = this.exportFormats.find(f => f.id === this.selectedFormat)
-        const response = await this.fetchExportData(url)
-        
-        if (!response.ok) {
-          throw new Error(`Export failed: ${response.statusText}`)
+        let mimeType = format.mimeType
+
+        while (start <= total) {
+          const url = new URL(this.exportUrl)
+          url.searchParams.set('start', start)
+          url.searchParams.set('limit', limit)
+          if (this.selectedFields) {
+            url.searchParams.set('fields', this.selectedFields)
+          }
+          const response = await fetch(url.toString())
+          if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
+          const text = await response.text()
+          allData.push(text)
+          start += limit
+          const progress = Math.min(((start - 1) / total * 100).toFixed(1), 100)
+          this.currentStatus = `${progress}% of ${total} records`
         }
 
-        const blob = await response.blob()
-        this.download(blob, `export.${format.id}`, format.mimeType)
+        // For CSV, remove duplicate headers after the first page
+        let finalData
+        if (this.selectedFormat === 'csv' && allData.length > 1) {
+          finalData = allData[0] + allData.slice(1).map(d => d.split('\n').slice(1).join('\n')).join('')
+        } else {
+          finalData = allData.join('')
+        }
+
+        this.download(new Blob([finalData], { type: mimeType }), `export.${format.id}`, mimeType)
         this.currentStatus = 'Export complete!'
 
       } catch (error) {
@@ -141,6 +159,7 @@ export let exportmodal = {
       let processed = 0
 
       while (processed < total) {
+        console.log("still processing")
         processed += 100 // Assuming 100 records per page
         const progress = Math.min((processed / total * 100).toFixed(1), 100)
         this.currentStatus = `${progress}% of ${total} records`
