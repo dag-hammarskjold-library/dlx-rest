@@ -804,6 +804,8 @@ export let searchcomponent = {
         },
 
         normalizeSymbolSearch(q) {
+            // Skip normalization if the collection is "auths"
+            if (this.collection === "auths") return q;
             // Split on AND/OR/NOT (case-insensitive, surrounded by spaces)
             const terms = q.split(/ *(AND|OR|NOT) +/i).filter(Boolean);
 
