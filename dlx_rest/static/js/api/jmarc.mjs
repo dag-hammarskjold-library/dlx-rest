@@ -28,6 +28,7 @@ const authMap = {
 	},
 	"auths": {
 		//'491': {'a': '191', 'b': '191', 'c': '191', 'd': '191'},
+		'370': { 'a': '110' },
 		'500': { 'a': '100' },
 		'510': { 'a': '110' },
 		'511': { 'a': '111' },
@@ -385,7 +386,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					// Issue #190: Exclude deprecated authority terms from the lookup
 					let newJmarc = new Jmarc("auths").parse(auth)
-					console.log(newJmarc)
+					//console.log(newJmarc)
 					let this682 = newJmarc.getField('682')
 					if (this682) {
 						let this682_a = this682.getSubfield('a') 
