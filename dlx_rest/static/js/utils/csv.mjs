@@ -1,6 +1,6 @@
 /* CSV parser and writer */
 
-import { Jmarc } from "./jmarc.mjs";
+import { Jmarc } from "../api/jmarc.mjs";
 
 export class CSV {
     constructor() {

@@ -1,3 +1,5 @@
+import { CSV } from "../utils/csv.mjs"
+
 export let exportmodal = {
   props: {
     api_prefix: {
@@ -117,6 +119,14 @@ export let exportmodal = {
         let allData = []
         const format = this.exportFormats.find(f => f.id === this.selectedFormat)
         let mimeType = format.mimeType
+        
+        // Set a buffer to a xml object, csv object, or string depending on requested format
+        let buffer = format.id === 'xml' ? 
+          (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
+          (format.id === 'csv' ? 
+            new CSV() : 
+            ""
+          )
 
         while (start <= total) {
           const url = new URL(this.exportUrl)
@@ -128,21 +138,37 @@ export let exportmodal = {
           const response = await fetch(url.toString())
           if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
           const text = await response.text()
-          allData.push(text)
+
+          // Add to the buffer 
+          switch (format.id) {
+            case 'mrk':
+              buffer += text + "\n"
+              break
+            case 'xml':
+              const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+              const recordNodes = pageXml.getElementsByTagName("record")  
+              for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
+                buffer.getElementsByTagName("collection")[0].appendChild(recordXml);
+              }
+              break
+            case 'csv':
+              buffer.parseText(text);
+          }
+
           start += limit
           const progress = Math.min(((start - 1) / total * 100).toFixed(1), 100)
           this.currentStatus = `${progress}% of ${total} records`
         }
 
-        // For CSV, remove duplicate headers after the first page
-        let finalData
-        if (this.selectedFormat === 'csv' && allData.length > 1) {
-          finalData = allData[0] + allData.slice(1).map(d => d.split('\n').slice(1).join('\n')).join('')
-        } else {
-          finalData = allData.join('')
-        }
+        // Convert buffer object to string
+        buffer = format.id === 'xml' ?
+          (new XMLSerializer()).serializeToString(buffer) :
+          (format.id === 'csv' ?
+            buffer.toString() :
+            buffer
+          )
 
-        this.download(new Blob([finalData], { type: mimeType }), `export.${format.id}`, mimeType)
+        this.download(new Blob([buffer], { type: mimeType }), `export.${format.id}`, mimeType)
         this.currentStatus = 'Export complete!'
 
       } catch (error) {
