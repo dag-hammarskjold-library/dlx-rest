@@ -115,6 +115,7 @@ export let searchcomponent = {
             </div>
         </div>
 
+        <!-- Auth heading filters -->
         <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
@@ -123,6 +124,18 @@ export let searchcomponent = {
                 href="#"
                 @click.prevent="applyHeadFilter(headFilter)">
                 {{headFilter}}
+            </a>
+        </div>
+
+        <!-- Bib subtype filters -->
+        <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col text-center">
+            Filter: 
+            <a v-for="typeFilter in typeFilters" 
+                class="badge mx-1" 
+                :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
+                href="#"
+                @click.prevent="applyTypeFilter(typeFilter.name)">
+                {{typeFilter.label}}
             </a>
         </div>
 
@@ -460,7 +473,25 @@ export let searchcomponent = {
             currentSort: 'updated',
             currentDirection: 'desc',
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
-            activeFilters: null,
+            typeFilters: [
+                {
+                    'name': 'all',
+                    'label': 'All'
+                },
+                {
+                    'name': 'default',
+                    'label': 'Docs & Pubs'
+                },
+                {
+                    'name': 'speech',
+                    'label': 'Speeches'
+                },
+                {
+                    'name': 'vote',
+                    'label': 'Votes'
+                }
+            ],
+            activeFilters: new Set(["default"]),
             isDeleting: false,
             searchError: null,
             logicalFieldLabels: {
@@ -519,6 +550,9 @@ export let searchcomponent = {
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
+
+        this.activeFilters = new Set();
+        this.activeFilters.add(this.subtype || "default");
 
         const profile = await user.getProfile(this.api_prefix, 'my_profile');
         if (profile && profile.data && profile.data.email) {
@@ -821,6 +855,25 @@ export let searchcomponent = {
             this.resultCount = this.records.length;
         },
 
+        applyTypeFilter(filtername) {
+            // Update URL parameters
+            const url = new URL(window.location);
+            url.searchParams.set("subtype", filtername);
+            window.history.replaceState(null, "", url);
+
+            // Update subtype in component state
+            this.subtype = filtername;
+
+            // Set activeFilters to only the selected type
+            this.activeFilters = new Set();
+            this.activeFilters.add(filtername)
+
+            //console.log(this.subtype, this.activeFilters)
+
+            // Resubmit search with new sort parameters
+            this.submitSearch();
+        },
+
         // Add cleanup method for when search changes
         clearFilters() {
             this._originalRecords = null;
@@ -849,7 +902,11 @@ export let searchcomponent = {
 
             this.abortController = new AbortController();
 
-            this.clearFilters();
+            if (!this.collection === 'bibs') {
+                this._originalRecords = null;
+                this.clearFilters();
+            }
+            
 
             this.parseSearchTerm();
             this.records = []
@@ -861,7 +918,6 @@ export let searchcomponent = {
 
             // Build base URL with sort parameters
             let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=${this.resultsPerPage}`;
-            
             if (this.subtype && this.subtype !== 'default') {
                 if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
