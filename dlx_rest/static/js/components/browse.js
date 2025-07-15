@@ -390,7 +390,8 @@ export let browsecomponent = {
                 // Fetch count if needed
                 let count = result.count;
                 if (typeof count !== "number") {
-                    const countResp = await fetch(result.count);
+                    // Setting the entire URL to lower case seems excessive, but it does work
+                    const countResp = await fetch(result.count.toLowerCase());
                     const countJson = await countResp.json();
                     count = countJson.data;
                 }
@@ -402,7 +403,8 @@ export let browsecomponent = {
                 }
 
                 // Fetch recordId
-                const recordResp = await fetch(result.search);
+                // Setting the entire URL to lower case seems excessive, but it does work
+                const recordResp = await fetch(result.search.toLowerCase());
                 const recordJson = await recordResp.json();
                 const apiUrl = recordJson.data[0];
                 const recordId = apiUrl.split("/").pop();
