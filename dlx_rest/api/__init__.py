@@ -36,7 +36,7 @@ from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, 
 # build the auth cache in a non blocking thread
 def build_cache(): Auth.build_cache()
 
-threading.Thread(target=build_cache, args=[]).start()
+#threading.Thread(target=build_cache, args=[]).start()
 
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
@@ -389,24 +389,42 @@ class RecordsList(Resource):
         # accurate pagination requires aggregation https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
         pipeline = [
             {'$match': query.match.compile()} if isinstance(query, AtlasQuery) else {'$match': query.compile()},
-            {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}},
-            {'$project': {'_id': 1}},
-            {
+            #{'$project': {sort_by: 1}},
+            {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1, '_id': 1}},
+            {'$project': {'_id': 1}}
+        ]
+
+        # $facet does not perform well when there is no query or the only field is _record_type?
+
+        if not query.conditions or (len(query.conditions) == 1 and query.compile().get('_record_type')):
+        
+            print(query.compile())
+            pipeline += [{'$skip': start - 1}, {'$limit': limit}] #, {'$replaceWith': {'data': ['$$ROOT']}}]
+        
+        else:
+            pipeline.append({
                 '$facet': {
                     'metadata': [{'$count': 'total'}],
                     'data': [{'$skip': start - 1}, {'$limit': limit}]
                 }
-            }
-        ]
+            })
+
+        print(pipeline)
 
         try:
-            data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
+            #data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
+            #print(data)
+            if filter(lambda x: x.get('$facet'), pipeline):
+                data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
+            else:    
+                data = {}
+                data['data'] = DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME)
         except ExecutionTimeout as e:
             abort(408, f'Search query timed out ({Config.MAX_QUERY_TIME / 1000} seconds)')
         except Exception as e:
             raise e
         
-        if metadata := data['metadata']:
+        if metadata := data.get('metadata'):
             total = metadata[0]['total'], # is a tuple for some reason
         else:
             total = (0,)
