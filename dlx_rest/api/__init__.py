@@ -386,30 +386,23 @@ class RecordsList(Resource):
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
-        # accurate pagination requires aggregation https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
         pipeline = [
             {'$match': query.match.compile()} if isinstance(query, AtlasQuery) else {'$match': query.compile()},
-            #{'$project': {sort_by: 1}},
             {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1, '_id': 1}},
             {'$project': {'_id': 1}}
         ]
 
         # $facet does not perform well when there is no query or the only field is _record_type?
-
         if not query.conditions or (len(query.conditions) == 1 and query.compile().get('_record_type')):
-        
-            print(query.compile())
             pipeline += [{'$skip': start - 1}, {'$limit': limit}] #, {'$replaceWith': {'data': ['$$ROOT']}}]
-        
         else:
+            # https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
             pipeline.append({
                 '$facet': {
                     'metadata': [{'$count': 'total'}],
                     'data': [{'$skip': start - 1}, {'$limit': limit}]
                 }
             })
-
-        print(pipeline)
 
         try:
             #data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
