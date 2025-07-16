@@ -1,6 +1,6 @@
 /* CSV parser and writer */
 
-import { Jmarc } from "./jmarc.mjs";
+import { Jmarc } from "../api/jmarc.mjs";
 
 export class CSV {
     constructor() {
@@ -35,14 +35,14 @@ export class CSV {
             throw Error("First line of data does not look like a valid header")
         }
         
-        for (let [i, line] of lines.entries()) {
-            i = Object.keys(this.data).length + i;
+        for (const line of lines) {
+            let i = Object.keys(this.data).length + 1;
 
-            for (let [j, value] of parseCSVLine(line).entries()) {
+            for (const [j, value] of parseCSVLine(line).entries()) {
               this.data[i] = this.data[i] ? this.data[i] : {};
               this.data[i][header[j]] = value;
             }
-        } 
+        }
     }
 
     toString() {
