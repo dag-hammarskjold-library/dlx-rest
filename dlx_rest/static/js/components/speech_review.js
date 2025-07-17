@@ -4,7 +4,6 @@ import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { recordfilecomponent } from "./recordfiles.js";
-import { agendamodal } from "./agenda.js";
 import { itemaddcomponent } from "./itemadd.js";
 
 export let speechreviewcomponent = {
@@ -138,7 +137,7 @@ export let speechreviewcomponent = {
                                     <recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" :desired_languages="['en','fr','es']" />
                                 </td>
                                 <td title="Toggle Agenda View">
-                                    <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
+                                    <i class="fas fa-file" @click="toggleAgendas($event, speech._id)"></i>
                                 </td>
                             </tr>
                         </template>
@@ -152,7 +151,27 @@ export let speechreviewcomponent = {
                 <p class="text-muted">Try changing your search terms.</p>
             </div>
         </div>
-        <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
+        <div v-if="agendaOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="toggleAgendas($event, agendaOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Speeches / {{agendaOpen}}: Agendas</h5>
+                        <button type="button" class="close" @click="toggleAgendas($event, agendaOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="preview-text" class="modal-body">
+                            <ul>
+                                <li v-for="agenda in agendas">{{agenda}}</li>
+                            </ul>       
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
@@ -233,6 +252,8 @@ export let speechreviewcomponent = {
             dragStartIdx: null,
             dragEndIdx: null,
             previewOpen: null,
+            agendaOpen: null,
+            agendas: [],
             sortColumns: [
                 { column: "date", direction: "desc" }
             ],
@@ -451,7 +472,7 @@ export let speechreviewcomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
-                await this.refreshBasket();
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 this.selectedRecords = [];
                 this.speeches.forEach(r => {
                     r.myBasket = basket.contains("bibs", r._id, this.myBasket);
@@ -459,21 +480,24 @@ export let speechreviewcomponent = {
                 });
             }
         },
-        togglePreview(event, speechId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === speechId) {
-                this.previewOpen = null;
-            } else if (speechId) {
-                this.previewOpen = speechId;
-            } else {
-                this.previewOpen = null;
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
 
             return
         },
-        toggleAgendas: function (e, speechId, agendas) {
-            this.$refs.agendamodal.agendas = agendas;
-            this.$refs.agendamodal.recordId = speechId;
-            this.$refs.agendamodal.showModal = true;
+        toggleAgendas: function (event, speechId) {
+            if (this.agendaOpen === speechId) {
+                this.agendaOpen = false;
+            } else if (speechId) {
+                this.agendaOpen = speechId
+                this.agendas = this.speeches.find((s) => s._id === speechId).agendas
+            }
+            
+            return
         },
         processSort(e, column) {
             let existingColumn = this.sortColumns.find((sc) => sc.column === column);
@@ -572,7 +596,6 @@ export let speechreviewcomponent = {
         'countcomponent': countcomponent,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,
-        'agendamodal': agendamodal,
         'itemadd': itemaddcomponent,
     }
 }

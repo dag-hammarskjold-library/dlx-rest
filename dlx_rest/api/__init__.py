@@ -296,7 +296,7 @@ class RecordsList(Resource):
                     all_basket_objects.append(item)
         
         # search
-        search = unquote(args.search) if args.search else None
+        search_string = unquote(args.search) if args.search else None
         # subtype
         type_condition = Raw(
             {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
@@ -304,14 +304,14 @@ class RecordsList(Resource):
             
         if args.engine in (None, "community"):
             try:
-                query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+                query = Query.from_string(search_string, record_type=collection[:-1]) if search_string else Query()
             except InvalidQueryString as e:
                 abort(422, str(e))
 
             query.conditions.append(type_condition)
         elif args.engine == "atlas":
             try:
-                query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+                query = AtlasQuery.from_string(search_string, record_type=collection[:-1]) if search_string else AtlasQuery()
                 
                 if hasattr(query, 'match'):
                     if query.match:
@@ -405,11 +405,17 @@ class RecordsList(Resource):
             })
 
         try:
-            #data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
-            #print(data)
+            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_string}, projection={'ready': 1}):
+                data = {}
+            
+                if ready := doc.get('ready'):
+                    if ready >= start + limit:
+                        ids = DB.handle.get_collection('_search_cache').find_one({'_id': search_string}).get(collection)[start-1:start+limit-1]
+                        data['data'] = [{'_id': x} for x in ids]
             if filter(lambda x: x.get('$facet'), pipeline):
                 data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
-            else:    
+            else:
+                # results are expeced to be in a field called "data"
                 data = {}
                 data['data'] = DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME)
         except ExecutionTimeout as e:
@@ -421,7 +427,33 @@ class RecordsList(Resource):
             total = metadata[0]['total'], # is a tuple for some reason
         else:
             total = (0,)
-            
+
+        if start == 1:
+            # In a separate thread, populate a cache of all the result IDs
+            def savecache():
+                from pymongo import ReplaceOne, UpdateOne
+
+                DB.handle.get_collection('_search_cache').insert_one({
+                    '_id': search_string,
+                    'ready': 0
+                })
+                
+                updates = []
+
+                for record in cls.from_query(query, sort=sort_object, projection={'_id': 1}):
+                    updates.append(
+                        UpdateOne(
+                            {'_id': search_string},
+                            {'$push': {collection: record.id}, '$inc': {'ready': 1}},
+                        )
+                    )
+
+                    if len(updates) == total[0] or len(updates) == 10000:
+                        DB.handle.get_collection('_search_cache').bulk_write(updates)
+                        updates = []
+                
+            threading.Thread(target=savecache, args=[]).start()
+
         recordset =  cls.from_query(
             {'_id': {'$in': [x['_id'] for x in data['data']]}},
             projection=project,
@@ -510,24 +542,24 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=search).to_str()
+                'count': URL('api_records_list_count', collection=collection, search=search_string).to_str()
             },
             'count': total
         }

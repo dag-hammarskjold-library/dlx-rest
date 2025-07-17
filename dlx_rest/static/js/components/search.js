@@ -115,6 +115,7 @@ export let searchcomponent = {
             </div>
         </div>
 
+        <!-- Auth heading filters -->
         <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
             Filter: 
             <a v-for="headFilter in headFilters" 
@@ -123,6 +124,18 @@ export let searchcomponent = {
                 href="#"
                 @click.prevent="applyHeadFilter(headFilter)">
                 {{headFilter}}
+            </a>
+        </div>
+
+        <!-- Bib subtype filters -->
+        <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col text-center">
+            Filter: 
+            <a v-for="typeFilter in typeFilters" 
+                class="badge mx-1" 
+                :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
+                href="#"
+                @click.prevent="applyTypeFilter(typeFilter.name)">
+                {{typeFilter.label}}
             </a>
         </div>
 
@@ -438,6 +451,7 @@ export let searchcomponent = {
             uibase: myUIBase,
             searchTime: 0,
             resultCount: 0,
+            resultsPerPage: 100,
             isSearching: false,
             isDragging: false,
             selectedRows: [],
@@ -459,7 +473,25 @@ export let searchcomponent = {
             currentSort: 'updated',
             currentDirection: 'desc',
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
-            activeFilters: null,
+            typeFilters: [
+                {
+                    'name': 'all',
+                    'label': 'All'
+                },
+                {
+                    'name': 'default',
+                    'label': 'Docs & Pubs'
+                },
+                {
+                    'name': 'speech',
+                    'label': 'Speeches'
+                },
+                {
+                    'name': 'vote',
+                    'label': 'Votes'
+                }
+            ],
+            activeFilters: new Set(["default"]),
             isDeleting: false,
             searchError: null,
             logicalFieldLabels: {
@@ -518,6 +550,9 @@ export let searchcomponent = {
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         this.subtype = urlParams.get("subtype") || '';
+
+        this.activeFilters = new Set();
+        this.activeFilters.add(this.subtype || "default");
 
         const profile = await user.getProfile(this.api_prefix, 'my_profile');
         if (profile && profile.data && profile.data.email) {
@@ -769,6 +804,8 @@ export let searchcomponent = {
         },
 
         normalizeSymbolSearch(q) {
+            // Skip normalization if the collection is "auths"
+            if (this.collection === "auths") return q;
             // Split on AND/OR/NOT (case-insensitive, surrounded by spaces)
             const terms = q.split(/ *(AND|OR|NOT) +/i).filter(Boolean);
 
@@ -820,6 +857,25 @@ export let searchcomponent = {
             this.resultCount = this.records.length;
         },
 
+        applyTypeFilter(filtername) {
+            // Update URL parameters
+            const url = new URL(window.location);
+            url.searchParams.set("subtype", filtername);
+            window.history.replaceState(null, "", url);
+
+            // Update subtype in component state
+            this.subtype = filtername;
+
+            // Set activeFilters to only the selected type
+            this.activeFilters = new Set();
+            this.activeFilters.add(filtername)
+
+            //console.log(this.subtype, this.activeFilters)
+
+            // Resubmit search with new sort parameters
+            this.submitSearch();
+        },
+
         // Add cleanup method for when search changes
         clearFilters() {
             this._originalRecords = null;
@@ -848,7 +904,11 @@ export let searchcomponent = {
 
             this.abortController = new AbortController();
 
-            this.clearFilters();
+            if (!this.collection === 'bibs') {
+                this._originalRecords = null;
+                this.clearFilters();
+            }
+            
 
             this.parseSearchTerm();
             this.records = []
@@ -859,8 +919,7 @@ export let searchcomponent = {
             const seenIds = [];
 
             // Build base URL with sort parameters
-            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
-            
+            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=${this.resultsPerPage}`;
             if (this.subtype && this.subtype !== 'default') {
                 if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
                     next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
@@ -873,37 +932,35 @@ export let searchcomponent = {
                 this.searchTime = ((Date.now() - startTime) / 1000)
             }, 100)
             
-            try {
-                while (1) {
-                    let records;
-                    
-                    try {
-                        const response = await fetch(next, {
-                            signal: this.abortController.signal,
+            
+            while (1) {
+                let records = [];
+                
+                const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                    if (!response.ok) {
+                        response.json().then(json => {
+                            this.searchError = `${json['message']} (${response.status})`;
+                            throw new Error(this.searchError);
                         });
-
-                        if (!response.ok) {
-                            if (response.status === 408) {
-                                // Handle timeout specifically
-                                const errorData = await response.json();
-                                throw new Error(`Search timed out after ${errorData.timeout/1000} seconds. Please try refining your search.`);
-                            }
-                            throw new Error(`Search failed with status: ${response.status}`);
-                        }
-
-                        const json = await response.json();
-                        next = json['_links']['_next'];
-                        records = json['data'];
-                    } catch (e) {
-                        if (e.name === 'AbortError') {
-                            throw new Error("Search cancelled by user");
-                        }
-                        throw e;
+                        return null
                     }
+                    return response.json()
+                }).catch(e => {
+                    clearInterval(timeUpdater);
+                    this.endSearch();
 
-                    if (records.length === 0) {
-                        break
+                    if (e.name === 'AbortError') {
+                        const message = "Search cancelled by user";
+                        this.searchError = message;
+                        throw new Error(message);
                     }
+                    this.searchError = e.message;
+                    throw e
+                })
+                
+                if (json) {
+                    next = json['_links']['_next'];
+                    records = json['data'];
 
                     records.forEach(record => {
                         if (!seenIds.includes(record._id)) {
@@ -913,29 +970,26 @@ export let searchcomponent = {
                         }
                     });
                 }
-                
-            } catch (error) {
-                if (error.message === "Search cancelled by user") {
-                    console.log("Search cancelled by user");
-                } else {
-                    console.error("Error during search:", error);
+
+                if (records.length < this.resultsPerPage) {
+                    this.endSearch();
+                    clearInterval(timeUpdater);
+                    break
                 }
-                this.searchError = error.message;
-            } finally {
-                clearInterval(timeUpdater);
-                this.isSearching = false;
-                this.showSpinner = false;
-                this.abortController = null;
-                this.searchTime = ((Date.now() - startTime) / 1000);
-                this.submitted = true;
-                this.records.forEach(r => {
-                    r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
-                });
-                let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
-                window.history.replaceState({}, ui_url);
             }
         },
-
+        endSearch() {
+            this.isSearching = false;
+            this.showSpinner = false;
+            this.abortController = null;
+            //this.searchTime = ((Date.now() - startTime) / 1000); # this is being done twice
+            this.submitted = true;
+            this.records.forEach(r => {
+                r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+            });
+            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
+            window.history.replaceState({}, ui_url);
+        },
         cancelSearch() {
             if (this.abortController) {
                 this.abortController.abort();
@@ -1051,8 +1105,8 @@ export let searchcomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
-                this.refreshBasket();
                 this.selectedRecords = [];
                 // Update myBasket for all results
                 this.records.forEach(r => {

@@ -390,7 +390,8 @@ export let browsecomponent = {
                 // Fetch count if needed
                 let count = result.count;
                 if (typeof count !== "number") {
-                    const countResp = await fetch(result.count);
+                    // Setting the entire URL to lower case seems excessive, but it does work
+                    const countResp = await fetch(result.count.toLowerCase());
                     const countJson = await countResp.json();
                     count = countJson.data;
                 }
@@ -402,7 +403,8 @@ export let browsecomponent = {
                 }
 
                 // Fetch recordId
-                const recordResp = await fetch(result.search);
+                // Setting the entire URL to lower case seems excessive, but it does work
+                const recordResp = await fetch(result.search.toLowerCase());
                 const recordJson = await recordResp.json();
                 const apiUrl = recordJson.data[0];
                 const recordId = apiUrl.split("/").pop();
@@ -492,7 +494,7 @@ export let browsecomponent = {
             }
             if (!result.selected && !result.myBasket && !result.locked) {
                 result.selected = true;
-                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+                this.selectedRecords.push({ collection: this.collection, record_id: result.recordId });
             }
             this.isDragging = true;
             this.lastSelectedIdx = idx;
@@ -509,7 +511,7 @@ export let browsecomponent = {
                         const rec = arr[i];
                         if (!rec.myBasket && !rec.locked && !rec.selected) {
                             rec.selected = true;
-                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec.recordId });
                         }
                     }
                 }
@@ -525,8 +527,8 @@ export let browsecomponent = {
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
-                this.refreshBasket();
                 this.selectedRecords = [];
                 // Update myBasket and checkboxDisabled for all results
                 this.results_before.forEach(r => {

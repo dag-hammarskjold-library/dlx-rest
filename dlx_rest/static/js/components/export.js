@@ -1,3 +1,5 @@
+import { CSV } from "../utils/csv.mjs"
+
 export let exportmodal = {
   props: {
     api_prefix: {
@@ -111,20 +113,62 @@ export let exportmodal = {
       this.currentStatus = null
 
       try {
-        const url = new URL(this.exportUrl)
-        if (this.selectedFields) {
-          url.searchParams.set('fields', this.selectedFields)
-        }
-
+        const total = await this.getRecordCount()
+        const limit = 100 // 100 records per page call
+        let start = 1
+        let allData = []
         const format = this.exportFormats.find(f => f.id === this.selectedFormat)
-        const response = await this.fetchExportData(url)
+        let mimeType = format.mimeType
         
-        if (!response.ok) {
-          throw new Error(`Export failed: ${response.statusText}`)
+        // Set a buffer to a xml object, csv object, or string depending on requested format
+        let buffer = format.id === 'xml' ? 
+          (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
+          (format.id === 'csv' ? 
+            new CSV() : 
+            ""
+          )
+
+        while (start <= total) {
+          const url = new URL(this.exportUrl)
+          url.searchParams.set('start', start)
+          url.searchParams.set('limit', limit)
+          if (this.selectedFields) {
+            url.searchParams.set('fields', this.selectedFields)
+          }
+          const response = await fetch(url.toString())
+          if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
+          const text = await response.text()
+
+          // Add to the buffer 
+          switch (format.id) {
+            case 'mrk':
+              buffer += text + "\n"
+              break
+            case 'xml':
+              const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+              const recordNodes = pageXml.getElementsByTagName("record")  
+              for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
+                buffer.getElementsByTagName("collection")[0].appendChild(recordXml);
+              }
+              break
+            case 'csv':
+              buffer.parseText(text);
+          }
+
+          start += limit
+          const progress = Math.min(((start - 1) / total * 100).toFixed(1), 100)
+          this.currentStatus = `${progress}% of ${total} records`
         }
 
-        const blob = await response.blob()
-        this.download(blob, `export.${format.id}`, format.mimeType)
+        // Convert buffer object to string
+        buffer = format.id === 'xml' ?
+          (new XMLSerializer()).serializeToString(buffer) :
+          (format.id === 'csv' ?
+            buffer.toString() :
+            buffer
+          )
+
+        this.download(new Blob([buffer], { type: mimeType }), `export.${format.id}`, mimeType)
         this.currentStatus = 'Export complete!'
 
       } catch (error) {
@@ -141,6 +185,7 @@ export let exportmodal = {
       let processed = 0
 
       while (processed < total) {
+        console.log("still processing")
         processed += 100 // Assuming 100 records per page
         const progress = Math.min((processed / total * 100).toFixed(1), 100)
         this.currentStatus = `${progress}% of ${total} records`
