@@ -410,6 +410,7 @@ class RecordsList(Resource):
             
                 if ready := doc.get('ready'):
                     if ready >= start + limit:
+                        print('using cache')
                         ids = DB.handle.get_collection('_search_cache').find_one({'_id': search_string}).get(collection)[start-1:start+limit-1]
                         data['data'] = [{'_id': x} for x in ids]
             if filter(lambda x: x.get('$facet'), pipeline):
@@ -433,10 +434,13 @@ class RecordsList(Resource):
             def savecache():
                 from pymongo import ReplaceOne, UpdateOne
 
-                DB.handle.get_collection('_search_cache').insert_one({
-                    '_id': search_string,
-                    'ready': 0
-                })
+                DB.handle.get_collection('_search_cache').replace_one(
+                    {
+                        '_id': search_string,
+                        'ready': 0
+                    },
+                    upsert=True
+                )
                 
                 updates = []
 
