@@ -36,7 +36,7 @@ from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, 
 # build the auth cache in a non blocking thread
 def build_cache(): Auth.build_cache()
 
-threading.Thread(target=build_cache, args=[]).start()
+#threading.Thread(target=build_cache, args=[]).start()
 
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
@@ -400,6 +400,9 @@ class RecordsList(Resource):
         if sort_by != '_id':
             # Add _id to sort fields to ensure no duplicates between pages
             next(filter(lambda x: x.get('$sort'), pipeline)).get('$sort').update({'_id': 1})
+
+        # revert the param name back to created for use in the returned links
+        sort_by = 'created' if sort_by == '_id' else sort_by
 
         # $facet does not perform well when there is no query or the only field is _record_type?
         if not query.conditions or (len(query.conditions) == 1 and query.compile().get('_record_type')):
