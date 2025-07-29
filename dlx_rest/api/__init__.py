@@ -476,7 +476,7 @@ class RecordsList(Resource):
         if metadata := data.get('metadata'):
             total = metadata[0]['total'], # is a tuple for some reason
         elif args.search:
-            # there is no count metadata because there we no results
+            # there is no count metadata because there were no results
             total = (0,)
         else:
             # we don't have the count yet becuae we did not use the $facet ag stage
@@ -566,7 +566,8 @@ class RecordsList(Resource):
         
         meta = {
             'name': 'api_records_list',
-            'returns': URL('api_schema', schema_name=schema_name).to_str()
+            'returns': URL('api_schema', schema_name=schema_name).to_str(),
+            'count': total[0] # total is a tuple
         }
         
         links = {
@@ -588,8 +589,7 @@ class RecordsList(Resource):
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
                 'count': URL('api_records_list_count', collection=collection, search=search_string).to_str()
-            },
-            'count': total
+            }
         }
         
         response = ApiResponse(links=links, meta=meta, data=data)
