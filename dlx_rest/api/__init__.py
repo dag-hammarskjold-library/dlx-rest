@@ -36,7 +36,7 @@ from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, 
 # build the auth cache in a non blocking thread
 def build_cache(): Auth.build_cache()
 
-#threading.Thread(target=build_cache, args=[]).start()
+threading.Thread(target=build_cache, args=[]).start()
 
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
@@ -467,9 +467,13 @@ class RecordsList(Resource):
                         )
                     )
 
-                    if len(updates) == total[0] or len(updates) == 1000:
+                    if len(updates) == 1000:
                         DB.handle.get_collection('_search_cache').bulk_write(updates)
                         updates = []
+
+                if updates:
+                    # catch the rest
+                    DB.handle.get_collection('_search_cache').bulk_write(updates)
 
             threading.Thread(target=savecache, args=[]).start()
         
