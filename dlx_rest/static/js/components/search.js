@@ -27,7 +27,7 @@ export let searchcomponent = {
             required: false,
         },
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <div class="col mb-2 d-flex justify-content-between">
             <div>

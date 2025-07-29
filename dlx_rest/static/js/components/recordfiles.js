@@ -2,16 +2,21 @@ export let recordfilecomponent = {
     props: {
         api_prefix: {
             type: String,
-            required: true
+            required: false
         },
         record_id: {
             type: Number,
-            required: true
+            required: false
         },
         desired_languages: {
             type: Array,
             required: false,
             default: () => ['ar', 'zh', 'en', 'fr', 'ru', 'es']
+        },
+        urls: {
+            // if this prop exists, use the provided urls instead of doing fetching them from the API
+            type: Array,
+            required: false
         }
     },
     //props: ["api_prefix", "record_id", "desired_languages"],
@@ -30,6 +35,13 @@ export let recordfilecomponent = {
         }
     },
     created: async function() {
+        if (this.urls) {
+            this.files = this.urls
+            return
+        } else if (!this.api_url || !this.record_id) {
+            throw new Error('"api_url" and "record_id" or "urls" required')
+        }
+
         let url = `${this.api_prefix}marc/bibs/records/${this.record_id}/files`;
         fetch(url).then(
             response => response.json()
