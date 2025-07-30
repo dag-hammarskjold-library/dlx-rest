@@ -27,7 +27,7 @@ export let searchcomponent = {
             required: false,
         },
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <div class="col mb-2 d-flex justify-content-between">
             <div>
@@ -190,7 +190,9 @@ export let searchcomponent = {
                         </button>
                     </div>
                     <div v-if="isSearching || submitted">
-                        {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
+                        {{totalCount}} total results
+                        <br>
+                        {{resultCount}} results loaded{{isSearching ? ' so far' : ''}} 
                         in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
                     </div>
                 </div>
@@ -450,7 +452,8 @@ export let searchcomponent = {
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
-            resultCount: 0,
+            totalCount: 0,
+            total: 0,
             resultsPerPage: 100,
             isSearching: false,
             isDragging: false,
@@ -959,6 +962,7 @@ export let searchcomponent = {
                 })
                 
                 if (json) {
+                    this.totalCount = json['_meta']['count']
                     next = json['_links']['_next'];
                     records = json['data'];
 
