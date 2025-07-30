@@ -1,25 +1,18 @@
+import { Jmarc } from "../api/jmarc.mjs"
+
 export let recordfilecomponent = {
     props: {
-        api_prefix: {
-            type: String,
-            required: false
-        },
-        record_id: {
-            type: Number,
-            required: false
+        record_data: {
+            // This is a record in "brief" format. It now includes files data 
+            type: Object,
+            required: true
         },
         desired_languages: {
             type: Array,
             required: false,
-            default: () => ['ar', 'zh', 'en', 'fr', 'ru', 'es']
-        },
-        urls: {
-            // if this prop exists, use the provided urls instead of doing fetching them from the API
-            type: Array,
-            required: false
+            default: () => ['AR', 'ZH', 'EN', 'FR', 'RU', 'ES']
         }
     },
-    //props: ["api_prefix", "record_id", "desired_languages"],
     template: /* html */ `
     <div class="files-container">
         <span v-for="file in files" :key="file.language" class="file-language">
@@ -30,31 +23,11 @@ export let recordfilecomponent = {
     data: function () {
         return {
             message: "Download file or shift+click to open in a new browser tab",
-            langmap: {en: 'E', ar: 'A', zh: 'C', fr: 'F', ru: 'R', es: 'S'},
+            langmap: {EN: 'E', AR: 'A', ZH: 'C', FR: 'F', RU: 'R', ES: 'S'},
             files: []
         }
     },
     created: async function() {
-        if (this.urls) {
-            this.files = this.urls
-            return
-        } else if (!this.api_prefix || !this.record_id) {
-            throw new Error('"api_url" and "record_id" or "urls" required')
-        }
-
-        let url = `${this.api_prefix}marc/bibs/records/${this.record_id}/files`;
-        fetch(url).then(
-            response => response.json()
-        ).then(
-            json => {
-                //this.files = json.data
-                for (let lang of this.desired_languages) {
-                    let file = json.data.find(f => f.language === lang);
-                    if (file) {
-                        this.files.push(file);
-                    }
-                }
-            }
-        )
+        this.files = this.record_data["files"].filter(x => this.desired_languages.includes(x.language))
     }
 }

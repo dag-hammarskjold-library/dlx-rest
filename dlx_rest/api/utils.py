@@ -404,6 +404,6 @@ def get_record_files(record: Marc) -> list[File]:
             
             for lang in langs:
                 if f := next(filter(lambda x: lang in x.languages, all_files), None):
-                    all_files.append(f)
+                    latest_files.append(f)
 
     return latest_files

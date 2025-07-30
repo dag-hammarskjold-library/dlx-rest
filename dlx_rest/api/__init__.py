@@ -36,7 +36,7 @@ from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, 
 # build the auth cache in a non blocking thread
 def build_cache(): Auth.build_cache()
 
-#threading.Thread(target=build_cache, args=[]).start()
+threading.Thread(target=build_cache, args=[]).start()
 
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
