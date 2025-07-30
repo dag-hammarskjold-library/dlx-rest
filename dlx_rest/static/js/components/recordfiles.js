@@ -38,7 +38,7 @@ export let recordfilecomponent = {
         if (this.urls) {
             this.files = this.urls
             return
-        } else if (!this.api_url || !this.record_id) {
+        } else if (!this.api_prefix || !this.record_id) {
             throw new Error('"api_url" and "record_id" or "urls" required')
         }
 

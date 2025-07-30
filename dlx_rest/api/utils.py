@@ -237,6 +237,8 @@ def brief_bib(record):
 
     f099c = record.get_values('099', 'c')
 
+    print("creating brief...")
+
     return {
         '_id': record.id,
         'url': URL('api_record', collection='bibs', record_id=record.id).to_str(),
@@ -247,7 +249,14 @@ def brief_bib(record):
         'agendas': agendas,
         'f596': f596,
         'f520': f520,
-        'f099c': f099c
+        'f099c': f099c,
+        'files': [ # todo: account for multi lang files
+            {
+                'mimetype': x.mimetype, 
+                'language': x.languages[0], 
+                'url': URL('api_file_record', record_id=x.id).to_str()
+            } for x in get_record_files(record)
+        ] 
     }
 
 def brief_speech(record):
@@ -384,12 +393,17 @@ def get_record_files(record: Marc) -> list[File]:
     isbns = record.get_values('020', 'a')
     isbns = [x.split(' ')[0] for x in isbns] # field may have extra text after the isbn
     uris = record.get_values('561', 'u') # Get files by original URI which was logged in the Archive-It system
-    all_files = []
+    latest_files = []
+    langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
     
     for id_type, id_values in {'symbol': symbols, 'isbn': isbns, 'uri': uris}.items():
         for id_value in id_values:
-            langs = ('AR', 'ZH', 'EN', 'FR', 'RU', 'ES', 'DE')
-            this_id_files = list(filter(None, [File.latest_by_identifier_language(Identifier(id_type, id_value), lang) for lang in langs]))
-            all_files += list(filter(lambda x: x.id not in [y.id for y in all_files], this_id_files))
+            all_files = File.find_by_identifier(Identifier(id_type, id_value))
+            # files are already sorted by timestamp desc, but do it again here just to be explicit
+            all_files = sorted(all_files, key=lambda x: x.timestamp) 
+            
+            for lang in langs:
+                if f := next(filter(lambda x: lang in x.languages, all_files), None):
+                    all_files.append(f)
 
-    return all_files
+    return latest_files
