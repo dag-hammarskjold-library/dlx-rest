@@ -136,7 +136,7 @@ export const validationData = {
         "041": {
             "name": "Language",
             "required": true,
-            "repeatable": false,
+            "repeatable": true,
             "validIndicators1": ["_","0","1"],
             "validIndicators2": [],
             "requiredSubfields": [],
@@ -510,7 +510,7 @@ export const validationData = {
         },
         "091": {
             "name": "Distribution code",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -1229,7 +1229,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["9","o","t","z","x"],
-            "defaultSubfields": ["9","o","t","z","x"] 
+            "defaultSubfields": ["9","t"] 
         },
         "772": {
             // Not defined in bibs validation document
