@@ -247,15 +247,16 @@ export class DataField {
 	}
 
 	validationWarnings() {
+		// field level validations
 		let flags = [];
 		// Change collection here to virtualCollection, which is inferred from data already in the record
-		//let data = validationData[this.parentRecord.collection][this.tag];
 		let data = validationData[this.parentRecord.getVirtualCollection()][this.tag];
-		if (!data) return []
-
-		// field level
-		// required
-		// we already know the field exists
+		
+		if (!data) {
+			// fields are now invalid if they are not in the validation data
+			flags.push(new TagValidationFlag(`${this.tag} is not a valid field`))
+			return flags
+		}
 
 		// repeatable
 		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {

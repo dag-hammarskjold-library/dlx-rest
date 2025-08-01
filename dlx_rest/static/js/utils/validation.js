@@ -2,18 +2,6 @@
 export const validationData = {
     "comments": "",
     "bibs": {
-        "010": {
-            // no definition in specifications
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
         "019": {
             // no definition in specifications
             "name": "",
@@ -428,18 +416,6 @@ export const validationData = {
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
-        "088": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
         "089": {
             "name": "Content codes",
             "required": false,  // Remember to reset this for production
@@ -534,18 +510,6 @@ export const validationData = {
                 ]
                 */
             }
-        },
-        "093": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "099": {
             "name": "Location library",
@@ -642,18 +606,6 @@ export const validationData = {
                         "T00","T01","T03","T04","T05","T10","T88","T99"]
             }
         },
-        "192": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
         "222": {
             // Not defined in bibs validation document
             "name": "",
@@ -695,18 +647,6 @@ export const validationData = {
             "validSubfields": ["a","b","i","n","p"],
             "defaultSubfields": ["a", "b"] 
         },
-        "247": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
         "249": {
             "name": "ITP title",
             "required": false,
@@ -736,18 +676,6 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b"] 
-        },
-        "256": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "260": {
             "name": "Publication (place, publisher, date)",
@@ -795,30 +723,6 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
-        },
-        "321": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
-        "354": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "362": {
             // Not defined in bibs validation document
@@ -948,18 +852,6 @@ export const validationData = {
             "validSubfields": ["*"],
             "defaultSubfields": ["a"] 
         },
-        "541": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
         "546": {
             "name": "Language note",
             "required": false,
@@ -969,30 +861,6 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
-        },
-        "547": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
-        "555": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "561": {
             "name": "Ownership and custodial history",
@@ -1013,30 +881,6 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
-        },
-        "590": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
-        },
-        "591": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "592": {
             // Not defined in bibs validation document
@@ -1243,18 +1087,6 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["9","o","t","z","x"],
             "defaultSubfields": ["9","o","t","z","x"] 
-        },
-        "772": {
-            // Not defined in bibs validation document
-            "name": "",
-            "valid": false,
-            "required": false,
-            "repeatable": false,
-            "validIndicators1": [],
-            "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": [],
-            "defaultSubfields": [] 
         },
         "773": {
             // Not defined in bibs validation document
