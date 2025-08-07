@@ -738,7 +738,7 @@ export let multiplemarcrecordcomponent = {
             this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "d-flex w-100 alert-success")
         },
         addSubField(jmarc) {
-            // add blank subfield
+            // add blank subfield (or auto date)
             let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
             if (! field) {
@@ -836,53 +836,6 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.subfields[0].codeSpan.focus();
             newFieldRow.subfields[0].valueSpan.focus();
             newFieldRow.tagSpan.focus();
-
-            newFieldRow.tagCell.addEventListener("change", function (e) {
-                // moved to consolidate with other the tag change events
-                return
-
-                // Differentiate kinds of bibs based on 089 contents
-                // At worst this will still default to bibs
-                let vcoll = jmarc.collection
-                if( vcoll == "bibs") {
-                    let recordType = null
-                    let _089 = jmarc.getField("089")
-                    
-                    if (_089) {
-                        let _089_a = _089.getSubfield("b").value
-
-                        if (_089_a && _089_a == "B22") {
-                            vcoll = "speeches"
-                        } else if (_089_a && _089_a == "B23") {
-                            vcoll = "votes"
-                        }  
-                    }  
-                }
-
-                let validatedField = validationData[vcoll][e.target.value]
-                if (!validatedField) {
-                    // fallback so we don't have to re-specify fields unnecessarily
-                    validatedField = validationData[jmarc.collection][e.target.value]
-                }
-                if (validatedField) {
-                    let blankSubfield = newField.getSubfield("_", 0)
-                    newField.deleteSubfield(blankSubfield)
-                    newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
-                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
-                        let newSubfield = newField.createSubfield(defaultSubfield)
-                        newSubfield.value = ""
-                        component.buildSubfieldRow(newSubfield);
-                    }
-                    // trigger field check state events, needs to be done again if field changes
-                    newFieldRow.ind1Span.focus();
-                    newFieldRow.ind2Span.focus();
-                    for (let subfield of newField.subfields) {
-                        subfield.codeSpan.focus();
-                        subfield.valueSpan.focus();
-                    }
-                    newFieldRow.tagSpan.focus();
-                }
-            })
             
             // select new field
             this.fieldSelected(newField);
@@ -2618,6 +2571,12 @@ export let multiplemarcrecordcomponent = {
                         newSubfield = component.buildSubfieldRow(newSubfield);
                         newSubfield.codeSpan.classList.add("unsaved");
                         newSubfield.valueCell.classList.add("unsaved");
+
+                        if ("autoDate" in validatedField && validatedField.autoDate[newSubfield.code] === true) {
+                            const date = (new Date).toISOString().substring(0, 10);
+                            newSubfield.value = date;
+                            newSubfield.valueSpan.innerText = date;
+                        }
                     }
                 }
 
@@ -2974,6 +2933,16 @@ export let multiplemarcrecordcomponent = {
 
                 // validations
                 component.validationWarnings(jmarc);
+
+                // auto date
+                let vcoll = jmarc.getVirtualCollection();
+                let validatedField = validationData[vcoll][field.tag];
+
+                if (validatedField && "autoDate" in validatedField && validatedField.autoDate[subfield.code] === true) {
+                    const date = (new Date).toISOString().substring(0, 10);
+                    subfield.value = date;
+                    subfield.valueSpan.innerText = date;
+                }
 
                 // record state
                 component.checkSavedState(jmarc);

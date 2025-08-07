@@ -872,7 +872,10 @@ export const validationData = {
             "validSubfields": ["a","b","u","3","4"],
             "defaultSubfields": ["a","b","u", "3"],
             "isDate": {
-                "b": true // Can we automate it to be set to the date the field is created? 
+                "b": true
+            },
+            "autoDate": { // new field to signal editor to automatically set to the current date
+                "b": true
             },
             "validStrings": {
                 "a": ["captured", "updated"]
