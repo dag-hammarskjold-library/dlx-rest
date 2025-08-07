@@ -868,9 +868,15 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": ["a","u"],
-            "defaultSubfields": ["a","u"] 
+            "requiredSubfields": ["a","b","u","3"],
+            "validSubfields": ["a","b","u","3","4"],
+            "defaultSubfields": ["a","b","u", "3"],
+            "isDate": {
+                "b": true // Can we automate it to be set to the date the field is created? 
+            },
+            "validStrings": {
+                "a": ["captured", "updated"]
+            }
         },
         "580": {
             "name": "Linking entry complexity note",
