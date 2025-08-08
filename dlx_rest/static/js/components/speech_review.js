@@ -74,7 +74,7 @@ export let speechreviewcomponent = {
                 <button class="btn btn-sm btn-outline-secondary ml-2" @click="clearSort">Clear Sort</button>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="speeches.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="speeches.length > 0">
                     <thead>
                         <tr>
                             <th></th>

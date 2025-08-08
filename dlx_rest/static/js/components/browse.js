@@ -57,7 +57,7 @@ export let browsecomponent = {
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="results_after.length > 0 || results_before.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="results_after.length > 0 || results_before.length > 0">
                     <thead>
                         <tr>
                             <th style="width: 30px"></th>
