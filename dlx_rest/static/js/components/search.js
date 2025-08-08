@@ -200,7 +200,7 @@ export let searchcomponent = {
 
             <!-- Results Table -->
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="records.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
                     <thead>
                         <tr>
                             <th></th>
