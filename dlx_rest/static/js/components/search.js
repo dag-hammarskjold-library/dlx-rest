@@ -220,7 +220,9 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
-                            <td></td>
+                            <td>
+                                <input type="checkbox">
+                            </td>
                             <td>
                                 <itemadd
                                     :api_prefix="api_prefix"
