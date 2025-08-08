@@ -868,9 +868,18 @@ export const validationData = {
             "repeatable": true,
             "validIndicators1": [],
             "validIndicators2": [],
-            "requiredSubfields": [],
-            "validSubfields": ["a","u"],
-            "defaultSubfields": ["a","u"] 
+            "requiredSubfields": ["a","b","u","3"],
+            "validSubfields": ["a","b","u","3","4"],
+            "defaultSubfields": ["a","b","u", "3"],
+            "isDate": {
+                "b": true
+            },
+            "autoDate": { // new field to signal editor to automatically set to the current date
+                "b": true
+            },
+            "validStrings": {
+                "a": ["captured", "updated"]
+            }
         },
         "580": {
             "name": "Linking entry complexity note",
