@@ -10,7 +10,7 @@ export let speechreviewcomponent = {
     props: {
         api_prefix: { type: String, required: true }
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <div class="col mb-2 d-flex justify-content-between">
             <div>
@@ -109,7 +109,9 @@ export let speechreviewcomponent = {
                                 @mousedown="handleMouseDown($event, speech, index)" 
                                 @mousemove="handleMouseMove($event, speech, index)" 
                                 @mouseup="handleMouseUp($event)">
-                                <td></td>
+                                <td>
+                                    <input type="checkbox">
+                                </td>
                                 <td>
                                     <itemadd
                                         :api_prefix="api_prefix"
