@@ -11,7 +11,7 @@ export let browsecomponent = {
         index: { type: String, required: false },
         q: { type: String, required: false }
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <!-- Preview modal -->
         <div v-if="previewOpen"
@@ -75,7 +75,9 @@ export let browsecomponent = {
                             @mousedown="handleMouseDown($event, result, idx)"
                             @mousemove="handleMouseMove($event, result, idx)"
                             @mouseup="handleMouseUp($event)">
-                            <td></td>
+                            <td>
+                                <input type="checkbox">
+                            </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
                                     <itemadd
@@ -144,7 +146,9 @@ export let browsecomponent = {
                             @mousedown="handleMouseDown($event, result, idx+3)"
                             @mousemove="handleMouseMove($event, result, idx+3)"
                             @mouseup="handleMouseUp($event)">
-                            <td></td>
+                            <td>
+                                <input type="checkbox">
+                            </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
                                     <itemadd
