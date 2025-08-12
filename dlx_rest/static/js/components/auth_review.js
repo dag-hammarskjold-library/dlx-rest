@@ -82,6 +82,12 @@ export let authreviewcomponent = {
                                 v-if="canDelete">
                             Delete {{selectedRecords.length}} Records
                         </button>
+                        <button 
+                            v-if="selectedRecords.length > 0 && collection === 'auths'"
+                            class="btn btn-success btn-sm" 
+                            @click.prevent="submitMultiXrefSearch">
+                            Search Selected
+                        </button>
                     </div>
                     <div v-if="isSearching || submitted">
                         {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
@@ -455,6 +461,20 @@ export let authreviewcomponent = {
 
         handleMouseUp(e) {
             this.isDragging = false;
+        },
+
+        submitMultiXrefSearch(e) {
+            // marshal the selected xrefs
+            let foundIds = []
+            for (let record of this.selectedRecords) {
+                foundIds.push(`xref:${record.record_id}`)
+            }
+            let xrefs = encodeURIComponent(foundIds.join(" OR "))
+            // construct the URL
+            let searchURL = this.uibase + '/records/bibs/search?q=' + xrefs + '&subtype=all'
+
+            // Here we would submit the search, but for the moment, let's just log the URL
+            console.log(searchURL)
         },
 
         async sendToBasket(e) {
