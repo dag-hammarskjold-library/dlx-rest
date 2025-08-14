@@ -31,10 +31,12 @@ export let exportmodal = {
   },
 
   computed: {
-    exportUrl() {
-      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=${this.selectedFormat}`
+    searchUrl() {
+      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}`
     },
-
+    exportUrl() {
+      return this.searchUrl + `&format=${this.selectedFormat}`
+    },
     isExporting() {
       return this.showSpinner
     }
@@ -113,10 +115,8 @@ export let exportmodal = {
       this.currentStatus = null
 
       try {
-        const total = await this.getRecordCount()
         const limit = 100 // 100 records per page call
         let start = 1
-        let allData = []
         const format = this.exportFormats.find(f => f.id === this.selectedFormat)
         let mimeType = format.mimeType
         
@@ -127,15 +127,24 @@ export let exportmodal = {
             new CSV() : 
             ""
           )
+        
+        // get the total and search ID
+        const initialResponse = await fetch(this.searchUrl)
+        if (!initialResponse.ok) throw new Error(`Search failed: ${initialResponse.statusText}`)
+        const json = await initialResponse.json()
+        const total = json['_meta']['count']
+        const searchId = (new URLSearchParams(json['_links']['_next'])).get('search_id')
+
+        let exportUrl = new URL(this.exportUrl + `&search_id=${searchId}`)
+        
+        if (this.selectedFields) {
+          exportUrl.searchParams.set('fields', this.selectedFields)
+        }
 
         while (start <= total) {
-          const url = new URL(this.exportUrl)
-          url.searchParams.set('start', start)
-          url.searchParams.set('limit', limit)
-          if (this.selectedFields) {
-            url.searchParams.set('fields', this.selectedFields)
-          }
-          const response = await fetch(url.toString())
+          exportUrl.searchParams.set('start', start)
+          exportUrl.searchParams.set('limit', limit)
+          const response = await fetch(exportUrl.toString())
           if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
           const text = await response.text()
 
@@ -178,29 +187,6 @@ export let exportmodal = {
         this.showSpinner = false
       }
     },
-
-    async fetchExportData(url) {
-      const response = await fetch(url.toString())
-      const total = await this.getRecordCount()
-      let processed = 0
-
-      while (processed < total) {
-        console.log("still processing")
-        processed += 100 // Assuming 100 records per page
-        const progress = Math.min((processed / total * 100).toFixed(1), 100)
-        this.currentStatus = `${progress}% of ${total} records`
-      }
-
-      return response
-    },
-
-    async getRecordCount() {
-      const countUrl = this.exportUrl.replace('/records', '/records/count')
-      const response = await fetch(countUrl)
-      const data = await response.json()
-      return data.data
-    },
-
     download(blob, filename, mimeType) {
       const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }))
       const link = document.createElement('a')
