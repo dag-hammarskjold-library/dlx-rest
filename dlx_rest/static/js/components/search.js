@@ -29,7 +29,9 @@ export let searchcomponent = {
     },
     template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
-        <div class="col mb-2 d-flex justify-content-between">
+
+        <!-- Selectors for various kinds of searches, including search history and review screens -->
+        <div class="col mb-2 d-flex justify-content-center">
             <div>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'simpleSearch' }"
@@ -38,6 +40,7 @@ export let searchcomponent = {
                 :aria-current="mode === 'simpleSearch' ? 'page' : null">
                 Simple Search
                 </a>
+                <span class="mx-1">|</span>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'advancedSearch' }"
                 href="" 
@@ -45,18 +48,17 @@ export let searchcomponent = {
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
+                <span class="mx-1">|</span>
+                <span v-if="subtype === 'speech' || collection === 'auths'">
+                    <a v-if="subtype ==='speech'" class="result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+                    <a v-if="collection ==='auths'" class="result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
+                    <span class="mx-1">|</span>
+                </span>
                 <search-history
                     ref="searchHistory"
                     search-input-id="recordSearch"
                     :api-prefix="api_prefix"
                 ></search-history>
-            </div>
-            <div class="d-flex align-items-center">
-                <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
-                <a v-if="collection ==='auths'" class="result-link px-3" :href="uibase + '/records/auths/review'">Auth Review</a>
-                <a class="result-link px-3" v-if="records.length > 0">
-                    <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
-                </a>
             </div>
         </div>
 
@@ -64,10 +66,19 @@ export let searchcomponent = {
         <div class="col text-center" v-if="mode=='simpleSearch'">
             <form @submit.prevent="submitSearch">
 
-                <div class="input-group mb-3">
+                <div class="input-group mb-3" aria-label="Cancel search">
                     <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="submit" :disabled="!searchTerm">Submit</button>
+                    <div class="input-group-append mb-3" v-if="showSpinner">
+                        <button class="btn btn-danger" type="button" @click="cancelSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="input-group-append mb-3" aria-label="Submit search" v-else>
+                        <button class="btn btn-outline-secondary" 
+                            type="button" @click="submitSearch" 
+                            :disabled="!searchTerm">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
                 </div>
             </form>
@@ -110,46 +121,63 @@ export let searchcomponent = {
                     </div>
                 </div>
             </div>
-            <div class="input-group-append mb-3">
-                <button class="btn btn-outline-secondary" type="button" @click="submitAdvancedSearch" :disabled="!hasAdvancedTerms">Submit</button>
+            <div class="input-group-append mb-3" v-if="showSpinner">
+                <button class="btn btn-danger" type="button" @click="cancelSearch">
+                    Cancel Search
+                </button>
+            </div>
+            <div class="input-group-append mb-3" v-else>
+                <button class="btn btn-outline-secondary" 
+                    type="button" @click="submitAdvancedSearch" 
+                    :disabled="!hasAdvancedTerms">
+                    Submit
+                </button>
             </div>
         </div>
 
-        <!-- Auth heading filters -->
-        <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
-            Filter: 
-            <a v-for="headFilter in headFilters" 
-                class="badge mx-1" 
-                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
-                href="#"
-                @click.prevent="applyHeadFilter(headFilter)">
-                {{headFilter}}
-            </a>
-        </div>
+        <!-- sort and filter controls -->
+        <div class="col d-flex justify-content-between text-center">
+            <sortcomponent v-if="records.length > 0"
+                :uibase="uibase"
+                :collection="collection"
+                :subtype="subtype"
+                :search-term="searchTerm"
+                :current-sort="currentSort"
+                :current-direction="currentDirection"
+                @sort-changed="handleSortChange"
+                @direction-changed="handleDirectionChange">
+            </sortcomponent>
+            <!-- Auth heading filters -->
+            <div v-if="collection == 'auths' && searchTerm" id="filters" class="col">
+                Filter by: <br>
+                <a v-for="headFilter in headFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                    href="#"
+                    @click.prevent="applyHeadFilter(headFilter)">
+                    {{headFilter}}
+                </a>
+            </div>
 
-        <!-- Bib subtype filters -->
-        <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col text-center">
-            Filter: 
-            <a v-for="typeFilter in typeFilters" 
-                class="badge mx-1" 
-                :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
-                href="#"
-                @click.prevent="applyTypeFilter(typeFilter.name)">
-                {{typeFilter.label}}
-            </a>
-        </div>
+            <!-- Bib subtype filters -->
+            <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col">
+                Filter by: <br>
+                <a v-for="typeFilter in typeFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
+                    href="#"
+                    @click.prevent="applyTypeFilter(typeFilter.name)">
+                    {{typeFilter.label}}
+                </a>
+            </div>
 
-        <!-- Sort Controls -->
-        <sortcomponent v-if="records.length > 0"
-            :uibase="uibase"
-            :collection="collection"
-            :subtype="subtype"
-            :search-term="searchTerm"
-            :current-sort="currentSort"
-            :current-direction="currentDirection"
-            @sort-changed="handleSortChange"
-            @direction-changed="handleDirectionChange">
-        </sortcomponent>
+            <div v-if="isSearching || submitted" class="col text-right">
+                {{totalCount}} total results
+                <br>
+                {{resultCount}} results loaded{{isSearching ? ' so far' : ''}} 
+                in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
+            </div>
+        </div>
 
         <div v-if="searchError" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{searchError}}
@@ -160,14 +188,12 @@ export let searchcomponent = {
 
         <!-- Results Area -->
         <div class="results-container col">
+
             <!-- Loading Spinner -->
             <div v-if="showSpinner" class="text-center mt-3">
                 <div class="spinner-border mr-2" role="status">
                     <span class="sr-only">Loading...</span>
                 </div>
-                <button class="btn btn-danger btn-sm" @click="cancelSearch">
-                    Cancel Search
-                </button>
             </div>
 
             <!-- Record Set Controls -->
@@ -189,12 +215,9 @@ export let searchcomponent = {
                             Delete {{selectedRecords.length}} Records
                         </button>
                     </div>
-                    <div v-if="isSearching || submitted">
-                        {{totalCount}} total results
-                        <br>
-                        {{resultCount}} results loaded{{isSearching ? ' so far' : ''}} 
-                        in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
-                    </div>
+                    <a class="result-link px-3" v-if="records.length > 0">
+                        <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
+                    </a>
                 </div>
             </div>
 
