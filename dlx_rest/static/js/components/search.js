@@ -260,22 +260,22 @@ export let searchcomponent = {
                                         :id="'link-' + record._id" 
                                         class="result-link record-title" 
                                         :href="uibase + '/editor?records=' + collection + '/' + record._id">
-                                        <span v-if="collection == 'auths'">
-                                            {{record.heading}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
                                         </span>
-                                        <span v-else>
-                                            {{record.title}}
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
                                         </span>
                                     </a>
                                     <a v-else 
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        <span v-if="collection == 'auths'">
-                                            {{record.heading}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
                                         </span>
-                                        <span v-else>
-                                            {{record.title}}
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
                                         </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
