@@ -80,78 +80,86 @@ export let multiplemarcrecordcomponent = {
             <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
-        <div id="modal" v-show="this.showModal">
-            <transition name="modal">
-                <div class="modal-mask">
-                <div class="modal-wrapper" >
-                    <div class="modal-container" id="modalchild">
+        <div id="modal" class="modal fade" :class="{ show: showModal }" tabindex="-1" :style="{ display: showModal ? 'block' : 'none' }">
+            <div class="modal-dialog record-history-modal"
+                style="margin: 2rem auto; position: relative; z-index:1051;">
+                <transition name="modal">
+                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+                        <div class="modal-mask">
+                            <div class="modal-wrapper" >
+                                <div class="modal-container" id="modalchild">
 
-                    <div class="modal-header" id="title">
-                    
-                        <slot name="header">
-                            <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                    @click="closeModal()"> Close the window
-                            </button>
-                        </slot>
-                        
+                                <div class="modal-header" id="title">
+                                
+                                    <slot name="header">
+                                        <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                                @click="closeModal()"> Close the window
+                                        </button>
+                                    </slot>
+                                    
+                                </div>
+            
+                                <div id="contenthistory" class="modal-body mt-0" >
+                                </div>
+                                <!-- <div class="modal-footer">
+                                    <slot name="footer">
+                                    <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                        @click="closeModal()"> Close the window
+                                    </button>
+                                    </slot>
+                                </div> -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
-  
-                    <div id="contenthistory" class="modal-body mt-0" >
-                    </div>
-                    <!-- <div class="modal-footer">
-                        <slot name="footer">
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModal()"> Close the window
-                        </button>
-                        </slot>
-                    </div> -->
-                    </div>
-                </div>
-                </div>
-            </transition>
+                </transition>
+            </div>
         </div>
 
         <!-- Modal displaying save options -->
-        <div id="modalSave" v-show="this.showModalSave">
-            <transition name="modalSave">
-                <div class="modal-mask">
-                <div class="modal-wrapper" >
-                    <div class="modal-container" id="modalchildsave">
+        <div id="modalSave" class="modal fade 50vh" :class="{ show: showModalSave }" tabindex="-1" :style="{ display: showModalSave ? 'block' : 'none' }">
+            <div class="modal-dialog record-history-modal"
+                style="margin: 2rem auto; position: relative; z-index:1051;">
+                <transition name="modalSave">
+                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+                        <div class="modal-mask">
+                            <div class="modal-wrapper" >
+                                <div class="modal-container" id="modalchildsave">
 
-                    <div class="modal-header" id="titleSave">
-                    
-                        <slot name="header">
-                            <h3><span id="titlemodalSave" class="mt-2 text-danger"> Warning !!!  </span></h3>
-                        </slot>
-                        
+                                <div class="modal-header" id="titleSave">
+                                
+                                    <slot name="header">
+                                        <h3><span id="titlemodalSave" class="mt-2 text-danger"> Warning !!!  </span></h3>
+                                    </slot>
+                                    
+                                </div>
+            
+                                <div id="contentSave" class="modal-body modal-content mt-0" >
+                                        <h5> You have unsaved changes </h5>
+                                </div>
+                                <div class="modal-footer">
+                                    <slot name="footer" class="row d-flex justify-content-between">
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeWithSaveCheck(selectedJmarc)">Save and close 
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeModalSave()"> Cancel
+                                        </button>
+                                    </slot>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-  
-                    <div id="contentSave" class="modal-body modal-content mt-0" >
-                            <h5> You have unsaved changes </h5>
-                    </div>
-                    <div class="modal-footer">
-                        <slot name="footer">
-                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close </button> -->
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeWithSaveCheck(selectedJmarc)">Save and close 
-                            </button>
-                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket </button> -->
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
-                            </button>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
-                            </button>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeModalSave()"> Cancel<br><br>
-                            </button>
-                        </slot>
-                    </div>
-                    </div>
-                </div>
-                </div>
-            </transition>
+                </transition>
+            </div>
         </div>
 
         </div>
