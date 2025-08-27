@@ -1,16 +1,16 @@
 {% extends 'base.html' %} {% block content %}
-<div style="background-color:grey;">
+<div class="grey-background">
     <div id="browse_vm" v-show="true">
         <div class="row justify-content-center">
-            <div class="col-2" style="background-color:white;"></div>
-            <div class="col-8" style="background-color:white;">
+            <div class="col-2 white-background"></div>
+            <div class="col-8 white-background">
                 {% if index and q %}
                 <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}" index="{{index}}" q="{{q}}"></browsecomponent>
                 {% else %}
                 <browsecomponent api_prefix="{{api_prefix}}" collection="{{coll}}"></browsecomponent>
                 {% endif %}
             </div>
-            <div class="col-2" style="background-color:white;"></div>
+            <div class="col-2 white-background"></div>
         </div>
     </div>
 </div>
