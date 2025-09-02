@@ -17,7 +17,7 @@ mongoengine==0.29.1
 py==1.11.0
 pyparsing==3.2.3
 python-ulid==3.1.0
-sentry-sdk==2.34.1
+sentry-sdk==2.35.2
 troposphere==4.9.3
 WTForms==3.2.1
 zipp==3.23.0
