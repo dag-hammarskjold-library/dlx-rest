@@ -22,6 +22,8 @@ export let exportmodal = {
       selectedFormat: 'mrk',
       selectedFields: '',
       currentStatus: null,
+      cancelled: false,
+      abortController: null,
       exportFormats: [
         { id: 'mrk', label: 'MRK', mimeType: 'text/plain' },
         { id: 'xml', label: 'XML', mimeType: 'text/xml' },
@@ -99,6 +101,8 @@ export let exportmodal = {
     },
 
     hide() {
+      this.cancelled = true
+      this.abortController.abort()
       $(this.$el).modal('hide')
       this.reset()
     },
@@ -111,8 +115,11 @@ export let exportmodal = {
     },
 
     async submitExport() {
+      this.cancelled = false
       this.showSpinner = true
       this.currentStatus = null
+      this.abortController = new AbortController()
+      this.abortSignal = this.abortController.signal
 
       try {
         const limit = 100 // 100 records per page call
@@ -144,8 +151,13 @@ export let exportmodal = {
         while (start <= total) {
           exportUrl.searchParams.set('start', start)
           exportUrl.searchParams.set('limit', limit)
-          const response = await fetch(exportUrl.toString())
+          const response = await fetch(exportUrl.toString(), {signal: this.abortSignal})
           if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
+          if (this.cancelled) {
+            // Currently this will never happen, because the fetch request will be aborted, throwing an error.
+            // If we decide to catch the error and handle it differently, the loop will need to break here.
+            break
+          }
           const text = await response.text()
 
           // Add to the buffer 
