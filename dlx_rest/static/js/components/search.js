@@ -219,7 +219,13 @@ export let searchcomponent = {
                     </a>
                 </div>
             </div>
-
+            <!-- No Results Message -->
+            <div class="col">
+                <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
+                    <p class="text-muted">No results found for {{searchTerm}}.</p>
+                    <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+                </div>
+            </div>
             <!-- Results Table -->
             <div class="table-responsive">
                 <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
@@ -330,11 +336,11 @@ export let searchcomponent = {
                 </table>
             </div>
         </div>
-        <!-- No Results Message -->
-        <div class="col">
-            <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
-                <p class="text-muted">No results found for {{searchTerm}}.</p>
-                <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+        <div id="results-footer" class="text-center mt-3">
+            <div v-if="records.length > 0 && records.length === totalCount">End</div>
+            <div v-else-if="records.length > 0">
+                <span>{{records.length}} / {{totalCount}} loaded</span>                 
+                <i class="spinner-border mr-2">
             </div>
         </div>
         <exportmodal ref="exportmodal"
