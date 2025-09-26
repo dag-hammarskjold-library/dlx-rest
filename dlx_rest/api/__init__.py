@@ -3,9 +3,8 @@ DLX REST API
 '''
 
 # external
+import os, time, json, re, boto3, mimetypes, jsonschema, threading, valkey
 from http.client import HTTPResponse
-from dlx_rest.routes import login, search_files
-import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -30,13 +29,19 @@ from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
+from dlx_rest.routes import login, search_files
 
 # Init
+try:
+    # Todo: update the connection if/when there is a server with other than default configs
+    valkey.Valkey().ping('127.0.0.1', 6379)
+    DB.cache = valkey.Valkey('127.0.0.1', 6379)
+    print('Connected to local Valkey server')
+except:
+    print('Warning: unable to connect to a Valkey server. Using private cache.')
 
 # build the auth cache in a non blocking thread
-def build_cache(): Auth.build_cache()
-
-threading.Thread(target=build_cache, args=[]).start()
+threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
 
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
