@@ -982,77 +982,72 @@ export let searchcomponent = {
             }, 100);
 
             // Fetch only the first 100 results, do NOT continue fetching more here
-            try {
-                const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
-                    if (!response.ok) {
-                        response.json().then(json => {
-                            this.searchError = `${json['message']} (${response.status})`;
-                            throw new Error(this.searchError);
-                        });
-                        return null;
-                    }
-                    return response.json();
-                }).catch(e => {
-                    clearInterval(timeUpdater);
-                    this.endSearch();
-
-                    if (e.name === 'AbortError') {
-                        const message = "Search cancelled by user";
-                        this.searchError = message;
-                        throw new Error(message);
-                    }
-                    this.searchError = e.message;
-                    throw e;
-                });
-
-                if (json) {
-                    this.totalCount = json['_meta']['count'];
-                    this.nextPageUrl = json['_links']['_next'];
-                    let records = json['data'];
-                    this._originalRecords = records;
-                    records = this.applyActiveHeadFilters(records);
-                    records.forEach(record => {
-                        if (!seenIds.includes(record._id)) {
-                            seenIds.push(record._id);
-                            this.records.push(record);
-                            this.resultCount++;
-                        }
+            const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                if (!response.ok) {
+                    response.json().then(json => {
+                        this.searchError = `${json['message']} (${response.status})`;
+                        throw new Error(this.searchError);
                     });
-                    // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
+                    return null;
                 }
-            } finally {
+                return response.json();
+            }).catch(e => {
                 clearInterval(timeUpdater);
                 this.endSearch();
+
+                if (e.name === 'AbortError') {
+                    const message = "Search cancelled by user";
+                    this.searchError = message;
+                    throw new Error(message);
+                }
+                this.searchError = e.message;
+                throw e;
+            });
+
+            if (json) {
+                this.totalCount = json['_meta']['count'];
+                this.nextPageUrl = json['_links']['_next'];
+                let records = json['data'];
+                this._originalRecords = records;
+                records = this.applyActiveHeadFilters(records);
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id);
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+                // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
             }
+        
+            clearInterval(timeUpdater);
+            this.endSearch();
         },
 
         async fetchMoreResults() {
             if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
             this.isFetchingMore = true;
-            try {
-                const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
-                if (json) {
-                    this.nextPageUrl = json['_links']['_next'];
-                    let newRecords = json['data'];
-                    // Add to _originalRecords for filtering
-                    if (!this._originalRecords) this._originalRecords = [];
-                    newRecords.forEach(record => {
-                        if (!this._originalRecords.some(r => r._id === record._id)) {
-                            this._originalRecords.push(record);
-                        }
-                    });
-                    // Apply head filters if needed
-                    newRecords = this.applyActiveHeadFilters(newRecords);
-                    newRecords.forEach(record => {
-                        if (!this.records.some(r => r._id === record._id)) {
-                            this.records.push(record);
-                            this.resultCount++;
-                        }
-                    });
-                }
-            } finally {
-                this.isFetchingMore = false;
+            const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+            if (json) {
+                this.nextPageUrl = json['_links']['_next'];
+                let newRecords = json['data'];
+                // Add to _originalRecords for filtering
+                if (!this._originalRecords) this._originalRecords = [];
+                newRecords.forEach(record => {
+                    if (!this._originalRecords.some(r => r._id === record._id)) {
+                        this._originalRecords.push(record);
+                    }
+                });
+                // Apply head filters if needed
+                newRecords = this.applyActiveHeadFilters(newRecords);
+                newRecords.forEach(record => {
+                    if (!this.records.some(r => r._id === record._id)) {
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
             }
+            this.isFetchingMore = false;
         },
 
         handleScroll() {
