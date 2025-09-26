@@ -424,9 +424,10 @@ class RecordsList(Resource):
         data = {}
 
         try:
-            # Create the data structure that is basically a list of records with only the _id field. 
-            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_id, 'ready': {'gte': start + limit}}): 
-                ids = doc.get(ids)[start-1:start+limit-1]
+            # Create the data structure that is basically a list of records with only the _id field.
+            # Todo: this should be handled by dlx since it manipulates the database.
+            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_id, 'ready': {'$gte': start + limit}}): 
+                ids = doc.get('ids')[start-1:start+limit-1]
                 data['data'] = [{'_id': x} for x in ids]
             elif next(filter(lambda x: x.get('$facet'), pipeline), None):
                 data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
