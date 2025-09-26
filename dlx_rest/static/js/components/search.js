@@ -769,9 +769,7 @@ export let searchcomponent = {
                     switch (type) {
                         case 'all':
                             // field:term1 AND field:term2
-                            queryPart = term.split(/\s+/)
-                                .map(t => `${field}:${t}`)
-                                .join(' AND ');
+                            queryPart = `${field}:${term}`
                             break;
                         case 'exact':
                             // field:'complete phrase'
