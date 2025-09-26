@@ -638,6 +638,100 @@ export let searchcomponent = {
             }
             if (!this.searchTerm) return;
 
+            // Split the search by connectors
+            const tokens = this.searchTerm.split(/ (AND|OR) (NOT)\b/)
+            const terms = tokens.filter(x => !['AND', 'OR', 'NOT'].includes(x)) // the separators are returned by .split when using regex
+
+            if (terms.length > 3) {
+                window.alert('Not all of the search terms can fit in the advanced search display')
+            }
+
+            terms.forEach((term, index) => {
+                const paramIndex = index + 1
+                term = term.trim()
+
+                if (term.match(/^\w+:/)) {
+                    // Specific Field
+                    // NOTE: Any word in a specific field is not supported
+
+                    let match = term.match(/^(\w+):(.*)/)
+                    this.advancedParams[`searchField${paramIndex}`] = match[1]
+                    const value = match[2]
+
+                    // Exact
+                    match = value.match(/^'(.*)'$/)
+
+                    if (match) {
+                        this.advancedParams[`searchType${paramIndex}`] = 'exact'
+                        this.advancedParams[`searchTerm${paramIndex}`] = match[1]
+                    }
+
+                    // Multi phrase. Terms with multiple double quote encolsed phrases, or at least one phrase mixed with free text
+                    if ([...value.matchAll(/"/g)].length >= 2) {
+                        if (value.match(/.+".+/)) {
+                            // There are at least two total quotes and one in the middle of the string
+                            window.alert("Advanced search does not support mulitple phrases or phrases mixed with free text in one field")
+                            // Just defer to free
+                        }
+                    }
+
+                    // Phrase
+                    if (value.match(/^"(.*)"$/ && !value.match(/.+".+/))) {
+                        this.advancedParams[`searchType${paramIndex}`] = 'partial'
+                        this.advancedParams[`searchTerm${paramIndex}`] = value.replaceAll('"', "")
+                    }
+
+                    // Free
+                    if (!value.match(/^".+"$/) && !value.match(/.+".+/)) {
+                        this.advancedParams[`searchTerm${paramIndex}`] = value
+                    }
+                } else {
+                    // Any field
+
+                    // TODO: Handle multiple free text terms. Terms separated by OR would be split into 
+                    // their own input boxes. Terms separeted by AND can be combined into one input box.
+
+                    const value = term
+                    this.advancedParams[`searchField${paramIndex}`] = 'any'
+                    
+                    // Phrase mixed with free text
+                    if ((value[0] != '"' || value[value.length-1] != '"') && [...value.matchAll(/"/g)].length >= 2 && value.match(/.+".+/)) {
+                        window.alert("Advanced search does not support phrases mixed with free text")
+                        // Just defer to free
+                    }
+
+                    // Multi double quote enclosed phrases
+                    if (value.split(/"\s+"/).length > 1 && value.match(/^".+"$/)) {
+                        // The term consists entirely of double quoted phrases.
+                        // TODO: Decide to allow this or not. It is possible to express in the advanced search UI,
+                        // but requires splitting the phrases into their own input boxes.
+                        window.alert("Advanced search support for multiple phrases in any field is TBD")
+                    }
+
+                    // Single phrase
+                    if (value.match(/^".+"$/) && !value.match(/.+".+/)) {
+                        this.advancedParams[`searchType${paramIndex}`] = "partial"
+                        this.advancedParams[`searchTerm${paramIndex}`] = value.replaceAll('"', "")
+                    }
+
+                    // Free
+                    if (!value.match(/^".+"$/)) {
+                        this.advancedParams[`searchTerm${paramIndex}`] = term.replaceAll(/["']/g, "")
+                    }
+                }
+
+                // Get the next operator, if any.
+                // TODO: Decide if advanced search should support searches where there is only one term with NOT
+                const next = tokens[tokens.indexOf(term)+1]
+                const next2 = tokens[tokens.indexOf(term)+2]
+                let connector = next === "AND" && next2 == "NOT" ? "AND NOT" : next === "OR" && next2 == "NOT" ? "OR NOT" : next
+                this.advancedParams[`searchConnector${paramIndex}`] = connector
+            })
+
+            // TODO: Decide whether to Handle regex and wildcard in fielded advanced search 
+
+            return
+
             // Split into clauses and connectors, preserving quoted strings
             const parts = [];
             let currentPart = '';
