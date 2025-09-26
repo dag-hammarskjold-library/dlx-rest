@@ -174,8 +174,7 @@ export let searchcomponent = {
             <div v-if="isSearching || submitted" class="col text-right">
                 {{totalCount}} total results
                 <br>
-                {{resultCount}} results loaded{{isSearching ? ' so far' : ''}} 
-                in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
+                {{resultCount}} results loaded
             </div>
         </div>
 
@@ -220,7 +219,13 @@ export let searchcomponent = {
                     </a>
                 </div>
             </div>
-
+            <!-- No Results Message -->
+            <div class="col">
+                <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
+                    <p class="text-muted">No results found for {{searchTerm}}.</p>
+                    <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+                </div>
+            </div>
             <!-- Results Table -->
             <div class="table-responsive">
                 <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
@@ -331,11 +336,11 @@ export let searchcomponent = {
                 </table>
             </div>
         </div>
-        <!-- No Results Message -->
-        <div class="col">
-            <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
-                <p class="text-muted">No results found for {{searchTerm}}.</p>
-                <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+        <div id="results-footer" class="text-center mt-3">
+            <div v-if="records.length > 0 && records.length === totalCount">End</div>
+            <div v-else-if="records.length > 0">
+                <span>{{records.length}} / {{totalCount}} loaded</span>                 
+                <i class="spinner-border mr-2">
             </div>
         </div>
         <exportmodal ref="exportmodal"
@@ -481,6 +486,9 @@ export let searchcomponent = {
             total: 0,
             resultsPerPage: 100,
             isSearching: false,
+            infiniteScrollEnabled: true,
+            nextPageUrl: null,
+            isFetchingMore: false,
             isDragging: false,
             selectedRows: [],
             mode: "simpleSearch",
@@ -580,7 +588,11 @@ export let searchcomponent = {
         this.subtype = urlParams.get("subtype") || '';
 
         this.activeFilters = new Set();
-        this.activeFilters.add(this.subtype || "default");
+
+        // only set default to activeFilters if collection is not auths
+        if (this.collection !== 'auths' && !this.activeFilters.size) {
+            this.activeFilters.add(this.subtype || "default");
+        }
 
         const profile = await user.getProfile(this.api_prefix, 'my_profile');
         if (profile && profile.data && profile.data.email) {
@@ -618,6 +630,11 @@ export let searchcomponent = {
         }
 
         this.refreshBasket();
+
+        window.addEventListener('scroll', this.handleScroll);
+    },
+    beforeDestroy() {
+        window.removeEventListener('scroll', this.handleScroll);
     },
     methods: {
         async refreshBasket() {
@@ -849,6 +866,16 @@ export let searchcomponent = {
             return q;
         },
 
+        applyActiveHeadFilters(records) {
+            // Only filter if collection is 'auths' and filters are active
+            if (this.collection === 'auths' && this.activeFilters && this.activeFilters.size > 0) {
+                return records.filter(record =>
+                    Array.from(this.activeFilters).some(tag => record.heading_tag === tag)
+                );
+            }
+            return records;
+        },
+
         applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
@@ -875,13 +902,10 @@ export let searchcomponent = {
             }
 
             // Always filter from the original unfiltered set
-            this.records = this._originalRecords.filter(record => {
-                return Array.from(this.activeFilters).some(tag => {
-                    return record.heading_tag === tag;
-                });
-            });
-
-            // Update result count even if zero
+            //if (!this._originalRecords) {
+            //    this._originalRecords = [...this.records];
+            //}
+            this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
         },
 
@@ -939,74 +963,111 @@ export let searchcomponent = {
             
 
             this.parseSearchTerm();
-            this.records = []
-            this.showSpinner = true
+            this.records = [];
+            this.showSpinner = true;
             this.isSearching = true;
             this.resultCount = 0;
+            this.nextPageUrl = null;
+            this.infiniteScrollEnabled = true;
+            this.isFetchingMore = false;
             const startTime = Date.now();
             const seenIds = [];
 
-            // Build base URL with sort parameters
-            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=${this.resultsPerPage}`;
+            // Build base URL with limit=100
+            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
             if (this.subtype && this.subtype !== 'default') {
-                if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                if (['speech', 'vote', 'all'].includes(this.subtype)) {
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 } else {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 }
             }
 
             const timeUpdater = setInterval(() => {
                 this.searchTime = ((Date.now() - startTime) / 1000)
-            }, 100)
-            
-            
-            while (1) {
-                let records = [];
-                
-                const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
-                    if (!response.ok) {
-                        response.json().then(json => {
-                            this.searchError = `${json['message']} (${response.status})`;
-                            throw new Error(this.searchError);
-                        });
-                        return null
-                    }
-                    return response.json()
-                }).catch(e => {
-                    clearInterval(timeUpdater);
-                    this.endSearch();
+            }, 100);
 
-                    if (e.name === 'AbortError') {
-                        const message = "Search cancelled by user";
-                        this.searchError = message;
-                        throw new Error(message);
-                    }
-                    this.searchError = e.message;
-                    throw e
-                })
-                
-                if (json) {
-                    this.totalCount = json['_meta']['count']
-                    next = json['_links']['_next'];
-                    records = json['data'];
-
-                    records.forEach(record => {
-                        if (!seenIds.includes(record._id)) {
-                            seenIds.push(record._id);
-                            this.records.push(record);
-                            this.resultCount++;
-                        }
+            // Fetch only the first 100 results, do NOT continue fetching more here
+            const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                if (!response.ok) {
+                    response.json().then(json => {
+                        this.searchError = `${json['message']} (${response.status})`;
+                        throw new Error(this.searchError);
                     });
+                    return null;
                 }
+                return response.json();
+            }).catch(e => {
+                clearInterval(timeUpdater);
+                this.endSearch();
 
-                if (records.length < this.resultsPerPage) {
-                    this.endSearch();
-                    clearInterval(timeUpdater);
-                    break
+                if (e.name === 'AbortError') {
+                    const message = "Search cancelled by user";
+                    this.searchError = message;
+                    throw new Error(message);
                 }
+                this.searchError = e.message;
+                throw e;
+            });
+
+            if (json) {
+                this.totalCount = json['_meta']['count'];
+                this.nextPageUrl = json['_links']['_next'];
+                let records = json['data'];
+                this._originalRecords = records;
+                records = this.applyActiveHeadFilters(records);
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id);
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+                // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
+            }
+        
+            clearInterval(timeUpdater);
+            this.endSearch();
+        },
+
+        async fetchMoreResults() {
+            if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
+            this.isFetchingMore = true;
+            const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+            if (json) {
+                this.nextPageUrl = json['_links']['_next'];
+                let newRecords = json['data'];
+                // Add to _originalRecords for filtering
+                if (!this._originalRecords) this._originalRecords = [];
+                newRecords.forEach(record => {
+                    if (!this._originalRecords.some(r => r._id === record._id)) {
+                        this._originalRecords.push(record);
+                    }
+                });
+                // Apply head filters if needed
+                newRecords = this.applyActiveHeadFilters(newRecords);
+                newRecords.forEach(record => {
+                    if (!this.records.some(r => r._id === record._id)) {
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+            }
+            this.isFetchingMore = false;
+        },
+
+        handleScroll() {
+            if (!this.infiniteScrollEnabled || this.isFetchingMore) return;
+            const scrollY = window.scrollY || window.pageYOffset;
+            const viewportHeight = window.innerHeight;
+            const fullHeight = document.documentElement.scrollHeight;
+            // Only fetch if the page is scrollable and user has scrolled past 90%
+            //console.log(scrollY, viewportHeight, fullHeight, (scrollY + viewportHeight) / fullHeight);
+            if (fullHeight > viewportHeight && (scrollY + viewportHeight) / fullHeight >= 0.9) {
+                this.fetchMoreResults();
             }
         },
+
         endSearch() {
             this.isSearching = false;
             this.showSpinner = false;
