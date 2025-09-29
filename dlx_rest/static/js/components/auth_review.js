@@ -90,7 +90,7 @@ export let authreviewcomponent = {
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="auths.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="auths.length > 0">
                     <thead>
                         <tr>
                             <th></th>
@@ -108,7 +108,9 @@ export let authreviewcomponent = {
                                 @mousedown="handleMouseDown($event, auth, index)" 
                                 @mousemove="handleMouseMove($event, auth, index)" 
                                 @mouseup="handleMouseUp($event)">
-                                <td></td>
+                                <td>
+                                    <input type="checkbox">
+                                </td>
                                 <td>
                                     <itemadd
                                         :api_prefix="api_prefix"

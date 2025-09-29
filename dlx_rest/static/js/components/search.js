@@ -27,9 +27,11 @@ export let searchcomponent = {
             required: false,
         },
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
-        <div class="col mb-2 d-flex justify-content-between">
+
+        <!-- Selectors for various kinds of searches, including search history and review screens -->
+        <div class="col mb-2 d-flex justify-content-center">
             <div>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'simpleSearch' }"
@@ -38,6 +40,7 @@ export let searchcomponent = {
                 :aria-current="mode === 'simpleSearch' ? 'page' : null">
                 Simple Search
                 </a>
+                <span class="mx-1">|</span>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'advancedSearch' }"
                 href="" 
@@ -45,18 +48,17 @@ export let searchcomponent = {
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
+                <span class="mx-1">|</span>
+                <span v-if="subtype === 'speech' || collection === 'auths'">
+                    <a v-if="subtype ==='speech'" class="result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+                    <a v-if="collection ==='auths'" class="result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
+                    <span class="mx-1">|</span>
+                </span>
                 <search-history
                     ref="searchHistory"
                     search-input-id="recordSearch"
                     :api-prefix="api_prefix"
                 ></search-history>
-            </div>
-            <div class="d-flex align-items-center">
-                <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
-                <a v-if="collection ==='auths'" class="result-link px-3" :href="uibase + '/records/auths/review'">Auth Review</a>
-                <a class="result-link px-3" v-if="records.length > 0">
-                    <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
-                </a>
             </div>
         </div>
 
@@ -64,10 +66,19 @@ export let searchcomponent = {
         <div class="col text-center" v-if="mode=='simpleSearch'">
             <form @submit.prevent="submitSearch">
 
-                <div class="input-group mb-3">
+                <div class="input-group mb-3" aria-label="Cancel search">
                     <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="submit" :disabled="!searchTerm">Submit</button>
+                    <div class="input-group-append mb-3" v-if="showSpinner">
+                        <button class="btn btn-danger" type="button" @click="cancelSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="input-group-append mb-3" aria-label="Submit search" v-else>
+                        <button class="btn btn-outline-secondary" 
+                            type="button" @click="submitSearch" 
+                            :disabled="!searchTerm">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
                 </div>
             </form>
@@ -110,46 +121,62 @@ export let searchcomponent = {
                     </div>
                 </div>
             </div>
-            <div class="input-group-append mb-3">
-                <button class="btn btn-outline-secondary" type="button" @click="submitAdvancedSearch" :disabled="!hasAdvancedTerms">Submit</button>
+            <div class="input-group-append mb-3" v-if="showSpinner">
+                <button class="btn btn-danger" type="button" @click="cancelSearch">
+                    Cancel Search
+                </button>
+            </div>
+            <div class="input-group-append mb-3" v-else>
+                <button class="btn btn-outline-secondary" 
+                    type="button" @click="submitAdvancedSearch" 
+                    :disabled="!hasAdvancedTerms">
+                    Submit
+                </button>
             </div>
         </div>
 
-        <!-- Auth heading filters -->
-        <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
-            Filter: 
-            <a v-for="headFilter in headFilters" 
-                class="badge mx-1" 
-                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
-                href="#"
-                @click.prevent="applyHeadFilter(headFilter)">
-                {{headFilter}}
-            </a>
-        </div>
+        <!-- sort and filter controls -->
+        <div class="col d-flex justify-content-between text-center">
+            <sortcomponent v-if="records.length > 0"
+                :uibase="uibase"
+                :collection="collection"
+                :subtype="subtype"
+                :search-term="searchTerm"
+                :current-sort="currentSort"
+                :current-direction="currentDirection"
+                @sort-changed="handleSortChange"
+                @direction-changed="handleDirectionChange">
+            </sortcomponent>
+            <!-- Auth heading filters -->
+            <div v-if="collection == 'auths' && searchTerm" id="filters" class="col">
+                Filter by: <br>
+                <a v-for="headFilter in headFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                    href="#"
+                    @click.prevent="applyHeadFilter(headFilter)">
+                    {{headFilter}}
+                </a>
+            </div>
 
-        <!-- Bib subtype filters -->
-        <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col text-center">
-            Filter: 
-            <a v-for="typeFilter in typeFilters" 
-                class="badge mx-1" 
-                :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
-                href="#"
-                @click.prevent="applyTypeFilter(typeFilter.name)">
-                {{typeFilter.label}}
-            </a>
-        </div>
+            <!-- Bib subtype filters -->
+            <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col">
+                Filter by: <br>
+                <a v-for="typeFilter in typeFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
+                    href="#"
+                    @click.prevent="applyTypeFilter(typeFilter.name)">
+                    {{typeFilter.label}}
+                </a>
+            </div>
 
-        <!-- Sort Controls -->
-        <sortcomponent v-if="records.length > 0"
-            :uibase="uibase"
-            :collection="collection"
-            :subtype="subtype"
-            :search-term="searchTerm"
-            :current-sort="currentSort"
-            :current-direction="currentDirection"
-            @sort-changed="handleSortChange"
-            @direction-changed="handleDirectionChange">
-        </sortcomponent>
+            <div v-if="isSearching || submitted" class="col text-right">
+                {{totalCount}} total results
+                <br>
+                {{resultCount}} results loaded
+            </div>
+        </div>
 
         <div v-if="searchError" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{searchError}}
@@ -160,14 +187,12 @@ export let searchcomponent = {
 
         <!-- Results Area -->
         <div class="results-container col">
+
             <!-- Loading Spinner -->
             <div v-if="showSpinner" class="text-center mt-3">
                 <div class="spinner-border mr-2" role="status">
                     <span class="sr-only">Loading...</span>
                 </div>
-                <button class="btn btn-danger btn-sm" @click="cancelSearch">
-                    Cancel Search
-                </button>
             </div>
 
             <!-- Record Set Controls -->
@@ -189,16 +214,21 @@ export let searchcomponent = {
                             Delete {{selectedRecords.length}} Records
                         </button>
                     </div>
-                    <div v-if="isSearching || submitted">
-                        {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
-                        in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
-                    </div>
+                    <a class="result-link px-3" v-if="records.length > 0">
+                        <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
+                    </a>
                 </div>
             </div>
-
+            <!-- No Results Message -->
+            <div class="col">
+                <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
+                    <p class="text-muted">No results found for {{searchTerm}}.</p>
+                    <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+                </div>
+            </div>
             <!-- Results Table -->
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="records.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
                     <thead>
                         <tr>
                             <th></th>
@@ -218,7 +248,9 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
-                            <td></td>
+                            <td>
+                                <input type="checkbox">
+                            </td>
                             <td>
                                 <itemadd
                                     :api_prefix="api_prefix"
@@ -256,22 +288,22 @@ export let searchcomponent = {
                                         :id="'link-' + record._id" 
                                         class="result-link record-title" 
                                         :href="uibase + '/editor?records=' + collection + '/' + record._id">
-                                        <span v-if="collection == 'auths'">
-                                            {{record.heading}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
                                         </span>
-                                        <span v-else>
-                                            {{record.title}}
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
                                         </span>
                                     </a>
                                     <a v-else 
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        <span v-if="collection == 'auths'">
-                                            {{record.heading}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
                                         </span>
-                                        <span v-else>
-                                            {{record.title}}
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
                                         </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
@@ -304,11 +336,11 @@ export let searchcomponent = {
                 </table>
             </div>
         </div>
-        <!-- No Results Message -->
-        <div class="col">
-            <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
-                <p class="text-muted">No results found for {{searchTerm}}.</p>
-                <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+        <div id="results-footer" class="text-center mt-3">
+            <div v-if="records.length > 0 && records.length === totalCount">End</div>
+            <div v-else-if="records.length > 0">
+                <span>{{records.length}} / {{totalCount}} loaded</span>                 
+                <i class="spinner-border mr-2">
             </div>
         </div>
         <exportmodal ref="exportmodal"
@@ -450,9 +482,13 @@ export let searchcomponent = {
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
-            resultCount: 0,
+            totalCount: 0,
+            total: 0,
             resultsPerPage: 100,
             isSearching: false,
+            infiniteScrollEnabled: true,
+            nextPageUrl: null,
+            isFetchingMore: false,
             isDragging: false,
             selectedRows: [],
             mode: "simpleSearch",
@@ -552,7 +588,11 @@ export let searchcomponent = {
         this.subtype = urlParams.get("subtype") || '';
 
         this.activeFilters = new Set();
-        this.activeFilters.add(this.subtype || "default");
+
+        // only set default to activeFilters if collection is not auths
+        if (this.collection !== 'auths' && !this.activeFilters.size) {
+            this.activeFilters.add(this.subtype || "default");
+        }
 
         const profile = await user.getProfile(this.api_prefix, 'my_profile');
         if (profile && profile.data && profile.data.email) {
@@ -590,6 +630,11 @@ export let searchcomponent = {
         }
 
         this.refreshBasket();
+
+        window.addEventListener('scroll', this.handleScroll);
+    },
+    beforeDestroy() {
+        window.removeEventListener('scroll', this.handleScroll);
     },
     methods: {
         async refreshBasket() {
@@ -821,6 +866,16 @@ export let searchcomponent = {
             return q;
         },
 
+        applyActiveHeadFilters(records) {
+            // Only filter if collection is 'auths' and filters are active
+            if (this.collection === 'auths' && this.activeFilters && this.activeFilters.size > 0) {
+                return records.filter(record =>
+                    Array.from(this.activeFilters).some(tag => record.heading_tag === tag)
+                );
+            }
+            return records;
+        },
+
         applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
@@ -847,13 +902,10 @@ export let searchcomponent = {
             }
 
             // Always filter from the original unfiltered set
-            this.records = this._originalRecords.filter(record => {
-                return Array.from(this.activeFilters).some(tag => {
-                    return record.heading_tag === tag;
-                });
-            });
-
-            // Update result count even if zero
+            //if (!this._originalRecords) {
+            //    this._originalRecords = [...this.records];
+            //}
+            this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
         },
 
@@ -911,73 +963,111 @@ export let searchcomponent = {
             
 
             this.parseSearchTerm();
-            this.records = []
-            this.showSpinner = true
+            this.records = [];
+            this.showSpinner = true;
             this.isSearching = true;
             this.resultCount = 0;
+            this.nextPageUrl = null;
+            this.infiniteScrollEnabled = true;
+            this.isFetchingMore = false;
             const startTime = Date.now();
             const seenIds = [];
 
-            // Build base URL with sort parameters
-            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=${this.resultsPerPage}`;
+            // Build base URL with limit=100
+            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
             if (this.subtype && this.subtype !== 'default') {
-                if (this.subtype === 'speech' || this.subtype === 'vote' || this.subtype === 'all') {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                if (['speech', 'vote', 'all'].includes(this.subtype)) {
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 } else {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 }
             }
 
             const timeUpdater = setInterval(() => {
                 this.searchTime = ((Date.now() - startTime) / 1000)
-            }, 100)
-            
-            
-            while (1) {
-                let records = [];
-                
-                const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
-                    if (!response.ok) {
-                        response.json().then(json => {
-                            this.searchError = `${json['message']} (${response.status})`;
-                            throw new Error(this.searchError);
-                        });
-                        return null
-                    }
-                    return response.json()
-                }).catch(e => {
-                    clearInterval(timeUpdater);
-                    this.endSearch();
+            }, 100);
 
-                    if (e.name === 'AbortError') {
-                        const message = "Search cancelled by user";
-                        this.searchError = message;
-                        throw new Error(message);
-                    }
-                    this.searchError = e.message;
-                    throw e
-                })
-                
-                if (json) {
-                    next = json['_links']['_next'];
-                    records = json['data'];
-
-                    records.forEach(record => {
-                        if (!seenIds.includes(record._id)) {
-                            seenIds.push(record._id);
-                            this.records.push(record);
-                            this.resultCount++;
-                        }
+            // Fetch only the first 100 results, do NOT continue fetching more here
+            const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                if (!response.ok) {
+                    response.json().then(json => {
+                        this.searchError = `${json['message']} (${response.status})`;
+                        throw new Error(this.searchError);
                     });
+                    return null;
                 }
+                return response.json();
+            }).catch(e => {
+                clearInterval(timeUpdater);
+                this.endSearch();
 
-                if (records.length < this.resultsPerPage) {
-                    this.endSearch();
-                    clearInterval(timeUpdater);
-                    break
+                if (e.name === 'AbortError') {
+                    const message = "Search cancelled by user";
+                    this.searchError = message;
+                    throw new Error(message);
                 }
+                this.searchError = e.message;
+                throw e;
+            });
+
+            if (json) {
+                this.totalCount = json['_meta']['count'];
+                this.nextPageUrl = json['_links']['_next'];
+                let records = json['data'];
+                this._originalRecords = records;
+                records = this.applyActiveHeadFilters(records);
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id);
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+                // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
+            }
+        
+            clearInterval(timeUpdater);
+            this.endSearch();
+        },
+
+        async fetchMoreResults() {
+            if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
+            this.isFetchingMore = true;
+            const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+            if (json) {
+                this.nextPageUrl = json['_links']['_next'];
+                let newRecords = json['data'];
+                // Add to _originalRecords for filtering
+                if (!this._originalRecords) this._originalRecords = [];
+                newRecords.forEach(record => {
+                    if (!this._originalRecords.some(r => r._id === record._id)) {
+                        this._originalRecords.push(record);
+                    }
+                });
+                // Apply head filters if needed
+                newRecords = this.applyActiveHeadFilters(newRecords);
+                newRecords.forEach(record => {
+                    if (!this.records.some(r => r._id === record._id)) {
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+            }
+            this.isFetchingMore = false;
+        },
+
+        handleScroll() {
+            if (!this.infiniteScrollEnabled || this.isFetchingMore) return;
+            const scrollY = window.scrollY || window.pageYOffset;
+            const viewportHeight = window.innerHeight;
+            const fullHeight = document.documentElement.scrollHeight;
+            // Only fetch if the page is scrollable and user has scrolled past 90%
+            //console.log(scrollY, viewportHeight, fullHeight, (scrollY + viewportHeight) / fullHeight);
+            if (fullHeight > viewportHeight && (scrollY + viewportHeight) / fullHeight >= 0.9) {
+                this.fetchMoreResults();
             }
         },
+
         endSearch() {
             this.isSearching = false;
             this.showSpinner = false;

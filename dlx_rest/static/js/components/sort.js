@@ -1,3 +1,6 @@
+/* 
+Sort and filter component.
+*/
 export let sortcomponent = {
     props: {
         uibase: String,
@@ -15,39 +18,39 @@ export let sortcomponent = {
     },
 
     template: `
-    <div class="container-fluid pt-1">
-        <div class="row d-flex w-100 justify-content-center">
-            <div class="col">Sort by</div>
-            <div class="col">Direction</div>
+    <div class="row d-flex w-50">
+
+        <div class="col text-left">
+            Sort results by: <br>
+            <ul class="list-inline">
+                <li v-for="field in sortFields" :key="field.searchString" class="list-inline-item">
+                    <a href="#" 
+                        @click.prevent="updateSort(field)"
+                        :class="['nav-link', 'badge',
+                                { 'badge-primary': field.searchString === currentSort,
+                                'badge-light': field.searchString !== currentSort }]">
+                        {{field.displayName}}
+                    </a>
+                </li>
+            </ul>
         </div>
-        <div class="row d-flex w-100 justify-content-center">
-            <div class="col">
-                <ul class="list-inline">
-                    <li v-for="field in sortFields" :key="field.searchString" class="list-inline-item">
-                        <a href="#" 
-                           @click.prevent="updateSort(field)"
-                           :class="['nav-link', 'small', 'p-0', 
-                                  { 'disabled': field.searchString === currentSort,
-                                    'result-link': field.searchString !== currentSort }]">
-                            {{field.displayName}}
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            <div class="col">
-                <ul class="list-inline">
-                    <li v-for="dir in sortDirections" :key="dir.searchString" class="list-inline-item">
-                        <a href="#"
-                           @click.prevent="updateDirection(dir.searchString)"
-                           :class="['nav-link', 'small', 'p-0',
-                                  { 'disabled': dir.searchString === currentDirection,
-                                    'result-link': dir.searchString !== currentDirection }]">
-                            {{dir.displayName}}
-                        </a>
-                    </li>
-                </ul>
-            </div>
+
+        <div class="col">
+            Direction: <br> 
+            <ul class="list-inline">
+                <li v-for="dir in sortDirections" :key="dir.searchString" class="list-inline-item">
+                    <a href="#"
+                        @click.prevent="updateDirection(dir.searchString)"
+                        :class="['nav-link', 'badge',
+                        ,
+                                { 'badge-primary': dir.searchString === currentDirection,
+                                'badge-light': dir.searchString !== currentDirection }]">
+                        {{dir.displayName}}
+                    </a>
+                </li>
+            </ul>
         </div>
+
     </div>
     `,
 

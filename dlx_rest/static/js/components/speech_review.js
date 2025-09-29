@@ -10,7 +10,7 @@ export let speechreviewcomponent = {
     props: {
         api_prefix: { type: String, required: true }
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <div class="col mb-2 d-flex justify-content-between">
             <div>
@@ -74,7 +74,7 @@ export let speechreviewcomponent = {
                 <button class="btn btn-sm btn-outline-secondary ml-2" @click="clearSort">Clear Sort</button>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="speeches.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="speeches.length > 0">
                     <thead>
                         <tr>
                             <th></th>
@@ -109,7 +109,9 @@ export let speechreviewcomponent = {
                                 @mousedown="handleMouseDown($event, speech, index)" 
                                 @mousemove="handleMouseMove($event, speech, index)" 
                                 @mouseup="handleMouseUp($event)">
-                                <td></td>
+                                <td>
+                                    <input type="checkbox">
+                                </td>
                                 <td>
                                     <itemadd
                                         :api_prefix="api_prefix"
