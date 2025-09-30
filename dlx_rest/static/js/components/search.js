@@ -340,9 +340,12 @@ export let searchcomponent = {
             <div v-if="records.length > 0 && records.length === totalCount">End</div>
             <div v-else-if="records.length > 0">
                 <span>{{records.length}} / {{totalCount}} loaded</span>                 
-                <i class="spinner-border mr-2">
+                <i class="spinner-border mr-2"></i>
             </div>
+            </div>&nbsp;</div> <!-- padding -->
         </div>
+
+        <!-- Export modal -->
         <exportmodal ref="exportmodal"
             :api_prefix="api_prefix"
             :collection="collection"
