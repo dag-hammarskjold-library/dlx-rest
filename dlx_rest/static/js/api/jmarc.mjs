@@ -348,7 +348,7 @@ export class DataField {
 	toStr() {
 		let str = ""
 
-		for (let subfield of this.subfields) {
+		for (let subfield of this.subfields.filter(x => x.value)) {
 			str += `\$${subfield.code} ${subfield.value} `;
 
 			if (subfield.xref) {
@@ -1231,6 +1231,7 @@ export class Jmarc {
 
 		let searchStr =
 			headingField.subfields
+				.filter(x => x.value)
 				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
 				.join(" AND ");
 
@@ -1266,7 +1267,7 @@ export class Jmarc {
 			// get the records
 			let promises = matches.map(recordId => Jmarc.get("auths", recordId));
 			let records = await Promise.all(promises);
-
+			
 			for (let auth of records) {
 				if (auth.recordId === this.recordId) continue
 
