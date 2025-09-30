@@ -656,7 +656,9 @@ export let searchcomponent = {
             if (!this.searchTerm) return;
 
             // Split the search by connectors
-            const tokens = this.searchTerm.split(/ (AND|OR) (NOT)\b/)
+            let tokens = []
+            this.searchTerm.split(/ +(AND|OR) +/).forEach(x => x.split(/ ?\b(NOT) +/).forEach(y => tokens.push(y)))
+            tokens = tokens.filter(x => x)
             const terms = tokens.filter(x => !['AND', 'OR', 'NOT'].includes(x)) // the separators are returned by .split when using regex
 
             if (terms.length > 3) {
@@ -713,7 +715,7 @@ export let searchcomponent = {
                     
                     // Phrase mixed with free text
                     if ((value[0] != '"' || value[value.length-1] != '"') && [...value.matchAll(/"/g)].length >= 2 && value.match(/.+".+/)) {
-                        window.alert("Advanced search does not support phrases mixed with free text")
+                        //window.alert("Advanced search does not support phrases mixed with free text")
                         // Just defer to free
                     }
 
@@ -722,7 +724,7 @@ export let searchcomponent = {
                         // The term consists entirely of double quoted phrases.
                         // TODO: Decide to allow this or not. It is possible to express in the advanced search UI,
                         // but requires splitting the phrases into their own input boxes.
-                        window.alert("Advanced search support for multiple phrases in any field is TBD")
+                        //window.alert("Advanced search support for multiple phrases in any field is TBD")
                     }
 
                     // Single phrase
