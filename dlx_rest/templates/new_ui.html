@@ -1,12 +1,7 @@
 {% extends 'base.html' %} {% block content %} 
   <!-- New UI component integration --> 
   {% if current_user.is_active %}
-  <div style="background-color:grey;">     
-    <style>
-        .modal-active{
-          display:block;
-        }
-    </style>
+  <div class="grey-background">
     <div id="new_ui_component" v-show="true">
         <headercomponent api_prefix="{{prefix}}"></headercomponent>
         <messagecomponent></messagecomponent>
