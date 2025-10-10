@@ -342,7 +342,7 @@ export let searchcomponent = {
                 <span>{{records.length}} / {{totalCount}} loaded</span>                 
                 <i class="spinner-border mr-2"></i>
             </div>
-            </div>&nbsp;</div> <!-- padding -->
+            <div>&nbsp;</div> <!-- padding -->
         </div>
 
         <!-- Export modal -->
@@ -374,7 +374,7 @@ export let searchcomponent = {
                 </div>
             </div>
         </div>
-
+        
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
             <div class="modal-dialog" role="document">
@@ -1196,7 +1196,6 @@ export let searchcomponent = {
             } else if (recordId) {
                 this.previewOpen = recordId;
             }
-
             return
         },
         // Necessary?
