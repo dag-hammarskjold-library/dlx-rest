@@ -1701,8 +1701,11 @@ export const validationData = {
             "validIndicators1": ["0","1","2","3","4"],
             "validIndicators2": ["0"],
             "requiredSubfields": [],
-            "validSubfields": ["a","b","c","d"],
-            "defaultSubfields": ["a","b","c","d"] 
+            "validSubfields": ["a","b","c","d","9"],
+            "defaultSubfields": ["a","b","c","d"],
+            "validStrings": {
+                "9": ["1","2","3","4","5","6","P"]
+            }
         },
         "245": {
             // Not defined in the specification document
