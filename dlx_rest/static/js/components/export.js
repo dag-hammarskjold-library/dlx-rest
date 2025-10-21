@@ -10,6 +10,10 @@ export let exportmodal = {
       type: String,
       required: true
     },
+    subtype: {
+      type: String,
+      required: true
+    },
     searchTerm: {
       type: String,
       required: true
@@ -34,7 +38,7 @@ export let exportmodal = {
 
   computed: {
     searchUrl() {
-      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}`
+      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&subtype=${this.subtype}`
     },
     exportUrl() {
       return this.searchUrl + `&format=${this.selectedFormat}`

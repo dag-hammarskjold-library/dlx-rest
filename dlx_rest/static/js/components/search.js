@@ -349,6 +349,7 @@ export let searchcomponent = {
         <exportmodal ref="exportmodal"
             :api_prefix="api_prefix"
             :collection="collection"
+            :subtype="subtype"
             :search-term="searchTerm">
         </exportmodal>
 
