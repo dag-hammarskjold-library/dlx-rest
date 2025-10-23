@@ -349,8 +349,7 @@ export let searchcomponent = {
         <exportmodal ref="exportmodal"
             :api_prefix="api_prefix"
             :collection="collection"
-            :subtype="subtype"
-            :search-term="searchTerm">
+            :searchParams="curentSearchParams">
         </exportmodal>
 
         <!-- Preview modal -->
@@ -553,7 +552,6 @@ export let searchcomponent = {
             return this.selectedRecords.length > 0 && 
                 !this.selectedRecords.some(r => r.locked) 
         },
-
         defaultSearchParams() {
             // Speech subtype defaults
             if (this.subtype === 'speech') {
@@ -580,6 +578,9 @@ export let searchcomponent = {
                 'searchType3': 'all',
                 'searchField3': 'any'
             };
+        },
+        curentSearchParams() {
+            return new URLSearchParams(window.location.search)
         }
     },
     created: async function () {
@@ -587,9 +588,8 @@ export let searchcomponent = {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
         //console.log(this.myProfile)
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const searchQuery = urlParams.get("q");
-        this.subtype = urlParams.get("subtype") || '';
+        const searchQuery = this.curentSearchParams.get("q");
+        this.subtype = this.curentSearchParams.get("subtype") || '';
 
         this.activeFilters = new Set();
 
@@ -610,8 +610,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = this.sort || urlParams.get("sort") || 'updated';
-        this.currentDirection = this.direction || urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || this.curentSearchParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || this.curentSearchParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
