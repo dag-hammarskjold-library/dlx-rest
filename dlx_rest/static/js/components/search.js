@@ -349,7 +349,7 @@ export let searchcomponent = {
         <exportmodal ref="exportmodal"
             :api_prefix="api_prefix"
             :collection="collection"
-            :search-term="searchTerm">
+            :searchParams="searchParams">
         </exportmodal>
 
         <!-- Preview modal -->
@@ -461,14 +461,7 @@ export let searchcomponent = {
     `,
     data: function () {
         let myUIBase = this.api_prefix.replace('/api/', '')
-        let exportLinks = {
-            'format': {
-                'CSV': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=csv`,
-                'JSON': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=json`,
-                'XML': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=xml`,
-                'MRK': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=mrk`
-            }
-        };
+
         return {
             subtype: null,
             records: [],
@@ -478,6 +471,7 @@ export let searchcomponent = {
             abortController: null,
             showSpinner: false,
             agendas: [],
+            searchParams: new URLSearchParams(window.location),
             searchTerm: "",
             searchQuery: "",
             myBasket: {},
@@ -552,7 +546,6 @@ export let searchcomponent = {
             return this.selectedRecords.length > 0 && 
                 !this.selectedRecords.some(r => r.locked) 
         },
-
         defaultSearchParams() {
             // Speech subtype defaults
             if (this.subtype === 'speech') {
@@ -579,6 +572,9 @@ export let searchcomponent = {
                 'searchType3': 'all',
                 'searchField3': 'any'
             };
+        },
+        currentSearchParams() {
+            return new URLSearchParams(window.location.search)
         }
     },
     created: async function () {
@@ -586,9 +582,11 @@ export let searchcomponent = {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
         //console.log(this.myProfile)
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const searchQuery = urlParams.get("q");
-        this.subtype = urlParams.get("subtype") || '';
+        const searchQuery = this.currentSearchParams.get("q");
+        this.subtype = this.currentSearchParams.get("subtype") || 'default';
+        const url = new URL(window.location);
+        url.searchParams.set('subtype', this.subtype);
+        window.history.replaceState(null, "", url);
 
         this.activeFilters = new Set();
 
@@ -609,8 +607,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = this.sort || urlParams.get("sort") || 'updated';
-        this.currentDirection = this.direction || urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || this.currentSearchParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || this.currentSearchParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
@@ -833,6 +831,7 @@ export let searchcomponent = {
             const url = new URL(window.location);
             url.searchParams.set("q", this.searchTerm);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search)
         },
 
         normalizeSymbolSearch(q) {
@@ -901,6 +900,7 @@ export let searchcomponent = {
             const url = new URL(window.location);
             url.searchParams.set("subtype", filtername);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search)
 
             // Update subtype in component state
             this.subtype = filtername;
@@ -1064,6 +1064,7 @@ export let searchcomponent = {
             });
             let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
             window.history.replaceState({}, ui_url);
+            this.searchParams = new URLSearchParams(window.location.search)
         },
         cancelSearch() {
             if (this.abortController) {
@@ -1079,6 +1080,7 @@ export let searchcomponent = {
             url.searchParams.set("sort", sort);
             url.searchParams.set("direction", direction);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search);
 
             // Update component state
             this.currentSort = sort;
@@ -1095,6 +1097,7 @@ export let searchcomponent = {
             const url = new URL(window.location);
             url.searchParams.set("direction", direction);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search);
 
             // Update component state
             this.currentDirection = direction;
