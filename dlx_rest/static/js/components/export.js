@@ -10,12 +10,8 @@ export let exportmodal = {
       type: String,
       required: true
     },
-    subtype: {
-      type: String,
-      required: true
-    },
-    searchTerm: {
-      type: String,
+    searchParams: {
+      type: URLSearchParams,
       required: true
     }
   },
@@ -38,7 +34,17 @@ export let exportmodal = {
 
   computed: {
     searchUrl() {
-      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&subtype=${this.subtype}`
+      // Convert the params into API params
+      this.searchParams.set('search', this.searchParams.get('q'))
+      this.searchParams.delete('q')
+      this.searchParams.delete('start')
+      this.searchParams.delete('limit')
+      if (!this.searchParams.get('sort')) {
+        // The search page defaults to updated descending if no sort specified
+        this.searchParams.set('sort', 'updated')
+        this.searchParams.set('direction', 'desc')
+      }
+      return `${this.api_prefix}marc/${this.collection}/records?${this.searchParams.toString()}`
     },
     exportUrl() {
       return this.searchUrl + `&format=${this.selectedFormat}`
@@ -139,13 +145,14 @@ export let exportmodal = {
             ""
           )
         
-        // get the total and search ID
+        // Get the total and search ID
         const initialResponse = await fetch(this.searchUrl)
         if (!initialResponse.ok) throw new Error(`Search failed: ${initialResponse.statusText}`)
         const json = await initialResponse.json()
         const total = json['_meta']['count']
         const searchId = (new URLSearchParams(json['_links']['_next'])).get('search_id')
 
+        // Using the search ID enables acessing cached results if any
         let exportUrl = new URL(this.exportUrl + `&search_id=${searchId}`)
         
         if (this.selectedFields) {
