@@ -231,11 +231,11 @@ export let searchcomponent = {
                 <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th>#</th>
-                            <th v-if="collection !== 'auths'">Files</th>
+                            <th class=icon-column>#</th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th v-if="collection !== 'auths'" class=files-column>Files</th>
                             <th v-else></th>
                             <th v-if="collection !== 'auths'">Title</th>
                             <th v-else>Heading</th>
@@ -248,6 +248,7 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
+                            <td>{{index + 1}}</td>
                             <td>
                                 <input type="checkbox">
                             </td>
@@ -271,7 +272,6 @@ export let searchcomponent = {
                             </td>
                             
                             <!-- Record Data -->
-                            <td>{{index + 1}}</td>
                             <td>
                                 <recordfilecomponent v-if="collection === 'bibs' && subtype !== 'speech'" 
                                                 :api_prefix="api_prefix" 
