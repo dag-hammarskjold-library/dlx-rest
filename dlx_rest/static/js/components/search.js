@@ -887,6 +887,19 @@ export let searchcomponent = {
                 this.activeFilters.add(fieldTag);
             }
 
+            // Update the total count
+            const tags = [...this.activeFilters]
+            const addedCriteria = tags.map(x => `${x}:*`).join(" OR ")
+            const countTerm = addedCriteria ? `${this.searchTerm} AND ${addedCriteria}` : this.searchTerm
+            const countUrl = `${this.api_prefix}marc/${this.collection}/records/count?search=${countTerm}` 
+            this.totalCount = "?"
+
+            fetch(countUrl).then(response => {
+                return response.json()
+            }).then(json => {
+                this.totalCount = json['data']
+            })
+
             // If no filters active, restore original results
             if (this.activeFilters.size === 0) {
                 this.records = [...this._originalRecords];
@@ -900,7 +913,7 @@ export let searchcomponent = {
             //}
             this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
-            
+
             // Fetch more results if available and under 100 results because the 
             // page may be too short to allow scrolling events
             if (this.nextPageUrl && this.resultCount < 100) {
