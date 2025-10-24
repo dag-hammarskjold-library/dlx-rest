@@ -1,4 +1,12 @@
 
+th.icon-column {
+    width: 12px
+}
+
+th.files-column {
+    width: 50px
+}
+
 a.result-link {
     color: #0000EE
 }
