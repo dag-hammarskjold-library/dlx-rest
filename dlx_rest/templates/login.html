@@ -1,32 +1,36 @@
 {% extends 'base.html' %} {% block content %}
 
-<style type="text/css">
-    .customize {
-        height: 400px;
-        width: 600px;
-    }
-</style>
-
-<div class="container customize shadow">
-    <h1>Sign In</h1>
-    <hr>
-    <form action="{{url_for('login', next=request.args.get('next'))}}" method="POST" novalidate>
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            <p>
-                {{ form.email.label }}<br> {{ form.email(size=32,class="form-control") }}
-            </p>
+<div class="sign-in-container">
+    <div class="sign-in-card">
+        <div class="sign-in-header">
+            <h1>Sign in to your account</h1>
         </div>
-        <div class="form-group">
-            <p>
-                {{ form.password.label }}<br> {{ form.password(size=32,class="form-control") }}
-            </p>
-        </div>
-        <div class="form-check">
-            <p>{{ form.remember_me(class="form-check-input") }} {{ form.remember_me.label }}</p>
-        </div>
-        <p>{{ form.submit(class="btn btn-primary mb-5") }}</p>
-    </form>
-    <hr>
+        
+        <form action="{{url_for('login', next=request.args.get('next'))}}" method="POST" novalidate class="sign-in-form">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                <label for="{{ form.email.id }}">{{ form.email.label }}</label>
+                {{ form.email(class="form-input", placeholder="Enter your email") }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password.id }}">{{ form.password.label }}</label>
+                {{ form.password(class="form-input", placeholder="Enter your password") }}
+            </div>
+            
+            <div class="form-options">
+                <div class="remember-me">
+                    {{ form.remember_me(class="checkbox-input") }}
+                    <label for="{{ form.remember_me.id }}">{{ form.remember_me.label }}</label>
+                </div>
+            </div>
+            
+            <button type="submit" class="sign-in-button">
+                <span>Sign In</span>
+            </button>
+        </form>
+    </div>
 </div>
+
 {% endblock %}

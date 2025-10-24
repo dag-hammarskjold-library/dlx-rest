@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 
-<link href="{{url_for('static', filename='css/process_files.css')}}" rel="stylesheet">
+<link href="{{url_for('static', filename='css/consolidated.css')}}" rel="stylesheet">
 
 
 
@@ -75,7 +75,7 @@
             <div class="cont" >
               <div class="tit"> Drag &amp; Drop </div>
                 <div class="desc"> or </div>
-                  <div class="browse" style="background:#28a745;">Browse</div>
+                  <div class="browse browse-button">Browse</div>
                   <input id="files" name="file[]" type="file" value="#28a745" multiple   /> 
             </div>
           </div>
@@ -84,9 +84,9 @@
     </div>
   </div>
                                                
-          <i class="fa fa-info-circle" style="display:none"; id="myicon"></i>
-          <p id="correctsize"  style="display:none;" class="mb-3 text-success font-weight-bold"></p>
-          <p id="incorrectsize" style="display:none;" class="mb-3 text-danger font-weight-bold"></p>
+          <i class="fa fa-info-circle info-icon-hidden" id="myicon"></i>
+          <p id="correctsize" class="mb-3 text-success font-weight-bold size-message-hidden"></p>
+          <p id="incorrectsize" class="mb-3 text-danger font-weight-bold size-message-hidden"></p>
           
           <!-- Preview DIV -->
           <div class="preview">
@@ -98,8 +98,8 @@
             <textarea class="form-control" id="fileText" name="fileText">Data to send</textarea>
           </div>
       
-          <button type="submit" class="mt-0 ml-1 btn btn-primary float-right " id="process"  style="display:none;">Process </button>
-          <button id="cancelBtn" type="button" class="mt-0 ml-1 btn btn-secondary float-right" onclick="location.reload()" style="display:none;"> Cancel </button>
+          <button type="submit" class="mt-0 ml-1 btn btn-primary float-right process-button-hidden" id="process">Process </button>
+          <button id="cancelBtn" type="button" class="mt-0 ml-1 btn btn-secondary float-right cancel-button-hidden" onclick="location.reload()"> Cancel </button>
         
         </div>
       </div>
@@ -149,8 +149,8 @@
       let myIcon=document.getElementById("myicon");
   
           if (file.files.length == 0 ){
-            btn.style.display = 'none';
-            btn1.style.display = 'none';
+            btn.classList.add('process-button-hidden');
+            btn1.classList.add('cancel-button-hidden');
           } 
           
           let sizeFile=0
@@ -162,18 +162,18 @@
               if(sizeFile>limitSize) {
                 //incorrect.textContent=`The total size of your files is > ${limitSize} kb (1Gb). Consider uploading less,otherwise your request might not be served`
                 incorrect.textContent=`The total size of your files is > 1GB. Consider uploading less,otherwise your request might not be served`
-                myIcon.style.display= 'inline-block'; 
+                myIcon.classList.remove('info-icon-hidden');
                 myIcon.style.color= '#dc3545';  
-                incorrect.style.display= 'inline-block'; 
-                btn1.style.display = 'inline-block';
+                incorrect.classList.remove('size-message-hidden'); 
+                btn1.classList.remove('cancel-button-hidden');
                 
               } else {
                 correct.textContent=`The total size of your files is : ${(sizeFile/1048576).toFixed(2)} MB`
-                myIcon.style.display= 'inline-block';
+                myIcon.classList.remove('info-icon-hidden');
                 myIcon.style.color= '#28a745'; 
-                correct.style.display= 'inline-block';  
-                btn.style.display = 'inline-block';
-                btn1.style.display = 'inline-block';
+                correct.classList.remove('size-message-hidden');  
+                btn.classList.remove('process-button-hidden');
+                btn1.classList.remove('cancel-button-hidden');
                 
                 }
   })
@@ -187,12 +187,12 @@
       let btn = document.getElementById("process");
     
       // reset the message about the size of the upload
-      incorrect.style.display= 'none';  
-      correct.style.display= 'none';  
-      myIcon.style.display= 'none';
+      incorrect.classList.add('size-message-hidden');  
+      correct.classList.add('size-message-hidden');  
+      myIcon.classList.add('info-icon-hidden');
     
       // reset the button to process
-      btn.style.display = 'none';
+      btn.classList.add('process-button-hidden');
     }
     
   
