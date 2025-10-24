@@ -112,7 +112,9 @@ export let exportmodal = {
 
     hide() {
       this.cancelled = true
-      this.abortController.abort()
+      if (this.abortController) {
+        this.abortController.abort()
+      }
       $(this.$el).modal('hide')
       this.reset()
     },
