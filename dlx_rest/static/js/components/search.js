@@ -996,9 +996,16 @@ export let searchcomponent = {
             });
 
             if (json) {
+                this.myBasket = await basket.getBasket(this.api_prefix);
+
                 this.totalCount = json['_meta']['count'];
                 this.nextPageUrl = json['_links']['_next'];
                 let records = json['data'];
+
+                records.forEach(record => {
+                    record.myBasket = basket.contains(this.collection, record._id, this.myBasket);
+                });
+
                 this._originalRecords = records;
                 records = this.applyActiveHeadFilters(records);
                 records.forEach(record => {
