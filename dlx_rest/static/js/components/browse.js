@@ -101,6 +101,7 @@ export let browsecomponent = {
                             <td>{{idx + 1}}</td>
                             <td>
                                 <a
+                                    target="_blank"
                                     v-if="!result.locked && result.recordId && result.count === 1"
                                     :id="'link-' + result.recordId"
                                     class="result-link record-title"
@@ -109,6 +110,7 @@ export let browsecomponent = {
                                     {{result.value}}
                                 </a>
                                 <a
+                                    target="_blank"
                                     v-else-if="result.count > 1"
                                     class="result-link record-title"
                                     :href="browseSearchQuery(index, result.value, subtype)"
@@ -116,6 +118,7 @@ export let browsecomponent = {
                                     {{result.value}}
                                 </a>
                                 <a
+                                    target="_blank"
                                     v-else
                                     class="result-link record-title disabled"
                                     :id="'link-' + result.recordId"
@@ -171,6 +174,7 @@ export let browsecomponent = {
                             <td>{{idx + 4}}</td>
                             <td>
                                 <a
+                                    target="_blank"
                                     v-if="!result.locked && result.recordId && result.count === 1"
                                     :id="'link-' + result.recordId"
                                     class="result-link record-title"
@@ -179,6 +183,7 @@ export let browsecomponent = {
                                     {{result.value}}
                                 </a>
                                 <a
+                                    target="_blank"
                                     v-else-if="result.count > 1"
                                     class="result-link record-title"
                                     :href="browseSearchQuery(index, result.value, subtype)"
@@ -186,6 +191,7 @@ export let browsecomponent = {
                                     {{result.value}}
                                 </a>
                                 <a
+                                    target="_blank"
                                     v-else
                                     class="result-link record-title disabled"
                                     :id="'link-' + result.recordId"
