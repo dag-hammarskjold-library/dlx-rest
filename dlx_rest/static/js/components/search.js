@@ -900,6 +900,12 @@ export let searchcomponent = {
             //}
             this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
+            
+            // Fetch more results if available and under 100 results because the 
+            // page may be too short to allow scrolling events
+            if (this.nextPageUrl && this.resultCount < 100) {
+                this.fetchMoreResults();
+            }
         },
 
         applyTypeFilter(filtername) {
@@ -1060,8 +1066,8 @@ export let searchcomponent = {
             const scrollY = window.scrollY || window.pageYOffset;
             const viewportHeight = window.innerHeight;
             const fullHeight = document.documentElement.scrollHeight;
+
             // Only fetch if the page is scrollable and user has scrolled past 90%
-            //console.log(scrollY, viewportHeight, fullHeight, (scrollY + viewportHeight) / fullHeight);
             if (fullHeight > viewportHeight && (scrollY + viewportHeight) / fullHeight >= 0.9) {
                 this.fetchMoreResults();
             }
