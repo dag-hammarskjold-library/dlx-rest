@@ -248,10 +248,16 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
-                            <td>{{index + 1}}</td>
-                            <td>
-                                <input type="checkbox">
+                            <td v-if="collection !== 'auths'">
+                                <input type="checkbox" 
+                                    :checked="record.selected"
+                                    :disabled="record.locked || record.myBasket"
+                                    @change="toggleSelect($event, record, index)"
+                                    @mousedown.stop
+                                    @click.stop
+                                >
                             </td>
+                            <td v-else></td>
                             <td>
                                 <itemadd
                                     :api_prefix="api_prefix"
@@ -996,9 +1002,16 @@ export let searchcomponent = {
             });
 
             if (json) {
+                this.myBasket = await basket.getBasket(this.api_prefix);
+
                 this.totalCount = json['_meta']['count'];
                 this.nextPageUrl = json['_links']['_next'];
                 let records = json['data'];
+
+                records.forEach(record => {
+                    record.myBasket = basket.contains(this.collection, record._id, this.myBasket);
+                });
+
                 this._originalRecords = records;
                 records = this.applyActiveHeadFilters(records);
                 records.forEach(record => {
@@ -1112,8 +1125,9 @@ export let searchcomponent = {
             this.advancedParams[cls] = field.value;
         },
 
-        toggleSelect(e, result) {
-            result.selected = !result.selected;
+        toggleSelect(e, result, index) {
+            result.selected = e.target.checked;
+
             if (result.selected) {
                 if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
                     this.selectedRecords.push({ collection: this.collection, record_id: result._id });
@@ -1122,6 +1136,8 @@ export let searchcomponent = {
                 const idx = this.selectedRecords.findIndex(r => r.record_id === result._id && r.collection === this.collection);
                 if (idx !== -1) this.selectedRecords.splice(idx, 1);
             }
+
+            this.lastSelectedIdx = index;
         },
         selectAll() {
             [...this.records].forEach(result => {
