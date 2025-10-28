@@ -31,7 +31,7 @@ export let searchcomponent = {
     <div class="col pt-2" id="app1" style="background-color:white;">
 
         <!-- Selectors for various kinds of searches, including search history and review screens -->
-        <div class="col mb-2 d-flex justify-content-center">
+        <div class="col d-flex justify-content-center">
             <div>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'simpleSearch' }"
@@ -66,14 +66,14 @@ export let searchcomponent = {
         <div class="col text-center" v-if="mode=='simpleSearch'">
             <form @submit.prevent="submitSearch">
 
-                <div class="input-group mb-3" aria-label="Cancel search">
+                <div class="input-group" aria-label="Cancel search">
                     <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
                     <div class="input-group-append mb-3" v-if="showSpinner">
                         <button class="btn btn-danger" type="button" @click="cancelSearch">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <div class="input-group-append mb-3" aria-label="Submit search" v-else>
+                    <div class="input-group-append" aria-label="Submit search" v-else>
                         <button class="btn btn-outline-secondary" 
                             type="button" @click="submitSearch" 
                             :disabled="!searchTerm">
@@ -196,7 +196,7 @@ export let searchcomponent = {
             </div>
 
             <!-- Record Set Controls -->
-            <div class="controls-header mb-3" v-if="records.length > 0">
+            <div class="controls-header" v-if="records.length > 0">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
@@ -231,11 +231,11 @@ export let searchcomponent = {
                 <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 50px">#</th>
-                            <th v-if="collection !== 'auths'" style="width: 150px">Files</th>
+                            <th class=icon-column>#</th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th v-if="collection !== 'auths'" class=files-column>Files</th>
                             <th v-else></th>
                             <th v-if="collection !== 'auths'">Title</th>
                             <th v-else>Heading</th>
@@ -278,7 +278,6 @@ export let searchcomponent = {
                             </td>
                             
                             <!-- Record Data -->
-                            <td>{{index + 1}}</td>
                             <td>
                                 <recordfilecomponent v-if="collection === 'bibs' && subtype !== 'speech'" 
                                                 :api_prefix="api_prefix" 
