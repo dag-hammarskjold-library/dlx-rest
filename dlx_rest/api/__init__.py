@@ -439,7 +439,8 @@ class RecordsList(Resource):
             else:
                 data['data'] = DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME)
         except ExecutionTimeout as e:
-            abort(408, f'Search query timed out ({Config.MAX_QUERY_TIME / 1000} seconds)')
+            # Set this particular timeout to a 500 error to prevent browsers from trying again
+            abort(500, f'Search query timed out ({Config.MAX_QUERY_TIME / 1000} seconds)')
         except Exception as e:
             raise e
 
@@ -711,7 +712,8 @@ class RecordsListCount(Resource):
                         maxTimeMS=Config.MAX_QUERY_TIME
                     )
                 except ExecutionTimeout as e:
-                    abort(408, str(e))
+                    # And send this timeout as a 500 as well
+                    abort(500, str(e))
         else:
             data = cls().handle.estimated_document_count()
         
