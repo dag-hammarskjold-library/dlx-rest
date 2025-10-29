@@ -1052,9 +1052,11 @@ export let searchcomponent = {
             if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
             this.isFetchingMore = true;
             const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+
             if (json) {
                 this.nextPageUrl = json['_links']['_next'];
                 let newRecords = json['data'];
+                
                 // Add to _originalRecords for filtering
                 if (!this._originalRecords) this._originalRecords = [];
                 newRecords.forEach(record => {
@@ -1062,6 +1064,7 @@ export let searchcomponent = {
                         this._originalRecords.push(record);
                     }
                 });
+                
                 // Apply head filters if needed
                 newRecords = this.applyActiveHeadFilters(newRecords);
                 newRecords.forEach(record => {
@@ -1070,8 +1073,13 @@ export let searchcomponent = {
                         this.resultCount++;
                     }
                 });
+
+                this.isFetchingMore = false;
+
+                if (this.records.length < 100 && this.resultCount < this.totalCount) {
+                    await this.fetchMoreResults()
+                }
             }
-            this.isFetchingMore = false;
         },
 
         handleScroll() {
