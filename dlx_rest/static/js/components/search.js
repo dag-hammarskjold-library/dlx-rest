@@ -476,6 +476,7 @@ export let searchcomponent = {
             sortColumns: [],
             showAgendaModal: false,
             abortController: null,
+            countAbortController: null,
             showSpinner: false,
             agendas: [],
             searchParams: new URLSearchParams(window.location),
@@ -869,7 +870,7 @@ export let searchcomponent = {
             return records;
         },
 
-        applyHeadFilter(fieldTag) {
+        async applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
                 this.activeFilters = new Set();
@@ -887,6 +888,26 @@ export let searchcomponent = {
                 this.activeFilters.add(fieldTag);
             }
 
+            // Update the total count
+            const tags = [...this.activeFilters]
+            const addedCriteria = tags.map(x => `${x}:*`).join(" OR ")
+            const countTerm = addedCriteria ? `${this.searchTerm} AND ${addedCriteria}` : this.searchTerm
+            const countUrl = `${this.api_prefix}marc/${this.collection}/records/count?search=${countTerm}` 
+            this.totalCount = "?"
+
+            if (this.countAbortController) {
+                // there is already a count ocurring
+                this.countAbortController.abort();
+            }
+
+            this.countAbortController = new AbortController();
+
+            await fetch(countUrl, {signal: this.countAbortController.signal}).then(response => {
+                return response.json()
+            }).then(json => {
+                this.totalCount = json['data']
+            })
+
             // If no filters active, restore original results
             if (this.activeFilters.size === 0) {
                 this.records = [...this._originalRecords];
@@ -900,6 +921,12 @@ export let searchcomponent = {
             //}
             this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
+
+            // Fetch more results if available and under 100 results because the 
+            // page may be too short to allow scrolling events
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
+                this.fetchMoreResults();
+            }
         },
 
         applyTypeFilter(filtername) {
@@ -1024,6 +1051,11 @@ export let searchcomponent = {
                 });
                 // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
             }
+
+            // Need to fetch more results here as well, since we could end up with an unexpectedly short page
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
+                this.fetchMoreResults();
+            }
         
             clearInterval(timeUpdater);
             this.endSearch();
@@ -1033,9 +1065,11 @@ export let searchcomponent = {
             if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
             this.isFetchingMore = true;
             const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+
             if (json) {
                 this.nextPageUrl = json['_links']['_next'];
                 let newRecords = json['data'];
+                
                 // Add to _originalRecords for filtering
                 if (!this._originalRecords) this._originalRecords = [];
                 newRecords.forEach(record => {
@@ -1043,6 +1077,7 @@ export let searchcomponent = {
                         this._originalRecords.push(record);
                     }
                 });
+                
                 // Apply head filters if needed
                 newRecords = this.applyActiveHeadFilters(newRecords);
                 newRecords.forEach(record => {
@@ -1051,8 +1086,17 @@ export let searchcomponent = {
                         this.resultCount++;
                     }
                 });
+
+                this.isFetchingMore = false;
+
+                while (this.totalCount === "?") {
+                    continue
+                }
+
+                if (this.records.length < 100 && this.resultCount < this.totalCount) {
+                    await this.fetchMoreResults()
+                }
             }
-            this.isFetchingMore = false;
         },
 
         handleScroll() {
@@ -1060,8 +1104,8 @@ export let searchcomponent = {
             const scrollY = window.scrollY || window.pageYOffset;
             const viewportHeight = window.innerHeight;
             const fullHeight = document.documentElement.scrollHeight;
+
             // Only fetch if the page is scrollable and user has scrolled past 90%
-            //console.log(scrollY, viewportHeight, fullHeight, (scrollY + viewportHeight) / fullHeight);
             if (fullHeight > viewportHeight && (scrollY + viewportHeight) / fullHeight >= 0.9) {
                 this.fetchMoreResults();
             }
