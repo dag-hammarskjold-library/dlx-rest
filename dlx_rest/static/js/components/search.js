@@ -248,6 +248,7 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
+                            <td>{{index + 1}}</td>
                             <td v-if="collection !== 'auths'">
                                 <input type="checkbox" 
                                     :checked="record.selected"
