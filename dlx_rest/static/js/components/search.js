@@ -476,6 +476,7 @@ export let searchcomponent = {
             sortColumns: [],
             showAgendaModal: false,
             abortController: null,
+            countAbortController: null,
             showSpinner: false,
             agendas: [],
             searchParams: new URLSearchParams(window.location),
@@ -869,7 +870,7 @@ export let searchcomponent = {
             return records;
         },
 
-        applyHeadFilter(fieldTag) {
+        async applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
                 this.activeFilters = new Set();
@@ -894,7 +895,14 @@ export let searchcomponent = {
             const countUrl = `${this.api_prefix}marc/${this.collection}/records/count?search=${countTerm}` 
             this.totalCount = "?"
 
-            fetch(countUrl).then(response => {
+            if (this.countAbortController) {
+                // there is already a count ocurring
+                this.countAbortController.abort();
+            }
+
+            this.countAbortController = new AbortController();
+
+            await fetch(countUrl, {signal: this.countAbortController.signal}).then(response => {
                 return response.json()
             }).then(json => {
                 this.totalCount = json['data']
@@ -916,7 +924,7 @@ export let searchcomponent = {
 
             // Fetch more results if available and under 100 results because the 
             // page may be too short to allow scrolling events
-            if (this.nextPageUrl && this.resultCount < 100) {
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
                 this.fetchMoreResults();
             }
         },
@@ -1052,9 +1060,11 @@ export let searchcomponent = {
             if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
             this.isFetchingMore = true;
             const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+
             if (json) {
                 this.nextPageUrl = json['_links']['_next'];
                 let newRecords = json['data'];
+                
                 // Add to _originalRecords for filtering
                 if (!this._originalRecords) this._originalRecords = [];
                 newRecords.forEach(record => {
@@ -1062,6 +1072,7 @@ export let searchcomponent = {
                         this._originalRecords.push(record);
                     }
                 });
+                
                 // Apply head filters if needed
                 newRecords = this.applyActiveHeadFilters(newRecords);
                 newRecords.forEach(record => {
@@ -1070,8 +1081,17 @@ export let searchcomponent = {
                         this.resultCount++;
                     }
                 });
+
+                this.isFetchingMore = false;
+
+                while (this.totalCount === "?") {
+                    continue
+                }
+
+                if (this.records.length < 100 && this.resultCount < this.totalCount) {
+                    await this.fetchMoreResults()
+                }
             }
-            this.isFetchingMore = false;
         },
 
         handleScroll() {
