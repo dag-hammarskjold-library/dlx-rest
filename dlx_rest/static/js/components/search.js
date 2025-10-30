@@ -1051,6 +1051,11 @@ export let searchcomponent = {
                 });
                 // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
             }
+
+            // Need to fetch more results here as well, since we could end up with an unexpectedly short page
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
+                this.fetchMoreResults();
+            }
         
             clearInterval(timeUpdater);
             this.endSearch();
