@@ -1259,6 +1259,11 @@ export let searchcomponent = {
             try {
                 // Process all deletes
                 for (const record of this.selectedRecords) {
+                    if (record.locked) {
+                        console.error("The record is locked and cannot be deleted.")
+                        failedDeletes.add(record.record_id);
+                        continue
+                    }
                     try {
                         const response = await fetch(
                             `${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
@@ -1272,6 +1277,9 @@ export let searchcomponent = {
 
                         if (response.ok) {
                             successfulDeletes.add(record.record_id);
+                        } else if (response.status === 404) {
+                            console.error("The record was not found. Was it already deleted?")
+                            failedDeletes.add(record.record_id);
                         } else {
                             failedDeletes.add(record.record_id);
                         }
