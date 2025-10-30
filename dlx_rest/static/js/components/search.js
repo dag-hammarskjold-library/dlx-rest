@@ -261,9 +261,9 @@ export let searchcomponent = {
                             <td>
                                 <itemadd
                                     :api_prefix="api_prefix"
-                                    :collection="collection"
-                                    :recordId="record._id"
                                     :myBasket="myBasket"
+                                    :collection="collection"
+                                    :brief="record"
                                     @mousedown.native.stop
                                     @mouseup.native.stop
                                     @click.native.stop
