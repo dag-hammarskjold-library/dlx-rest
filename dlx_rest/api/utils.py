@@ -247,7 +247,8 @@ def brief_bib(record):
         'agendas': agendas,
         'f596': f596,
         'f520': f520,
-        'f099c': f099c
+        'f099c': f099c,
+        'basket': record.basket
     }
 
 def brief_speech(record):
@@ -265,7 +266,7 @@ def brief_speech(record):
         # This item_locked function is running for each record returned in this API call
         #'locked': item_locked("bibs", record.id)["locked"],
         'locked': False,
-        #'myBasket': False
+        'basket': record.basket
     }
 
 def brief_auth(record):
@@ -288,7 +289,8 @@ def brief_auth(record):
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
         'alt': alt_field,
-        'heading_tag': record.heading_field.tag
+        'heading_tag': record.heading_field.tag,
+        'basket': record.basket
     }
 
 def item_locked(collection, record_id):

@@ -914,6 +914,7 @@ class Record(Resource):
         data['updated'] = record.updated
         data['user'] = record.user
         data['files'] = files_data
+        data['basket'] = record.basket
 
         meta = {
             'name': 'api_record',
@@ -2211,6 +2212,13 @@ class MyBasketRecord(Resource):
         else:
             # The item is not locked, so we can add it to our basket
             this_u.my_basket().add_item(item)
+            
+            # Add the basket owner to the rcord data
+            getattr(DB, item['collection']).update_one(
+                {'_id': int(item['record_id'])},
+                {'$set': {'basket': current_user.username}}
+            )
+
             return {},201      
 
 @ns.route('/userprofile/my_profile/basket/addBulk')
@@ -2238,9 +2246,17 @@ class MyBasketClear(Resource):
             this_u = User.objects.get(id=current_user['id'])
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
+
+            for item in this_basket['items']:
+                getattr(DB, item['collection']).update_one(
+                    {'_id': int(item['record_id'])},
+                    {'$set': {'basket': None}}
+                )
+
             this_basket.clear()
-        except:
-            raise
+
+        except Exception as e:
+            raise e
 
         return 200
 
@@ -2288,11 +2304,21 @@ class MyBasketItem(Resource):
         try:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
+            
+            # Update basket owner in record data
+            if item := next(filter(lambda x: x['id'] == item_id, this_basket.items), None):
+                getattr(DB, item['collection']).update_one(
+                    {'_id': int(item['record_id'])},
+                    {'$set': {'basket': None}}
+                )
+
             this_basket.remove_item(item_id)
+
+            
         except IndexError:
             abort(400)
-        except:
-            raise
+        except Exception as e:
+            raise e
 
         return 200
 
