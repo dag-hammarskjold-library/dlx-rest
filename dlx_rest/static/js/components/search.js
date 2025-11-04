@@ -1333,13 +1333,9 @@ export let searchcomponent = {
                         console.error(`Error deleting record ${record.record_id}:`, error);
                         failedDeletes.add(record.record_id);
                     }
-                }
 
-                // Remove successfully deleted records from the display
-                this.records = this.records.filter(record => {
-                    // Check if this record's ID is in the successfulDeletes set
-                    return !successfulDeletes.has(record._id.toString());
-                });
+                    this.records = this.records.filter(x => x._id !== record.record_id)
+                }
 
                 // Update result count
                 this.resultCount = this.records.length;
