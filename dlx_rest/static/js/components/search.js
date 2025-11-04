@@ -1089,8 +1089,12 @@ export let searchcomponent = {
 
                 this.isFetchingMore = false;
 
-                while (this.totalCount === "?") {
-                    continue
+                for (let i = 0; this.totalCount === "?"; i++) {
+                    // Check every 250 ms if the count has been updated yet
+                    if (i === 80) {
+                        throw new Error("Filter count timed out")
+                    }
+                    await new Promise(x => setTimeout(x, 250))
                 }
 
                 if (this.records.length < 100 && this.resultCount < this.totalCount) {
