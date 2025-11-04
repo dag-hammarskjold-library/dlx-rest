@@ -1305,6 +1305,7 @@ export let searchcomponent = {
                 for (const record of this.selectedRecords) {
                     if (record.locked) {
                         console.error("The record is locked and cannot be deleted.")
+                        window.alert("The record is locked and cannot be deleted.")
                         failedDeletes.add(record.record_id);
                         continue
                     }
@@ -1323,6 +1324,7 @@ export let searchcomponent = {
                             successfulDeletes.add(record.record_id);
                         } else if (response.status === 404) {
                             console.error("The record was not found. Was it already deleted?")
+                            window.alert("The record was not found. Was it already deleted?")
                             failedDeletes.add(record.record_id);
                         } else {
                             failedDeletes.add(record.record_id);
