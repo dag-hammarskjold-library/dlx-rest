@@ -1299,61 +1299,60 @@ export let searchcomponent = {
             this.isDeleting = true;
             const successfulDeletes = new Set();
             const failedDeletes = new Set();
+            const allDeletes = [];
+            
+            // Process all deletes
+            for (const record of this.selectedRecords) {
+                if (record.locked) {
+                    failedDeletes.add(record.record_id)
+                    window.alert("The record is locked and cannot be deleted.")
+                    continue
+                }
 
-            try {
-                // Process all deletes
-                for (const record of this.selectedRecords) {
-                    if (record.locked) {
-                        console.error("The record is locked and cannot be deleted.")
-                        window.alert("The record is locked and cannot be deleted.")
-                        failedDeletes.add(record.record_id);
-                        continue
-                    }
-                    try {
-                        const response = await fetch(
-                            `${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
-                            {
-                                method: 'DELETE',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-
-                        if (response.ok) {
-                            successfulDeletes.add(record.record_id);
-                        } else if (response.status === 404) {
-                            console.error("The record was not found. Was it already deleted?")
-                            window.alert("The record was not found. Was it already deleted?")
-                            failedDeletes.add(record.record_id);
-                        } else {
-                            failedDeletes.add(record.record_id);
+                allDeletes.push(
+                    fetch(`${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
+                        {
+                            method: 'DELETE',
+                            headers: {'Content-Type': 'application/json'}
                         }
-                    } catch (error) {
-                        console.error(`Error deleting record ${record.record_id}:`, error);
-                        failedDeletes.add(record.record_id);
-                    }
-
-                    this.records = this.records.filter(x => x._id !== record.record_id)
-                }
-
-                // Update result count
-                this.resultCount = this.records.length;
-
-                // Show results message
-                if (failedDeletes.size > 0) {
-                    alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
-                } else {
-                    alert(`Successfully deleted ${successfulDeletes.size} records.`);
-                }
-
-                // Clear selection
-                this.selectNone();
-                
-            } finally {
-                this.isDeleting = false;
-                $('#deleteConfirmModal').modal('hide');
+                    ).then(response => {
+                        if (response.ok) {
+                            successfulDeletes.add(record.record_id)
+                            this.records = this.records.filter(x => x._id !== record.record_id)
+                            this.resultCount--
+                            this.totalCount--
+                        } else if (response.status === 404) {
+                            failedDeletes.add(record.record_id)
+                            window.alert("The record was not found. Was it already deleted?")
+                        } else {
+                            failedDeletes.add(record.record_id)
+                            const msg = `API request failed for record ${record.record_id}: ${response.statusText}`
+                            window.alert(msg)
+                            throw new Error(msg)
+                        }
+                    }).catch(
+                        error => {
+                            // We don't necesarily know that an error that occured prevented the delete
+                            console.error(error)
+                        }
+                    )
+                )
             }
+
+            await Promise.all(allDeletes)
+  
+            // Show results message
+            if (failedDeletes.size > 0) {
+                alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
+            } else {
+                alert(`Successfully deleted ${successfulDeletes.size} records.`);
+            }
+
+            // Clear selection
+            this.selectNone();
+
+            this.isDeleting = false;
+            $('#deleteConfirmModal').modal('hide');
         }
     },
     components: {
