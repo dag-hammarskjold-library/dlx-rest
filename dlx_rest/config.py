@@ -35,6 +35,7 @@ class Config(object):
         connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
         sentry_dsn = client.get_parameter(Name='sentry_dsn_dev')['Parameter']['Value']
         sentry_js_url = client.get_parameter(Name='sentry_me_js_dev')['Parameter']['Value']
+        valkey_host = client.get_parameter(Name='ElastiCacheServer')['Parameter']['Value']
         dbname = 'dev_undlFiles'
         ssl = True
         sync_log_collection = 'sync_log'
@@ -47,6 +48,7 @@ class Config(object):
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         sentry_dsn = client.get_parameter(Name='sentry_dsn_dev')['Parameter']['Value']
         sentry_js_url = client.get_parameter(Name='sentry_me_js_dev')['Parameter']['Value']
+        valkey_host = client.get_parameter(Name='ElastiCacheServer')['Parameter']['Value']
         dbname = 'undlFiles'
         ssl = True
         #connect_string = client.get_parameter(Name='qat-dlx-connect-string')['Parameter']['Value']
@@ -62,6 +64,7 @@ class Config(object):
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
         sentry_dsn = client.get_parameter(Name='sentry_dsn_dev')['Parameter']['Value']
         sentry_js_url = client.get_parameter(Name='sentry_me_js_dev')['Parameter']['Value']
+        valkey_host = client.get_parameter(Name='ElastiCacheServer')['Parameter']['Value']
         dbname = 'undlFiles'
         ssl = True
         #connect_string = client.get_parameter(Name='uat-dlx-connect-string')['Parameter']['Value']
@@ -78,6 +81,7 @@ class Config(object):
         connect_string = client.get_parameter(Name='prodISSU-admin-connect-string')['Parameter']['Value']
         sentry_dsn = client.get_parameter(Name='sentry_dsn_prod')['Parameter']['Value']
         sentry_js_url = client.get_parameter(Name='sentry_me_js_prod')['Parameter']['Value']
+        valkey_host = client.get_parameter(Name='ElastiCacheServer')['Parameter']['Value']
         dbname = 'undlFiles'
         ssl = True
         sync_log_collection = 'dlx_dl_log'

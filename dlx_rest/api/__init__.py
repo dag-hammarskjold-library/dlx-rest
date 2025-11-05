@@ -32,12 +32,14 @@ from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, 
 from dlx_rest.routes import login, search_files
 
 # Init
+print(Config.valkey_host)
 try:
     # Todo: update the connection if/when there is a server with other than default configs
-    valkey.Valkey().ping('127.0.0.1', 6379)
-    DB.cache = valkey.Valkey('127.0.0.1', 6379)
+    #valkey.Valkey().ping(Config.valkey_host, 6379)
+    DB.cache = valkey.Valkey(Config.valkey_host, 6379, )
     print('Connected to local Valkey server')
-except:
+except Exception as e:
+    print(e)
     print('Warning: unable to connect to a Valkey server. Using private cache.')
 
 # build the auth cache in a non blocking thread
