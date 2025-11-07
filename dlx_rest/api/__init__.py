@@ -34,8 +34,9 @@ from dlx_rest.routes import login, search_files
 # Init
 try:
     # Todo: update the connection if/when there is a server with other than default configs
-    DB.cache = valkey.Valkey(Config.valkey_host, 6379)
-    print('Connected to Valkey server')
+    if host := Config.valkey_host:
+        DB.cache = valkey.Valkey(host, 6379)
+        print('Connected to Valkey server')
 except valkey.exceptions.ConnectionError:
     print(f'Warning: unable to connect to a Valkey server. Using private cache.')
 except Exception as e:
