@@ -17,6 +17,7 @@ class Config(object):
         connect_string = 'mongomock://localhost'
         TESTING = True
         LOGIN_DISABLED = True
+        valkey_host = None
         dbname = 'testing'
         ssl = False
         sync_log_collection = 'sync_log'
