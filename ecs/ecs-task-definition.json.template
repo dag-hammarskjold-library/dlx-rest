@@ -55,7 +55,13 @@
           "awslogs-stream-prefix": "ecs",
           "awslogs-create-group": "true"
         }
-      }
+      },
+      "dependsOn": [
+        {
+          "containerName": "dlx-rest-nightly-cache",
+          "condition": "START"
+        }
+      ]
     }
   ]
 }
