@@ -36,6 +36,26 @@
           "awslogs-create-group": "true"
         }
       }
+    },
+    {
+      "name": "dlx-rest-nightly-cache",
+      "image": "docker.io/valkey/valkey:latest,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dlx-rest-nightly-cache",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
     }
   ]
 }
