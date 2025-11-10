@@ -39,7 +39,7 @@
     },
     {
       "name": "dlx-rest-nightly-cache",
-      "image": "docker.io/valkey/valkey:latest,
+      "image": "docker.io/valkey/valkey:latest",
       "essential": true,
       "portMappings": [
         {
