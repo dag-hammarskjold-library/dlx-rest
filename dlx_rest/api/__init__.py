@@ -34,11 +34,13 @@ from dlx_rest.routes import login, search_files
 # Init
 try:
     # Todo: update the connection if/when there is a server with other than default configs
-    valkey.Valkey().ping('127.0.0.1', 6379)
-    DB.cache = valkey.Valkey('127.0.0.1', 6379)
+    valkey.Valkey().ping()
+    DB.cache = valkey.Valkey()
     print('Connected to local Valkey server')
-except:
+except valkey.exceptions.ConnectionError:
     print('Warning: unable to connect to a Valkey server. Using private cache.')
+except Exception as e:
+    raise e
 
 # build the auth cache in a non blocking thread
 threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
