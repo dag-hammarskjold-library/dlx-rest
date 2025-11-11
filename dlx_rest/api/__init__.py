@@ -3,7 +3,7 @@ DLX REST API
 '''
 
 # external
-import os, time, json, re, boto3, mimetypes, jsonschema, threading, valkey
+import os, time, uuid, json, re, boto3, mimetypes, jsonschema, threading, valkey
 from http.client import HTTPResponse
 from datetime import datetime, timezone
 from copy import copy, deepcopy
@@ -388,6 +388,7 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort') or 'updated'
+        sort_by = 'main_title' if sort_by == 'title' else sort_by
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
         sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
@@ -406,7 +407,8 @@ class RecordsList(Resource):
             # Add _id to sort fields to ensure no duplicates between pages
             next(filter(lambda x: x.get('$sort'), pipeline)).get('$sort').update({'_id': 1})
 
-        # revert the param name back to created for use in the returned links
+        # revert the param names back to created for use in the returned links
+        sort_by = 'title' if sort_by == 'main_title' else sort_by
         sort_by = 'created' if sort_by == '_id' else sort_by
 
         # $facet does not perform well when there is no query or the only field is _record_type?
@@ -422,7 +424,6 @@ class RecordsList(Resource):
             })
 
         # Use the search ID provided in the params if it exists, otherwise create a new one
-        import uuid
         search_id = args.search_id or str(uuid.uuid4())
 
         # Raw results are expected later to be in a field called data['data']
