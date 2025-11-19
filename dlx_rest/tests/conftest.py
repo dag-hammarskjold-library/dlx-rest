@@ -11,9 +11,6 @@ from dlx.file import File, Identifier, S3
 from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
-
-print(Config.connect_string)
-
 assert Config.TESTING == True
 assert Config.connect_string == 'mongomock://localhost'
     
@@ -126,6 +123,7 @@ def client():
 def db():
     from dlx import DB
     # ?
+
 @pytest.fixture(scope='module')
 def permissions():
     from dlx_rest.models import Permission
@@ -273,7 +271,7 @@ def marc():
     for i in range(1, 3):
         bib = Bib()
         bib.id = i
-        bib.set('245', 'a', 'Title {i}').set('700', 'a', f'Heading {i}')
+        bib.set('245', 'a', f'Title {i}').set('700', 'a', f'Heading {i}')
         bib.commit()
         bibs.append(bib)
 
