@@ -1067,11 +1067,17 @@ export let searchcomponent = {
             const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
 
             if (json) {
-                this.nextPageUrl = json['_links']['_next'];
                 let newRecords = json['data'];
-                
+
+                if (newRecords.length < 100) {
+                    this.nextPageUrl = null   
+                } else {
+                    this.nextPageUrl = json['_links']['_next'];
+                }
+
                 // Add to _originalRecords for filtering
                 if (!this._originalRecords) this._originalRecords = [];
+
                 newRecords.forEach(record => {
                     if (!this._originalRecords.some(r => r._id === record._id)) {
                         this._originalRecords.push(record);
@@ -1080,6 +1086,7 @@ export let searchcomponent = {
                 
                 // Apply head filters if needed
                 newRecords = this.applyActiveHeadFilters(newRecords);
+                
                 newRecords.forEach(record => {
                     if (!this.records.some(r => r._id === record._id)) {
                         this.records.push(record);
