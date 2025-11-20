@@ -452,6 +452,10 @@ class RecordsList(Resource):
             # a request is made to this route with the the serach_id as a param. 
             # Note: It's possible this should be handled in dlx since it is interacting directly with the DB.
 
+            # As above, need to add unique field to sort by for order consistency
+            if sort_by != '_id':
+                sort_object.append(('_id', 1))
+
             def savecache():
                 from pymongo import UpdateOne
 
@@ -498,9 +502,7 @@ class RecordsList(Resource):
 
         recordset =  cls.from_query(
             {'_id': {'$in': [x['_id'] for x in ([] if total == 0 else data.get('data'))]}},
-            projection=project,
-            sort=sort_object,
-            collation=collation
+            projection=project
         )
         
         if x := subfield_projection:

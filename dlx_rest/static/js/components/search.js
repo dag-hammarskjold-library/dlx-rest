@@ -1086,6 +1086,7 @@ export let searchcomponent = {
                 
                 // Apply head filters if needed
                 newRecords = this.applyActiveHeadFilters(newRecords);
+                
                 newRecords.forEach(record => {
                     if (!this.records.some(r => r._id === record._id)) {
                         this.records.push(record);
