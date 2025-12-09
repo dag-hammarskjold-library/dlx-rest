@@ -173,3 +173,31 @@ def create_permission(action, constraint_must=None, constraint_must_not=None):
         print(f"Permission {action} has been created.")
     except Exception as e:
         print(f"Error creating permission: {e}")
+
+'''
+This command ensures that all basket items are reflected in the record data.
+It also removes baskets whose ownership can no longer be ascertained (e.g., in 
+case a user is deleted without clearing their basket first.)
+'''
+@app.cli.command('align-baskets')
+def align_baskets():
+    from dlx import DB
+    from dlx_rest.models import Basket, User
+    import mongoengine
+
+    for b in Basket.objects:
+        try:
+            owner = b.owner.email
+        except mongoengine.errors.DoesNotExist:
+            # The user doesn't exist anymore, so we should delete this basket in case it has any records in it
+            b.delete()
+        except error as e:
+            raise e
+
+        print("Aligning basket for", owner)
+        for i in b.items:
+            print("\tSetting", i['collection'], i['record_id'])
+            getattr(DB, i['collection']).update_one(
+                {'_id': int(i['record_id'])},
+                {'$set': {'basket': owner}}
+            )
