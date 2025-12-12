@@ -354,14 +354,14 @@ class RecordsList(Resource):
         subfield_projection = {}
 
         if fmt == 'brief':
-            tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
-                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591', '667']
+            tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992', 'basket'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591', '667', 'basket']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
-            tags = ['269', '596', '700', '710', '711', '791', '991', '992']
+            tags = ['269', '596', '700', '710', '711', '791', '991', '992', 'basket']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
@@ -535,26 +535,7 @@ class RecordsList(Resource):
             data = []
             for r in recordset:
                 this_d = make_brief(r)
-                this_d["myBasket"] = False
-
-                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
-                if len(lock_status) > 0:
-                    this_d["locked"] = True
-
-                try:
-                    # Determine whether a basket exists for the current user and if the item is in it
-                    
-                    basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
-                    if len(basket_contains) > 0:
-                        this_d["myBasket"] = True
-                        this_d["locked"] = False
-                    data.append(this_d)
-                except AttributeError:
-                    # If the user is not logged in, this_basket will be None
-                    # In this case, we just append the brief data without basket info
-                    data.append(this_d)
-
-
+                data.append(this_d)
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech
@@ -562,17 +543,6 @@ class RecordsList(Resource):
             data = []
             for r in recordset:
                 this_d = make_brief(r)
-                this_d["myBasket"] = False
-                
-                # Determine lock status first, then resolve whether the item is in the current user's basket
-                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
-                if len(lock_status) > 0:
-                    this_d["locked"] = True
-
-                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
-                if len(basket_contains) > 0:
-                    this_d["myBasket"] = True
-                    this_d["locked"] = False
                 data.append(this_d)
         else:
             schema_name='api.urllist'
