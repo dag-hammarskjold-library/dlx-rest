@@ -187,7 +187,7 @@ def align_baskets():
 
     for b in Basket.objects:
         try:
-            owner = b.owner.email
+            owner = b.owner.username
         except mongoengine.errors.DoesNotExist:
             # The user doesn't exist anymore, so we should delete this basket in case it has any records in it
             b.delete()
