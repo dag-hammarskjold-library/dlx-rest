@@ -42,9 +42,21 @@ except valkey.exceptions.ConnectionError:
 except Exception as e:
     raise e
 
-# build the auth cache in a non blocking thread
-threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
+# build the auth cache in a non blocking thread if the cache is smaller thanthe number of auths in the DB
+if DB.cache:
+    count = 0
+    cursor = '0'
 
+    while cursor != 0:
+        cursor, keys = DB.cache.scan(cursor=cursor, match='authcache*', count=1000)
+        count += len(keys)
+    
+    if count < DB.auths.count_documents({}):
+        threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
+else:
+    threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
+
+# constants
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
     
