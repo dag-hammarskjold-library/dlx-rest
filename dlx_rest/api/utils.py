@@ -248,7 +248,9 @@ def brief_bib(record):
         'f596': f596,
         'f520': f520,
         'f099c': f099c,
-        'basket': record.basket
+        'basket': record.basket,
+        'locked': False,
+        'myBasket': False
     }
 
 def brief_speech(record):
