@@ -2391,6 +2391,16 @@ export const validationData = {
             "validSubfields": ["a"],
             "defaultSubfields": ["a"] 
         },
+        "711": {
+            "name": "Added entry - meeting name",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
+        },
         "791": {
             "name": "UN resolution/meeting record symbol",
             "required": true,
