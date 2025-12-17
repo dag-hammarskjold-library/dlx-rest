@@ -116,7 +116,7 @@ export let speechreviewcomponent = {
                                     <itemadd
                                         :api_prefix="api_prefix"
                                         collection="bibs"
-                                        :recordId="speech._id"
+                                        :brief="speech"
                                         :myBasket="myBasket"
                                         @mousedown.native.stop
                                         @mouseup.native.stop

@@ -115,7 +115,7 @@ export let authreviewcomponent = {
                                     <itemadd
                                         :api_prefix="api_prefix"
                                         collection="auths"
-                                        :recordId="auth._id"
+                                        :brief="auth"
                                         :myBasket="myBasket"
                                         @mousedown.native.stop
                                         @mouseup.native.stop
