@@ -33,7 +33,6 @@ export let itemaddcomponent = {
     },
     methods: {
         async initBasket() {
-
             this.myBasket.forEach(item => {
                 if (item.collection === this.collection && parseInt(item.record_id) === this.brief._id) {
                     this.inBasket = true;
