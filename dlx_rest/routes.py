@@ -12,7 +12,6 @@ import json, requests
 from dlx.file import File, Identifier, S3, FileExists, FileExistsLanguageConflict, FileExistsIdentifierConflict
 from dlx.file.s3 import S3
 from dlx import DB
-import pymongo
 
 
 
@@ -605,9 +604,12 @@ def upload_files():
 @requires_permission('createFile')
 def process_files():
     S3.connect(bucket=Config.bucket)
-    
+
     fileInfo = request.form.get("fileText")
     fileTxt = json.loads(fileInfo)
+    
+    # Get the global identifier type for all files
+    globalIdentifierType = request.form.get("globalIdentifierType", "Document Symbol")
 
     i = 0
     fileResults = []
@@ -616,7 +618,7 @@ def process_files():
     for f in request.files.getlist('file[]'):
         try:
             record['filename'] = f.filename
-            record['docSymbol'] = fileTxt[i]["docSymbol"]
+            record['identifier'] = fileTxt[i]["docSymbol"]
 
             langArray = []
     
@@ -643,15 +645,25 @@ def process_files():
 
             record['languages'] = langArray
 
-            record['docSymbol'] = fileTxt[i]["docSymbol"]
+            record['identifier'] = fileTxt[i]["docSymbol"]
 
             record['overwrite'] = fileTxt[i]["overwrite"]
+            
+            record['identifierType'] = globalIdentifierType
 
-            result = File.import_from_handle(
-                f,
-                filename=File.encode_fn(record['docSymbol'], record['languages'], 'pdf'),
-                #identifiers=[Identifier('symbol', s) for s in fileTxt[i]["docSymbol"]],
-                identifiers=[Identifier('symbol', record['docSymbol'])],
+            # Read file bytes
+            file_bytes = f.read()
+            
+            # Create identifier based on global type
+            if globalIdentifierType == "URI":
+                identifier_obj = Identifier('uri', record['identifier'])
+            else:  # Default to Document Symbol
+                identifier_obj = Identifier('symbol', record['identifier'])
+
+            result = File.import_from_binary(
+                file_bytes,
+                identifiers=[identifier_obj],
+                filename=f.filename,
                 languages=record['languages'],
                 mimetype='application/pdf',
                 source='ME::File::Uploader',
@@ -672,21 +684,6 @@ def process_files():
         fileResults.append(record)
         record = {}
     
-    if len(fileResults)>0:
-        # creation of the json
-        upload_operation={}   
-        upload_operation["user"]=current_user.username
-        upload_operation["when"]=datetime.today()
-        upload_operation["events"]=fileResults
-        upload_operation["type"]="File_Upload"
-        
-        # create a mongo client and save the json inside the database
-        myclient = pymongo.MongoClient(Config.connect_string)
-        mydb = myclient[Config.dbname]
-        mycol = mydb["import_log"]
-        mycol.insert_one(upload_operation)
-    
-
     return render_template('file_results.html', submitted=fileResults, vcoll="files", user=current_user.username)
    
 
@@ -741,7 +738,7 @@ def process_text(text, option):
     project_stage = {
         '$project': {
             '_id': 1, 
-            'docsymbol': {'$arrayElemAt': ['$identifiers.value', 0]}, 
+            'identifier_value': {'$arrayElemAt': ['$identifiers.value', 0]}, 
             'languages': 1, 
             'filename': 1,
             'uri':1
@@ -750,7 +747,7 @@ def process_text(text, option):
 
     sort_stage = {
         '$sort': {
-            'docsymbol': 1, 
+            'identifier_value': 1, 
             'filename': 1
         }
     }
@@ -771,18 +768,19 @@ def update_file():
     """
     Updates the file entry based on record id
     """
-    DB.connect(Config.connect_string, database=Config.dbname)
-    S3.connect(bucket='undl-files')
+    # DB.connect(Config.connect_string, database=Config.dbname)
+    S3.connect(bucket=Config.bucket)
 
     record_id = request.form.get('record_id')
-    docsymbol = request.form.get('docsymbol')
+    identifier_value = request.form.get('identifier_value')
     langs = request.form.getlist('lang')
 
     f = File.from_id(record_id)
 
     try:
-        f.identifiers = [Identifier('symbol', docsymbol)]
-        f.filename = File.encode_fn([docsymbol], langs, 'pdf')
+        # Preserve original identifiers and add the updated symbol identifier
+        f.identifiers = f.identifiers + [Identifier('symbol', identifier_value)]
+        # f.filename = File.encode_fn([docsymbol], langs, 'pdf') ##
         f.languages = langs
         f.commit()
         return jsonify({'updated': True})
