@@ -509,11 +509,12 @@ class RecordsList(Resource):
             # there is no count metadata because there were no results
             total = (0,)
         else:
-            # we don't have the count yet becuae we did not use the $facet ag stage
+            # we don't have the count yet because we did not use the $facet ag stage
             total = (-1,)
 
         recordset =  cls.from_query(
             {'_id': {'$in': [x['_id'] for x in ([] if total == 0 else data.get('data'))]}},
+            sort=[(sort_by, 1 if args.direction == 'asc' else (-1 if args.direction else 1))],
             projection=project
         )
         
