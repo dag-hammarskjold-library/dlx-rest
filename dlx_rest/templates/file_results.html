@@ -6,7 +6,7 @@
   <table class="table table-sm mt-3">
     <thead>
       <th>File</th>
-      <th>Document Symbol</th>
+      <th>Identifier</th>
       <th>Language(s)</th>
       <th>Result</th>
     </thead>
@@ -14,7 +14,7 @@
       {% for row in submitted %}
       <tr>
         <td>{{ row['filename'] }}</td>
-        <td>{{ row['docSymbol'] }}</td>
+        <td>{{ row['identifier'] }}</td>
         <td>{{ row['languages'] }}</td>
         <td>{{ row['result'] }}</td>
         {% endfor %}
