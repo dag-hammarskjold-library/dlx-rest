@@ -83,7 +83,7 @@ export let browsecomponent = {
                                     <itemadd
                                         :api_prefix="api_prefix"
                                         :collection="collection"
-                                        :recordId="result.recordId"
+                                        :brief="result"
                                         :myBasket="myBasket"
                                         @mousedown.native.stop
                                         @mouseup.native.stop
@@ -157,7 +157,7 @@ export let browsecomponent = {
                                     <itemadd
                                         :api_prefix="api_prefix"
                                         :collection="collection"
-                                        :recordId="result.recordId"
+                                        :brief="result"
                                         :myBasket="myBasket"
                                         @mousedown.native.stop
                                         @mouseup.native.stop
