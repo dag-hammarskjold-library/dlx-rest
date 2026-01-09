@@ -276,14 +276,21 @@ def brief_auth(record):
     alt_tag = '4' + digits
     alt_field = '; '.join(record.get_values(alt_tag))
 
+    
+
     if record.heading_field.tag == '191':
         f491 = '; '.join(record.get_values('491','a','b','c','d'))
         f591 = '; '.join(record.get_values('591','a','b','c','d'))
-        f667 = '; '.join(record.get_values('667','a','b','c','d'))
         heading_alt_ary = []
-        for f in [f491, f591, f667]:
+        for f in [f491, f591]:
             if len(f) > 0:
                 heading_alt_ary.append(f)
+        alt_field = '; '.join(heading_alt_ary)
+    else:
+        f667 = '; '.join(record.get_values('667','a','b','c','d'))
+        heading_alt_ary = []
+        if len(f667) > 0:
+            heading_alt_ary.append(f667)
         alt_field = '; '.join(heading_alt_ary)
 
     return {
