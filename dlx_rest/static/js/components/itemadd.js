@@ -34,7 +34,8 @@ export let itemaddcomponent = {
     methods: {
         async initBasket() {
             this.myBasket.forEach(item => {
-                if (item.collection === this.collection && parseInt(item.record_id) === this.brief._id) {
+                //console.log(item.collection, item.record_id, this.brief._id)
+                if (item.collection === this.collection && parseInt(item.record_id) === parseInt(this.brief._id)) {
                     this.inBasket = true;
                     this.itemLocked = false;
                 }
