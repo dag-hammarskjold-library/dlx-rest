@@ -472,15 +472,12 @@ export let authreviewcomponent = {
             }
         },
 
-        togglePreview(event, authId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
-                this.previewOpen = null;
-            } else if (authId) {
-                this.previewOpen = authId;
-            } else {
-                this.previewOpen = null;
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
-
             return
         },
         handleSortChange({ sort, direction }) {
