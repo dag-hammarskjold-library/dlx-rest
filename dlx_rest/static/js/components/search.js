@@ -258,7 +258,6 @@ export let searchcomponent = {
                                     @click.stop
                                 >
                             </td>
-                            <td v-else></td>
                             <td>
                                 <itemadd
                                     :api_prefix="api_prefix"
