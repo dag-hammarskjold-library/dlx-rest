@@ -76,7 +76,13 @@ export let browsecomponent = {
                             @mousemove="handleMouseMove($event, result, idx)"
                             @mouseup="handleMouseUp($event)">
                             <td>
-                                <input type="checkbox">
+                                <input type="checkbox" 
+                                    :checked="result.selected"
+                                    :disabled="result.locked || result.myBasket"
+                                    @change="toggleSelect($event, result, index)"
+                                    @mousedown.stop
+                                    @click.stop
+                                >
                             </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
@@ -150,7 +156,13 @@ export let browsecomponent = {
                             @mousemove="handleMouseMove($event, result, idx+3)"
                             @mouseup="handleMouseUp($event)">
                             <td>
-                                <input type="checkbox">
+                                <input type="checkbox" 
+                                    :checked="result.selected"
+                                    :disabled="result.locked || result.myBasket"
+                                    @change="toggleSelect($event, result, index)"
+                                    @mousedown.stop
+                                    @click.stop
+                                >
                             </td>
                             <td>
                                 <div v-if="result.count === 1 && result.recordId">
@@ -419,6 +431,7 @@ export let browsecomponent = {
                 const apiUrl = recordJson.data[0];
                 const recordId = apiUrl.split("/").pop();
                 resultObj.recordId = recordId;
+                resultObj._id = recordId;
                 resultObj.recordUrl = `${this.base_url}records/${this.collection}/${recordId}`;
 
                 // Basket and lock status
