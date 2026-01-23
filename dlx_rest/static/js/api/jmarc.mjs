@@ -2,42 +2,42 @@
 
 import { validationData } from "../utils/validation.js";
 
-// todo: fetch this data from the API to avoid redundancy
-const authMap = {
-	// this should be coming form the API @ /marc/<bibs|auths>/lookup/map
-	"bibs": {
-		'100': { 'a': '100' },
-		'110': { 'a': '110' },
-		'111': { 'a': '111' },
-		'130': { 'a': '130' },
-		'191': { 'b': '190', 'c': '190' },
-		'440': { 'a': '140' },
-		'600': { 'a': '100', 'g': '100' },
-		'610': { 'a': '110', 'g': '110' },
-		'611': { 'a': '111', 'g': '111' },
-		'630': { 'a': '130', 'g': '130' },
-		'650': { 'a': '150' },
-		'651': { 'a': '151' },
-		'700': { 'a': '100', 'g': '100' },
-		'710': { 'a': '110' },
-		'711': { 'a': '111' },
-		'730': { 'a': '130' },
-		'791': { 'b': '190', 'c': '190' },
-		'830': { 'a': '130' },
-		'991': { 'a': '191', 'b': '191', 'c': '191', 'd': '191', '9': '191' }
-	},
-	"auths": {
-		//'491': {'a': '191', 'b': '191', 'c': '191', 'd': '191'},
-		'370': { 'a': '110' },
-		'500': { 'a': '100' },
-		'510': { 'a': '110' },
-		'511': { 'a': '111' },
-		'530': { 'a': '130' },
-		'550': { 'a': '150' },
-		'551': { 'a': '151' },
-		'591': { 'a': '191', 'b': '191', 'c': '191', 'd': '191' }
+class AuthMap {
+	constructor(collection) {
+		this.collection = collection;
+		this.authMap = {};
 	}
-};
+
+	async load() {
+		const response = await fetch(`/api/marc/${this.collection}/lookup/map`);
+		const json = await response.json();
+		this.authMap = json.data;
+		return this;
+	}
+}
+
+export async function getAuthMaps() {
+	const bibs = new AuthMap('bibs');
+	const auths = new AuthMap('auths');
+	const speeches = new AuthMap('speeches');
+	const votes = new AuthMap('votes');
+
+	await Promise.all([
+		bibs.load(),
+		auths.load(),
+		speeches.load(),
+		votes.load()
+	])
+
+	return {
+		bibs: bibs.authMap,
+		auths: auths.authMap,
+		speeches: speeches.authMap,
+		votes: votes.authMap
+	};
+}
+
+const authMap = await getAuthMaps();
 
 class ValidationFlag {
 	constructor(message) {
@@ -441,13 +441,13 @@ export class Jmarc {
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
-		this.authMap = this.collection === 'bibs' ? authMap['bibs'] : authMap['auths'];
 		this.handleSetInterval = 0
 		this.checkUndoRedoEntry = false
 		this.fields = [];
 		this._history = [];
 		this.undoredoIndex = 0;
 		this.undoredoVector = [];
+		this.authMap = authMap[collection];
 	}
 
 	getVirtualCollection() {
@@ -935,6 +935,9 @@ export class Jmarc {
 				delete subfield._seen;
 			}
 		}
+
+		// Update authMap
+		this.authMap = authMap[this.getVirtualCollection()];
 
 		return this
 	}
