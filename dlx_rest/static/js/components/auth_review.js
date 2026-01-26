@@ -115,7 +115,7 @@ export let authreviewcomponent = {
                                     <itemadd
                                         :api_prefix="api_prefix"
                                         collection="auths"
-                                        :recordId="auth._id"
+                                        :brief="auth"
                                         :myBasket="myBasket"
                                         @mousedown.native.stop
                                         @mouseup.native.stop
@@ -142,10 +142,10 @@ export let authreviewcomponent = {
                                             </a>
                                         </span>
                                         <div class="record-details mt-1">
-                                            <span v-if="auth.alt"><strong>Alt:</strong> {{auth.alt}}</span>
-                                            <span v-if="auth.symbol" class="ml-2"><strong>Symbol:</strong> {{auth.symbol}}</span>
-                                            <span v-if="auth.date" class="ml-2"><strong>Date:</strong> {{auth.date}}</span>
-                                            <span v-if="auth.types" class="ml-2"><strong>Types:</strong> {{auth.types}}</span>
+                                            <span v-if="auth.alt">{{auth.alt}}</span>
+                                            <span v-if="auth.symbol" class="ml-2">{{auth.symbol}}</span>
+                                            <span v-if="auth.date" class="ml-2">{{auth.date}}</span>
+                                            <span v-if="auth.types" class="ml-2">{{auth.types}}</span>
                                         </div>
                                     </div>
                                 </td>
@@ -472,15 +472,12 @@ export let authreviewcomponent = {
             }
         },
 
-        togglePreview(event, authId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
-                this.previewOpen = null;
-            } else if (authId) {
-                this.previewOpen = authId;
-            } else {
-                this.previewOpen = null;
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
-
             return
         },
         handleSortChange({ sort, direction }) {
