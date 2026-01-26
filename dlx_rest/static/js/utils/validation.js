@@ -2460,6 +2460,17 @@ export const validationData = {
             }
             // Is date; see also 269$a 
         },
+        "998": {
+            // Not directly assignable, carried over from Horizon
+            "name": "Creator/date",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
+        },
         "999": {
             "name": "Creator/date",
             "required": true,
@@ -2486,6 +2497,16 @@ export const validationData = {
             }
         },
         "040": {
+            "name": "Language code",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
+        },
+        "041": {
             "name": "Cataloguing source",
             "required": true,
             "repeatable": false,
@@ -2522,6 +2543,16 @@ export const validationData = {
             "defaultSubfields": ["a","b","c"] 
             // Can values be automatically copied from the bib record linked in 791?
         },
+        "590": {
+            "name": "",  // What is the name of this field?
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"]
+        },
         "591": {
             "name": "Vote note",
             "required": false,
@@ -2536,7 +2567,8 @@ export const validationData = {
                     "ADOPTED WITHOUT VOTE",
                     "RECORDED",
                     "RECORDED - No machine generated vote",
-                    "NON-RECORDED"
+                    "NON-RECORDED",
+                    "VOTING BY MAIL"
                 ]
             }
         },
@@ -2651,6 +2683,17 @@ export const validationData = {
             "validSubfields": ["a","b","c","d","e","f"],
             "defaultSubfields": ["a","b","c","d","e","f"]
             // Regex: only numbers in any subfields
+        },
+        "998": {
+            // Not directly assignable, carried over from Horizon
+            "name": "Creator/date",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
         },
         "999": {
             "name": "Creator/date",
