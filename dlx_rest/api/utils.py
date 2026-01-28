@@ -274,7 +274,7 @@ def brief_speech(record):
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
-    alt_field = '; '.join(record.get_values(alt_tag))
+    alt_field_4x = record.get_values(alt_tag)
 
     
 
@@ -291,7 +291,7 @@ def brief_auth(record):
         heading_alt_ary = []
         if len(f667) > 0:
             heading_alt_ary.append(f667)
-        alt_field = '; '.join(heading_alt_ary)
+        alt_field = '; '.join(heading_alt_ary + alt_field_4x)
 
     return {
         '_id': record.id,
