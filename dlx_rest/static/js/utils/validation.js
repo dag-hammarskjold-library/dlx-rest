@@ -1188,7 +1188,7 @@ export const validationData = {
             "validIndicators1": ["*"], // carried from authority
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","b","c","d","e","f","m","s","z"],
+            "validSubfields": ["a","b","c","d","e","f","m","s","z","9"],
             "defaultSubfields": ["a","b","c","d"] 
         },
         "992": {
