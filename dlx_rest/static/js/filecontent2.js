@@ -7,20 +7,20 @@ class FileContent {
             // Parameters
             id,
             name,
-            docSymbol,
+            identifierValue,
             language,
             uri
         ) {
             // Properties
             this.id = id;
             this.name = name;
-            this.docSymbol = docSymbol;
+            this.identifierValue = identifierValue;
             this.language = language;
             this.uri = uri;
         }
         // Methods
-    updateSymbol(symbol) {
-        this.docSymbol = symbol;
+    updateIdentifierValue(identifierValue) {
+        this.identifierValue = identifierValue;
     }
     addLanguage(l) {
         this.language.push(l);
