@@ -2424,6 +2424,17 @@ export const validationData = {
                 "a": ["ITS"]
             }
         },
+        "981": {
+            // Not defined in the specification document
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
+        },
         "989": {
             // Used for UNDL
             // Added to votes and speeches because of issue #1971
@@ -2625,6 +2636,17 @@ export const validationData = {
             "requiredSubfields": [],
             "validSubfields": ["a","b","c","d","e"],
             "defaultSubfields": ["a","b","c","d","e"]
+        },
+        "981": {
+            // Not defined in the specification document
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": ["*"],
+            "validIndicators2": ["*"],
+            "requiredSubfields": [],
+            "validSubfields": ["*"],
+            "defaultSubfields": ["a"] 
         },
         "989": {
             // Used for UNDL
