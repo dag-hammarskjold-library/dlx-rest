@@ -2603,7 +2603,7 @@ export const validationData = {
         },
         "930": {
             "name": "Product code",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
