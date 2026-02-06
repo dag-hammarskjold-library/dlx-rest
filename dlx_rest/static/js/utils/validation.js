@@ -1250,7 +1250,7 @@ export const validationData = {
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
-                "c": ["c","d","i","m","o","p","q","r","s","t","u","v","w"]
+                "c": ["b","c","d","i","m","o","p","q","r","s","t","u","v","w"]
             }
         }
     },
@@ -2525,10 +2525,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a"],
-            "defaultSubfields": ["a"],
-            "validStrings": {
-                "a": ["NNUN"]
-            }
+            "defaultSubfields": ["a"]
         },
         "089": {
             "name": "Content code",
@@ -2606,7 +2603,7 @@ export const validationData = {
         },
         "930": {
             "name": "Product code",
-            "required": true,
+            "required": false,
             "repeatable": false,
             "validIndicators1": [],
             "validIndicators2": [],
@@ -2727,7 +2724,7 @@ export const validationData = {
             "validSubfields": ["a","b","c"],
             "defaultSubfields": ["a","b","c"],
             "validStrings": {
-                "c": ["v","u","t"]
+                "c": ["b","v","u","t"]
             }
         },
     }
