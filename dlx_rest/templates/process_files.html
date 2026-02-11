@@ -9,16 +9,37 @@
     <h4>Upload Files</h4>
     <hr />
 
-    <p>Below are the steps to upload files to the Central Database. After the files are uploaded, a syncing operation runs and makes them available in UNDL in due time.</p>
+    <p>These are the steps for uploading files to the Central Database. After uploading, the system automatically syncs the files, and they will become available in UNDL in due time.</p>
     <div class="accordion" id="accordionExample">
       <div class="accordion-item">
         <h2 class="accordion-header" id="headingOne">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-            <strong> Step 1: Select files to upload</strong>
+            <strong>Step 1: Choose the Identifier Type</strong>
           </button>
         </h2>
         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
+            <p>Each file must be linked to one of the following identifiers found in the MARC record:</p>
+            <ul class="ulist">
+            <li>Document Symbol (191$a)</li>
+            <li>URI (561$u)</li>
+          </ul>
+          <p>Decide which identifier type you will use for the entire batch of files you plan to upload.</p>
+          </div>
+        </div> 
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTwo">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+            <strong> Step 2: Select files to upload</strong>
+          </button>
+        </h2>
+        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+          <div class="accordion-body">
+            <p>Drag and Drop or Browse to select files.</p>
+            <p><b>Note:</b> There is a <b>1GB</b> limit. Please upload no more than 1GB of files at a time. If you need to upload files larger than this limit, please contact support.</p>
+
+            <p><i>If using Document Symbols:</i></p>
             <p> Please make sure that the filenames adhere to the following conventions:</p>
             <ul class="ulist">
             <li>An underscore(_) in the filename corresponds to a slash (/) in the symbol</li>
@@ -26,36 +47,44 @@
             <li>At the end of the symbol, add dash(-) followed by the one letter-code for the language (-A, -C, -E, -F, -R, -S) or the two letter-code (-AR, -ZH, -EN, -FR, -RU, -ES, -DE )<br>
               Example: A_RES_76_1-EN.pdf</li>
           </ul>
-          <p><b>Note:</b> There is a <b>1GB</b> limit. Please upload no more than 1GB of files at a time. If you need to upload files larger than this limit, please contact support.</p>
+
+          <p><i>If using URIs:</i></p>
+            <ul class="ulist">
+            <li>Use the full URI exactly as shown in MARC field 561$u <br>
+            Example: https://collections.unu.edu/eserv/UNU:10446/Unlocking_AI_s_Potential_to_Serve_Humanity.pdf</li>
+            <li>The filename does not matter when uploading via URI</li>
+          </ul>
+          
           </div>
         </div> 
       </div>
       <div class="accordion-item">
-        <h2 class="accordion-header" id="headingTwo">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-            <strong> Step 2: Go through the list of files</strong>
+        <h2 class="accordion-header" id="headingThree">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+            <strong> Step 3: Review the file list before uploading</strong>
           </button>
         </h2>
-        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <ol class="olist">
-            <li>Check the <b>symbol</b> and change it if it was not converted properly. </li>
-            <li>Check the <b>languages</b>  and change them if they were not selected correctly automatically. </li>
+            <li>Check the <b>symbol or URI</b> and make any corrections by clicking on the incorrect text and amending it</li>
+            <li>Check the <b>languages</b> and change them if they were not selected correctly automatically</li>
             <li>Select either <b> Keep</b> or <b>Overwrite</b>:<br>
               <ul class="ulist">
-              <li><b> Keep:</b>  Is the default and safest option. Select it if you want to upload a file and aren't sure if it exists already. If the file exists, the system doesn’t re-upload it. If the file doesn’t exist, the system creates it.</li>
-              <li><b>Overwrite:</b> Select it if you want to replace existing file. If the file doesn’t exist, the system creates it.</li></ul>
+              <li><b> Keep:</b>  Safest option; existing files will not be replaced</li>
+              <li><b>Overwrite:</b> Replaces existing files if present</li></ul>
           </ol>
+          <p>Click on the Process button</p>
           </div>
         </div>
       </div>
       <div class="accordion-item">
-        <h2 class="accordion-header" id="headingThree">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-            <strong> Step 3: Results Page </strong>
+        <h2 class="accordion-header" id="headingFour">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+            <strong> Step 4: Results Page </strong>
           </button>
         </h2>
-        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
+        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <p>You will get a list that will tell you if the file has been properly uploaded or if there were any issues. </p>
           </div>
