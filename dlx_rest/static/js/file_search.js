@@ -5,6 +5,8 @@ import FileContent from "./filecontent2.js";
 
 const preview = document.getElementById("preview");
 
+const apiURL = "/api";
+
 const onloadValues ={};
 
 window.addEventListener('DOMContentLoaded', init);
@@ -307,11 +309,15 @@ function createFileObjects(results) {
         col_4.append(save_btn);
 
         //column #5 - link to see the file
+        /* 
+        Split the URI to get the file ID, which we will construct via API
+        */
+        const fileId = element.uri.split("/").pop();
         const col_5 = document.createElement("td");
         const docLink = document.createElement("a");
         docLink.classList.add("bi", "bi-link-45deg");
         docLink.style.color = "green";
-        docLink.href = 'https://' + element.uri;
+        docLink.href = `${apiURL}/files/${fileId}?action=open`;
         docLink.setAttribute('target', '_blank');
 
         // add the link only if the data is provided
