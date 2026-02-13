@@ -60,10 +60,10 @@ export let callbacksearchcomponent = {
                                 <th>Central DB ID</th>
                                 <th>UNDL ID</th>
                                 <th>Record Type</th>
-                                <th>Status</th>
-                                <th>DL Match</th>
-                                <th>Date</th>
-                                <th>URL</th>
+                                <th>UNDL Load Status</th>
+                                <th>Searchable in UNDL</th>
+                                <th>Date Processed</th>
+                                <th>UNDL URL</th>
                                 <th>Diff</th>
                             </tr>
                         </thead>
@@ -80,9 +80,11 @@ export let callbacksearchcomponent = {
                                         :href="getRecordLink(result.record_type, result.central_db_id)" 
                                         class="result-link"
                                         :title="'View record ' + result.central_db_id"
+                                        target="_blank"
                                     >
                                         {{ result.central_db_id }}
                                     </a>
+                                    <i class="fa fa-external-link-alt"></i>
                                 </td>
                                 <td>{{ result.undl_id }}</td>
                                 <td>{{ result.record_type }}</td>
@@ -101,6 +103,7 @@ export let callbacksearchcomponent = {
                                     <a v-if="result.url" :href="result.url" target="_blank" class="result-link">
                                         View Record
                                     </a>
+                                    <i class="fa fa-external-link-alt"></i>
                                     <span v-else class="text-muted">—</span>
                                 </td>
                                 <td>
