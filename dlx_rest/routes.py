@@ -805,3 +805,9 @@ def show_dashboard02():
 @login_required
 def show_dashboard03():   
     return render_template('dashboard03.html',vcoll="dashboard03", user=current_user.username)
+
+@app.route('/reports/callback-search', methods=["GET"])
+@login_required
+def show_callback_search():
+    this_prefix = url_for('doc', _external=True)
+    return render_template('callback_search.html', api_prefix=this_prefix)
