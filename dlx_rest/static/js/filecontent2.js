@@ -7,6 +7,7 @@ class FileContent {
             // Parameters
             id,
             name,
+            identifierType,
             identifierValue,
             language,
             uri
@@ -14,11 +15,15 @@ class FileContent {
             // Properties
             this.id = id;
             this.name = name;
+            this.identifierType = identifierType;
             this.identifierValue = identifierValue;
             this.language = language;
             this.uri = uri;
         }
         // Methods
+    updateIdentifierType(identifierType) {
+        this.identifierType = identifierType;
+    }
     updateIdentifierValue(identifierValue) {
         this.identifierValue = identifierValue;
     }
