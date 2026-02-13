@@ -77,7 +77,7 @@ function createFileObjects(results) {
  
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Identifier Value", "Language(s)", "Action", "Link"];
+    let th_txt = ["Identifier Type", "Identifier Value", "Language(s)", "Action", "Link"];
 
     for (let t in th_txt) {
         const th = document.createElement("th");
@@ -86,26 +86,79 @@ function createFileObjects(results) {
     }
 
     for (const file of results) {
-        fileObjectArray.push(new FileContent(file._id, file.filename, file.identifier_value, file.languages, file.uri));
+        fileObjectArray.push(new FileContent(file._id, file.filename, file.identifier_type, file.identifier_value, file.languages, file.uri));
     }
 
     fileObjectArray.forEach((element) => {
         onloadValues[element.id]=[...element.language]; //copy of current values
  
-        var onloadsymbol = element.identifierValue;
+        var onloadIdentifierType = element.identifierType;
+        var onloadIdentifierValue = element.identifierValue;
         const row = document.createElement("tr");
 
-        //column #1 - name of each file
+        //column #1 - identifier type
         const col_1 = document.createElement("td");
-        col_1.textContent = element.name;
-        col_1.classList.add("disabled-text");
+        const typeGroup = document.createElement("div");
+        typeGroup.classList.add("btn-group", "btn-group-sm");
+        typeGroup.setAttribute("role", "group");
+        typeGroup.style.display = "flex";
+        
+        // Symbol button
+        const btnSymbol = document.createElement("button");
+        btnSymbol.type = "button";
+        btnSymbol.classList.add("btn", "btn-outline-primary");
+        btnSymbol.textContent = "symbol";
+        btnSymbol.setAttribute("data-type", "symbol");
+        if (element.identifierType === "symbol") {
+            btnSymbol.classList.add("active");
+        }
+        
+        // URI button
+        const btnUri = document.createElement("button");
+        btnUri.type = "button";
+        btnUri.classList.add("btn", "btn-outline-primary");
+        btnUri.textContent = "uri";
+        btnUri.setAttribute("data-type", "uri");
+        if (element.identifierType === "uri") {
+            btnUri.classList.add("active");
+        }
+        
+        // Button group event handler
+        const buttons = [btnSymbol, btnUri];
+        buttons.forEach(btn => {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                // Remove active class from all buttons
+                buttons.forEach(b => b.classList.remove("active"));
+                // Add active class to clicked button
+                this.classList.add("active");
+                
+                const typeChanged = onloadIdentifierType != this.getAttribute("data-type");
+                const valueChanged = onloadIdentifierValue != element.identifierValue;
+                if (typeChanged || valueChanged) {
+                    SaveButtonColor(save_btn);
+                } else {
+                    SaveButtonDeColor(save_btn);
+                }
+                element.updateIdentifierType(this.getAttribute("data-type"));
+            });
+        });
+        
+        typeGroup.appendChild(btnSymbol);
+        typeGroup.appendChild(btnUri);
+        col_1.appendChild(typeGroup);
 
-        //column #2 - document symbol
+        //column #2 - identifier value
         const col_2 = document.createElement("td");
         col_2.textContent = element.identifierValue;
         col_2.setAttribute("contenteditable", true);
+        col_2.setAttribute("title", "Click to edit the identifier value");
+        col_2.style.cursor = "text";
+        col_2.style.wordBreak = "break-all";
         col_2.addEventListener("input", function(e) {
-            if (onloadsymbol != this.textContent) {
+            const typeChanged = onloadIdentifierType != element.identifierType;
+            const valueChanged = onloadIdentifierValue != this.textContent;
+            if (typeChanged || valueChanged) {
                 SaveButtonColor(save_btn);
             } else {
                 SaveButtonDeColor(save_btn);
@@ -191,25 +244,62 @@ function createFileObjects(results) {
 
 
         save_btn.onclick = function() {
-            SaveButtonDeColor(save_btn);
             const record = new FormData();
             record.append('record_id', element.id);
+            record.append('identifier_type', element.identifierType);
             record.append('identifier_value', element.identifierValue);
-
-            onloadsymbol = element.identifierValue;
-
-            
-
-            onloadValues[element.id]=[...element.language];
             
             let langs = element.language;
             langs.forEach(l => record.append('lang', l));
 
             let updateURL = document.getElementById("url").value;
             let myUpdateUrl = updateURL.replace("/results", "");
-            const res = fetch(myUpdateUrl, {
+            
+            // Change button to show loading state
+            save_btn.disabled = true;
+            const originalContent = save_btn.innerHTML;
+            save_btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+            
+            fetch(myUpdateUrl, {
                 method: 'post',
                 body: record
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.updated) {
+                    // Success - update the stored values
+                    onloadIdentifierType = element.identifierType;
+                    onloadIdentifierValue = element.identifierValue;
+                    onloadValues[element.id] = [...element.language];
+                    
+                    // Show success feedback
+                    save_btn.classList.replace("btn-success", "btn-outline-success");
+                    save_btn.innerHTML = '<i class="bi bi-check-circle"></i> Saved';
+                    save_btn.disabled = false;
+                    
+                    // Revert to normal state after 2 seconds
+                    setTimeout(() => {
+                        save_btn.classList.replace("btn-outline-success", "btn-outline-secondary");
+                        save_btn.innerHTML = originalContent;
+                        SaveButtonDeColor(save_btn);
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Update failed');
+                }
+            })
+            .catch(error => {
+                // Show error feedback
+                save_btn.classList.add("btn-danger");
+                save_btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error';
+                save_btn.disabled = false;
+                console.error('Error updating file:', error);
+                
+                // Revert to normal state after 3 seconds
+                setTimeout(() => {
+                    save_btn.classList.remove("btn-danger");
+                    save_btn.innerHTML = originalContent;
+                    save_btn.disabled = false;
+                }, 3000);
             });
         };
 

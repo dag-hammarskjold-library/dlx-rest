@@ -738,6 +738,7 @@ def process_text(text, option):
     project_stage = {
         '$project': {
             '_id': 1, 
+            'identifier_type': {'$arrayElemAt': ['$identifiers.type', 0]},
             'identifier_value': {'$arrayElemAt': ['$identifiers.value', 0]}, 
             'languages': 1, 
             'filename': 1,
@@ -766,27 +767,43 @@ def process_text(text, option):
 @requires_permission('updateFile')
 def update_file():
     """
-    Updates the file entry based on record id
+    Updates the file entry based on record id.
+    Updates the first identifier (type and value) and languages associated with the file.
+    Does not create new identifier entries, only updates the existing first identifier.
     """
-    # DB.connect(Config.connect_string, database=Config.dbname)
     S3.connect(bucket=Config.bucket)
 
-    record_id = request.form.get('record_id')
-    identifier_value = request.form.get('identifier_value')
-    langs = request.form.getlist('lang')
-
-    f = File.from_id(record_id)
-
     try:
-        # Preserve original identifiers and add the updated symbol identifier
-        f.identifiers = f.identifiers + [Identifier('symbol', identifier_value)]
-        # f.filename = File.encode_fn([docsymbol], langs, 'pdf') ##
+        record_id = request.form.get('record_id')
+        identifier_type = request.form.get('identifier_type')
+        identifier_value = request.form.get('identifier_value')
+        langs = request.form.getlist('lang')
+
+        if not record_id or not identifier_type or not identifier_value:
+            return jsonify({'updated': False, 'message': 'Missing required fields (record_id, identifier_type, identifier_value)'}), 400
+
+        f = File.from_id(record_id)
+        
+        if not f or len(f.identifiers) == 0:
+            return jsonify({'updated': False, 'message': 'File not found or has no identifiers'}), 404
+        
+        # Update only the first identifier's type and value (in place)
+        f.identifiers[0].type = identifier_type
+        f.identifiers[0].value = identifier_value
+        
+        # Update languages
         f.languages = langs
         f.commit()
-        return jsonify({'updated': True})
+        
+        return jsonify({
+            'updated': True, 
+            'message': 'File updated successfully',
+            'identifier_type': identifier_type,
+            'identifier_value': identifier_value,
+            'languages': langs
+        })
     except Exception as e:
-        # todo? notify the user that the update failed 
-        return jsonify({'updated': False, 'message': str(e)}), 400
+        return jsonify({'updated': False, 'message': f'Error updating file: {str(e)}'}), 400
 
 @app.route('/import')
 @login_required
