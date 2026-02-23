@@ -1615,11 +1615,21 @@ class LookupField(Resource):
 
 # Auth xref map
 @ns.route('/marc/<string:collection>/lookup/map')
-@ns.param('collection', '"bibs" or "auths"')
+@ns.param('collection', '"bibs", "auths", "speeches", or "votes"')
 class LookupMap(Resource):
     @ns.doc(description='Return a list of field tags that are authority-controlled')
     def get(self, collection):
+        # Set a default authority map based on the prime collections
         amap = DlxConfig.bib_authority_controlled if collection == 'bibs' else DlxConfig.auth_authority_controlled
+
+        try:
+            if collection == 'speeches':
+                amap = DlxConfig.speech_authority_controlled
+            elif collection == 'votes':
+                amap = DlxConfig.vote_authority_controlled
+        except AttributeError:
+            # Keep the default
+            pass
         
         links = {
             '_self': URL('api_lookup_map', collection=collection).to_str(),
