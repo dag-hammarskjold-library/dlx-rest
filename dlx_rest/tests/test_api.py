@@ -1093,7 +1093,105 @@ def check_response(response):
     return data    
 
 
-
+def test_api_callback_search(client):
+    """Test the callback search API endpoint"""
+    from dlx import DB
+    from datetime import datetime, timezone
+    
+    # Insert test data into undl_callback_log collection
+    callback_collection = DB.handle['undl_callback_log']
+    
+    test_doc = {
+        'record_id': 874132,
+        'record_type': 'auth',
+        'nonce': {
+            'type': 'auth',
+            'id': 874132,
+            'key': '19582036-07cc-4483-8753-d28f339338c3'
+        },
+        'results': [
+            {
+                'url': 'http://digitallibrary.un.org/record/1270097',
+                'recid': 1270097,
+                'success': True,
+                'marcxml': '<record><controlfield tag="001">1270097</controlfield></record>'
+            }
+        ],
+        'time': datetime.now(timezone.utc)
+    }
+    
+    callback_collection.insert_one(test_doc)
+    
+    # Test search by central_db_id
+    res = client.get(f'{API}/reports/callback-search?central_db_id=874132')
+    data = check_response(res)
+    assert len(data['data']) == 1
+    assert data['data'][0]['central_db_id'] == 874132
+    assert data['data'][0]['undl_id'] == 1270097
+    
+    # Test search by undl_id
+    res = client.get(f'{API}/reports/callback-search?undl_id=1270097')
+    data = check_response(res)
+    assert len(data['data']) == 1
+    assert data['data'][0]['undl_id'] == 1270097
+    
+    # Test search by date
+    today = datetime.now(timezone.utc).date().isoformat()
+    res = client.get(f'{API}/reports/callback-search?date={today}')
+    data = check_response(res)
+    assert len(data['data']) == 1
+    
+    # Test search with multiple results in results array
+    callback_collection.insert_one({
+        'record_id': 874133,
+        'record_type': 'auth',
+        'nonce': {
+            'type': 'auth',
+            'id': 874133,
+            'key': 'test-key'
+        },
+        'results': [
+            {
+                'url': 'http://digitallibrary.un.org/record/1270098',
+                'recid': 1270098,
+                'success': True,
+                'marcxml': '<record><controlfield tag="001">1270098</controlfield></record>'
+            },
+            {
+                'url': 'http://digitallibrary.un.org/record/1270099',
+                'recid': 1270099,
+                'success': True,
+                'marcxml': '<record><controlfield tag="001">1270099</controlfield></record>'
+            }
+        ],
+        'time': datetime.now(timezone.utc)
+    })
+    
+    res = client.get(f'{API}/reports/callback-search?central_db_id=874133')
+    data = check_response(res)
+    assert len(data['data']) == 2
+    assert data['data'][0]['undl_id'] == 1270098
+    assert data['data'][1]['undl_id'] == 1270099
+    
+    # Test pagination
+    res = client.get(f'{API}/reports/callback-search?central_db_id=874132&start=1&limit=1')
+    data = check_response(res)
+    assert len(data['data']) == 1
+    
+    # Test required parameter validation
+    res = client.get(f'{API}/reports/callback-search')
+    assert res.status_code == 400
+    
+    # Test invalid date format
+    res = client.get(f'{API}/reports/callback-search?date=invalid-date')
+    assert res.status_code == 400
+    
+    # Test limit max validation
+    res = client.get(f'{API}/reports/callback-search?central_db_id=874132&limit=101')
+    assert res.status_code == 400
+    
+    # Clean up
+    callback_collection.delete_many({'record_id': {'$in': [874132, 874133]}})
 
         
         
