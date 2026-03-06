@@ -19,8 +19,9 @@ export let searchHistoryComponent = {
 
             <!-- Modal -->
             <div class="modal fade" :class="{ show: showModal }" tabindex="-1" :style="{ display: showModal ? 'block' : 'none' }">
-                <div class="modal-dialog" style="width: 550px; max-width: 90%; margin: 2rem auto; position: relative; z-index: 1051; height: 600px;">
-                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 600px; display: flex; flex-direction: column; overflow: hidden;">
+                <div class="modal-dialog search-history-modal" 
+                    style="margin: 2rem auto; position: relative; z-index: 1051;">
+                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
                         <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 0.5rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; height: 50px;">
                             <h5 class="modal-title">
                                 Search History
@@ -58,6 +59,36 @@ export let searchHistoryComponent = {
             </div>
             <div v-if="showModal" class="modal-backdrop fade show" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;"></div>
         </span>
+    `,
+    style:`
+    @media (max-width: 600px) {
+        .search-history-modal {
+            width: 98vw !important;
+            max-width: 98vw !important;
+            height: auto !important;
+            max-height: 90vh !important;
+            margin: 1vw auto !important;
+            display: flex;
+            flex-direction: column;
+        }
+        .search-history-modal .modal-content {
+            height: auto !important;
+            max-height: 90vh !important;
+            display: flex;
+            flex-direction: column;
+        }
+        .search-history-modal .modal-body {
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            max-height: 50vh !important;
+        }
+        .search-history-modal .modal-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            z-index: 2;
+        }
+    }
     `,
     data() {
         return {

@@ -247,7 +247,10 @@ def brief_bib(record):
         'agendas': agendas,
         'f596': f596,
         'f520': f520,
-        'f099c': f099c
+        'f099c': f099c,
+        'basket': record.basket,
+        'locked': False,
+        'myBasket': False
     }
 
 def brief_speech(record):
@@ -265,30 +268,38 @@ def brief_speech(record):
         # This item_locked function is running for each record returned in this API call
         #'locked': item_locked("bibs", record.id)["locked"],
         'locked': False,
-        #'myBasket': False
+        'basket': record.basket
     }
 
 def brief_auth(record):
     digits = record.heading_field.tag[1:3]
     alt_tag = '4' + digits
-    alt_field = '; '.join(record.get_values(alt_tag))
+    alt_field_4x = record.get_values(alt_tag)
+
+    
 
     if record.heading_field.tag == '191':
         f491 = '; '.join(record.get_values('491','a','b','c','d'))
         f591 = '; '.join(record.get_values('591','a','b','c','d'))
-        f667 = '; '.join(record.get_values('667','a','b','c','d'))
         heading_alt_ary = []
-        for f in [f491, f591, f667]:
+        for f in [f491, f591]:
             if len(f) > 0:
                 heading_alt_ary.append(f)
         alt_field = '; '.join(heading_alt_ary)
+    else:
+        f667 = '; '.join(record.get_values('667','a','b','c','d'))
+        heading_alt_ary = []
+        if len(f667) > 0:
+            heading_alt_ary.append(f667)
+        alt_field = '; '.join(heading_alt_ary + alt_field_4x)
 
     return {
         '_id': record.id,
         'url': URL('api_record', collection='auths', record_id=record.id).to_str(),
         'heading': '; '.join(map(lambda x: x.value, record.heading_field.subfields)),
         'alt': alt_field,
-        'heading_tag': record.heading_field.tag
+        'heading_tag': record.heading_field.tag,
+        'basket': record.basket
     }
 
 def item_locked(collection, record_id):

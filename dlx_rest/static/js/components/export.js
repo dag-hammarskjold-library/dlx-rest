@@ -1,3 +1,5 @@
+import { CSV } from "../utils/csv.mjs"
+
 export let exportmodal = {
   props: {
     api_prefix: {
@@ -8,8 +10,8 @@ export let exportmodal = {
       type: String,
       required: true
     },
-    searchTerm: {
-      type: String,
+    searchParams: {
+      type: URLSearchParams,
       required: true
     }
   },
@@ -20,6 +22,8 @@ export let exportmodal = {
       selectedFormat: 'mrk',
       selectedFields: '',
       currentStatus: null,
+      cancelled: false,
+      abortController: null,
       exportFormats: [
         { id: 'mrk', label: 'MRK', mimeType: 'text/plain' },
         { id: 'xml', label: 'XML', mimeType: 'text/xml' },
@@ -29,10 +33,22 @@ export let exportmodal = {
   },
 
   computed: {
-    exportUrl() {
-      return `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=${this.selectedFormat}`
+    searchUrl() {
+      // Convert the params into API params
+      this.searchParams.set('search', this.searchParams.get('q'))
+      this.searchParams.delete('q')
+      this.searchParams.delete('start')
+      this.searchParams.delete('limit')
+      if (!this.searchParams.get('sort')) {
+        // The search page defaults to updated descending if no sort specified
+        this.searchParams.set('sort', 'updated')
+        this.searchParams.set('direction', 'desc')
+      }
+      return `${this.api_prefix}marc/${this.collection}/records?${this.searchParams.toString()}`
     },
-
+    exportUrl() {
+      return this.searchUrl + `&format=${this.selectedFormat}`
+    },
     isExporting() {
       return this.showSpinner
     }
@@ -95,6 +111,10 @@ export let exportmodal = {
     },
 
     hide() {
+      this.cancelled = true
+      if (this.abortController) {
+        this.abortController.abort()
+      }
       $(this.$el).modal('hide')
       this.reset()
     },
@@ -107,24 +127,82 @@ export let exportmodal = {
     },
 
     async submitExport() {
+      this.cancelled = false
       this.showSpinner = true
       this.currentStatus = null
+      this.abortController = new AbortController()
+      this.abortSignal = this.abortController.signal
 
       try {
-        const url = new URL(this.exportUrl)
-        if (this.selectedFields) {
-          url.searchParams.set('fields', this.selectedFields)
-        }
-
+        const limit = 100 // 100 records per page call
+        let start = 1
         const format = this.exportFormats.find(f => f.id === this.selectedFormat)
-        const response = await this.fetchExportData(url)
+        let mimeType = format.mimeType
         
-        if (!response.ok) {
-          throw new Error(`Export failed: ${response.statusText}`)
+        // Set a buffer to a xml object, csv object, or string depending on requested format
+        let buffer = format.id === 'xml' ? 
+          (new DOMParser()).parseFromString("<collection></collection>", "text/xml") : 
+          (format.id === 'csv' ? 
+            new CSV() : 
+            ""
+          )
+        
+        // Get the total and search ID
+        const initialResponse = await fetch(this.searchUrl)
+        if (!initialResponse.ok) throw new Error(`Search failed: ${initialResponse.statusText}`)
+        const json = await initialResponse.json()
+        const total = json['_meta']['count']
+        const searchId = (new URLSearchParams(json['_links']['_next'])).get('search_id')
+
+        // Using the search ID enables acessing cached results if any
+        let exportUrl = new URL(this.exportUrl + `&search_id=${searchId}`)
+        
+        if (this.selectedFields) {
+          exportUrl.searchParams.set('fields', this.selectedFields)
         }
 
-        const blob = await response.blob()
-        this.download(blob, `export.${format.id}`, format.mimeType)
+        while (start <= total) {
+          exportUrl.searchParams.set('start', start)
+          exportUrl.searchParams.set('limit', limit)
+          const response = await fetch(exportUrl.toString(), {signal: this.abortSignal})
+          if (!response.ok) throw new Error(`Export failed: ${response.statusText}`)
+          if (this.cancelled) {
+            // Currently this will never happen, because the fetch request will be aborted, throwing an error.
+            // If we decide to catch the error and handle it differently, the loop will need to break here.
+            break
+          }
+          const text = await response.text()
+
+          // Add to the buffer 
+          switch (format.id) {
+            case 'mrk':
+              buffer += text + "\n"
+              break
+            case 'xml':
+              const pageXml = (new DOMParser()).parseFromString(text, "text/xml")
+              const recordNodes = pageXml.getElementsByTagName("record")  
+              for (const recordXml of [...recordNodes]) { // have to use the "..." operator on the node list to treat it as an array
+                buffer.getElementsByTagName("collection")[0].appendChild(recordXml);
+              }
+              break
+            case 'csv':
+              buffer.parseText(text);
+          }
+
+          start += limit
+          const progress = Math.min(((start - 1) / total * 100).toFixed(1), 100)
+          this.currentStatus = `${progress}% of ${total} records`
+        }
+
+        // Convert buffer object to string
+        buffer = format.id === 'xml' ?
+          (new XMLSerializer()).serializeToString(buffer) :
+          (format.id === 'csv' ?
+            buffer.toString() :
+            buffer
+          )
+
+        this.download(new Blob([buffer], { type: mimeType }), `export.${format.id}`, mimeType)
         this.currentStatus = 'Export complete!'
 
       } catch (error) {
@@ -134,28 +212,6 @@ export let exportmodal = {
         this.showSpinner = false
       }
     },
-
-    async fetchExportData(url) {
-      const response = await fetch(url.toString())
-      const total = await this.getRecordCount()
-      let processed = 0
-
-      while (processed < total) {
-        processed += 100 // Assuming 100 records per page
-        const progress = Math.min((processed / total * 100).toFixed(1), 100)
-        this.currentStatus = `${progress}% of ${total} records`
-      }
-
-      return response
-    },
-
-    async getRecordCount() {
-      const countUrl = this.exportUrl.replace('/records', '/records/count')
-      const response = await fetch(countUrl)
-      const data = await response.json()
-      return data.data
-    },
-
     download(blob, filename, mimeType) {
       const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }))
       const link = document.createElement('a')

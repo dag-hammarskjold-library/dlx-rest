@@ -80,78 +80,86 @@ export let multiplemarcrecordcomponent = {
             <batcheditmodal ref="batcheditmodal" :api_prefix="prefix" v-on:update-records="copiedFields=[];callChangeStyling($event.message, 'd-flex w-100 alert-' + $event.status)"></batcheditmodal>
        
         <!-- Modal displaying history records -->
-        <div id="modal" v-show="this.showModal">
-            <transition name="modal">
-                <div class="modal-mask">
-                <div class="modal-wrapper" >
-                    <div class="modal-container" id="modalchild">
+        <div id="modal" class="modal fade" :class="{ show: showModal }" tabindex="-1" :style="{ display: showModal ? 'block' : 'none' }">
+            <div class="modal-dialog record-history-modal"
+                style="margin: 2rem auto; position: relative; z-index:1051;">
+                <transition name="modal">
+                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+                        <div class="modal-mask">
+                            <div class="modal-wrapper" >
+                                <div class="modal-container" id="modalchild">
 
-                    <div class="modal-header" id="title">
-                    
-                        <slot name="header">
-                            <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                    @click="closeModal()"> Close the window
-                            </button>
-                        </slot>
-                        
+                                <div class="modal-header" id="title">
+                                
+                                    <slot name="header">
+                                        <h5><span id="titlemodal" class="mt-2"> Choose record view  </span></h5>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                                @click="closeModal()"> Close the window
+                                        </button>
+                                    </slot>
+                                    
+                                </div>
+            
+                                <div id="contenthistory" class="modal-body mt-0" >
+                                </div>
+                                <!-- <div class="modal-footer">
+                                    <slot name="footer">
+                                    <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                        @click="closeModal()"> Close the window
+                                    </button>
+                                    </slot>
+                                </div> -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
-  
-                    <div id="contenthistory" class="modal-body mt-0" >
-                    </div>
-                    <!-- <div class="modal-footer">
-                        <slot name="footer">
-                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                            @click="closeModal()"> Close the window
-                        </button>
-                        </slot>
-                    </div> -->
-                    </div>
-                </div>
-                </div>
-            </transition>
+                </transition>
+            </div>
         </div>
 
         <!-- Modal displaying save options -->
-        <div id="modalSave" v-show="this.showModalSave">
-            <transition name="modalSave">
-                <div class="modal-mask">
-                <div class="modal-wrapper" >
-                    <div class="modal-container" id="modalchildsave">
+        <div id="modalSave" class="modal fade 50vh" :class="{ show: showModalSave }" tabindex="-1" :style="{ display: showModalSave ? 'block' : 'none' }">
+            <div class="modal-dialog record-history-modal"
+                style="margin: 2rem auto; position: relative; z-index:1051;">
+                <transition name="modalSave">
+                    <div class="modal-content" style="border-radius: 0.3rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); background-color: #fff; height: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+                        <div class="modal-mask">
+                            <div class="modal-wrapper" >
+                                <div class="modal-container" id="modalchildsave">
 
-                    <div class="modal-header" id="titleSave">
-                    
-                        <slot name="header">
-                            <h3><span id="titlemodalSave" class="mt-2 text-danger"> Warning !!!  </span></h3>
-                        </slot>
-                        
+                                <div class="modal-header" id="titleSave">
+                                
+                                    <slot name="header">
+                                        <h3><span id="titlemodalSave" class="mt-2 text-danger"> Warning !!!  </span></h3>
+                                    </slot>
+                                    
+                                </div>
+            
+                                <div id="contentSave" class="modal-body modal-content mt-0" >
+                                        <h5> You have unsaved changes </h5>
+                                </div>
+                                <div class="modal-footer">
+                                    <slot name="footer" class="row d-flex justify-content-between">
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeWithSaveCheck(selectedJmarc)">Save and close 
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
+                                        </button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-primary" 
+                                            @click="closeModalSave()"> Cancel
+                                        </button>
+                                    </slot>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-  
-                    <div id="contentSave" class="modal-body modal-content mt-0" >
-                            <h5> You have unsaved changes </h5>
-                    </div>
-                    <div class="modal-footer">
-                        <slot name="footer">
-                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc)"> Save and close </button> -->
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeWithSaveCheck(selectedJmarc)">Save and close 
-                            </button>
-                        <!-- <button type="button" data-dismiss="modal" class="btn btn-primary" @click="closeModalSave();saveRecord(selectedJmarc,false);removeRecordFromEditor(selectedJmarc);$root.$refs.basketcomponent.removeRecordFromList(selectedJmarc.collection, selectedJmarc.recordId)"> Save and remove from basket </button> -->
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeWithSaveCheck(selectedJmarc, true)">Save and remove from basket
-                            </button>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeModalSave();removeRecordFromEditor(selectedJmarc,false,true);"> Close without saving
-                            </button>
-                            <button type="button" data-dismiss="modal" class="btn btn-primary" 
-                                @click="closeModalSave()"> Cancel<br><br>
-                            </button>
-                        </slot>
-                    </div>
-                    </div>
-                </div>
-                </div>
-            </transition>
+                </transition>
+            </div>
         </div>
 
         </div>
@@ -738,7 +746,7 @@ export let multiplemarcrecordcomponent = {
             this.callChangeStyling(`${field.tag}$${subfield.code} has been deleted`, "d-flex w-100 alert-success")
         },
         addSubField(jmarc) {
-            // add blank subfield
+            // add blank subfield (or auto date)
             let field = jmarc.getDataFields().filter(x => x.selected)[0];
 
             if (! field) {
@@ -836,53 +844,6 @@ export let multiplemarcrecordcomponent = {
             newFieldRow.subfields[0].codeSpan.focus();
             newFieldRow.subfields[0].valueSpan.focus();
             newFieldRow.tagSpan.focus();
-
-            newFieldRow.tagCell.addEventListener("change", function (e) {
-                // moved to consolidate with other the tag change events
-                return
-
-                // Differentiate kinds of bibs based on 089 contents
-                // At worst this will still default to bibs
-                let vcoll = jmarc.collection
-                if( vcoll == "bibs") {
-                    let recordType = null
-                    let _089 = jmarc.getField("089")
-                    
-                    if (_089) {
-                        let _089_a = _089.getSubfield("b").value
-
-                        if (_089_a && _089_a == "B22") {
-                            vcoll = "speeches"
-                        } else if (_089_a && _089_a == "B23") {
-                            vcoll = "votes"
-                        }  
-                    }  
-                }
-
-                let validatedField = validationData[vcoll][e.target.value]
-                if (!validatedField) {
-                    // fallback so we don't have to re-specify fields unnecessarily
-                    validatedField = validationData[jmarc.collection][e.target.value]
-                }
-                if (validatedField) {
-                    let blankSubfield = newField.getSubfield("_", 0)
-                    newField.deleteSubfield(blankSubfield)
-                    newFieldRow.subfieldTable.deleteRow(blankSubfield.row.rowIndex)
-                    for (let defaultSubfield of validatedField["defaultSubfields"]) {
-                        let newSubfield = newField.createSubfield(defaultSubfield)
-                        newSubfield.value = ""
-                        component.buildSubfieldRow(newSubfield);
-                    }
-                    // trigger field check state events, needs to be done again if field changes
-                    newFieldRow.ind1Span.focus();
-                    newFieldRow.ind2Span.focus();
-                    for (let subfield of newField.subfields) {
-                        subfield.codeSpan.focus();
-                        subfield.valueSpan.focus();
-                    }
-                    newFieldRow.tagSpan.focus();
-                }
-            })
             
             // select new field
             this.fieldSelected(newField);
@@ -2618,6 +2579,12 @@ export let multiplemarcrecordcomponent = {
                         newSubfield = component.buildSubfieldRow(newSubfield);
                         newSubfield.codeSpan.classList.add("unsaved");
                         newSubfield.valueCell.classList.add("unsaved");
+
+                        if ("autoDate" in validatedField && validatedField.autoDate[newSubfield.code] === true) {
+                            const date = (new Date).toISOString().substring(0, 10);
+                            newSubfield.value = date;
+                            newSubfield.valueSpan.innerText = date;
+                        }
                     }
                 }
 
@@ -2974,6 +2941,16 @@ export let multiplemarcrecordcomponent = {
 
                 // validations
                 component.validationWarnings(jmarc);
+
+                // auto date
+                let vcoll = jmarc.getVirtualCollection();
+                let validatedField = validationData[vcoll][field.tag];
+
+                if (validatedField && "autoDate" in validatedField && validatedField.autoDate[subfield.code] === true) {
+                    const date = (new Date).toISOString().substring(0, 10);
+                    subfield.value = date;
+                    subfield.valueSpan.innerText = date;
+                }
 
                 // record state
                 component.checkSavedState(jmarc);

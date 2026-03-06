@@ -3,9 +3,8 @@ DLX REST API
 '''
 
 # external
+import os, time, uuid, json, re, boto3, mimetypes, jsonschema, threading, valkey
 from http.client import HTTPResponse
-from dlx_rest.routes import login, search_files
-import os, time, json, re, boto3, mimetypes, jsonschema, threading
 from datetime import datetime, timezone
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
@@ -30,14 +29,34 @@ from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
 from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
+from dlx_rest.routes import login, search_files
 
 # Init
+try:
+    # Todo: update the connection if/when there is a server with other than default configs
+    valkey.Valkey().ping()
+    DB.cache = valkey.Valkey()
+    print('Connected to local Valkey server')
+except valkey.exceptions.ConnectionError:
+    print('Warning: unable to connect to a Valkey server. Using private cache.')
+except Exception as e:
+    raise e
 
-# build the auth cache in a non blocking thread
-def build_cache(): Auth.build_cache()
+# build the auth cache in a non blocking thread if the cache is smaller thanthe number of auths in the DB
+if DB.cache:
+    count = 0
+    cursor = '0'
 
-threading.Thread(target=build_cache, args=[]).start()
+    while cursor != 0:
+        cursor, keys = DB.cache.scan(cursor=cursor, match='authcache*', count=1000)
+        count += len(keys)
+    
+    if count < DB.auths.count_documents({}):
+        threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
+else:
+    threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
 
+# constants
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
 ns = api.namespace('api', description='DLX MARC REST API')
     
@@ -176,7 +195,7 @@ class CollectionLogicalFields(Resource):
     args.add_argument(
         'subtype',
         type=str,
-        choices=['','default','speech','vote'],
+        choices=['','all','default','speech','vote'],
         help='Record collection subtype',
         default='default'
     )
@@ -242,7 +261,8 @@ class RecordsList(Resource):
     args.add_argument(
         'direction', type=str, 
         choices=['asc', 'desc'],
-        help='Sort direction', 
+        help='Sort direction',
+        default='asc'
     )
     args.add_argument(
         'format', 
@@ -273,6 +293,11 @@ class RecordsList(Resource):
         help='Toggle the search type between Atas and Community',
         default='community'
     )
+    args.add_argument(
+        'search_id',
+        type=str,
+        help='Use with the "_next" or "_prev" links to access search cache for faster pagination'
+    )
     
     @ns.doc(description='Return a list of MARC Bibliographic or Authority Records')
     @ns.expect(args)
@@ -295,7 +320,7 @@ class RecordsList(Resource):
                     all_basket_objects.append(item)
         
         # search
-        search = unquote(args.search) if args.search else None
+        search_string = unquote(args.search) if args.search else None
         # subtype
         type_condition = Raw(
             {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
@@ -303,14 +328,14 @@ class RecordsList(Resource):
             
         if args.engine in (None, "community"):
             try:
-                query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
+                query = Query.from_string(search_string, record_type=collection[:-1]) if search_string else Query()
             except InvalidQueryString as e:
                 abort(422, str(e))
 
             query.conditions.append(type_condition)
         elif args.engine == "atlas":
             try:
-                query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
+                query = AtlasQuery.from_string(search_string, record_type=collection[:-1]) if search_string else AtlasQuery()
                 
                 if hasattr(query, 'match'):
                     if query.match:
@@ -341,14 +366,14 @@ class RecordsList(Resource):
         subfield_projection = {}
 
         if fmt == 'brief':
-            tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992'] if collection == 'bibs' \
-                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591', '667']
+            tags = ['099', '191', '245', '269', '520', '596', '700', '710', '711', '791', '989', '991', '992', 'basket'] if collection == 'bibs' \
+                else ['100', '110', '111', '130', '150', '151', '190', '191', '400', '410', '411', '430', '450', '451', '490', '491', '591', '667', 'basket']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
             project = dict.fromkeys(tags, True)
         elif fmt == 'brief_speech':
-            tags = ['269', '596', '700', '710', '711', '791', '991', '992']
+            tags = ['269', '596', '700', '710', '711', '791', '991', '992', 'basket']
             
             # make sure logical fields are available for sorting
             tags += (list(DlxConfig.bib_logical_fields.keys()) + list(DlxConfig.auth_logical_fields.keys()))
@@ -377,41 +402,121 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort') or 'updated'
+        sort_by = 'main_title' if sort_by == 'title' else sort_by
         sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
         sort_by = 'date' if sort_by == 'meeting date' else sort_by
         sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
+        sort_object = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
-        # exec query
-        if isinstance(query, AtlasQuery):
-            pipeline = query.compile()
-            pipeline += [{'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}}, {'$skip': start-1}, {'$limit': limit}]
-            recordset = cls.from_aggregation(pipeline, collation=collation)
+        pipeline = [
+            {'$match': query.match.compile()} if isinstance(query, AtlasQuery) else {'$match': query.compile()},
+            {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}},
+            {'$project': {'_id': 1}}
+        ]
+
+        if sort_by != '_id':
+            # Add _id to sort fields to ensure no duplicates between pages
+            next(filter(lambda x: x.get('$sort'), pipeline)).get('$sort').update({'_id': 1})
+
+        # revert the param names back to created for use in the returned links
+        sort_by = 'title' if sort_by == 'main_title' else sort_by
+        sort_by = 'created' if sort_by == '_id' else sort_by
+
+        # $facet does not perform well when there is no query or the only field is _record_type?
+        if not query.conditions or (len(query.conditions) == 1 and query.compile().get('_record_type')):
+            pipeline += [{'$skip': start - 1}, {'$limit': limit}] #, {'$replaceWith': {'data': ['$$ROOT']}}]
         else:
-            sort = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
-            
-            try:
-                recordset = cls.from_query(
-                    query if query.conditions else {}, 
-                    projection=project, 
-                    skip=start-1, 
-                    limit=limit, 
-                    sort=sort, 
-                    collation=collation, 
-                    max_time_ms=Config.MAX_QUERY_TIME
+            # https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
+            pipeline.append({
+                '$facet': {
+                    'metadata': [{'$count': 'total'}],
+                    'data': [{'$skip': start - 1}, {'$limit': limit}]
+                }
+            })
+
+        # Use the search ID provided in the params if it exists, otherwise create a new one
+        search_id = args.search_id or str(uuid.uuid4())
+
+        # Raw results are expected later to be in a field called data['data']
+        data = {}
+
+        try:
+            # Create the data structure that is basically a list of records with only the _id field.
+            # Todo: this should be handled by dlx since it manipulates the database.
+            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_id, 'ready': {'$gte': start + limit}}): 
+                ids = doc.get('ids')[start-1:start+limit-1]
+                data['data'] = [{'_id': x} for x in ids]
+            elif next(filter(lambda x: x.get('$facet'), pipeline), None):
+                data = next(DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME))
+            else:
+                data['data'] = DB.handle[collection].aggregate(pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME)
+        except ExecutionTimeout as e:
+            # Set this particular timeout to a 500 error to prevent browsers from trying again
+            abort(500, f'Search query timed out ({Config.MAX_QUERY_TIME / 1000} seconds)')
+        except Exception as e:
+            raise e
+
+        if args.search_id is None and args.search:
+            # In a separate thread, populate a cache of all the result IDs. This will be used the next time 
+            # a request is made to this route with the the serach_id as a param. 
+            # Note: It's possible this should be handled in dlx since it is interacting directly with the DB.
+
+            # As above, need to add unique field to sort by for order consistency
+            if sort_by != '_id':
+                sort_object.append(('_id', 1))
+
+            def savecache():
+                from pymongo import UpdateOne
+
+                DB.handle.get_collection('_search_cache').replace_one( # not authorized to use insert_one?
+                    {'_id': search_id},
+                    {
+                        'collection': collection,
+                        'search': search_string,
+                        'sort': sort_by,
+                        'direction': args.direction,
+                        'ready': 0
+                    },
+                    upsert=True
                 )
-            except (ExecutionTimeout, OperationFailure) as e:
-                # Handle both timeout types
-                if 'exceeded time limit' in str(e):
-                    abort(408, {
-                        'message': 'Search query timed out',
-                        'details': str(e),
-                        'timeout': Config.MAX_QUERY_TIME,
-                        'suggestion': 'Try refining your search or using fewer terms'
-                    })
-                raise
+                
+                updates = []
+
+                for record in cls.from_query(query, sort=sort_object, projection={'_id': 1}):
+                    updates.append(
+                        UpdateOne(
+                            {'_id': search_id},
+                            {'$push': {'ids': record.id}, '$inc': {'ready': 1}},
+                        )
+                    )
+
+                    if len(updates) == 1000:
+                        DB.handle.get_collection('_search_cache').bulk_write(updates)
+                        updates = []
+
+                if updates:
+                    # catch the rest
+                    DB.handle.get_collection('_search_cache').bulk_write(updates)
+
+            threading.Thread(target=savecache, args=[]).start()
+        
+        if metadata := data.get('metadata'):
+            total = metadata[0]['total'], # is a tuple for some reason
+        elif args.search:
+            # there is no count metadata because there were no results
+            total = (0,)
+        else:
+            # we don't have the count yet because we did not use the $facet ag stage
+            total = (-1,)
+
+        recordset =  cls.from_query(
+            {'_id': {'$in': [x['_id'] for x in ([] if total == 0 else data.get('data'))]}},
+            sort=[(sort_by, 1 if args.direction == 'asc' else (-1 if args.direction else 1))],
+            projection=project
+        )
         
         if x := subfield_projection:
             # filter only the wanted subfields
@@ -443,26 +548,7 @@ class RecordsList(Resource):
             data = []
             for r in recordset:
                 this_d = make_brief(r)
-                this_d["myBasket"] = False
-
-                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
-                if len(lock_status) > 0:
-                    this_d["locked"] = True
-
-                try:
-                    # Determine whether a basket exists for the current user and if the item is in it
-                    
-                    basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
-                    if len(basket_contains) > 0:
-                        this_d["myBasket"] = True
-                        this_d["locked"] = False
-                    data.append(this_d)
-                except AttributeError:
-                    # If the user is not logged in, this_basket will be None
-                    # In this case, we just append the brief data without basket info
-                    data.append(this_d)
-
-
+                data.append(this_d)
         elif fmt == 'brief_speech':
             schema_name='api.brieflist'
             make_brief = brief_speech
@@ -470,17 +556,6 @@ class RecordsList(Resource):
             data = []
             for r in recordset:
                 this_d = make_brief(r)
-                this_d["myBasket"] = False
-                
-                # Determine lock status first, then resolve whether the item is in the current user's basket
-                lock_status = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == collection, all_basket_objects))
-                if len(lock_status) > 0:
-                    this_d["locked"] = True
-
-                basket_contains = list(filter(lambda x: x['record_id'] == str(r.id) and x['collection'] == 'bibs', this_basket.items))
-                if len(basket_contains) > 0:
-                    this_d["myBasket"] = True
-                    this_d["locked"] = False
                 data.append(this_d)
         else:
             schema_name='api.urllist'
@@ -490,28 +565,29 @@ class RecordsList(Resource):
         
         meta = {
             'name': 'api_records_list',
-            'returns': URL('api_schema', schema_name=schema_name).to_str()
+            'returns': URL('api_schema', schema_name=schema_name).to_str(),
+            'count': total[0] # total is a tuple
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype, search_id=None).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=search).to_str()
+                'count': URL('api_records_list_count', collection=collection, search=search_string).to_str()
             }
         }
         
@@ -570,7 +646,6 @@ class RecordsList(Resource):
             else:
                 abort(500, 'POST request failed for unknown reasons')
 
-
 # Records list count
 @ns.route('/marc/<string:collection>/records/count')
 @ns.param('collection', '"bibs" or "auths"')
@@ -625,7 +700,8 @@ class RecordsListCount(Resource):
                         maxTimeMS=Config.MAX_QUERY_TIME
                     )
                 except ExecutionTimeout as e:
-                    abort(408, str(e))
+                    # And send this timeout as a 500 as well
+                    abort(500, str(e))
         else:
             data = cls().handle.estimated_document_count()
         
@@ -826,6 +902,7 @@ class Record(Resource):
         data['updated'] = record.updated
         data['user'] = record.user
         data['files'] = files_data
+        data['basket'] = record.basket
 
         meta = {
             'name': 'api_record',
@@ -2123,6 +2200,13 @@ class MyBasketRecord(Resource):
         else:
             # The item is not locked, so we can add it to our basket
             this_u.my_basket().add_item(item)
+            
+            # Add the basket owner to the rcord data
+            getattr(DB, item['collection']).update_one(
+                {'_id': int(item['record_id'])},
+                {'$set': {'basket': current_user.username}}
+            )
+
             return {},201      
 
 @ns.route('/userprofile/my_profile/basket/addBulk')
@@ -2150,9 +2234,17 @@ class MyBasketClear(Resource):
             this_u = User.objects.get(id=current_user['id'])
             user_id = this_u['id']
             this_basket = Basket.objects(owner=this_u)[0]
+
+            for item in this_basket['items']:
+                getattr(DB, item['collection']).update_one(
+                    {'_id': int(item['record_id'])},
+                    {'$set': {'basket': None}}
+                )
+
             this_basket.clear()
-        except:
-            raise
+
+        except Exception as e:
+            raise e
 
         return 200
 
@@ -2200,11 +2292,21 @@ class MyBasketItem(Resource):
         try:
             this_u = User.objects.get(id=current_user['id'])
             this_basket = Basket.objects(owner=this_u)[0]
+            
+            # Update basket owner in record data
+            if item := next(filter(lambda x: x['id'] == item_id, this_basket.items), None):
+                getattr(DB, item['collection']).update_one(
+                    {'_id': int(item['record_id'])},
+                    {'$set': {'basket': None}}
+                )
+
             this_basket.remove_item(item_id)
+
+            
         except IndexError:
             abort(400)
-        except:
-            raise
+        except Exception as e:
+            raise e
 
         return 200
 

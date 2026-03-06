@@ -24,10 +24,11 @@ const authMap = {
 		'730': { 'a': '130' },
 		'791': { 'b': '190', 'c': '190' },
 		'830': { 'a': '130' },
-		'991': { 'a': '191', 'b': '191', 'c': '191', 'd': '191' }
+		'991': { 'a': '191', 'b': '191', 'c': '191', 'd': '191', '9': '191' }
 	},
 	"auths": {
 		//'491': {'a': '191', 'b': '191', 'c': '191', 'd': '191'},
+		'370': { 'a': '110' },
 		'500': { 'a': '100' },
 		'510': { 'a': '110' },
 		'511': { 'a': '111' },
@@ -246,15 +247,16 @@ export class DataField {
 	}
 
 	validationWarnings() {
+		// field level validations
 		let flags = [];
 		// Change collection here to virtualCollection, which is inferred from data already in the record
-		//let data = validationData[this.parentRecord.collection][this.tag];
 		let data = validationData[this.parentRecord.getVirtualCollection()][this.tag];
-		if (!data) return []
-
-		// field level
-		// required
-		// we already know the field exists
+		
+		if (!data) {
+			// fields are now invalid if they are not in the validation data
+			flags.push(new TagValidationFlag(`${this.tag} is not a valid field`))
+			return flags
+		}
 
 		// repeatable
 		if (data.repeatable === false && this.parentRecord.getFields(this.tag).length > 1) {
@@ -346,7 +348,7 @@ export class DataField {
 	toStr() {
 		let str = ""
 
-		for (let subfield of this.subfields) {
+		for (let subfield of this.subfields.filter(x => x.value)) {
 			str += `\$${subfield.code} ${subfield.value} `;
 
 			if (subfield.xref) {
@@ -385,7 +387,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					// Issue #190: Exclude deprecated authority terms from the lookup
 					let newJmarc = new Jmarc("auths").parse(auth)
-					console.log(newJmarc)
+					//console.log(newJmarc)
 					let this682 = newJmarc.getField('682')
 					if (this682) {
 						let this682_a = this682.getSubfield('a') 
@@ -1229,6 +1231,7 @@ export class Jmarc {
 
 		let searchStr =
 			headingField.subfields
+				.filter(x => x.value)
 				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
 				.join(" AND ");
 
@@ -1264,7 +1267,7 @@ export class Jmarc {
 			// get the records
 			let promises = matches.map(recordId => Jmarc.get("auths", recordId));
 			let records = await Promise.all(promises);
-
+			
 			for (let auth of records) {
 				if (auth.recordId === this.recordId) continue
 

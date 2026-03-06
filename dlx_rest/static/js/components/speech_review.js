@@ -4,13 +4,13 @@ import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { recordfilecomponent } from "./recordfiles.js";
-import { agendamodal } from "./agenda.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let speechreviewcomponent = {
     props: {
         api_prefix: { type: String, required: true }
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
         <div class="col mb-2 d-flex justify-content-between">
             <div>
@@ -49,7 +49,7 @@ export let speechreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -74,7 +74,7 @@ export let speechreviewcomponent = {
                 <button class="btn btn-sm btn-outline-secondary ml-2" @click="clearSort">Clear Sort</button>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="speeches.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="speeches.length > 0">
                     <thead>
                         <tr>
                             <th></th>
@@ -109,26 +109,25 @@ export let speechreviewcomponent = {
                                 @mousedown="handleMouseDown($event, speech, index)" 
                                 @mousemove="handleMouseMove($event, speech, index)" 
                                 @mouseup="handleMouseUp($event)">
-                                <td></td>
                                 <td>
-                                    <i v-if="speech.locked" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="speech.myBasket" 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
-                                    <i v-else 
-                                        :id="speech._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, speech._id)"></i>
+                                    <input type="checkbox">
+                                </td>
+                                <td>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="bibs"
+                                        :brief="speech"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
                                     <div>
                                         <i v-if="previewOpen === speech._id" class="fas fa-window-close preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
                                         <i v-else class="fas fa-file preview-toggle mr-2" v-on:click="togglePreview($event, speech._id)" title="Preview record"></i>
-                                        <readonlyrecord v-if="previewOpen === speech._id" :api_prefix="api_prefix" collection="bibs" :record_id="speech._id" class="record-preview"></readonlyrecord>
                                         {{speech.symbol}}
                                     </div>
                                 </td>
@@ -140,7 +139,7 @@ export let speechreviewcomponent = {
                                     <recordfilecomponent :api_prefix="api_prefix" :record_id="speech._id" :desired_languages="['en','fr','es']" />
                                 </td>
                                 <td title="Toggle Agenda View">
-                                    <i class="fas fa-file" @click="toggleAgendas($event, speech._id, speech.agendas)"></i>
+                                    <i class="fas fa-file" @click="toggleAgendas($event, speech._id)"></i>
                                 </td>
                             </tr>
                         </template>
@@ -154,7 +153,78 @@ export let speechreviewcomponent = {
                 <p class="text-muted">Try changing your search terms.</p>
             </div>
         </div>
-        <agendamodal ref="agendamodal" :api_prefix="api_prefix"></agendamodal>
+        <div v-if="agendaOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="toggleAgendas($event, agendaOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Speeches / {{agendaOpen}}: Agendas</h5>
+                        <button type="button" class="close" @click="toggleAgendas($event, agendaOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="preview-text" class="modal-body">
+                            <ul>
+                                <li v-for="agenda in agendas">{{agenda}}</li>
+                            </ul>       
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">Are you sure you want to delete {{selectedRecords.length}} records?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" 
+                                @click="executeDelete" 
+                                :disabled="isDeleting">
+                            <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
+                            {{isDeleting ? 'Deleting...' : 'Delete Records'}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="bibs"
+                            :record_id="previewOpen"
+                        />
+
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     `,
     style: `
@@ -184,6 +254,8 @@ export let speechreviewcomponent = {
             dragStartIdx: null,
             dragEndIdx: null,
             previewOpen: null,
+            agendaOpen: null,
+            agendas: [],
             sortColumns: [
                 { column: "date", direction: "desc" }
             ],
@@ -196,6 +268,9 @@ export let speechreviewcomponent = {
                 { key: "speaker_country", label: "Speaker (700 g)" },
                 { key: "country_org", label: "Country/Organization (710 or 711)" }
             ],
+            isDeleting: false,
+            lastSelectedIdx: null,
+            collection: "bibs"
         }
     },
     computed: {
@@ -245,6 +320,7 @@ export let speechreviewcomponent = {
     },
     created: async function () {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myBasket = await basket.getBasket(this.api_prefix);
         const urlParams = new URLSearchParams(window.location.search);
         const searchQuery = urlParams.get("q");
         if (searchQuery) {
@@ -252,7 +328,7 @@ export let speechreviewcomponent = {
             this.updateSearchQuery();
             this.submitSearch();
         }
-        this.refreshBasket();
+        //this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -340,7 +416,7 @@ export let speechreviewcomponent = {
         },
         selectAll() {
             this.speeches.forEach(speech => {
-                if (!speech.myBasket && !speech.locked) {
+                if (!speech.myBasket && !speech.locked && this.selectedRecords.length < 100) {
                     speech.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === speech._id && r.collection === "bibs")) {
                         this.selectedRecords.push({ collection: "bibs", record_id: speech._id });
@@ -353,66 +429,52 @@ export let speechreviewcomponent = {
                 speech.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
-        handleMouseDown(e, speech, idx) {
-            // Only left mouse button
+
+        // Handle click and drag selection and shift+click and drag selection
+        handleMouseDown(e, result, idx) {
             if (e.button !== 0) return;
-            // Ignore clicks on interactive elements
-            if (
-                e.target.closest('.preview-toggle') ||
-                e.target.closest('.fa-folder-plus') ||
-                e.target.closest('.fa-folder-minus') ||
-                e.target.closest('.fa-lock')
-            ) {
-                return;
+
+            if (!e.shiftKey) {
+                this.speeches.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
             }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
-        handleMouseMove(e, speech, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+
+        handleMouseMove(e, result, idx) {
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = this.sortedSpeeches[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            // Use sortedSpeeches for index mapping
-            let arr = this.sortedSpeeches;
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "bibs")) {
-                        this.selectedRecords.push({ collection: "bibs", record_id: r._id });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "bibs");
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+
         async sendToBasket(e) {
             if (e) e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
-                await this.refreshBasket();
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 this.selectedRecords = [];
                 this.speeches.forEach(r => {
                     r.myBasket = basket.contains("bibs", r._id, this.myBasket);
@@ -420,33 +482,24 @@ export let speechreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, speechId) {
-            let speech = this.speeches.find(r => r._id === speechId);
-            if (!speech) return;
-            if (!speech.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "bibs", speechId);
-                speech.myBasket = true;
-                speech.selected = false;
-            } else {
-                await basket.deleteItem(this.myBasket, "bibs", speechId);
-                speech.myBasket = false;
-                speech.selected = false;
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
-            await this.refreshBasket();
+
+            return
         },
-        togglePreview(event, speechId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === speechId) {
-                this.previewOpen = null;
+        toggleAgendas: function (event, speechId) {
+            if (this.agendaOpen === speechId) {
+                this.agendaOpen = false;
             } else if (speechId) {
-                this.previewOpen = speechId;
-            } else {
-                this.previewOpen = null;
+                this.agendaOpen = speechId
+                this.agendas = this.speeches.find((s) => s._id === speechId).agendas
             }
-        },
-        toggleAgendas: function (e, speechId, agendas) {
-            this.$refs.agendamodal.agendas = agendas;
-            this.$refs.agendamodal.recordId = speechId;
-            this.$refs.agendamodal.showModal = true;
+            
+            return
         },
         processSort(e, column) {
             let existingColumn = this.sortColumns.find((sc) => sc.column === column);
@@ -480,6 +533,11 @@ export let speechreviewcomponent = {
             };
             return map[col] || col;
         },
+
+        confirmDelete() {
+            $('#deleteConfirmModal').modal('show');
+        },
+
         async executeDelete() {
             if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
             this.isDeleting = true;
@@ -540,6 +598,6 @@ export let speechreviewcomponent = {
         'countcomponent': countcomponent,
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,
-        'agendamodal': agendamodal
+        'itemadd': itemaddcomponent,
     }
 }

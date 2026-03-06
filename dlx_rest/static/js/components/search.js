@@ -6,6 +6,7 @@ import { readonlyrecord } from "./readonly_record.js"
 import { recordfilecomponent } from "./recordfiles.js";
 import { exportmodal } from "./export.js";
 import { searchHistoryComponent } from "./search-history.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let searchcomponent = {
     props: {
@@ -17,10 +18,20 @@ export let searchcomponent = {
             type: String,
             required: true
         },
+        sort: {
+            type: String,
+            required: false,
+        },
+        direction: {
+            type: String,
+            required: false,
+        },
     },
-    template: `
+    template: /*html*/ `
     <div class="col pt-2" id="app1" style="background-color:white;">
-        <div class="col mb-2 d-flex justify-content-between">
+
+        <!-- Selectors for various kinds of searches, including search history and review screens -->
+        <div class="col d-flex justify-content-center">
             <div>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'simpleSearch' }"
@@ -29,25 +40,25 @@ export let searchcomponent = {
                 :aria-current="mode === 'simpleSearch' ? 'page' : null">
                 Simple Search
                 </a>
+                <span class="mx-1">|</span>
                 <a class="result-link" 
                 :class="{ 'text-muted': mode === 'advancedSearch' }"
                 href="" 
-                @click.prevent="mode='advancedSearch'"
+                @click.prevent="mode='advancedSearch'; parseSearchTerm()"
                 :aria-current="mode === 'advancedSearch' ? 'page' : null">
                 Advanced Search
                 </a>
+                <span class="mx-1">|</span>
+                <span v-if="subtype === 'speech' || collection === 'auths'">
+                    <a v-if="subtype ==='speech'" class="result-link" :href="uibase + '/records/speeches/review'">Speech Review</a>
+                    <a v-if="collection ==='auths'" class="result-link" :href="uibase + '/records/auths/review'">Auth Review</a>
+                    <span class="mx-1">|</span>
+                </span>
                 <search-history
                     ref="searchHistory"
                     search-input-id="recordSearch"
                     :api-prefix="api_prefix"
                 ></search-history>
-            </div>
-            <div class="d-flex align-items-center">
-                <a v-if="subtype ==='speech'" class="result-link px-3" :href="uibase + '/records/speeches/review'">Speech Review</a>
-                <a v-if="collection ==='auths'" class="result-link px-3" :href="uibase + '/records/auths/review'">Auth Review</a>
-                <a class="result-link px-3" v-if="records.length > 0">
-                    <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
-                </a>
             </div>
         </div>
 
@@ -55,10 +66,19 @@ export let searchcomponent = {
         <div class="col text-center" v-if="mode=='simpleSearch'">
             <form @submit.prevent="submitSearch">
 
-                <div class="input-group mb-3">
+                <div class="input-group" aria-label="Cancel search">
                     <input id="recordSearch" type="text" class="form-control" aria-label="Search Records" v-model="searchTerm" @keyup="updateSearchQuery">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="submit" :disabled="!searchTerm">Submit</button>
+                    <div class="input-group-append mb-3" v-if="showSpinner">
+                        <button class="btn btn-danger" type="button" @click="cancelSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="input-group-append" aria-label="Submit search" v-else>
+                        <button class="btn btn-outline-secondary" 
+                            type="button" @click="submitSearch" 
+                            :disabled="!searchTerm">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
                 </div>
             </form>
@@ -101,33 +121,62 @@ export let searchcomponent = {
                     </div>
                 </div>
             </div>
-            <div class="input-group-append mb-3">
-                <button class="btn btn-outline-secondary" type="button" @click="submitAdvancedSearch" :disabled="!hasAdvancedTerms">Submit</button>
+            <div class="input-group-append mb-3" v-if="showSpinner">
+                <button class="btn btn-danger" type="button" @click="cancelSearch">
+                    Cancel Search
+                </button>
+            </div>
+            <div class="input-group-append mb-3" v-else>
+                <button class="btn btn-outline-secondary" 
+                    type="button" @click="submitAdvancedSearch" 
+                    :disabled="!hasAdvancedTerms">
+                    Submit
+                </button>
             </div>
         </div>
 
-        <div v-if="collection == 'auths' && searchTerm" id="filters" class="col text-center">
-            Filter: 
-            <a v-for="headFilter in headFilters" 
-                class="badge mx-1" 
-                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
-                href="#"
-                @click.prevent="applyHeadFilter(headFilter)">
-                {{headFilter}}
-            </a>
-        </div>
+        <!-- sort and filter controls -->
+        <div class="col d-flex justify-content-between text-center">
+            <sortcomponent v-if="records.length > 0"
+                :uibase="uibase"
+                :collection="collection"
+                :subtype="subtype"
+                :search-term="searchTerm"
+                :current-sort="currentSort"
+                :current-direction="currentDirection"
+                @sort-changed="handleSortChange"
+                @direction-changed="handleDirectionChange">
+            </sortcomponent>
+            <!-- Auth heading filters -->
+            <div v-if="collection == 'auths' && searchTerm" id="filters" class="col">
+                Filter by: <br>
+                <a v-for="headFilter in headFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                    href="#"
+                    @click.prevent="applyHeadFilter(headFilter)">
+                    {{headFilter}}
+                </a>
+            </div>
 
-        <!-- Sort Controls -->
-        <sortcomponent v-if="records.length > 0"
-            :uibase="uibase"
-            :collection="collection"
-            :subtype="subtype"
-            :search-term="searchTerm"
-            :current-sort="currentSort"
-            :current-direction="currentDirection"
-            @sort-changed="handleSortChange"
-            @direction-changed="handleDirectionChange">
-        </sortcomponent>
+            <!-- Bib subtype filters -->
+            <div v-if="collection == 'bibs' && searchTerm" id="type-filters" class="col">
+                Filter by: <br>
+                <a v-for="typeFilter in typeFilters" 
+                    class="badge mx-1" 
+                    :class="{ 'badge-primary': activeFilters?.has(typeFilter.name), 'badge-light': !activeFilters?.has(typeFilter.name) }"
+                    href="#"
+                    @click.prevent="applyTypeFilter(typeFilter.name)">
+                    {{typeFilter.label}}
+                </a>
+            </div>
+
+            <div v-if="isSearching || submitted" class="col text-right">
+                {{totalCount}} total results
+                <br>
+                {{resultCount}} results loaded
+            </div>
+        </div>
 
         <div v-if="searchError" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{searchError}}
@@ -138,22 +187,20 @@ export let searchcomponent = {
 
         <!-- Results Area -->
         <div class="results-container col">
+
             <!-- Loading Spinner -->
             <div v-if="showSpinner" class="text-center mt-3">
                 <div class="spinner-border mr-2" role="status">
                     <span class="sr-only">Loading...</span>
                 </div>
-                <button class="btn btn-danger btn-sm" @click="cancelSearch">
-                    Cancel Search
-                </button>
             </div>
 
             <!-- Record Set Controls -->
-            <div class="controls-header mb-3" v-if="records.length > 0">
+            <div class="controls-header" v-if="records.length > 0">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -167,23 +214,28 @@ export let searchcomponent = {
                             Delete {{selectedRecords.length}} Records
                         </button>
                     </div>
-                    <div v-if="isSearching || submitted">
-                        {{resultCount}} results found{{isSearching ? ' so far' : ''}} 
-                        in {{searchTime.toFixed(1)}} seconds{{isSearching ? '...' : ''}}
-                    </div>
+                    <a class="result-link px-3" v-if="records.length > 0">
+                        <i class="fas fa-share-square" title="Export Results" @click="showExportModal"></i>
+                    </a>
                 </div>
             </div>
-
+            <!-- No Results Message -->
+            <div class="col">
+                <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
+                    <p class="text-muted">No results found for {{searchTerm}}.</p>
+                    <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+                </div>
+            </div>
             <!-- Results Table -->
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="records.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="records.length > 0">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 50px">#</th>
-                            <th v-if="collection !== 'auths'" style="width: 150px">Files</th>
+                            <th class=icon-column>#</th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th class=icon-column></th>
+                            <th v-if="collection !== 'auths'" class=files-column>Files</th>
                             <th v-else></th>
                             <th v-if="collection !== 'auths'">Title</th>
                             <th v-else>Heading</th>
@@ -196,31 +248,36 @@ export let searchcomponent = {
                             @mousedown="handleMouseDown($event, record, index)" 
                             @mousemove="handleMouseMove($event, record, index)" 
                             @mouseup="handleMouseUp($event)">
-                            <td></td>
+                            <td>{{index + 1}}</td>
                             <td>
-                                <i v-if="record.locked" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-lock"></i>
-                                <i v-else-if="record.myBasket" 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-minus" 
-                                    @click="toggleBasket($event, record._id)"></i>
-                                <i v-else 
-                                    :id="record._id + '-basket'" 
-                                    class="fas fa-folder-plus" 
-                                    @click="toggleBasket($event, record._id)"></i>
+                                <input type="checkbox" 
+                                    :checked="record.selected"
+                                    :disabled="record.locked || record.myBasket"
+                                    @change="toggleSelect($event, record, index)"
+                                    @mousedown.stop
+                                    @click.stop
+                                >
+                            </td>
+                            <td>
+                                <itemadd
+                                    :api_prefix="api_prefix"
+                                    :myBasket="myBasket"
+                                    :collection="collection"
+                                    :brief="record"
+                                    @mousedown.native.stop
+                                    @mouseup.native.stop
+                                    @click.native.stop
+                                ></itemadd>
                             </td>
                             <td> 
                                 <!-- Preview -->
                                 <div>
                                     <i v-if="previewOpen === record._id" class="fas fa-window-close preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
                                     <i v-else class="fas fa-file preview-toggle" v-on:click="togglePreview($event, record._id)" title="Preview record"></i>
-                                    <readonlyrecord v-if="previewOpen === record._id" :api_prefix="api_prefix" :collection="collection" :record_id="record._id" class="record-preview"></readonlyrecord>
                                 </div>
                             </td>
                             
                             <!-- Record Data -->
-                            <td>{{index + 1}}</td>
                             <td>
                                 <recordfilecomponent v-if="collection === 'bibs' && subtype !== 'speech'" 
                                                 :api_prefix="api_prefix" 
@@ -237,18 +294,23 @@ export let searchcomponent = {
                                         :id="'link-' + record._id" 
                                         class="result-link record-title" 
                                         :href="uibase + '/editor?records=' + collection + '/' + record._id">
-                                        <span v-if="collection == 'auths'">
-                                            {{record.heading}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
                                         </span>
-                                        <span v-else>
-                                            {{record.title}}
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
                                         </span>
                                     </a>
                                     <a v-else 
                                         class="result-link record-title" 
                                         :id="'link-' + record._id" 
                                         :href="uibase + '/records/' + collection + '/' + record._id">
-                                        {{record.title}}
+                                        <span v-if="collection == 'auths'" :title="record.heading">
+                                            {{record.heading.substring(0,240)}}
+                                        </span>
+                                        <span v-else :title="record.title">
+                                            {{record.title.substring(0,240)}}
+                                        </span>
                                     </a>
                                     <countcomponent v-if="collection == 'auths'" 
                                                 :api_prefix="api_prefix" 
@@ -280,19 +342,45 @@ export let searchcomponent = {
                 </table>
             </div>
         </div>
-        <!-- No Results Message -->
-        <div class="col">
-            <div v-if="!isSearching && submitted && records.length === 0" class="text-center mt-3">
-                <p class="text-muted">No results found for {{searchTerm}}.</p>
-                <p class="text-muted">Try changing your search terms or using the advanced search options.</p>
+        <div id="results-footer" class="text-center mt-3">
+            <div v-if="records.length > 0 && records.length === totalCount">End</div>
+            <div v-else-if="records.length > 0">
+                <span>{{records.length}} / {{totalCount}} loaded</span>                 
+                <i class="spinner-border mr-2"></i>
             </div>
+            <div>&nbsp;</div> <!-- padding -->
         </div>
+
+        <!-- Export modal -->
         <exportmodal ref="exportmodal"
             :api_prefix="api_prefix"
             :collection="collection"
-            :search-term="searchTerm">
+            :searchParams="searchParams">
         </exportmodal>
 
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            :collection="collection"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
             <div class="modal-dialog" role="document">
@@ -379,14 +467,7 @@ export let searchcomponent = {
     `,
     data: function () {
         let myUIBase = this.api_prefix.replace('/api/', '')
-        let exportLinks = {
-            'format': {
-                'CSV': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=csv`,
-                'JSON': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=json`,
-                'XML': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=xml`,
-                'MRK': `${this.api_prefix}marc/${this.collection}/records?search=${encodeURIComponent(this.searchTerm)}&format=mrk`
-            }
-        };
+
         return {
             subtype: null,
             records: [],
@@ -394,8 +475,10 @@ export let searchcomponent = {
             sortColumns: [],
             showAgendaModal: false,
             abortController: null,
+            countAbortController: null,
             showSpinner: false,
             agendas: [],
+            searchParams: new URLSearchParams(window.location),
             searchTerm: "",
             searchQuery: "",
             myBasket: {},
@@ -403,8 +486,13 @@ export let searchcomponent = {
             selectedRecords: [],
             uibase: myUIBase,
             searchTime: 0,
-            resultCount: 0,
+            totalCount: 0,
+            total: 0,
+            resultsPerPage: 100,
             isSearching: false,
+            infiniteScrollEnabled: true,
+            nextPageUrl: null,
+            isFetchingMore: false,
             isDragging: false,
             selectedRows: [],
             mode: "simpleSearch",
@@ -425,7 +513,25 @@ export let searchcomponent = {
             currentSort: 'updated',
             currentDirection: 'desc',
             headFilters: ['100', '110', '111', '130', '150', '190', '191'],
-            activeFilters: null,
+            typeFilters: [
+                {
+                    'name': 'all',
+                    'label': 'All'
+                },
+                {
+                    'name': 'default',
+                    'label': 'Docs & Pubs'
+                },
+                {
+                    'name': 'speech',
+                    'label': 'Speeches'
+                },
+                {
+                    'name': 'vote',
+                    'label': 'Votes'
+                }
+            ],
+            activeFilters: new Set(["default"]),
             isDeleting: false,
             searchError: null,
             logicalFieldLabels: {
@@ -433,6 +539,7 @@ export let searchcomponent = {
                 "body": "Series Symbol"
             },
             userEmail: "",
+            lastSelectedIdx: null,
         }
     },
     computed: {
@@ -446,7 +553,6 @@ export let searchcomponent = {
             return this.selectedRecords.length > 0 && 
                 !this.selectedRecords.some(r => r.locked) 
         },
-
         defaultSearchParams() {
             // Speech subtype defaults
             if (this.subtype === 'speech') {
@@ -473,6 +579,9 @@ export let searchcomponent = {
                 'searchType3': 'all',
                 'searchField3': 'any'
             };
+        },
+        currentSearchParams() {
+            return new URLSearchParams(window.location.search)
         }
     },
     created: async function () {
@@ -480,9 +589,18 @@ export let searchcomponent = {
         this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
         //console.log(this.myProfile)
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const searchQuery = urlParams.get("q");
-        this.subtype = urlParams.get("subtype") || '';
+        const searchQuery = this.currentSearchParams.get("q");
+        this.subtype = this.currentSearchParams.get("subtype") || 'default';
+        const url = new URL(window.location);
+        url.searchParams.set('subtype', this.subtype);
+        window.history.replaceState(null, "", url);
+
+        this.activeFilters = new Set();
+
+        // only set default to activeFilters if collection is not auths
+        if (this.collection !== 'auths' && !this.activeFilters.size) {
+            this.activeFilters.add(this.subtype || "default");
+        }
 
         const profile = await user.getProfile(this.api_prefix, 'my_profile');
         if (profile && profile.data && profile.data.email) {
@@ -496,8 +614,8 @@ export let searchcomponent = {
         };
         
         // Get sort parameters from URL or use defaults
-        this.currentSort = urlParams.get("sort") || 'updated';
-        this.currentDirection = urlParams.get("direction") || 'desc';
+        this.currentSort = this.sort || this.currentSearchParams.get("sort") || 'updated';
+        this.currentDirection = this.direction || this.currentSearchParams.get("direction") || 'desc';
 
         // Get logical fields from new endpoint
         let logicalFieldsUrl = `${this.api_prefix}marc/${this.collection}/logical_fields`;
@@ -515,11 +633,15 @@ export let searchcomponent = {
         // Only after we have fields, parse and submit if we have a query
         if (searchQuery) {
             this.searchTerm = searchQuery;
-            this.parseSearchTerm();
             this.submitSearch();
         }
 
         this.refreshBasket();
+
+        window.addEventListener('scroll', this.handleScroll);
+    },
+    beforeDestroy() {
+        window.removeEventListener('scroll', this.handleScroll);
     },
     methods: {
         async refreshBasket() {
@@ -540,120 +662,108 @@ export let searchcomponent = {
             }
             if (!this.searchTerm) return;
 
-            // Split into clauses and connectors, preserving quoted strings
-            const parts = [];
-            let currentPart = '';
-            let inQuotes = false;
-            let i = 0;
-            
-            while (i < this.searchTerm.length) {
-                const char = this.searchTerm[i];
-                // Check for connectors first
-                if (!inQuotes && /\s/.test(char)) {
-                    if (currentPart) {
-                        // Look ahead for NOT after AND/OR
-                        if (currentPart.toUpperCase() === 'AND' || currentPart.toUpperCase() === 'OR') {
-                            const remainingText = this.searchTerm.substring(i).trim();
-                            if (remainingText.toUpperCase().startsWith('NOT ')) {
-                                currentPart += ' NOT';
-                                i += 4; // Skip "NOT "
-                            }
-                        }
-                        parts.push(currentPart.trim());
-                        currentPart = '';
-                    }
-                } else if (char === '"' || char === "'") {
-                    inQuotes = !inQuotes;
-                    currentPart += char;
-                } else {
-                    currentPart += char;
-                }
-                i++;
+            // Split the search by connectors
+            let tokens = []
+            this.searchTerm.split(/ +(AND|OR) +/).forEach(x => x.split(/ ?\b(NOT) +/).forEach(y => tokens.push(y)))
+            tokens = tokens.filter(x => x)
+            const terms = tokens.filter(x => !['AND', 'OR', 'NOT'].includes(x)) // the separators are returned by .split when using regex
+
+            if (terms.length > 3) {
+                window.alert('Not all of the search terms can fit in the advanced search display')
             }
-            if (currentPart) parts.push(currentPart.trim());
 
-            // Process parts
-            let paramIndex = 1;
-            i = 0;
-            while (i < parts.length && paramIndex <= 3) {
-                let part = parts[i];
-                let connector = 'AND';
-                
-                // Check if next part is a connector, now including compound connectors
-                if (i + 1 < parts.length) {
-                    const nextPart = parts[i + 1].toUpperCase();
-                    if (['AND NOT', 'OR NOT', 'AND', 'OR'].includes(nextPart)) {
-                        connector = nextPart;
-                        i += 2;
-                    } else {
-                        i++;
+            terms.forEach((term, index) => {
+                let paramIndex = index + 1
+                term = term.trim()
+
+                if (term.match(/^\w+:/)) {
+                    // Specific Field
+                    // NOTE: Any word in a specific field is not supported
+
+                    let match = term.match(/^(\w+):(.*)/)
+                    this.advancedParams[`searchField${paramIndex}`] = match[1]
+                    let value = match[2]
+
+                    // Exact
+                    match = value.match(/^'(.*)'$/)
+
+                    if (match) {
+                        this.advancedParams[`searchType${paramIndex}`] = 'exact'
+                        this.advancedParams[`searchTerm${paramIndex}`] = match[1]
                     }
-                } else {
-                    i++;
-                }
 
-                // Check for field:value pattern
-                const fieldMatch = part.match(/^(\w+):(.+)$/);
-                //console.log(fieldMatch, this.searchFields)
-                if (fieldMatch && this.searchFields.includes(fieldMatch[1])) {
-                    const field = fieldMatch[1];
-                    const value = fieldMatch[2];
-
-                    // Look ahead for same field patterns
-                    const terms = [];
+                    // Multi phrase. Terms with multiple double quote encolsed phrases, or at least one phrase mixed with free text
+                    if ([...value.matchAll(/"/g)].length >= 2) {
+                        if (value.match(/.+".+/)) {
+                            // There are at least two total quotes and one in the middle of the string
+                            window.alert("Advanced search does not support mulitple phrases or phrases mixed with free text in one field")
+                            // Remove all quotes and let it get treated as free
+                            value = value.replaceAll('"', '')
+                        }
+                    }
                     
-                    // Handle the first term based on its format
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        // field:"term" -> partial phrase
-                        this.advancedParams[`searchField${paramIndex}`] = field;
-                        this.advancedParams[`searchTerm${paramIndex}`] = value.slice(1, -1);
-                        this.advancedParams[`searchType${paramIndex}`] = 'partial';
-                    } else if (value.startsWith("'") && value.endsWith("'")) {
-                        // field:'term' -> exact phrase
-                        this.advancedParams[`searchField${paramIndex}`] = field;
-                        this.advancedParams[`searchTerm${paramIndex}`] = value.slice(1, -1);
-                        this.advancedParams[`searchType${paramIndex}`] = 'exact';
-                    } else {
-                        terms.push(value);
-                        
-                        // Look ahead for field:term AND field:term pattern
-                        while (i < parts.length && 
-                            parts[i] === 'AND' && 
-                            i + 1 < parts.length &&
-                            parts[i + 1].startsWith(`${field}:`)) {
-                            const nextTerm = parts[i + 1].replace(`${field}:`, '');
-                            terms.push(nextTerm);
-                            i += 2;
+                    // Phrase
+                    if (value.match(/^".*"$/)) {
+                        this.advancedParams[`searchType${paramIndex}`] = 'partial'
+                        this.advancedParams[`searchTerm${paramIndex}`] = value.replaceAll('"', "")
+                    }
+
+                    // Free
+                    if (!value.match(/^".+"$/) && !value.match(/.+".+/)) {
+                        this.advancedParams[`searchTerm${paramIndex}`] = value
+                    }
+                } else {
+                    // Any field
+
+                    // TODO: Handle multiple free text terms. Terms separated by OR would be split into 
+                    // their own input boxes. Terms separeted by AND can be combined into one input box.
+
+                    let value = term
+                    this.advancedParams[`searchField${paramIndex}`] = 'any'
+                    
+                    // Phrase mixed with free text
+                    if ((value[0] != '"' || value[value.length-1] != '"') && [...value.matchAll(/"/g)].length >= 2 && value.match(/.+".+/)) {
+                        window.alert("Advanced search does not currently support phrases mixed with free text")
+                        // Remove all quotes and let it get treated as free
+                            value = value.replaceAll('"', '')
+                    }
+
+                    // Multi double quote enclosed phrases
+                    if (value.split(/"\s+"/).length > 1 && value.match(/^".+"$/)) {
+                        // The term consists entirely of double quoted phrases.
+                        // Split them into their own terms.
+                        for (let phrase of value.split(/"\s+"/)) {
+                            this.advancedParams[`searchType${paramIndex}`] = "partial"
+                            this.advancedParams[`searchTerm${paramIndex}`] = phrase.replaceAll('"', "")
+                            paramIndex++
                         }
 
-                        this.advancedParams[`searchField${paramIndex}`] = field;
-                        this.advancedParams[`searchTerm${paramIndex}`] = terms.join(' ');
-                        this.advancedParams[`searchType${paramIndex}`] = 'all'; // Always treat as 'all' for fielded searches
+                        if (paramIndex > 3) {
+                            window.alert('Not all of the search terms can fit in the advanced search display')
+                        }
                     }
 
-                    //console.log(`terms: ${terms}`)
-                } else {
-                    // Handle non-fielded search
-                    if (part.startsWith('"') && part.endsWith('"')) {
-                        this.advancedParams[`searchField${paramIndex}`] = 'any';
-                        this.advancedParams[`searchTerm${paramIndex}`] = part.slice(1, -1);
-                        this.advancedParams[`searchType${paramIndex}`] = 'partial';
-                    } else if (part.startsWith("'") && part.endsWith("'")) {
-                        this.advancedParams[`searchField${paramIndex}`] = 'any';
-                        this.advancedParams[`searchTerm${paramIndex}`] = part.slice(1, -1);
-                        this.advancedParams[`searchType${paramIndex}`] = 'exact';
-                    } else {
-                        this.advancedParams[`searchField${paramIndex}`] = 'any';
-                        this.advancedParams[`searchTerm${paramIndex}`] = part;
-                        this.advancedParams[`searchType${paramIndex}`] = 'all';
+                    // Single phrase
+                    if (value.match(/^".+"$/)) {
+                        this.advancedParams[`searchType${paramIndex}`] = "partial"
+                        this.advancedParams[`searchTerm${paramIndex}`] = value.replaceAll('"', "")
+                    }
+
+                    // Free
+                    if (!value.match(/^".+"$/)) {
+                        this.advancedParams[`searchTerm${paramIndex}`] = value
                     }
                 }
 
-                if (paramIndex < 3) {
-                    this.advancedParams[`searchConnector${paramIndex}`] = connector;
-                }
-                paramIndex++;
-            }
+                // Get the next operator, if any.
+                // TODO: Decide if advanced search should support searches where there is only one term with NOT
+                const next = tokens[tokens.indexOf(term)+1]
+                const next2 = tokens[tokens.indexOf(term)+2]
+                let connector = next === "AND" && next2 == "NOT" ? "AND NOT" : next === "OR" && next2 == "NOT" ? "OR NOT" : next
+                this.advancedParams[`searchConnector${paramIndex}`] = connector
+            })
+
+            // TODO: Decide whether to Handle regex and wildcard in fielded advanced search 
         },
 
         buildSearchQuery() {
@@ -671,9 +781,7 @@ export let searchcomponent = {
                     switch (type) {
                         case 'all':
                             // field:term1 AND field:term2
-                            queryPart = term.split(/\s+/)
-                                .map(t => `${field}:${t}`)
-                                .join(' AND ');
+                            queryPart = `${field}:${term}`
                             break;
                         case 'exact':
                             // field:'complete phrase'
@@ -729,11 +837,39 @@ export let searchcomponent = {
         updateSearchQuery() {
             const url = new URL(window.location);
             url.searchParams.set("q", this.searchTerm);
-            this.parseSearchTerm();
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search)
         },
 
-        applyHeadFilter(fieldTag) {
+        normalizeSymbolSearch(q) {
+            // Skip normalization if the collection is "auths"
+            if (this.collection === "auths") return q;
+            // Split on AND/OR/NOT (case-insensitive, surrounded by spaces)
+            const terms = q.split(/ *(AND|OR|NOT) +/i).filter(Boolean);
+
+            if (
+                terms.length === 1 &&
+                !/[:<>]/.test(terms[0]) &&
+                !['AND', 'OR', 'NOT'].includes(terms[0].toUpperCase()) &&
+                /^[A-Za-z]+\/.+/.test(terms[0])
+            ) {
+                // Looks like a symbol, rewrite as symbol:"TERM"
+                return `symbol:"${terms[0]}"`;
+            }
+            return q;
+        },
+
+        applyActiveHeadFilters(records) {
+            // Only filter if collection is 'auths' and filters are active
+            if (this.collection === 'auths' && this.activeFilters && this.activeFilters.size > 0) {
+                return records.filter(record =>
+                    Array.from(this.activeFilters).some(tag => record.heading_tag === tag)
+                );
+            }
+            return records;
+        },
+
+        async applyHeadFilter(fieldTag) {
             // Initialize active filters Set if needed
             if (!this.activeFilters) {
                 this.activeFilters = new Set();
@@ -751,6 +887,26 @@ export let searchcomponent = {
                 this.activeFilters.add(fieldTag);
             }
 
+            // Update the total count
+            const tags = [...this.activeFilters]
+            const addedCriteria = tags.map(x => `${x}:*`).join(" OR ")
+            const countTerm = addedCriteria ? `${this.searchTerm} AND ${addedCriteria}` : this.searchTerm
+            const countUrl = `${this.api_prefix}marc/${this.collection}/records/count?search=${countTerm}` 
+            this.totalCount = "?"
+
+            if (this.countAbortController) {
+                // there is already a count ocurring
+                this.countAbortController.abort();
+            }
+
+            this.countAbortController = new AbortController();
+
+            await fetch(countUrl, {signal: this.countAbortController.signal}).then(response => {
+                return response.json()
+            }).then(json => {
+                this.totalCount = json['data']
+            })
+
             // If no filters active, restore original results
             if (this.activeFilters.size === 0) {
                 this.records = [...this._originalRecords];
@@ -759,14 +915,37 @@ export let searchcomponent = {
             }
 
             // Always filter from the original unfiltered set
-            this.records = this._originalRecords.filter(record => {
-                return Array.from(this.activeFilters).some(tag => {
-                    return record.heading_tag === tag;
-                });
-            });
-
-            // Update result count even if zero
+            //if (!this._originalRecords) {
+            //    this._originalRecords = [...this.records];
+            //}
+            this.records = this.applyActiveHeadFilters(this._originalRecords);
             this.resultCount = this.records.length;
+
+            // Fetch more results if available and under 100 results because the 
+            // page may be too short to allow scrolling events
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
+                this.fetchMoreResults();
+            }
+        },
+
+        applyTypeFilter(filtername) {
+            // Update URL parameters
+            const url = new URL(window.location);
+            url.searchParams.set("subtype", filtername);
+            window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search)
+
+            // Update subtype in component state
+            this.subtype = filtername;
+
+            // Set activeFilters to only the selected type
+            this.activeFilters = new Set();
+            this.activeFilters.add(filtername)
+
+            //console.log(this.subtype, this.activeFilters)
+
+            // Resubmit search with new sort parameters
+            this.submitSearch();
         },
 
         // Add cleanup method for when search changes
@@ -788,100 +967,173 @@ export let searchcomponent = {
                 return;
             }
 
+            this.searchTerm = this.normalizeSymbolSearch(this.searchTerm);
+            this.updateSearchQuery();
+
             if (this.abortController) {
                 this.abortController.abort();
             }
 
             this.abortController = new AbortController();
 
-            this.clearFilters();
-
-            this.parseSearchTerm();
-            this.records = []
-            this.showSpinner = true
+            if (!this.collection === 'bibs') {
+                this._originalRecords = null;
+                this.clearFilters();
+            }
+            
+            this.records = [];
+            this.showSpinner = true;
             this.isSearching = true;
             this.resultCount = 0;
+            this.nextPageUrl = null;
+            this.infiniteScrollEnabled = true;
+            this.isFetchingMore = false;
             const startTime = Date.now();
             const seenIds = [];
 
-            // Build base URL with sort parameters
-            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
-            
+            // Build base URL with limit=100
+            let next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
             if (this.subtype && this.subtype !== 'default') {
-                if (this.subtype === 'speech' || this.subtype === 'vote') {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                if (['speech', 'vote', 'all'].includes(this.subtype)) {
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 } else {
-                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}`;
+                    next = `${this.api_prefix}marc/${this.collection}/records?search=${this.searchTerm}&subtype=${this.subtype}&format=brief_${this.subtype}&sort=${this.currentSort}&direction=${this.currentDirection}&limit=100`;
                 }
             }
 
             const timeUpdater = setInterval(() => {
                 this.searchTime = ((Date.now() - startTime) / 1000)
-            }, 100)
-            
-            try {
-                while (1) {
-                    let records;
-                    
-                    try {
-                        const response = await fetch(next, {
-                            signal: this.abortController.signal,
-                        });
+            }, 100);
 
-                        if (!response.ok) {
-                            if (response.status === 408) {
-                                // Handle timeout specifically
-                                const errorData = await response.json();
-                                throw new Error(`Search timed out after ${errorData.timeout/1000} seconds. Please try refining your search.`);
-                            }
-                            throw new Error(`Search failed with status: ${response.status}`);
-                        }
-
-                        const json = await response.json();
-                        next = json['_links']['_next'];
-                        records = json['data'];
-                    } catch (e) {
-                        if (e.name === 'AbortError') {
-                            throw new Error("Search cancelled by user");
-                        }
-                        throw e;
-                    }
-
-                    if (records.length === 0) {
-                        break
-                    }
-
-                    records.forEach(record => {
-                        if (!seenIds.includes(record._id)) {
-                            seenIds.push(record._id);
-                            this.records.push(record);
-                            this.resultCount++;
-                        }
+            // Fetch only the first 100 results, do NOT continue fetching more here
+            const json = await fetch(next, {signal: this.abortController.signal}).then(response => {
+                if (!response.ok) {
+                    response.json().then(json => {
+                        this.searchError = `${json['message']} (${response.status})`;
+                        throw new Error(this.searchError);
                     });
+                    return null;
                 }
-                
-            } catch (error) {
-                if (error.message === "Search cancelled by user") {
-                    console.log("Search cancelled by user");
-                } else {
-                    console.error("Error during search:", error);
-                }
-                this.searchError = error.message;
-            } finally {
+                return response.json();
+            }).catch(e => {
                 clearInterval(timeUpdater);
-                this.isSearching = false;
-                this.showSpinner = false;
-                this.abortController = null;
-                this.searchTime = ((Date.now() - startTime) / 1000);
-                this.submitted = true;
-                this.records.forEach(r => {
-                    r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+                this.endSearch();
+
+                if (e.name === 'AbortError') {
+                    const message = "Search cancelled by user";
+                    this.searchError = message;
+                    throw new Error(message);
+                }
+                this.searchError = e.message;
+                throw e;
+            });
+
+            if (json) {
+                this.myBasket = await basket.getBasket(this.api_prefix);
+
+                this.totalCount = json['_meta']['count'];
+                this.nextPageUrl = json['_links']['_next'];
+                let records = json['data'];
+
+                records.forEach(record => {
+                    record.myBasket = basket.contains(this.collection, record._id, this.myBasket);
                 });
-                let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
-                window.history.replaceState({}, ui_url);
+
+                this._originalRecords = records;
+                records = this.applyActiveHeadFilters(records);
+                records.forEach(record => {
+                    if (!seenIds.includes(record._id)) {
+                        seenIds.push(record._id);
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+                // Do NOT fetch more here; let handleScroll trigger fetchMoreResults when needed
+            }
+
+            // Need to fetch more results here as well, since we could end up with an unexpectedly short page
+            if (this.resultCount < 100 && this.resultCount < this.totalCount) {
+                this.fetchMoreResults();
+            }
+        
+            clearInterval(timeUpdater);
+            this.endSearch();
+        },
+
+        async fetchMoreResults() {
+            if (!this.nextPageUrl || this.isFetchingMore || !this.infiniteScrollEnabled) return;
+            this.isFetchingMore = true;
+            const json = await fetch(this.nextPageUrl, {signal: this.abortController?.signal}).then(response => response.json());
+
+            if (json) {
+                let newRecords = json['data'];
+
+                if (newRecords.length < 100) {
+                    this.nextPageUrl = null   
+                } else {
+                    this.nextPageUrl = json['_links']['_next'];
+                }
+
+                // Add to _originalRecords for filtering
+                if (!this._originalRecords) this._originalRecords = [];
+
+                newRecords.forEach(record => {
+                    if (!this._originalRecords.some(r => r._id === record._id)) {
+                        this._originalRecords.push(record);
+                    }
+                });
+                
+                // Apply head filters if needed
+                newRecords = this.applyActiveHeadFilters(newRecords);
+                
+                newRecords.forEach(record => {
+                    if (!this.records.some(r => r._id === record._id)) {
+                        this.records.push(record);
+                        this.resultCount++;
+                    }
+                });
+
+                this.isFetchingMore = false;
+
+                for (let i = 0; this.totalCount === "?"; i++) {
+                    // Check every 250 ms if the count has been updated yet
+                    if (i === 80) {
+                        throw new Error("Filter count timed out")
+                    }
+                    await new Promise(x => setTimeout(x, 250))
+                }
+
+                if (this.records.length < 100 && this.resultCount < this.totalCount) {
+                    await this.fetchMoreResults()
+                }
             }
         },
 
+        handleScroll() {
+            if (!this.infiniteScrollEnabled || this.isFetchingMore) return;
+            const scrollY = window.scrollY || window.pageYOffset;
+            const viewportHeight = window.innerHeight;
+            const fullHeight = document.documentElement.scrollHeight;
+
+            // Only fetch if the page is scrollable and user has scrolled past 90%
+            if (fullHeight > viewportHeight && (scrollY + viewportHeight) / fullHeight >= 0.9) {
+                this.fetchMoreResults();
+            }
+        },
+
+        endSearch() {
+            this.isSearching = false;
+            this.showSpinner = false;
+            this.abortController = null;
+            //this.searchTime = ((Date.now() - startTime) / 1000); # this is being done twice
+            this.submitted = true;
+            this.records.forEach(r => {
+                r.myBasket = basket.contains(this.collection, r._id, this.myBasket);
+            });
+            let ui_url = `${this.api_prefix.replace("/api/", "")}/records/${this.collection}/review?q=${this.foundQ}`
+            window.history.replaceState({}, ui_url);
+            this.searchParams = new URLSearchParams(window.location.search)
+        },
         cancelSearch() {
             if (this.abortController) {
                 this.abortController.abort();
@@ -896,6 +1148,7 @@ export let searchcomponent = {
             url.searchParams.set("sort", sort);
             url.searchParams.set("direction", direction);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search);
 
             // Update component state
             this.currentSort = sort;
@@ -912,6 +1165,7 @@ export let searchcomponent = {
             const url = new URL(window.location);
             url.searchParams.set("direction", direction);
             window.history.replaceState(null, "", url);
+            this.searchParams = new URLSearchParams(window.location.search);
 
             // Update component state
             this.currentDirection = direction;
@@ -926,8 +1180,9 @@ export let searchcomponent = {
             this.advancedParams[cls] = field.value;
         },
 
-        toggleSelect(e, result) {
-            result.selected = !result.selected;
+        toggleSelect(e, result, index) {
+            result.selected = e.target.checked;
+
             if (result.selected) {
                 if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
                     this.selectedRecords.push({ collection: this.collection, record_id: result._id });
@@ -936,10 +1191,12 @@ export let searchcomponent = {
                 const idx = this.selectedRecords.findIndex(r => r.record_id === result._id && r.collection === this.collection);
                 if (idx !== -1) this.selectedRecords.splice(idx, 1);
             }
+
+            this.lastSelectedIdx = index;
         },
         selectAll() {
             [...this.records].forEach(result => {
-                if (!result.myBasket && !result.locked) {
+                if (!result.myBasket && !result.locked && this.selectedRecords.length < 100) {
                     result.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === result._id && r.collection === this.collection)) {
                         this.selectedRecords.push({ collection: this.collection, record_id: result._id });
@@ -952,65 +1209,53 @@ export let searchcomponent = {
                 result.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
+        
+        // Handle click and drag selection and shift+click and drag selection
         handleMouseDown(e, result, idx) {
-            if (
-                e.target.classList.contains('preview-toggle') ||
-                e.target.closest('.preview-toggle') ||
-                e.target.classList.contains('folder-plus') || 
-                e.target.classList.contains('folder-minus') ||
-                e.target.classList.contains('fa-lock') 
-            ) {
-                return;
-            }
             if (e.button !== 0) return;
+
+            if (!e.shiftKey) {
+                this.records.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+            }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
+
         handleMouseMove(e, result, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = this.records[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag: function() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            let arr = [...this.records];
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === this.collection)) {
-                        this.selectedRecords.push({ collection: this.collection, record_id: r._id });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === this.collection);
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+
         async sendToBasket(e) {
             e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items))
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
-                this.refreshBasket();
                 this.selectedRecords = [];
                 // Update myBasket for all results
                 this.records.forEach(r => {
@@ -1019,35 +1264,12 @@ export let searchcomponent = {
                 });
             }
         },
-        async toggleBasket(e, recordId) {
-            // Find the result object
-            let result = [...this.records].find(r => r._id === recordId);
-            if (!result) return;
-
-            if (!result.myBasket) {
-                // Add to basket
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', this.collection, recordId);
-                result.myBasket = true;
-                result.selected = false; // Deselect if added to basket
-            } else {
-                // Remove from basket
-                await basket.deleteItem(this.myBasket, this.collection, recordId);
-                result.myBasket = false;
-                result.selected = false; // Deselect if removed from basket
-            }
-            // Refresh basket state for the component
-            this.refreshBasket();
-        },
         togglePreview(event, recordId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === recordId) {
-
+            if (this.previewOpen === recordId) {
                 this.previewOpen = false;
             } else if (recordId) {
                 this.previewOpen = recordId;
-            } else {
-                this.previewOpen = false;
             }
-
             return
         },
         // Necessary?
@@ -1087,55 +1309,60 @@ export let searchcomponent = {
             this.isDeleting = true;
             const successfulDeletes = new Set();
             const failedDeletes = new Set();
+            const allDeletes = [];
+            
+            // Process all deletes
+            for (const record of this.selectedRecords) {
+                if (record.locked) {
+                    failedDeletes.add(record.record_id)
+                    window.alert("The record is locked and cannot be deleted.")
+                    continue
+                }
 
-            try {
-                // Process all deletes
-                for (const record of this.selectedRecords) {
-                    try {
-                        const response = await fetch(
-                            `${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
-                            {
-                                method: 'DELETE',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-
-                        if (response.ok) {
-                            successfulDeletes.add(record.record_id);
-                        } else {
-                            failedDeletes.add(record.record_id);
+                allDeletes.push(
+                    fetch(`${this.api_prefix}marc/${record.collection}/records/${record.record_id}`, 
+                        {
+                            method: 'DELETE',
+                            headers: {'Content-Type': 'application/json'}
                         }
-                    } catch (error) {
-                        console.error(`Error deleting record ${record.record_id}:`, error);
-                        failedDeletes.add(record.record_id);
-                    }
-                }
-
-                // Remove successfully deleted records from the display
-                this.records = this.records.filter(record => {
-                    // Check if this record's ID is in the successfulDeletes set
-                    return !successfulDeletes.has(record._id.toString());
-                });
-
-                // Update result count
-                this.resultCount = this.records.length;
-
-                // Show results message
-                if (failedDeletes.size > 0) {
-                    alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
-                } else {
-                    alert(`Successfully deleted ${successfulDeletes.size} records.`);
-                }
-
-                // Clear selection
-                this.selectNone();
-                
-            } finally {
-                this.isDeleting = false;
-                $('#deleteConfirmModal').modal('hide');
+                    ).then(response => {
+                        if (response.ok) {
+                            successfulDeletes.add(record.record_id)
+                            this.records = this.records.filter(x => x._id !== record.record_id)
+                            this.resultCount--
+                            this.totalCount--
+                        } else if (response.status === 404) {
+                            failedDeletes.add(record.record_id)
+                            window.alert("The record was not found. Was it already deleted?")
+                        } else {
+                            failedDeletes.add(record.record_id)
+                            const msg = `API request failed for record ${record.record_id}: ${response.statusText}`
+                            window.alert(msg)
+                            throw new Error(msg)
+                        }
+                    }).catch(
+                        error => {
+                            // We don't necesarily know that an error that occured prevented the delete
+                            console.error(error)
+                        }
+                    )
+                )
             }
+
+            await Promise.all(allDeletes)
+  
+            // Show results message
+            if (failedDeletes.size > 0) {
+                alert(`Successfully deleted ${successfulDeletes.size} records.\nFailed to delete ${failedDeletes.size} records.`);
+            } else {
+                alert(`Successfully deleted ${successfulDeletes.size} records.`);
+            }
+
+            // Clear selection
+            this.selectNone();
+
+            this.isDeleting = false;
+            $('#deleteConfirmModal').modal('hide');
         }
     },
     components: {
@@ -1144,6 +1371,7 @@ export let searchcomponent = {
         'readonlyrecord': readonlyrecord,
         'recordfilecomponent': recordfilecomponent,    
         'exportmodal': exportmodal,
-        'search-history': searchHistoryComponent
+        'search-history': searchHistoryComponent,
+        'itemadd': itemaddcomponent,
     }
 }

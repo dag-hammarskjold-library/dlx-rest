@@ -77,7 +77,7 @@ function createFileObjects(results) {
  
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Action", "Link"];
+    let th_txt = ["File Name", "Identifier Value", "Language(s)", "Action", "Link"];
 
     for (let t in th_txt) {
         const th = document.createElement("th");
@@ -86,13 +86,13 @@ function createFileObjects(results) {
     }
 
     for (const file of results) {
-        fileObjectArray.push(new FileContent(file._id, file.filename, file.docsymbol, file.languages, file.uri));
+        fileObjectArray.push(new FileContent(file._id, file.filename, file.identifier_value, file.languages, file.uri));
     }
 
     fileObjectArray.forEach((element) => {
         onloadValues[element.id]=[...element.language]; //copy of current values
  
-        var onloadsymbol = element.docSymbol;
+        var onloadsymbol = element.identifierValue;
         const row = document.createElement("tr");
 
         //column #1 - name of each file
@@ -102,7 +102,7 @@ function createFileObjects(results) {
 
         //column #2 - document symbol
         const col_2 = document.createElement("td");
-        col_2.textContent = element.docSymbol;
+        col_2.textContent = element.identifierValue;
         col_2.setAttribute("contenteditable", true);
         col_2.addEventListener("input", function(e) {
             if (onloadsymbol != this.textContent) {
@@ -110,7 +110,7 @@ function createFileObjects(results) {
             } else {
                 SaveButtonDeColor(save_btn);
             }
-            element.updateSymbol(this.textContent);
+            element.updateIdentifierValue(this.textContent);
         });
 
         //column #3 - language
@@ -194,9 +194,9 @@ function createFileObjects(results) {
             SaveButtonDeColor(save_btn);
             const record = new FormData();
             record.append('record_id', element.id);
-            record.append('docsymbol', element.docSymbol);
+            record.append('identifier_value', element.identifierValue);
 
-            onloadsymbol = element.docSymbol;
+            onloadsymbol = element.identifierValue;
 
             
 

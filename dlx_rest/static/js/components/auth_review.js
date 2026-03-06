@@ -3,6 +3,7 @@ import { countcomponent } from "./count.js";
 import basket from "../api/basket.js";
 import user from "../api/user.js";
 import { readonlyrecord } from "./readonly_record.js";
+import { itemaddcomponent } from "./itemadd.js";
 
 export let authreviewcomponent = {
     props: {
@@ -28,6 +29,18 @@ export let authreviewcomponent = {
                 </div>
             </form>
         </div>
+
+        <div id="filters" class="col text-center">
+            Filter: 
+            <a v-for="headFilter in headFilters" 
+                class="badge mx-1" 
+                :class="{ 'badge-primary': activeFilters?.has(headFilter), 'badge-light': !activeFilters?.has(headFilter) }"
+                href="#"
+                @click.prevent="applyHeadFilter(headFilter)">
+                {{headFilter}}
+            </a>
+        </div>
+
         <sortcomponent v-if="auths.length > 0"
             :uibase="uibase"
             collection="auths"
@@ -56,7 +69,7 @@ export let authreviewcomponent = {
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="btn-group mr-3">
-                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All</button>
+                            <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectAll">Select All (Max 100)</button>
                             <button class="btn btn-outline-secondary btn-sm" @click.prevent="selectNone">Select None</button>
                         </div>
                         <button v-if="selectedRecords.length > 0" 
@@ -77,7 +90,7 @@ export let authreviewcomponent = {
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover w-100" v-if="auths.length > 0">
+                <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="auths.length > 0">
                     <thead>
                         <tr>
                             <th></th>
@@ -95,19 +108,19 @@ export let authreviewcomponent = {
                                 @mousedown="handleMouseDown($event, auth, index)" 
                                 @mousemove="handleMouseMove($event, auth, index)" 
                                 @mouseup="handleMouseUp($event)">
-                                <td></td>
                                 <td>
-                                    <i v-if="auth.locked" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-lock"></i>
-                                    <i v-else-if="auth.myBasket" 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-minus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
-                                    <i v-else 
-                                        :id="auth._id + '-basket'" 
-                                        class="fas fa-folder-plus" 
-                                        @click="toggleBasket($event, auth._id)"></i>
+                                    <input type="checkbox">
+                                </td>
+                                <td>
+                                    <itemadd
+                                        :api_prefix="api_prefix"
+                                        collection="auths"
+                                        :brief="auth"
+                                        :myBasket="myBasket"
+                                        @mousedown.native.stop
+                                        @mouseup.native.stop
+                                        @click.native.stop
+                                    ></itemadd>
                                 </td>
                                 <td>{{index + 1}}</td>
                                 <td>
@@ -128,12 +141,11 @@ export let authreviewcomponent = {
                                                 {{auth.heading}}
                                             </a>
                                         </span>
-                                        <readonlyrecord v-if="previewOpen === auth._id" :api_prefix="api_prefix" collection="auths" :record_id="auth._id" class="record-preview mt-2"></readonlyrecord>
                                         <div class="record-details mt-1">
-                                            <span v-if="auth.alt"><strong>Alt:</strong> {{auth.alt}}</span>
-                                            <span v-if="auth.symbol" class="ml-2"><strong>Symbol:</strong> {{auth.symbol}}</span>
-                                            <span v-if="auth.date" class="ml-2"><strong>Date:</strong> {{auth.date}}</span>
-                                            <span v-if="auth.types" class="ml-2"><strong>Types:</strong> {{auth.types}}</span>
+                                            <span v-if="auth.alt">{{auth.alt}}</span>
+                                            <span v-if="auth.symbol" class="ml-2">{{auth.symbol}}</span>
+                                            <span v-if="auth.date" class="ml-2">{{auth.date}}</span>
+                                            <span v-if="auth.types" class="ml-2">{{auth.types}}</span>
                                         </div>
                                     </div>
                                 </td>
@@ -150,6 +162,56 @@ export let authreviewcomponent = {
             <div v-if="!isSearching && submitted && auths.length === 0" class="text-center mt-3">
                 <p class="text-muted">No results found for updated > {{searchDate}}.</p>
                 <p class="text-muted">Try changing your date.</p>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger">Are you sure you want to delete {{selectedRecords.length}} records?</p>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" 
+                                @click="executeDelete" 
+                                :disabled="isDeleting">
+                            <span v-if="isDeleting" class="spinner-border spinner-border-sm mr-2"></span>
+                            {{isDeleting ? 'Deleting...' : 'Delete Records'}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+                        
+        <!-- Preview modal -->
+        <div v-if="previewOpen"
+            class="modal fade show d-block"
+            tabindex="-1"
+            style="background:rgba(0,0,0,0.3)"
+            @mousedown.self="togglePreview($event, previewOpen)">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" @mousedown.stop>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Record Preview</h5>
+                        <button type="button" class="close" @click="togglePreview($event, previewOpen)"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <readonlyrecord
+                            :api_prefix="api_prefix"
+                            collection="auths"
+                            :record_id="previewOpen"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -212,6 +274,11 @@ export let authreviewcomponent = {
             currentSort: 'updated',
             currentDirection: 'desc',
             searchError: null,
+            headFilters: ['100', '110', '111', '130', '150', '190', '191'],
+            activeFilters: null,
+            isDeleting: false,
+            collection: "auths",
+            lastSelectedIdx: null,
         }
     },
     computed: {
@@ -224,10 +291,11 @@ export let authreviewcomponent = {
         },
     },
     created: async function () {
-        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile')
+        this.myProfile = await user.getProfile(this.api_prefix, 'my_profile');
+        this.myBasket = await basket.getBasket(this.api_prefix);
         this.updateSearchQuery();
+        //this.refreshBasket();
         this.submitSearch();
-        this.refreshBasket();
     },
     methods: {
         async refreshBasket() {
@@ -288,10 +356,55 @@ export let authreviewcomponent = {
                 this.submitted = true;
             }
             this.updateSearchQuery();
+
+            this.clearFilters();
         },
+
+        applyHeadFilter(fieldTag) {
+            // Initialize active filters Set if needed
+            if (!this.activeFilters) {
+                this.activeFilters = new Set();
+            }
+
+            // Store original records if not already stored
+            if (!this._originalRecords) {
+                this._originalRecords = [...this.auths];
+            }
+
+            // Toggle filter
+            if (this.activeFilters.has(fieldTag)) {
+                this.activeFilters.delete(fieldTag);
+            } else {
+                this.activeFilters.add(fieldTag);
+            }
+
+            // If no filters active, restore original results
+            if (this.activeFilters.size === 0) {
+                this.auths = [...this._originalRecords];
+                this.resultCount = this.auths.length;
+                return;
+            }
+
+            // Always filter from the original unfiltered set
+            this.auths = this._originalRecords.filter(record => {
+                return Array.from(this.activeFilters).some(tag => {
+                    return record.heading_tag === tag;
+                });
+            });
+
+            // Update result count even if zero
+            this.resultCount = this.auths.length;
+        },
+
+        // Add cleanup method for when search changes
+        clearFilters() {
+            this._originalRecords = null;
+            this.activeFilters = null;
+        },
+
         selectAll() {
             this.auths.forEach(auth => {
-                if (!auth.myBasket && !auth.locked) {
+                if (!auth.myBasket && !auth.locked && this.selectedRecords.length < 100) {
                     auth.selected = true;
                     if (!this.selectedRecords.some(r => r.record_id === auth._id && r.collection === "auths")) {
                         this.selectedRecords.push({ collection: "auths", record_id: auth._id });
@@ -300,67 +413,56 @@ export let authreviewcomponent = {
             });
         },
         selectNone() {
-            this.auths.forEach(auth => {
-                auth.selected = false;
+            [...this.auths].forEach(result => {
+                result.selected = false;
             });
             this.selectedRecords = [];
+            this.lastSelectedIdx = null;
         },
-        handleMouseDown(e, auth, idx) {
-            if (
-                e.target.classList.contains('preview-toggle') ||
-                e.target.closest('.preview-toggle') ||
-                e.target.classList.contains('folder-plus') ||
-                e.target.classList.contains('folder-minus') ||
-                e.target.classList.contains('fa-lock')
-            ) {
-                return;
-            }
+        
+        // Handle click and drag selection and shift+click and drag selection
+        handleMouseDown(e, result, idx) {
             if (e.button !== 0) return;
+
+            if (!e.shiftKey) {
+                this.auths.forEach(r => r.selected = false);
+                this.selectedRecords = [];
+            }
+            if (!result.selected && !result.myBasket && !result.locked) {
+                result.selected = true;
+                this.selectedRecords.push({ collection: this.collection, record_id: result._id });
+            }
             this.isDragging = true;
-            this.dragStartIdx = idx;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-            document.addEventListener('mouseup', this.cancelDrag);
+            this.lastSelectedIdx = idx;
         },
-        handleMouseMove(e, auth, idx) {
-            if (!this.isDragging) return;
-            this.dragEndIdx = idx;
-            this.updateDragSelection();
-        },
-        handleMouseUp(e) {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.dragStartIdx = null;
-                this.dragEndIdx = null;
-                document.removeEventListener('mouseup', this.cancelDrag);
+
+        handleMouseMove(e, result, idx) {
+            if (!result.selected && !result.myBasket && !result.locked && this.isDragging) {
+                // If dragging, select all records between last selected and current
+                if (this.lastSelectedIdx !== null) {
+                    const start = Math.min(this.lastSelectedIdx, idx);
+                    const end = Math.max(this.lastSelectedIdx, idx);
+                    for (let i = start; i <= end; i++) {
+                        const rec = this.auths[i];
+                        if (!rec.myBasket && !rec.locked && !rec.selected) {
+                            rec.selected = true;
+                            this.selectedRecords.push({ collection: this.collection, record_id: rec._id });
+                        }
+                    }
+                }
             }
         },
-        cancelDrag() {
+
+        handleMouseUp(e) {
             this.isDragging = false;
-            this.dragStartIdx = null;
-            this.dragEndIdx = null;
-            document.removeEventListener('mouseup', this.cancelDrag);
         },
-        updateDragSelection() {
-            let arr = this.auths;
-            let [start, end] = [this.dragStartIdx, this.dragEndIdx].sort((a, b) => a - b);
-            arr.forEach((r, i) => {
-                if (!r.myBasket && !r.locked) r.selected = (i >= start && i <= end);
-                if (r.selected) {
-                    if (!this.selectedRecords.some(x => x.record_id === r._id && x.collection === "auths")) {
-                        this.selectedRecords.push({ collection: "auths", record_id: r._id });
-                    }
-                } else {
-                    const idx = this.selectedRecords.findIndex(x => x.record_id === r._id && x.collection === "auths");
-                    if (idx !== -1) this.selectedRecords.splice(idx, 1);
-                }
-            });
-        },
+
         async sendToBasket(e) {
             if (e) e.preventDefault();
             const items = this.selectedRecords.slice(0, 100);
             if (items.length > 0) {
                 await basket.createItems(this.api_prefix, 'userprofile/my_profile/basket', JSON.stringify(items));
+                this.myBasket = await basket.getBasket(this.api_prefix);
                 await this.refreshBasket();
                 this.selectedRecords = [];
                 this.auths.forEach(r => {
@@ -369,28 +471,14 @@ export let authreviewcomponent = {
                 });
             }
         },
-        async toggleBasket(e, authId) {
-            let auth = this.auths.find(r => r._id === authId);
-            if (!auth) return;
-            if (!auth.myBasket) {
-                await basket.createItem(this.api_prefix, 'userprofile/my_profile/basket', "auths", authId);
-                auth.myBasket = true;
-                auth.selected = false;
-            } else {
-                await basket.deleteItem(this.myBasket, "auths", authId);
-                auth.myBasket = false;
-                auth.selected = false;
+
+        togglePreview(event, recordId) {
+            if (this.previewOpen === recordId) {
+                this.previewOpen = false;
+            } else if (recordId) {
+                this.previewOpen = recordId;
             }
-            await this.refreshBasket();
-        },
-        togglePreview(event, authId) {
-            if (event.target.classList.contains("preview-toggle") && this.previewOpen === authId) {
-                this.previewOpen = null;
-            } else if (authId) {
-                this.previewOpen = authId;
-            } else {
-                this.previewOpen = null;
-            }
+            return
         },
         handleSortChange({ sort, direction }) {
             this.currentSort = sort;
@@ -409,6 +497,11 @@ export let authreviewcomponent = {
             this.showSpinner = false;
             this.isSearching = false;
         },
+
+        confirmDelete() {
+            $('#deleteConfirmModal').modal('show');
+        },
+
         async executeDelete() {
             if (!user.hasPermission(this.myProfile, 'batchDelete')) return;
             this.isDeleting = true;
@@ -441,13 +534,13 @@ export let authreviewcomponent = {
                 }
 
                 // Remove successfully deleted records from the display
-                this.records = this.records.filter(record => {
+                this.auths = this.auths.filter(record => {
                     // Check if this record's ID is in the successfulDeletes set
                     return !successfulDeletes.has(record._id.toString());
                 });
 
                 // Update result count
-                this.resultCount = this.records.length;
+                this.resultCount = this.auths.length;
 
                 // Show results message
                 if (failedDeletes.size > 0) {
@@ -468,6 +561,7 @@ export let authreviewcomponent = {
     components: {
         'sortcomponent': sortcomponent,
         'countcomponent': countcomponent,
-        'readonlyrecord': readonlyrecord
+        'readonlyrecord': readonlyrecord,
+        'itemadd': itemaddcomponent
     }
 }

@@ -8,6 +8,11 @@ let fileObjectArray = [];
 input.style.opacity = 0;
 txt.style.opacity = 0;
 
+function getCurrentIdentifierType() {
+  const radio = document.querySelector('input[name="globalIdentifierType"]:checked');
+  return radio ? radio.value : "Document Symbol";
+}
+
 
 /**Updated Section*/
 /**
@@ -216,7 +221,7 @@ function createFileObjects() {
 
     thead.appendChild(tr);
 
-    let th_txt = ["File Name", "Document Symbol", "Language(s)", "Keep All / Overwrite All "];
+    let th_txt = ["File Name", getCurrentIdentifierType(), "Language(s)", "Keep All / Overwrite All "];
 
     for (let t in th_txt) {
       const th = document.createElement("th");
@@ -268,7 +273,7 @@ function createFileObjects() {
     
       fileEntry.innerHTML = `
         <td class="file__filename disabled-text">${file.filename}</td>
-        <td class="file__docSymbol" contenteditable="true">${file.docSymbol}</td>
+        <td class="file__identifier" contenteditable="true">${file.docSymbol}</td>
         <td class="align-center">
            <div>
               <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
@@ -305,7 +310,7 @@ function createFileObjects() {
 
       
       // Add event listeners for docsymbol
-      const ds = fileEntry.querySelector(".file__docSymbol");
+      const ds = fileEntry.querySelector(".file__identifier");
 
       const checkSpaceInName= function(){
             // adding background color when we have spaces in docsymbol
@@ -357,7 +362,7 @@ function setLanguage(filename) {
   let a = filename.replace(/\.[^.$]+$/g, "");
 
   //get language suffix
-  let b = a.match(/(-[ACEFRSGZD][A-Z]?)+$/g); //
+  let b = a.match(/(-[ACEFRSGZDa-cefgrszd][A-Za-z]?)+$/gi); //
   
   let lang = [];
   let c = [];//"";
@@ -371,7 +376,7 @@ function setLanguage(filename) {
 
   for (let i = 0; i < c.length; i++) {
   
-    switch (c[i]) {
+    switch (c[i].toUpperCase()) {
       case "A":
         lang.push("AR");
         break;

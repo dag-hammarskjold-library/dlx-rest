@@ -8,6 +8,26 @@
   "taskRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
+      "name": "dlx-rest-nightly-cache",
+      "image": "docker.io/valkey/valkey:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dlx-rest-nightly",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
+    },
+    {
       "name": "dlx-rest-nightly",
       "image": "public.ecr.aws/placeholder/placeholder:latest",
       "essential": true,
@@ -35,7 +55,13 @@
           "awslogs-stream-prefix": "ecs",
           "awslogs-create-group": "true"
         }
-      }
+      },
+      "dependsOn": [
+        {
+          "containerName": "dlx-rest-nightly-cache",
+          "condition": "START"
+        }
+      ]
     }
   ]
 }
