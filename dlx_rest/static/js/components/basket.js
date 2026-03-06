@@ -42,7 +42,8 @@ export let basketcomponent = {
         return {
           visible: true,
           basketItems: [],
-          recordDisplayed:[]    
+          recordDisplayed:[],
+          editor: null
         }
     },
     computed: {
@@ -55,7 +56,8 @@ export let basketcomponent = {
         this.buildBasket();
     },
     mounted: async function() {
-      this.editor = this.$root.$refs.multiplemarcrecordcomponent; // other components not avaialble before mounted
+        await this.$nextTick();
+        this.editor = this.$root.$refs.multiplemarcrecordcomponent;
     },
     methods: {
         handleClick(e, record_id, collection) {

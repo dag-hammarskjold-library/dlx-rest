@@ -8,25 +8,27 @@ class AuthMap {
 		this.authMap = {};
 	}
 
-	async load() {
-		const response = await fetch(`/api/marc/${this.collection}/lookup/map`);
+	async load(apiUrl) {
+		const response = await fetch(`${apiUrl}marc/${this.collection}/lookup/map`);
 		const json = await response.json();
 		this.authMap = json.data;
 		return this;
 	}
 }
 
-export async function getAuthMaps() {
+let authMap = null;
+
+export async function getAuthMaps(apiUrl) {
 	const bibs = new AuthMap('bibs');
 	const auths = new AuthMap('auths');
 	const speeches = new AuthMap('speeches');
 	const votes = new AuthMap('votes');
 
 	await Promise.all([
-		bibs.load(),
-		auths.load(),
-		speeches.load(),
-		votes.load()
+		bibs.load(apiUrl),
+		auths.load(apiUrl),
+		speeches.load(apiUrl),
+		votes.load(apiUrl)
 	])
 
 	return {
@@ -36,8 +38,6 @@ export async function getAuthMaps() {
 		votes: votes.authMap
 	};
 }
-
-const authMap = await getAuthMaps();
 
 class ValidationFlag {
 	constructor(message) {
@@ -158,11 +158,17 @@ export class Subfield {
 		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
 
 		if (isAuthorityControlled) {
+			if (!authMap) {
+				await Jmarc.init();
+			}
+			console.log(authMap);
+			
 			const searchStr =
-				field.subfields
-					.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
-					.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
-					.join(" AND ");
+			field.subfields
+				.filter(x => Object.keys(Jmarc.authMap[jmarc.collection][field.tag]).includes(x.code))
+				.map(x => `${Jmarc.authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
+				.join(" AND ");
+			
 
 			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
 				.then(response => response.json())
@@ -224,6 +230,12 @@ export class DataField {
 		// these throw errors
 		if (!this.subfields) {
 			throw new Error("Subfield required")
+		}
+
+		if (!authMap) {
+			Jmarc.init().then(() => {
+				//
+			})
 		}
 
 		let amap = this instanceof BibDataField ? authMap['bibs'] : authMap['auths'];
@@ -447,7 +459,15 @@ export class Jmarc {
 		this._history = [];
 		this.undoredoIndex = 0;
 		this.undoredoVector = [];
-		this.authMap = authMap[collection];
+		this.authMap = null;
+	}
+
+	static async init() {
+		if (!authMap) {
+			authMap = await getAuthMaps(Jmarc.apiUrl);
+			this.authMap = authMap;
+		}
+		return authMap;
 	}
 
 	getVirtualCollection() {
@@ -593,6 +613,11 @@ export class Jmarc {
 
 
 	isAuthorityControlled(tag, code) {
+		if (!authMap) {
+			Jmarc.init().then( () => {
+				//
+			})
+		}
 		let map = authMap;
 
 		if (map[this.collection][tag] && map[this.collection][tag][code]) {
@@ -908,9 +933,11 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-						if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
-							newSub.xref = subfield.xref
-						}
+						Jmarc.init().then(() => {
+							if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
+								newSub.xref = subfield.xref
+							}
+						})
 						if (!seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}
@@ -937,7 +964,12 @@ export class Jmarc {
 		}
 
 		// Update authMap
-		this.authMap = authMap[this.getVirtualCollection()];
+		if(!this.authMap) {
+			Jmarc.init().then(() => {
+				this.authMap = authMap[this.getVirtualCollection()];
+			})
+		}
+		
 
 		return this
 	}
