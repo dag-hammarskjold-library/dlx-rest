@@ -2371,6 +2371,16 @@ export const validationData = {
                 "b": ["B22"]
             }
         },
+        "596": {
+            "name": "Local UNBIS note",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
         "700": {
             "name": "Added entry - personal name",
             "required": true,
