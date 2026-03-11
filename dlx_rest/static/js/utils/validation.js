@@ -2371,6 +2371,16 @@ export const validationData = {
                 "b": ["B22"]
             }
         },
+        "596": {
+            "name": "Local UNBIS note",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
         "700": {
             "name": "Added entry - personal name",
             "required": true,
@@ -2579,6 +2589,16 @@ export const validationData = {
                     "VOTING BY MAIL"
                 ]
             }
+        },
+        "767": {
+            "name": "Translation entry",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["9","o","t","z","x"],
+            "defaultSubfields": ["9","t"] 
         },
         "791": {
             "name": "UN resolution/meeting record symbol",
