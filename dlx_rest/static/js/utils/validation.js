@@ -2590,6 +2590,16 @@ export const validationData = {
                 ]
             }
         },
+        "767": {
+            "name": "Translation entry",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["9","o","t","z","x"],
+            "defaultSubfields": ["9","t"] 
+        },
         "791": {
             "name": "UN resolution/meeting record symbol",
             "required": false,
