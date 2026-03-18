@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "jasmine": "^6.1.0",
+    "node-fetch": "^3.3.2",
+    "rollup": "^4.59.0"
+  }
+}
