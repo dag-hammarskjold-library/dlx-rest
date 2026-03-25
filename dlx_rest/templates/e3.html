@@ -1,0 +1,226 @@
+{% extends 'base.html' %} {% block content %}
+<div>
+    <div id="editor" class="mx-2"></div>
+</div>
+<script type="module">
+    import { createApp } from "{{url_for('static', filename='js/v3/vendor/vue.esm-browser.js')}}";
+    import { AppStage } from "{{url_for('static', filename='js/v3/components/stage.mjs')}}";
+    import { User } from "{{url_for('static', filename='js/v3/api/user.mjs')}}";
+
+    // Initialize User object with current user data
+    User.apiUrl = "{{ api_prefix }}";
+    const currentUser = new User("{{ current_user.username }}");
+
+    await currentUser.loadBasket();
+    await currentUser.loadUserProfile();
+
+    console.log(currentUser);
+
+    const e3 = createApp({
+        props: {
+            api_prefix: {
+                type: String,
+                required: true
+            },
+            records: {
+                type: String,
+                required: false
+            },
+            user: {
+                type: Object,
+                required: true
+            }
+        },
+        components: { AppStage },
+        template: `<app-stage :api_prefix="api_prefix" :records="records" :user="user" />`,
+        setup() {
+            return {}
+        }
+    }, {
+        api_prefix: "{{ api_prefix }}",
+        records: "{{ records }}",
+        user: currentUser
+    }).mount("#editor");
+</script>
+<style>
+    /* main app */
+    .clickable-text {
+        color: blue;
+    }
+
+    .clickable-text:hover {
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    div.app-container {
+        display: inline-grid;
+        grid-template-columns: 2;
+        grid-template-rows: 2;
+        position: block;
+        width: 100%;
+        height: 675px;
+    }
+
+    div.header-container {
+        grid-row: 1;
+        grid-column: 1 / 3;
+        border: 1px solid black;
+        padding: 3px;
+        margin-bottom: 10px;
+    }
+
+    div.basket-container {
+        grid-row: 2;
+        grid-column: 1;
+        margin-right: 10px;
+        height: 650px;
+    }
+
+    /* search-or-recordstage */
+    div.main-stage-container {
+        grid-row: 2;
+        grid-column: 2;
+        position: block;
+        width: 1100px;
+        height: 675px;
+
+    }
+
+    div.app-search {
+        border: 1px solid red;
+        height: 100%;
+    }
+
+    div.app-search__hidden {
+        display: none;
+    }
+
+    div.app-recordstage {
+        height: 100%;
+    }
+
+    div.app-recordstage__hidden {
+        display: none;
+    }
+
+    /* header */
+    .header-logo>img {
+        width: 50px;
+    }
+
+    /* basket */
+    div.app-basket {
+        padding: 3px;
+        width: 200px
+    }
+
+    div.basket__hidden {
+        display: none;
+    }
+
+    /* basket-record */
+    div.basket-record {
+        border: 1px dotted red
+    }
+
+    div.basket-record__selected {
+        background-color: silver;
+    }
+
+    div.basket-record:hover {
+        cursor: pointer;
+        background-color: lightgray;
+    }
+
+    /* recordstage */
+    div.recordstage-menu {
+        display: flex;
+        border: 1px solid black;
+        padding: 3px;
+    }
+
+    div.recordstage-display {
+        border: 1px solid green;
+    }
+
+    /* recordstage record */
+    div.record-container {
+        border: 1px solid blue;
+        display: inline-grid;
+    }
+
+    div.record-header {
+        display: inline-grid;
+        grid-template-columns: 2;
+    }
+
+    div.record-header-id {
+        grid-column: 1
+    }
+
+    div.record-close {
+        grid-column: 2;
+        text-align: right;
+    }
+
+    div.record-close:hover {
+        cursor: pointer;
+    }
+
+    /* record field */
+    div.record-field-container {
+        border: 1px dotted black;
+        display: inline-grid;
+        grid-template-columns: 3;
+        justify-content: left;
+    }
+
+    div.record-field-container__highlighted {
+        border: 1px dotted red
+    }
+
+    div.record-field-tag {
+        grid-column: 1;
+        color: midnightblue;
+        font-weight: bold;
+    }
+
+    div.record-field-indicators {
+        grid-column: 2
+    }
+
+    div.subfield-container {
+        grid-column: 3
+    }
+
+    /* record subfield */
+    .subfield-code {
+        color: salmon
+    }
+
+    .subfield-authority-controlled {
+        color: blue;
+        text-decoration: underline;
+    }
+
+    .subfield-value__changed {
+        background-color: lightgoldenrodyellow;
+    }
+
+    .subfield-value__invalid {
+        background-color: lightcoral;
+    }
+
+    .record-control-btn.has-changes {
+        color: #ff6b6b;
+        font-weight: bold;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+</style>
+{% endblock %}
