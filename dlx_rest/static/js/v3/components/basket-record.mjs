@@ -24,7 +24,7 @@ export const BasketRecord = {
     },
     template: /* html */ `
     <div :class="classes.basketRecord">
-      {{ jmarc.collection + "/" + jmarc.recordId }}
+      {{ jmarc.getVirtualCollection() + "/" + jmarc.recordId }}
       <br>
       {{ symbol }}
     </div>
