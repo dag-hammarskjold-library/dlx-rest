@@ -110,16 +110,25 @@ export class Subfield {
 
 		// date match
 		if (this.value && "isDate" in data && this.code in data.isDate) {
-			let dateStr = this.value
-				// add dashes for valdation using JS Date object, but don't update the value.
-				// dashes are added to dates in the runSaveActions method
-				.replace(" ", "-")
-				.replace(/^(\d{4})(\d{2})/, "$1-$2")
-				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3");
+			const datePattern = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01]))?$/;
+			const match = String(this.value).match(datePattern);
+			let isValidDate = false;
 
-			let date = new Date(dateStr);
+			if (match) {
+				if (typeof match[3] === 'undefined') {
+					// YYYY-MM
+					isValidDate = true;
+				} else {
+					// YYYY-MM-DD with calendar validation
+					const year = Number(match[1]);
+					const month = Number(match[2]);
+					const day = Number(match[3]);
+					const dt = new Date(Date.UTC(year, month - 1, day));
+					isValidDate = dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
+				}
+			}
 
-			if (date.toString() === "Invalid Date" || ![4, 7, 10].includes(dateStr.length)) {
+			if (!isValidDate) {
 				flags.push(
 					new SubfieldValueValidationFlag(`${this.tag} \$${this.code}: Invalid date "${this.value}"`)
 				)
@@ -933,11 +942,9 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-						Jmarc.init().then(() => {
-							if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
-								newSub.xref = subfield.xref
-							}
-						})
+						// Preserve xref directly from parsed snapshot/data so undo/redo doesn't
+						// transiently mark authority-controlled fields as changed.
+						newSub.xref = subfield.xref
 						if (!seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}

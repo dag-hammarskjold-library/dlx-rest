@@ -1,22 +1,45 @@
 import { RecordField } from "./record-field.mjs"
+import { validationData } from "../../utils/validation.js"
 
 export const RecordstageRecord = {
     props: {
         record: Object,
         readonly: { type: Boolean, required: false, default: false },
+        isFocused: { type: Boolean, required: false, default: false },
         user: Object
     },
     components: { RecordField },
     data() {
         return {
             hasChanges: false,
+            isSaving: false,
+            currentValidationErrors: [],
             selectedFields: [],
             copiedFields: [],
             isDragSelecting: false,
             dragSelectValue: true,
             dragAdditive: false,
             changedFields: new Set(),
+            historySnapshots: [],
+            historyIndex: -1,
+            isApplyingHistory: false,
+            boundHandleKeydown: null,
+            boundEndFieldSelection: null,
             controls: [
+                {
+                    id: 'undo',
+                    label: 'Undo',
+                    icon: 'bi-arrow-counterclockwise',
+                    permission: 'updateRecord',
+                    action: 'undoChange'
+                },
+                {
+                    id: 'redo',
+                    label: 'Redo',
+                    icon: 'bi-arrow-clockwise',
+                    permission: 'updateRecord',
+                    action: 'redoChange'
+                },
                 {
                     id: 'save',
                     label: 'Save',
@@ -61,6 +84,150 @@ export const RecordstageRecord = {
                 this.user && this.user.hasPermission(control.permission)
             )
         },
+        isRecordReadonly() {
+            return this.readonly || !this.hasUpdatePermission()
+        },
+        validationCollection() {
+            if (this.record && typeof this.record.getVirtualCollection === 'function') {
+                return this.record.getVirtualCollection()
+            }
+
+            return this.record?.collection || 'bibs'
+        },
+        validationDocument() {
+            const collectionMap = {
+                bibs: 'bibs',
+                speeches: 'speeches',
+                votes: 'votes',
+                auths: 'auths'
+            }
+
+            return validationData[collectionMap[this.validationCollection] || 'bibs'] || {}
+        },
+        validationEnabled() {
+            return !(this.record && typeof this.record.getField === 'function' && this.record.getField('998'))
+        },
+        validationErrors() {
+            if (!this.validationEnabled || !this.record || typeof this.record.getDataFields !== 'function') {
+                return []
+            }
+
+            const errors = []
+            const dataFields = this.record.getDataFields()
+            const fieldsByTag = new Map()
+
+            dataFields.forEach((field, index) => {
+                if (!fieldsByTag.has(field.tag)) {
+                    fieldsByTag.set(field.tag, [])
+                }
+                fieldsByTag.get(field.tag).push({ field, index })
+            })
+
+            // Required tags must be present at least once.
+            Object.entries(this.validationDocument).forEach(([tag, fieldValidation]) => {
+                if (!fieldValidation || fieldValidation.required !== true) return
+                if (!fieldsByTag.has(tag)) {
+                    errors.push({ type: 'field-required-missing', tag })
+                }
+            })
+
+            dataFields.forEach((field, index) => {
+                const fieldValidation = this.validationDocument[field.tag]
+                if (!fieldValidation) {
+                    errors.push({ type: 'field-tag', tag: field.tag, index })
+                    return
+                }
+
+                // Non-repeatable tags can only occur once.
+                const sameTagFields = fieldsByTag.get(field.tag) || []
+                if (fieldValidation.repeatable === false && sameTagFields.length > 1 && sameTagFields[0].field !== field) {
+                    errors.push({ type: 'field-not-repeatable', tag: field.tag, index })
+                }
+
+                // Required subfields must be present and non-blank.
+                const requiredSubfields = fieldValidation.requiredSubfields || []
+                requiredSubfields.forEach(requiredCode => {
+                    const matchingSubfields = field.subfields.filter(subfield => subfield.code === requiredCode)
+
+                    if (matchingSubfields.length === 0) {
+                        errors.push({
+                            type: 'subfield-required-missing',
+                            tag: field.tag,
+                            index,
+                            code: requiredCode
+                        })
+                        return
+                    }
+
+                    const hasNonBlankValue = matchingSubfields.some(subfield => String(subfield.value || '').trim().length > 0)
+                    if (!hasNonBlankValue) {
+                        errors.push({
+                            type: 'subfield-required-blank',
+                            tag: field.tag,
+                            index,
+                            code: requiredCode
+                        })
+                    }
+                })
+
+                const validSubfields = fieldValidation.validSubfields || []
+                const validStringsByCode = fieldValidation.validStrings || {}
+                const isDateByCode = fieldValidation.isDate || {}
+
+                field.subfields.forEach(subfield => {
+                    // Check if subfield has an empty value
+                    const hasEmptyValue = String(subfield.value || '').trim().length === 0
+                    if (hasEmptyValue) {
+                        errors.push({
+                            type: 'subfield-empty-value',
+                            tag: field.tag,
+                            code: subfield.code
+                        })
+                        return
+                    }
+
+                    if (!validSubfields.includes('*') && !validSubfields.includes(subfield.code)) {
+                        errors.push({ type: 'subfield-code', tag: field.tag, code: subfield.code })
+                    }
+
+                    const allowedValues = validStringsByCode[subfield.code]
+                    const isInvalidByString = subfield.value && Array.isArray(allowedValues) && allowedValues.length > 0
+                        ? !allowedValues.includes(subfield.value)
+                        : false
+
+                    const requiresDateFormat = subfield.code in isDateByCode
+                    const isInvalidByDate = subfield.value && requiresDateFormat
+                        ? !this.isValidDateValue(subfield.value)
+                        : false
+
+                    if (isInvalidByString || isInvalidByDate) {
+                        errors.push({
+                            type: 'subfield-value',
+                            tag: field.tag,
+                            code: subfield.code,
+                            value: subfield.value,
+                            failedValidStrings: isInvalidByString,
+                            failedIsDate: isInvalidByDate
+                        })
+                    }
+                })
+            })
+
+            return errors
+        },
+        hasValidationErrors() {
+            return this.validationEnabled && this.currentValidationErrors.length > 0
+        },
+        validationSummaryEntries() {
+            if (!this.validationEnabled) return []
+            return this.currentValidationErrors.map(error => this.formatValidationError(error))
+        },
+        canUndo() {
+            return this.historyIndex > 0
+        },
+        canRedo() {
+            return this.historyIndex >= 0 && this.historyIndex < this.historySnapshots.length - 1
+        },
         allFieldsSelected() {
             const dataFields = this.record.getDataFields()
             return dataFields.length > 0 && dataFields.every(f => f.checked)
@@ -71,21 +238,97 @@ export const RecordstageRecord = {
             handler(newRecord) {
                 if (newRecord && newRecord.updateSavedState) {
                     newRecord.updateSavedState()
+                    this.resetHistory()
+                    this.updateChangeTracking()
+                    this.runValidation()
                 }
             },
             immediate: true
         }
     },
     mounted() {
-        window.addEventListener('mouseup', this.endFieldSelection)
+        this.boundHandleKeydown = this.handleKeydown.bind(this)
+        this.boundEndFieldSelection = this.endFieldSelection.bind(this)
+        window.addEventListener('mouseup', this.boundEndFieldSelection)
+        window.addEventListener('keydown', this.boundHandleKeydown)
     },
     beforeUnmount() {
-        window.removeEventListener('mouseup', this.endFieldSelection)
+        window.removeEventListener('mouseup', this.boundEndFieldSelection)
+        window.removeEventListener('keydown', this.boundHandleKeydown)
     },
     methods: {
+        requestFocus() {
+            if (!this.isFocused) {
+                this.$emit('focus-record', this.record)
+            }
+        },
+        formatValidationError(error) {
+            if (!error || !error.type) return 'Unknown validation error'
+
+            switch (error.type) {
+                case 'field-tag':
+                    return `${error.tag}: field tag is not valid for this record type`
+                case 'field-required-missing':
+                    return `${error.tag}: required field is missing`
+                case 'field-not-repeatable':
+                    return `${error.tag}: field is not repeatable`
+                case 'subfield-required-missing':
+                    return `${error.tag} $${error.code}: required subfield is missing`
+                case 'subfield-required-blank':
+                    return `${error.tag} $${error.code}: required subfield is blank`
+                case 'subfield-empty-value':
+                    return `${error.tag} $${error.code}: subfield value cannot be empty`
+                case 'subfield-code':
+                    return `${error.tag} $${error.code}: subfield code is not valid`
+                case 'subfield-value': {
+                    const reasons = []
+                    if (error.failedValidStrings) reasons.push('not in allowed values')
+                    if (error.failedIsDate) reasons.push('must match YYYY-MM or YYYY-MM-DD')
+                    const suffix = reasons.length > 0 ? ` (${reasons.join('; ')})` : ''
+                    return `${error.tag} $${error.code}: invalid value "${error.value ?? ''}"${suffix}`
+                }
+                default:
+                    return `${error.tag || 'Record'}: validation error (${error.type})`
+            }
+        },
+        isValidDateValue(value) {
+            const datePattern = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01]))?$/
+            const match = String(value || '').match(datePattern)
+            if (!match) return false
+
+            // YYYY-MM is valid at month precision.
+            if (typeof match[3] === 'undefined') return true
+
+            // For YYYY-MM-DD, enforce calendar-valid day values.
+            const year = Number(match[1])
+            const month = Number(match[2])
+            const day = Number(match[3])
+            const dt = new Date(Date.UTC(year, month - 1, day))
+            return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day
+        },
+        hasUpdatePermission() {
+            return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('updateRecord'))
+        },
+        getSavedFieldSnapshot(field) {
+            if (!this.record || !this.record.savedState) return null
+
+            const savedFieldsForTag = this.record.savedState[field.tag]
+            if (!Array.isArray(savedFieldsForTag)) return null
+
+            const currentPlace = this.record.getFields(field.tag).indexOf(field)
+            if (currentPlace < 0) return null
+
+            return savedFieldsForTag[currentPlace] ?? null
+        },
         fieldHasChanged(field) {
-            if (!field.savedState) return false
-            return JSON.stringify(field.savedState) !== JSON.stringify(field.compile())
+            if (field.savedState) {
+                return JSON.stringify(field.savedState) !== JSON.stringify(field.compile())
+            }
+
+            const savedFieldSnapshot = this.getSavedFieldSnapshot(field)
+            if (!savedFieldSnapshot) return true
+
+            return JSON.stringify(savedFieldSnapshot) !== JSON.stringify(field.compile())
         },
         updateChangeTracking() {
             const dataFields = this.record.getDataFields()
@@ -97,14 +340,127 @@ export const RecordstageRecord = {
                 }
             })
 
+            // If we're at the first history snapshot, treat the record as unchanged.
+            if (this.historySnapshots.length > 0 && this.historyIndex === 0) {
+                this.hasChanges = false
+                return
+            }
+
             // Use Jmarc's built-in saved getter
             this.hasChanges = !this.record.saved
         },
         onFieldChanged() {
+            if (!this.isApplyingHistory) {
+                this.captureHistorySnapshot()
+            }
             this.updateChangeTracking()
+            this.runValidation()
+        },
+        runValidation() {
+            this.currentValidationErrors = this.validationErrors
+        },
+        resetHistory() {
+            this.historySnapshots = []
+            this.historyIndex = -1
+            this.captureHistorySnapshot()
+        },
+        captureHistorySnapshot() {
+            if (!this.record || typeof this.record.compile !== 'function') return
+
+            const snapshot = JSON.stringify(this.record.compile())
+            if (this.historyIndex >= 0 && this.historySnapshots[this.historyIndex] === snapshot) {
+                return
+            }
+
+            if (this.historyIndex < this.historySnapshots.length - 1) {
+                this.historySnapshots = this.historySnapshots.slice(0, this.historyIndex + 1)
+            }
+
+            this.historySnapshots.push(snapshot)
+            this.historyIndex = this.historySnapshots.length - 1
+        },
+        applyHistorySnapshot(targetIndex) {
+            if (!this.record || typeof this.record.parse !== 'function') return
+            if (targetIndex < 0 || targetIndex >= this.historySnapshots.length) return
+
+            try {
+                this.isApplyingHistory = true
+                const snapshotData = JSON.parse(this.historySnapshots[targetIndex])
+                // Rebuild from snapshot to preserve exact field/subfield order.
+                this.record.fields = []
+                this.record.parse(snapshotData)
+                this.historyIndex = targetIndex
+                this.copiedFields = []
+                this.updateChangeTracking()
+                this.runValidation()
+            } finally {
+                this.isApplyingHistory = false
+            }
+        },
+        undoChange() {
+            if (!this.canUndo) return
+            this.applyHistorySnapshot(this.historyIndex - 1)
+        },
+        redoChange() {
+            if (!this.canRedo) return
+            this.applyHistorySnapshot(this.historyIndex + 1)
+        },
+        handleKeydown(event) {
+            if (!this.isFocused || this.isRecordReadonly) return
+
+            const key = String(event.key || '').toLowerCase()
+            const hasModifier = event.metaKey || event.ctrlKey
+            if (!hasModifier) return
+
+            const isUndo = key === 'z' && !event.shiftKey
+            const isRedo = (key === 'z' && event.shiftKey) || key === 'y'
+            const isSave = key === 's' && !event.shiftKey
+            const isAddField = key === 'enter' && event.shiftKey
+            const isRemoveField = (key === 'backspace' || key === 'delete') && event.shiftKey
+
+            if (!isUndo && !isRedo && !isSave && !isAddField && !isRemoveField) return
+
+            event.preventDefault()
+            event.stopPropagation()
+
+            if (isAddField) {
+                this.addFieldFrom(this.getFocusedFieldFromDom())
+                return
+            }
+
+            if (isRemoveField) {
+                this.deleteSelectedFieldsFrom(this.getFocusedFieldFromDom())
+                return
+            }
+
+            if (isSave) {
+                this.saveRecord()
+                return
+            }
+
+            if (isUndo) {
+                this.undoChange()
+                return
+            }
+
+            this.redoChange()
+        },
+        isControlDisabled(control) {
+            if (!this.isFocused) return true
+            if (this.isRecordReadonly) return true
+            if (control.id === 'undo') return !this.canUndo
+            if (control.id === 'redo') return !this.canRedo
+            if (control.id === 'save') return this.hasValidationErrors || this.isSaving
+            return false
         },
         handleControl(control) {
             switch (control.id) {
+                case 'undo':
+                    this.undoChange()
+                    break
+                case 'redo':
+                    this.redoChange()
+                    break
                 case 'save':
                     this.saveRecord()
                     break
@@ -122,12 +478,48 @@ export const RecordstageRecord = {
                     break
             }
         },
-        saveRecord() {
-            console.log('Save record:', this.record)
-            this.record.updateSavedState()
-            this.hasChanges = false
-            this.changedFields.clear()
-            this.$emit('saveRecord', this.record)
+        async saveRecord() {
+            this.runValidation()
+
+            if (this.hasValidationErrors) {
+                console.warn('Cannot save record with validation errors', this.validationErrors)
+                return
+            }
+
+            if (this.isSaving) return
+
+            this.isSaving = true
+            try {
+                console.log('Save record:', this.record)
+
+                // Save a clone so Jmarc runSaveActions/validate side effects don't mutate
+                // the active editor state (which can reorder fields in-place).
+                const saveCandidate = this.record.clone()
+                saveCandidate.recordId = this.record.recordId
+                saveCandidate.url = this.record.url
+
+                const savedRecord = this.record.recordId
+                    ? await saveCandidate.put()
+                    : await saveCandidate.post()
+
+                if (savedRecord && savedRecord.url) {
+                    this.record.url = savedRecord.url
+                }
+                if (savedRecord && savedRecord.recordId) {
+                    this.record.recordId = savedRecord.recordId
+                }
+
+                // Keep undo/redo snapshots intact; only reset saved baseline.
+                this.record.updateSavedState()
+                this.updateChangeTracking()
+                this.$emit('saveRecord', this.record)
+            } catch (error) {
+                const message = error && error.message ? error.message : String(error)
+                console.error('Failed to save record:', message, error)
+                window.alert(`Error saving record: ${message}`)
+            } finally {
+                this.isSaving = false
+            }
         },
         cloneRecord() {
             console.log('Clone record:', this.record)
@@ -151,11 +543,11 @@ export const RecordstageRecord = {
                     ? [...sourceField.indicators]
                     : ["_", "_"]
 
-                ;(sourceField.subfields || []).forEach(sf => {
-                    const newSubfield = newField.createSubfield(sf.code)
-                    newSubfield.value = sf.value
-                    newSubfield.xref = sf.xref
-                })
+                    ; (sourceField.subfields || []).forEach(sf => {
+                        const newSubfield = newField.createSubfield(sf.code)
+                        newSubfield.value = sf.value
+                        newSubfield.xref = sf.xref
+                    })
 
                 newField.checked = false
                 pastedFields.push(newField)
@@ -170,6 +562,7 @@ export const RecordstageRecord = {
             this.clearFieldSelections()
             pastedFields.forEach(field => this.setFieldSelection(field, true))
 
+            this.captureHistorySnapshot()
             this.updateChangeTracking()
             this.$emit('pasteFields', { record: this.record, fields: pastedFields })
         },
@@ -228,6 +621,78 @@ export const RecordstageRecord = {
             console.log('Batch actions for:', this.record)
             this.$emit('batchActions', this.record)
         },
+        getFocusedFieldFromDom() {
+            const activeElement = document.activeElement
+            if (!activeElement || !this.$el || !this.$el.contains(activeElement)) return null
+
+            const fieldRow = activeElement.closest('.record-field-selectable')
+            if (!fieldRow) return null
+
+            const index = Number.parseInt(fieldRow.dataset.fieldIndex || '', 10)
+            if (Number.isNaN(index)) return null
+
+            const dataFields = this.record.getDataFields()
+            return dataFields[index] || null
+        },
+        getDefaultSubfieldCodeForTag(tag) {
+            const fieldValidation = this.validationDocument[tag]
+            const defaultSubfields = fieldValidation && Array.isArray(fieldValidation.defaultSubfields)
+                ? fieldValidation.defaultSubfields
+                : []
+
+            return defaultSubfields.length > 0 ? defaultSubfields[0] : 'a'
+        },
+        addFieldFrom(sourceField) {
+            if (this.isRecordReadonly) return
+            if (!this.record || typeof this.record.createField !== 'function') return
+
+            const fieldIndex = sourceField && Array.isArray(this.record.fields)
+                ? this.record.fields.indexOf(sourceField)
+                : -1
+            const insertAt = fieldIndex >= 0 ? fieldIndex + 1 : undefined
+            const newField = this.record.createField('', insertAt)
+
+            this.clearFieldSelections()
+            if (newField) {
+                this.setFieldSelection(newField, true)
+            }
+            this.onFieldChanged()
+
+            // Move editing focus directly to the new field tag.
+            this.$nextTick(() => {
+                const selectedTag = this.$el?.querySelector('.record-field-selectable.is-selected .record-field-tag[contenteditable="true"]')
+                if (selectedTag && typeof selectedTag.focus === 'function') {
+                    selectedTag.focus()
+                }
+            })
+        },
+        deleteFieldFrom(targetField) {
+            if (this.isRecordReadonly) return
+            if (!targetField || !this.record || typeof this.record.deleteField !== 'function') return
+
+            this.record.deleteField(targetField)
+            this.removeFieldFromCopyStack(targetField)
+            this.onFieldChanged()
+        },
+        deleteSelectedFieldsFrom(fallbackField) {
+            if (this.isRecordReadonly) return
+            if (!this.record || typeof this.record.deleteField !== 'function') return
+
+            const selectedFields = this.record.getDataFields().filter(field => field.checked)
+            const fieldsToDelete = selectedFields.length > 0
+                ? selectedFields
+                : (fallbackField ? [fallbackField] : [])
+
+            if (fieldsToDelete.length === 0) return
+
+            fieldsToDelete.forEach(field => {
+                this.record.deleteField(field)
+                this.removeFieldFromCopyStack(field)
+            })
+
+            this.clearFieldSelections()
+            this.onFieldChanged()
+        },
         setFieldSelection(field, shouldSelect) {
             field.checked = shouldSelect
             if (shouldSelect) {
@@ -245,6 +710,13 @@ export const RecordstageRecord = {
         },
         beginFieldSelection(field, event) {
             if (event.button !== 0) return // left click only
+
+            // Let editable/interactive controls receive focus and cursor placement.
+            const target = event.target
+            const interactiveSelector = 'button, a, input, textarea, select, [contenteditable="true"]'
+            if (target && (target.isContentEditable || target.closest(interactiveSelector))) {
+                return
+            }
 
             this.isDragSelecting = true
             this.dragAdditive = event.ctrlKey || event.metaKey // Ctrl on Win/Linux, Cmd on macOS
@@ -296,7 +768,12 @@ export const RecordstageRecord = {
         }
     },
     template: /* html */ `
-    <div class="record-container">
+        <div
+            class="record-container"
+            :class="{ 'record-container--focused': isFocused }"
+            @mousedown="requestFocus"
+            @focusin="requestFocus"
+        >
       <div class="record-header">
         <div class="record-header-id">
           <i 
@@ -306,6 +783,7 @@ export const RecordstageRecord = {
             title="Select/Unselect all fields"
           ></i>
           <span class="ms-2">{{ record.getVirtualCollection() }}/{{ record.recordId }}</span>
+                    <span v-if="isFocused" class="record-focus-badge">Active</span>
         </div>
         <div class="record-controls">
           <button
@@ -314,23 +792,37 @@ export const RecordstageRecord = {
             :title="control.label"
             :data-action="control.id"
             :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges }]"
+                        :disabled="isControlDisabled(control)"
             @click="handleControl(control)"
           >
             <i :class="['bi', control.icon]"></i>
           </button>
           <button
-            v-if="!readonly"
+                        v-if="!isRecordReadonly"
             class="record-control-btn record-close-btn"
             title="Close record"
+                        :disabled="!isFocused"
             @click="$emit('close-record', record)"
           >
             <i class="bi bi-x"></i>
           </button>
         </div>
       </div>
+            <div v-if="validationEnabled && hasValidationErrors" class="record-validation-summary">
+                <div class="record-validation-summary-title">
+                    Validation issues ({{ currentValidationErrors.length }})
+                </div>
+                <ul class="record-validation-summary-list">
+                    <li v-for="(entry, idx) in validationSummaryEntries" :key="'validation-' + idx">{{ entry }}</li>
+                </ul>
+            </div>
+            <div v-else-if="!validationEnabled" class="record-validation-summary record-validation-summary--disabled">
+                Validation disabled because field 998 is present.
+            </div>
       <div
         v-for="(field, idx) in record.getDataFields()"
-        :key="field.tag + '-' + idx"
+                :key="idx"
+        :data-field-index="idx"
         class="record-field-selectable"
         :class="{ 'is-selected': field.checked, 'is-changed': changedFields.has(field) }"
         @mousedown="beginFieldSelection(field, $event)"
@@ -339,10 +831,13 @@ export const RecordstageRecord = {
       >
         <record-field 
           :field="field"
-          :collection="record.collection"
-          :readonly="readonly"
+          :collection="record.getVirtualCollection()"
+                    :readonly="isRecordReadonly"
           @field-changed="onFieldChanged"
           @field-selected="toggleFieldSelection(field, $event)"
+                    @add-field="addFieldFrom"
+                    @delete-field="deleteFieldFrom"
+                    @delete-selected-fields="deleteSelectedFieldsFrom"
         />
       </div>
     </div>

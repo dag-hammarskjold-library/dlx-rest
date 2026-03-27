@@ -7,6 +7,26 @@ export const AppRecordstage = {
         user: Object
     },
     components: { RecordstageRecord },
+    data() {
+      return {
+        focusedRecord: null
+      }
+    },
+    watch: {
+      records: {
+        handler(newRecords) {
+          if (!Array.isArray(newRecords) || newRecords.length === 0) {
+            this.focusedRecord = null
+            return
+          }
+
+          if (!this.focusedRecord || !newRecords.includes(this.focusedRecord)) {
+            this.focusedRecord = newRecords[0]
+          }
+        },
+        immediate: true
+      }
+    },
     template: /* html */ `
     <div class="recordstage">
       <div class="recordstage-menu" v-if="!readonly">
@@ -19,7 +39,9 @@ export const AppRecordstage = {
           :key="jmarc.collection + jmarc.recordId" 
           :record="jmarc"
           :readonly="readonly"
+          :is-focused="focusedRecord === jmarc"
           :user="user"
+          @focus-record="focusRecord"
           @close-record="closeRecord"
         />
       </div>
@@ -28,6 +50,9 @@ export const AppRecordstage = {
     methods: {
         toggleCreateRecordDropdown() { window.alert("workform list") },
         toggleMergeRecordsDropdown() { window.alert("merge chooser") },
+        focusRecord(jmarc) {
+            this.focusedRecord = jmarc
+        },
         closeRecord(jmarc) {
             this.$emit('close-record', jmarc)
         }
