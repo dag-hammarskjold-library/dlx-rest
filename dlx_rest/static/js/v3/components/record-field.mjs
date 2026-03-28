@@ -386,6 +386,7 @@ export const RecordField = {
             @add-subfield="addSubfield"
             @delete-subfield="deleteSubfield"
             @dropdown-state-changed="onSubfieldDropdownStateChanged"
+            @auth-lookup="$emit('auth-lookup', { field, subfield: $event })"
           />
         </div>
         <div class="field-menu-container">

@@ -48,6 +48,13 @@ export const AppStage = {
         User.apiUrl = this.api_prefix
         Jmarc.apiUrl = this.api_prefix
 
+        // Initialize Jmarc's authMap for authority lookups
+        try {
+            await Jmarc.init()
+        } catch (error) {
+            console.warn('Failed to initialize authMap:', error)
+        }
+
         // Parse and load records passed from the server
         await this.loadRecords()
     },

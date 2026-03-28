@@ -765,6 +765,46 @@ export const RecordstageRecord = {
 
             this.clearFieldSelections()
             this.setFieldSelection(field, true)
+        },
+        async handleAuthLookup(field, subfield) {
+            if (!this.record || typeof this.record.lookup !== 'function') return
+
+            try {
+                console.log(`Authority lookup for ${field.tag} $${subfield.code}: ${subfield.value}`)
+                
+                // Use Jmarc's lookup method to search for matching authority records
+                const choices = await field.lookup()
+                
+                if (choices.length === 0) {
+                    window.alert(`No authority records found for "${subfield.value}"`)
+                    return
+                }
+                
+                if (choices.length === 1) {
+                    // Auto-select single match
+                    const matchedField = choices[0]
+                    if (matchedField && matchedField.subfields && matchedField.subfields.length > 0) {
+                        // Get the xref from the matched field
+                        const xrefValue = matchedField.subfields[0].xref
+                        if (xrefValue && !(xrefValue instanceof Error)) {
+                            subfield.xref = xrefValue
+                            this.onFieldChanged()
+                            window.alert(`Authority linked to: ${subfield.value}`)
+                        }
+                    }
+                    return
+                }
+                
+                // Multiple matches - emit event to show selection UI
+                this.$emit('authLookupChoices', {
+                    field,
+                    subfield,
+                    choices
+                })
+            } catch (error) {
+                console.error('Authority lookup error:', error)
+                window.alert(`Authority lookup failed: ${error && error.message ? error.message : String(error)}`)
+            }
         }
     },
     template: /* html */ `
@@ -838,6 +878,7 @@ export const RecordstageRecord = {
                     @add-field="addFieldFrom"
                     @delete-field="deleteFieldFrom"
                     @delete-selected-fields="deleteSelectedFieldsFrom"
+                    @auth-lookup="({ subfield }) => handleAuthLookup(field, subfield)"
         />
       </div>
     </div>

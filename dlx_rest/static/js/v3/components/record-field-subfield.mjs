@@ -13,13 +13,20 @@ export const RecordFieldSubfield = {
             showMenu: false,
             showCodeMenu: false,
             showValueMenu: false,
+            showAuthSearch: false,
             activeCodeOptionIndex: -1,
             activeValueOptionIndex: -1,
+            activeAuthOptionIndex: -1,
+            authSearchResults: [],
+            authSearchQuery: '',
+            authSearchTimeout: null,
+            authSearching: false,
+            isAuthUnmatched: false,
             classes: {
                 subfieldValue: {
-                    "clickable-text": this.subfield.xref ? true : false,
+                    "clickable-text": false,
                     "subfield-value__changed": false,
-                    "authority-controlled": this.subfield.xref ? true : false
+                    "authority-controlled": false
                 }
             }
         }
@@ -88,6 +95,13 @@ export const RecordFieldSubfield = {
         },
         hasDropdownSubfield() {
             return this.subfieldCodeOptions.length > 0 && !this.isWildcardSubfield
+        },
+        isAuthorityControlled() {
+            if (!this.field || !this.field.parentRecord) return false
+            if (typeof this.field.parentRecord.isAuthorityControlled !== 'function') return false
+            
+            // Check if this subfield is authority-controlled using Jmarc's authMap
+            return this.field.parentRecord.isAuthorityControlled(this.tag, this.subfield.code)
         }
     },
     mounted() {
@@ -96,9 +110,20 @@ export const RecordFieldSubfield = {
         if (this.$refs.valueEl) {
             this.$refs.valueEl.textContent = this.subfield.value
         }
+        // Initialize authValueEl with current value for authority-controlled fields
+        if (this.$refs.authValueEl) {
+            this.$refs.authValueEl.textContent = this.subfield.value
+        }
         // Initialize codeEl with current code
         if (this.$refs.codeEl) {
             this.$refs.codeEl.textContent = '$' + this.subfield.code
+        }
+
+        // Initialize authority visual state on first render
+        if (this.isAuthorityControlled) {
+            this.isAuthUnmatched = !this.subfield.xref
+            this.classes.subfieldValue['clickable-text'] = !!this.subfield.xref
+            this.classes.subfieldValue['authority-controlled'] = !!this.subfield.xref
         }
     },
     beforeUnmount() {
@@ -110,11 +135,38 @@ export const RecordFieldSubfield = {
             if (this.$refs.valueEl && !this.$refs.valueEl.contains(document.activeElement)) {
                 this.$refs.valueEl.textContent = newValue
             }
+            if (this.$refs.authValueEl && !this.$refs.authValueEl.contains(document.activeElement)) {
+                this.$refs.authValueEl.textContent = newValue
+            }
         },
         'subfield.code'(newCode) {
             // Update display if code changes from outside
             if (this.$refs.codeEl && !this.$refs.codeEl.contains(document.activeElement)) {
                 this.$refs.codeEl.textContent = '$' + newCode
+            }
+        },
+        'subfield.xref'() {
+            // Update authority-controlled styling when xref changes
+            this.classes.subfieldValue['clickable-text'] = !!this.subfield.xref
+            this.classes.subfieldValue['authority-controlled'] = !!this.subfield.xref
+            if (this.isAuthorityControlled) {
+                this.isAuthUnmatched = !this.subfield.xref
+            }
+        },
+        isAuthorityControlled(newVal) {
+            // Update clickable styling based on authority-controlled status
+            if (!this.subfield.xref) {
+                this.classes.subfieldValue['clickable-text'] = newVal
+            }
+
+            // When this row switches into authority-controlled mode,
+            // initialize the contenteditable text once without forcing rerenders.
+            if (newVal) {
+                this.$nextTick(() => {
+                    if (this.$refs.authValueEl) {
+                        this.$refs.authValueEl.textContent = this.subfield.value || ''
+                    }
+                })
             }
         }
     },
@@ -150,6 +202,44 @@ export const RecordFieldSubfield = {
             }
             const validationCollection = this.getValidationCollection()
             return validationData[collectionMap[validationCollection] || 'bibs']
+        },
+        getAuthorityDisplayText(authRecord) {
+            if (!authRecord || typeof authRecord !== 'object') return ''
+
+            if (authRecord.heading) return String(authRecord.heading)
+            if (authRecord.value) return String(authRecord.value)
+
+            // Api lookup records typically expose the heading as a 1XX field key.
+            const tagKeys = Object.keys(authRecord).filter(tag => /^1\d\d$/.test(tag)).sort()
+
+            for (const tag of tagKeys) {
+                const tagData = authRecord[tag]
+                if (!Array.isArray(tagData) || tagData.length === 0) continue
+
+                const firstField = tagData[0]
+                const subfields = firstField && Array.isArray(firstField.subfields) ? firstField.subfields : []
+                const text = subfields
+                    .map(sf => (sf && sf.value ? String(sf.value).trim() : ''))
+                    .filter(Boolean)
+                    .join(' ')
+
+                if (text) return text
+            }
+
+            // Some payloads include a normalized fields array
+            if (Array.isArray(authRecord.fields)) {
+                const headingField = authRecord.fields.find(f => f && /^1\d\d$/.test(f.tag || ''))
+                if (headingField && Array.isArray(headingField.subfields)) {
+                    const text = headingField.subfields
+                        .map(sf => (sf && sf.value ? String(sf.value).trim() : ''))
+                        .filter(Boolean)
+                        .join(' ')
+
+                    if (text) return text
+                }
+            }
+
+            return ''
         },
         handleClickOutside(event) {
             if (!this.$el || !this.$el.querySelector) return
@@ -450,7 +540,224 @@ export const RecordFieldSubfield = {
             }
 
             this.deleteSubfield()
+        },
+        async searchAuthorities(query) {
+            if (!query || query.length < 2) {
+                this.authSearchResults = []
+                this.showAuthSearch = false
+                return
+            }
+
+            this.authSearching = true
+
+            try {
+                // Get the API prefix from the parent record
+                const apiPrefix = this.field.parentRecord.constructor.apiUrl
+                const collection = this.getValidationCollection()
+                
+                // Use the lookup endpoint with the subfield code and query value
+                const endpoint = `${apiPrefix}/marc/${collection}/lookup/${this.tag}?${this.subfield.code}=${encodeURIComponent(query)}&start=1`
+                
+                const response = await fetch(endpoint)
+                if (response.ok) {
+                    const data = await response.json()
+                    const records = Array.isArray(data)
+                        ? data
+                        : Array.isArray(data && data.data)
+                            ? data.data
+                            : []
+                    
+                    // Extract records from the returned authority records
+                    this.authSearchResults = records
+                        .slice(0, 10)
+                        .map(auth => ({
+                            _id: auth.id || auth._id || '',
+                            id: auth.id || auth._id || '',
+                            heading: this.getAuthorityDisplayText(auth),
+                            fields: auth.fields || [],
+                            value: this.getAuthorityDisplayText(auth)
+                        }))
+                    
+                    if (this.authSearchResults.length === 0) {
+                        // Show "not found" temporarily
+                        this.authSearchResults.push({
+                            _id: 'not-found',
+                            value: 'Authority not found',
+                            notFound: true
+                        })
+                        this.showAuthSearch = true
+                        // Auto-hide after 1 second
+                        setTimeout(() => {
+                            this.authSearchResults = this.authSearchResults.filter(r => !r.notFound)
+                            this.showAuthSearch = false
+                        }, 1000)
+                    } else {
+                        this.showAuthSearch = true
+                        this.activeAuthOptionIndex = 0
+                    }
+                } else {
+                    this.authSearchResults = []
+                    this.showAuthSearch = false
+                }
+            } catch (error) {
+                console.error('Authority search error:', error)
+                this.authSearchResults = []
+                this.showAuthSearch = false
+            } finally {
+                this.authSearching = false
+            }
+        },
+        async onAuthValueChange(event) {
+            if (this.readonly) return
+            
+            const value = event.target.innerText
+            this.subfield.value = value
+            this.authSearchQuery = value
+            this.classes.subfieldValue["subfield-value__changed"] = value !== this.field.subfields[0].value
+            
+            // Mark as unmatched when user edits
+            this.isAuthUnmatched = true
+            this.classes.subfieldValue['authority-controlled'] = false
+            delete this.subfield.xref
+            
+            this.$emit('field-changed')
+
+            // Debounce authority search (750ms to match original)
+            clearTimeout(this.authSearchTimeout)
+            if (value.length >= 2) {
+                // Show searching indicator
+                this.authSearching = true
+                this.showAuthSearch = true
+                this.authSearchTimeout = setTimeout(() => {
+                    this.searchAuthorities(value)
+                }, 750)
+            } else {
+                this.showAuthSearch = false
+                this.authSearchResults = []
+            }
+        },
+        selectAuthority(authority) {
+            if (this.readonly || authority.notFound) return
+            
+            // Update the subfield value with authority heading
+            this.subfield.value = authority.heading || authority.value || ''
+            
+            // Store the authority reference
+            this.subfield.xref = authority._id || authority.id || ''
+            
+            // Mark as matched
+            this.isAuthUnmatched = false
+            this.classes.subfieldValue['authority-controlled'] = true
+            this.classes.subfieldValue['clickable-text'] = true
+            
+            this.showAuthSearch = false
+            this.authSearchResults = []
+
+            // Keep the contenteditable text in sync immediately after selection.
+            this.$nextTick(() => {
+                if (this.$refs.authValueEl) {
+                    this.$refs.authValueEl.textContent = this.subfield.value || ''
+                }
+            })
+            
+            this.$emit('field-changed')
+        },
+        handleAuthValueFocusOut(event) {
+            const nextTarget = event.relatedTarget
+            if (event.currentTarget && !event.currentTarget.contains(nextTarget)) {
+                // Keep search open if navigating to dropdown options
+                const isInDropdown = nextTarget && this.$el.querySelector('.auth-dropdown')?.contains(nextTarget)
+                if (!isInDropdown) {
+                    this.showAuthSearch = false
+                }
+            }
+        },
+        focusAuthOption(index) {
+            const options = this.getRefArray('authOptionButtons')
+            if (options.length === 0) return
+
+            const normalizedIndex = ((index % options.length) + options.length) % options.length
+            this.activeAuthOptionIndex = normalizedIndex
+            const target = options[normalizedIndex]
+            if (target && typeof target.focus === 'function') {
+                target.focus()
+            }
+        },
+        moveAuthSelection(delta) {
+            const options = this.authSearchResults.filter(option => !option.notFound)
+            if (options.length === 0) return
+
+            const current = this.activeAuthOptionIndex >= 0 ? this.activeAuthOptionIndex : -1
+            let next = current
+
+            // Walk through the rendered list while skipping disabled/not-found rows.
+            do {
+                next = (next + delta + this.authSearchResults.length) % this.authSearchResults.length
+            } while (this.authSearchResults[next] && this.authSearchResults[next].notFound)
+
+            this.activeAuthOptionIndex = next
+        },
+        onAuthValueKeyDown(event) {
+            if (!this.isAuthorityControlled) return
+
+            if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && this.authSearchResults.length > 0) {
+                event.preventDefault()
+                if (!this.showAuthSearch) {
+                    this.showAuthSearch = true
+                }
+
+                const delta = event.key === 'ArrowDown' ? 1 : -1
+                this.moveAuthSelection(delta)
+                return
+            }
+
+            if (event.key === 'Escape') {
+                event.preventDefault()
+                this.showAuthSearch = false
+                return
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault()
+                if (this.showAuthSearch && this.authSearchResults.length > 0 && this.activeAuthOptionIndex >= 0) {
+                    const authority = this.authSearchResults[this.activeAuthOptionIndex]
+                    if (authority && !authority.notFound) {
+                        this.selectAuthority(authority)
+                    }
+                    return
+                }
+                event.target.blur()
+            }
+        },
+        onAuthOptionKeyDown(event, index) {
+            if (event.key === 'Tab') {
+                this.showAuthSearch = false
+                return
+            }
+
+            if (event.key === 'Escape') {
+                event.preventDefault()
+                this.showAuthSearch = false
+                this.$nextTick(() => this.$refs.authValueEl && this.$refs.authValueEl.focus && this.$refs.authValueEl.focus())
+                return
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault()
+                const authority = this.authSearchResults[index]
+                if (authority && !authority.notFound) {
+                    this.selectAuthority(authority)
+                }
+                return
+            }
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+                const delta = event.key === 'ArrowDown' ? 1 : -1
+                this.moveAuthSelection(delta)
+            }
         }
+
     },
     template: /* html */ `
         <div class="subfield-row" @keydown.capture="onSubfieldShortcut">
@@ -530,6 +837,41 @@ export const RecordFieldSubfield = {
                     </button>
                 </div>
             </div>
+            <div v-else-if="isAuthorityControlled" class="authority-value-menu-container" @focusout="handleAuthValueFocusOut">
+                <span
+                    ref="authValueEl"
+                    :class="[classes.subfieldValue, 'value-editable', { 'authority-controlled': !isAuthUnmatched, 'authority-controlled-unmatched': isAuthUnmatched }]"
+                    :contenteditable="!readonly"
+                    :tabindex="readonly ? -1 : 0"
+                    @keydown="onAuthValueKeyDown"
+                    @input="onAuthValueChange"
+                    @blur="finalizeValue"
+                    title="Authority-controlled field with live search. Type to search and select from results."
+                ></span>
+                <div v-if="showAuthSearch" class="auth-dropdown">
+                    <div v-if="authSearching" class="auth-searching">
+                        <i class="fa fa-spinner fa-spin"></i> Searching...
+                    </div>
+                    <button
+                        v-for="(authority, authIdx) in authSearchResults"
+                        :key="authority._id || authority.id"
+                        ref="authOptionButtons"
+                        @click="selectAuthority(authority)"
+                        @mouseenter="activeAuthOptionIndex = authIdx"
+                        @keydown="onAuthOptionKeyDown($event, authIdx)"
+                        :disabled="authority.notFound"
+                        class="auth-option"
+                        :class="{ active: authIdx === activeAuthOptionIndex, 'not-found': authority.notFound }"
+                    >
+                        <span v-if="authority.notFound" class="auth-not-found">
+                            {{ authority.value }}
+                        </span>
+                        <span v-else class="auth-heading">
+                            {{ authority.heading || authority.value }}
+                        </span>
+                    </button>
+                </div>
+            </div>
             <span
                 v-else
                 ref="valueEl"
@@ -549,13 +891,6 @@ export const RecordFieldSubfield = {
           <button @click="deleteSubfield" class="menu-item">Delete subfield</button>
           <button @click="moveSubfieldUp" class="menu-item">Move up</button>
           <button @click="moveSubfieldDown" class="menu-item">Move down</button>
-          <button 
-            v-if="subfield.xref"
-            @click="authLookup" 
-            class="menu-item"
-          >
-            Authority lookup
-          </button>
         </div>
       </div>
       &nbsp;
