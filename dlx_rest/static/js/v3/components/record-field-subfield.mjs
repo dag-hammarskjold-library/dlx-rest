@@ -35,16 +35,8 @@ export const RecordFieldSubfield = {
         subfieldCodeOptions() {
             return this.getSubfieldCodes().filter(code => code !== this.subfield.code)
         },
-        validationEnabled() {
-            return !(this.field && this.field.parentRecord && typeof this.field.parentRecord.getField === 'function' && this.field.parentRecord.getField('998'))
-        },
         fieldValidation() {
-            if (!this.validationEnabled) return null
-
-            const collectionData = this.getValidationDocument()
-            if (!collectionData) return null
-
-            return collectionData[this.tag] || null
+            return this.getTagValidation()
         },
         isSubfieldCodeInvalid() {
             if (!this.fieldValidation) return false
@@ -72,10 +64,9 @@ export const RecordFieldSubfield = {
             return isInvalidByString || isInvalidByDate
         },
         subfieldValueOptions() {
-            const collectionData = this.getValidationDocument()
-            if (!collectionData || !collectionData[this.tag]) return []
+            if (!this.fieldValidation) return []
 
-            const validStringsByCode = collectionData[this.tag].validStrings || {}
+            const validStringsByCode = this.fieldValidation.validStrings || {}
             const options = validStringsByCode[this.subfield.code]
 
             if (!Array.isArray(options)) return []
@@ -85,11 +76,8 @@ export const RecordFieldSubfield = {
             return this.subfieldValueOptions.length > 0
         },
         isWildcardSubfield() {
-            const collectionData = this.getValidationDocument()
-            if (!collectionData || !collectionData[this.tag]) return false
-
-            const fieldValidation = collectionData[this.tag]
-            const validSubfields = fieldValidation.validSubfields || []
+            if (!this.fieldValidation) return false
+            const validSubfields = this.fieldValidation.validSubfields || []
 
             return validSubfields.length === 1 && validSubfields[0] === '*'
         },
@@ -193,6 +181,21 @@ export const RecordFieldSubfield = {
 
             return this.collection
         },
+        // Lookup endpoints are keyed by API collections (bibs/auths), while
+        // validation can use virtual collections (speeches/votes).
+        getLookupCollection() {
+            const baseCollection =
+                (this.field && this.field.parentRecord && this.field.parentRecord.collection)
+                    ? this.field.parentRecord.collection
+                    : this.collection
+
+            // Lookup endpoints use API collections, not virtual collections.
+            if (baseCollection === 'speeches' || baseCollection === 'votes') {
+                return 'bibs'
+            }
+
+            return baseCollection || 'bibs'
+        },
         getValidationDocument() {
             const collectionMap = {
                 'bibs': 'bibs',
@@ -202,6 +205,11 @@ export const RecordFieldSubfield = {
             }
             const validationCollection = this.getValidationCollection()
             return validationData[collectionMap[validationCollection] || 'bibs']
+        },
+        getTagValidation() {
+            const collectionData = this.getValidationDocument()
+            if (!collectionData) return null
+            return collectionData[this.tag] || null
         },
         getAuthorityDisplayText(authRecord) {
             if (!authRecord || typeof authRecord !== 'object') return ''
@@ -241,6 +249,53 @@ export const RecordFieldSubfield = {
 
             return ''
         },
+        // Normalize heading subfields from lookup payload variants.
+        getAuthorityHeadingSubfields(authRecord) {
+            if (!authRecord || typeof authRecord !== 'object') return []
+
+            const normalizeSubfields = rawSubfields => {
+                if (!Array.isArray(rawSubfields)) return []
+                return rawSubfields
+                    .map(sf => ({
+                        code: sf && typeof sf.code === 'string' ? sf.code : '',
+                        value: sf && sf.value != null ? String(sf.value) : ''
+                    }))
+                    .filter(sf => sf.code && sf.value)
+            }
+
+            const tagKeys = Object.keys(authRecord).filter(tag => /^1\d\d$/.test(tag)).sort()
+            for (const tag of tagKeys) {
+                const tagData = authRecord[tag]
+                if (!Array.isArray(tagData) || tagData.length === 0) continue
+                const firstField = tagData[0]
+                const subfields = normalizeSubfields(firstField && firstField.subfields)
+                if (subfields.length > 0) return subfields
+            }
+
+            if (Array.isArray(authRecord.fields)) {
+                const headingField = authRecord.fields.find(f => f && /^1\d\d$/.test(f.tag || ''))
+                if (headingField && Array.isArray(headingField.subfields)) {
+                    return normalizeSubfields(headingField.subfields)
+                }
+            }
+
+            return []
+        },
+        getAuthorityControlledCodes() {
+            if (!this.field || !this.field.parentRecord) return []
+
+            const tagMap = this.field.parentRecord.authMap && this.field.parentRecord.authMap[this.tag]
+            if (tagMap && typeof tagMap === 'object') {
+                return Object.keys(tagMap)
+            }
+
+            // Fallback if authMap is not ready yet.
+            const subfields = Array.isArray(this.field.subfields) ? this.field.subfields : []
+            const hasAuthorityChecker = typeof this.field.parentRecord.isAuthorityControlled === 'function'
+            return subfields
+                .filter(sf => sf && typeof sf.code === 'string' && hasAuthorityChecker && this.field.parentRecord.isAuthorityControlled(this.tag, sf.code))
+                .map(sf => sf.code)
+        },
         handleClickOutside(event) {
             if (!this.$el || !this.$el.querySelector) return
 
@@ -268,11 +323,8 @@ export const RecordFieldSubfield = {
             }
         },
         getSubfieldCodes() {
-            const collectionData = this.getValidationDocument()
-            if (!collectionData || !collectionData[this.tag]) return []
-
-            const fieldValidation = collectionData[this.tag]
-            const validSubfields = fieldValidation.validSubfields || []
+            if (!this.fieldValidation) return []
+            const validSubfields = this.fieldValidation.validSubfields || []
 
             // Filter out wildcard and return alphabetically sorted
             return validSubfields.filter(code => code !== '*').sort()
@@ -542,7 +594,7 @@ export const RecordFieldSubfield = {
             this.deleteSubfield()
         },
         async searchAuthorities(query) {
-            if (!query || query.length < 2) {
+            if (!query || query.length < 1) {
                 this.authSearchResults = []
                 this.showAuthSearch = false
                 return
@@ -553,10 +605,33 @@ export const RecordFieldSubfield = {
             try {
                 // Get the API prefix from the parent record
                 const apiPrefix = this.field.parentRecord.constructor.apiUrl
-                const collection = this.getValidationCollection()
-                
-                // Use the lookup endpoint with the subfield code and query value
-                const endpoint = `${apiPrefix}/marc/${collection}/lookup/${this.tag}?${this.subfield.code}=${encodeURIComponent(query)}&start=1`
+                const collection = this.getLookupCollection()
+
+                // Include all populated subfields so multi-key lookups rank more relevant results first.
+                const params = new URLSearchParams()
+                const subfields = Array.isArray(this.field && this.field.subfields) ? this.field.subfields : []
+
+                for (const sf of subfields) {
+                    if (!sf || typeof sf.code !== 'string' || sf.code.length === 0) continue
+
+                    const rawValue = sf === this.subfield ? query : sf.value
+                    const value = String(rawValue || '').trim()
+                    if (!value) continue
+
+                    params.append(sf.code, value)
+                }
+
+                // Ensure the active code/query is always included.
+                if (!params.has(this.subfield.code)) {
+                    const activeValue = String(query || '').trim()
+                    if (activeValue) {
+                        params.append(this.subfield.code, activeValue)
+                    }
+                }
+
+                params.append('start', '1')
+
+                const endpoint = `${apiPrefix}/marc/${collection}/lookup/${this.tag}?${params.toString()}`
                 
                 const response = await fetch(endpoint)
                 if (response.ok) {
@@ -574,6 +649,7 @@ export const RecordFieldSubfield = {
                             _id: auth.id || auth._id || '',
                             id: auth.id || auth._id || '',
                             heading: this.getAuthorityDisplayText(auth),
+                            subfields: this.getAuthorityHeadingSubfields(auth),
                             fields: auth.fields || [],
                             value: this.getAuthorityDisplayText(auth)
                         }))
@@ -624,7 +700,7 @@ export const RecordFieldSubfield = {
 
             // Debounce authority search (750ms to match original)
             clearTimeout(this.authSearchTimeout)
-            if (value.length >= 2) {
+            if (value.length >= 1) {
                 // Show searching indicator
                 this.authSearching = true
                 this.showAuthSearch = true
@@ -638,12 +714,58 @@ export const RecordFieldSubfield = {
         },
         selectAuthority(authority) {
             if (this.readonly || authority.notFound) return
+
+            const authorityId = authority._id || authority.id || ''
+            const authoritySubfields = Array.isArray(authority.subfields)
+                ? authority.subfields.filter(sf => sf && sf.code && sf.value)
+                : []
+            const controlledCodes = this.getAuthorityControlledCodes()
+            const controlledCodeSet = new Set(controlledCodes)
+            const hasControlledCodeList = controlledCodeSet.size > 0
             
-            // Update the subfield value with authority heading
-            this.subfield.value = authority.heading || authority.value || ''
-            
-            // Store the authority reference
-            this.subfield.xref = authority._id || authority.id || ''
+            // Apply all authority-controlled heading subfields from the selected authority.
+            if (authoritySubfields.length > 0 && this.field && typeof this.field.getSubfield === 'function' && typeof this.field.createSubfield === 'function') {
+                const incomingCodes = new Set()
+
+                for (const authSubfield of authoritySubfields) {
+                    if (hasControlledCodeList && !controlledCodeSet.has(authSubfield.code)) {
+                        continue
+                    }
+
+                    incomingCodes.add(authSubfield.code)
+
+                    let targetSubfield = this.field.getSubfield(authSubfield.code)
+                    if (!targetSubfield) {
+                        targetSubfield = this.field.createSubfield(authSubfield.code)
+                    }
+
+                    targetSubfield.value = authSubfield.value
+                    if (authorityId) {
+                        targetSubfield.xref = authorityId
+                    }
+                }
+
+                if (incomingCodes.size > 0) {
+                    const subfields = Array.isArray(this.field.subfields) ? [...this.field.subfields] : []
+                    for (const existingSubfield of subfields) {
+                        if (!existingSubfield || !existingSubfield.code) continue
+
+                        const isAuthorityControlled = hasControlledCodeList
+                            ? controlledCodeSet.has(existingSubfield.code)
+                            : (this.field.parentRecord && typeof this.field.parentRecord.isAuthorityControlled === 'function' && this.field.parentRecord.isAuthorityControlled(this.tag, existingSubfield.code))
+
+                        if (isAuthorityControlled && !incomingCodes.has(existingSubfield.code) && existingSubfield !== this.subfield) {
+                            this.field.deleteSubfield(existingSubfield)
+                        }
+                    }
+                }
+            } else {
+                // Fallback for response payloads that do not provide parsed subfields.
+                this.subfield.value = authority.heading || authority.value || ''
+                if (authorityId) {
+                    this.subfield.xref = authorityId
+                }
+            }
             
             // Mark as matched
             this.isAuthUnmatched = false
@@ -700,6 +822,12 @@ export const RecordFieldSubfield = {
         onAuthValueKeyDown(event) {
             if (!this.isAuthorityControlled) return
 
+            if (event.key === 'Tab') {
+                this.showAuthSearch = false
+                this.activeAuthOptionIndex = -1
+                return
+            }
+
             if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && this.authSearchResults.length > 0) {
                 event.preventDefault()
                 if (!this.showAuthSearch) {
@@ -728,6 +856,12 @@ export const RecordFieldSubfield = {
                 }
                 event.target.blur()
             }
+        },
+        onAuthOptionMouseDown(authority) {
+            if (this.readonly || !authority || authority.notFound) return
+
+            // Use mousedown so selection is applied before auth value blur/focusout runs.
+            this.selectAuthority(authority)
         },
         onAuthOptionKeyDown(event, index) {
             if (event.key === 'Tab') {
@@ -763,20 +897,7 @@ export const RecordFieldSubfield = {
         <div class="subfield-row" @keydown.capture="onSubfieldShortcut">
       <div class="code-menu-container" @focusout="handleCodeFocusOut">
         <span 
-          v-if="hasDropdownSubfield"
-          ref="codeEl"
-                    :class="['subfield-code', 'code-editable', { 'subfield-code__invalid': isSubfieldCodeInvalid }]"
-          :contenteditable="!readonly"
-          :tabindex="readonly ? -1 : 0"
-          @keydown="onCodeTriggerKeyDown"
-          @input="setCodeFromInput"
-          @blur="finalizeCode"
-          @focus="onCodeFocus"
-          @click="!readonly ? openCodeMenu() : null"
-                    :title="isSubfieldCodeInvalid ? 'Invalid subfield code for this field' : 'Subfield code: $' + subfield.code"
-                ></span>
-        <span 
-          v-else-if="isWildcardSubfield"
+                    v-if="hasDropdownSubfield || isWildcardSubfield"
           ref="codeEl"
                     :class="['subfield-code', 'code-editable', { 'subfield-code__invalid': isSubfieldCodeInvalid }]"
           :contenteditable="!readonly"
@@ -856,7 +977,7 @@ export const RecordFieldSubfield = {
                         v-for="(authority, authIdx) in authSearchResults"
                         :key="authority._id || authority.id"
                         ref="authOptionButtons"
-                        @click="selectAuthority(authority)"
+                        @mousedown.prevent="onAuthOptionMouseDown(authority)"
                         @mouseenter="activeAuthOptionIndex = authIdx"
                         @keydown="onAuthOptionKeyDown($event, authIdx)"
                         :disabled="authority.notFound"

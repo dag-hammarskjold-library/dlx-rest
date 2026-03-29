@@ -104,11 +104,12 @@ export const RecordstageRecord = {
 
             return validationData[collectionMap[this.validationCollection] || 'bibs'] || {}
         },
-        validationEnabled() {
-            return !(this.record && typeof this.record.getField === 'function' && this.record.getField('998'))
+        // Records with field 998 still surface issues, but those issues are non-blocking.
+        validationBypassedFor998() {
+            return !!(this.record && typeof this.record.getField === 'function' && this.record.getField('998'))
         },
         validationErrors() {
-            if (!this.validationEnabled || !this.record || typeof this.record.getDataFields !== 'function') {
+            if (!this.record || typeof this.record.getDataFields !== 'function') {
                 return []
             }
 
@@ -216,10 +217,12 @@ export const RecordstageRecord = {
             return errors
         },
         hasValidationErrors() {
-            return this.validationEnabled && this.currentValidationErrors.length > 0
+            return this.currentValidationErrors.length > 0
+        },
+        hasBlockingValidationErrors() {
+            return !this.validationBypassedFor998 && this.hasValidationErrors
         },
         validationSummaryEntries() {
-            if (!this.validationEnabled) return []
             return this.currentValidationErrors.map(error => this.formatValidationError(error))
         },
         canUndo() {
@@ -229,8 +232,8 @@ export const RecordstageRecord = {
             return this.historyIndex >= 0 && this.historyIndex < this.historySnapshots.length - 1
         },
         allFieldsSelected() {
-            const dataFields = this.record.getDataFields()
-            return dataFields.length > 0 && dataFields.every(f => f.checked)
+            const selectableFields = this.getSelectableFields()
+            return selectableFields.length > 0 && selectableFields.every(field => field.checked)
         }
     },
     watch: {
@@ -450,7 +453,7 @@ export const RecordstageRecord = {
             if (this.isRecordReadonly) return true
             if (control.id === 'undo') return !this.canUndo
             if (control.id === 'redo') return !this.canRedo
-            if (control.id === 'save') return this.hasValidationErrors || this.isSaving
+            if (control.id === 'save') return this.hasBlockingValidationErrors || this.isSaving
             return false
         },
         handleControl(control) {
@@ -481,7 +484,7 @@ export const RecordstageRecord = {
         async saveRecord() {
             this.runValidation()
 
-            if (this.hasValidationErrors) {
+            if (this.hasBlockingValidationErrors) {
                 console.warn('Cannot save record with validation errors', this.validationErrors)
                 return
             }
@@ -509,6 +512,10 @@ export const RecordstageRecord = {
                     this.record.recordId = savedRecord.recordId
                 }
 
+                if (this.record._isCloneDraft && this.record.recordId) {
+                    delete this.record._isCloneDraft
+                }
+
                 // Keep undo/redo snapshots intact; only reset saved baseline.
                 this.record.updateSavedState()
                 this.updateChangeTracking()
@@ -522,8 +529,27 @@ export const RecordstageRecord = {
             }
         },
         cloneRecord() {
-            console.log('Clone record:', this.record)
-            this.$emit('cloneRecord', this.record)
+            if (!this.record || typeof this.record.clone !== 'function') return
+
+            // Clone the in-memory record state, then strip 998 so the clone starts editable.
+            const clonedRecord = this.record.clone()
+
+            if (typeof clonedRecord.getFields === 'function' && typeof clonedRecord.deleteField === 'function') {
+                const fields998 = clonedRecord.getFields('998') || []
+                fields998.forEach(field => clonedRecord.deleteField(field))
+            } else if (Array.isArray(clonedRecord.fields)) {
+                clonedRecord.fields = clonedRecord.fields.filter(field => field && field.tag !== '998')
+            }
+
+            // Ensure clone is treated as a new unsaved record.
+            clonedRecord.recordId = null
+            clonedRecord.url = null
+            if (typeof clonedRecord.updateSavedState === 'function') {
+                clonedRecord.updateSavedState()
+            }
+
+            console.log('Clone record (without 998):', clonedRecord)
+            this.$emit('clone-record', clonedRecord)
         },
         pasteFields() {
             if (this.copiedFields.length === 0) {
@@ -634,6 +660,18 @@ export const RecordstageRecord = {
             const dataFields = this.record.getDataFields()
             return dataFields[index] || null
         },
+        isProtectedField(field) {
+            return !!(field && field.tag === '998')
+        },
+        getSelectableFields() {
+            if (!this.record || typeof this.record.getDataFields !== 'function') return []
+            return this.record.getDataFields().filter(field => !this.isProtectedField(field))
+        },
+        getDeletableFields(selectedFields, fallbackField) {
+            const fallbackCandidates = fallbackField ? [fallbackField] : []
+            return (selectedFields.length > 0 ? selectedFields : fallbackCandidates)
+                .filter(field => !this.isProtectedField(field))
+        },
         getDefaultSubfieldCodeForTag(tag) {
             const fieldValidation = this.validationDocument[tag]
             const defaultSubfields = fieldValidation && Array.isArray(fieldValidation.defaultSubfields)
@@ -669,6 +707,7 @@ export const RecordstageRecord = {
         deleteFieldFrom(targetField) {
             if (this.isRecordReadonly) return
             if (!targetField || !this.record || typeof this.record.deleteField !== 'function') return
+            if (this.isProtectedField(targetField)) return
 
             this.record.deleteField(targetField)
             this.removeFieldFromCopyStack(targetField)
@@ -679,9 +718,7 @@ export const RecordstageRecord = {
             if (!this.record || typeof this.record.deleteField !== 'function') return
 
             const selectedFields = this.record.getDataFields().filter(field => field.checked)
-            const fieldsToDelete = selectedFields.length > 0
-                ? selectedFields
-                : (fallbackField ? [fallbackField] : [])
+            const fieldsToDelete = this.getDeletableFields(selectedFields, fallbackField)
 
             if (fieldsToDelete.length === 0) return
 
@@ -694,6 +731,13 @@ export const RecordstageRecord = {
             this.onFieldChanged()
         },
         setFieldSelection(field, shouldSelect) {
+            if (!field) return
+            if (shouldSelect && this.isProtectedField(field)) {
+                field.checked = false
+                this.removeFieldFromCopyStack(field)
+                return
+            }
+
             field.checked = shouldSelect
             if (shouldSelect) {
                 this.addFieldToCopyStack(field)
@@ -710,6 +754,7 @@ export const RecordstageRecord = {
         },
         beginFieldSelection(field, event) {
             if (event.button !== 0) return // left click only
+            if (this.isProtectedField(field)) return
 
             // Let editable/interactive controls receive focus and cursor placement.
             const target = event.target
@@ -738,7 +783,7 @@ export const RecordstageRecord = {
             this.dragAdditive = false
         },
         toggleSelectAllFields() {
-            const dataFields = this.record.getDataFields()
+            const dataFields = this.getSelectableFields()
             const shouldCheck = !this.allFieldsSelected
 
             dataFields.forEach(field => {
@@ -757,6 +802,8 @@ export const RecordstageRecord = {
             }
         },
         toggleFieldSelection(field, event) {
+            if (this.isProtectedField(field)) return
+
             const additive = event && (event.ctrlKey || event.metaKey)
             if (additive) {
                 this.setFieldSelection(field, !field.checked)
@@ -823,6 +870,7 @@ export const RecordstageRecord = {
             title="Select/Unselect all fields"
           ></i>
           <span class="ms-2">{{ record.getVirtualCollection() }}/{{ record.recordId }}</span>
+                                        <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
                     <span v-if="isFocused" class="record-focus-badge">Active</span>
         </div>
         <div class="record-controls">
@@ -848,16 +896,19 @@ export const RecordstageRecord = {
           </button>
         </div>
       </div>
-            <div v-if="validationEnabled && hasValidationErrors" class="record-validation-summary">
+            <div v-if="hasValidationErrors" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
                 <div class="record-validation-summary-title">
                     Validation issues ({{ currentValidationErrors.length }})
+                </div>
+                <div v-if="validationBypassedFor998" class="record-validation-summary-note">
+                    Field 998 is present. Validation issues are shown for review but will not block saving.
                 </div>
                 <ul class="record-validation-summary-list">
                     <li v-for="(entry, idx) in validationSummaryEntries" :key="'validation-' + idx">{{ entry }}</li>
                 </ul>
             </div>
-            <div v-else-if="!validationEnabled" class="record-validation-summary record-validation-summary--disabled">
-                Validation disabled because field 998 is present.
+            <div v-else-if="validationBypassedFor998" class="record-validation-summary record-validation-summary--disabled">
+                Field 998 is present. Validation issues are shown for review but will not block saving.
             </div>
       <div
         v-for="(field, idx) in record.getDataFields()"

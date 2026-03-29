@@ -36,6 +36,7 @@ export const AppStage = {
           :records="activeRecords"
           :readonly="!isAuthenticated"
           :user="user"
+                        @clone-record="activateClonedRecord"
           @close-record="closeRecord"
         />
         <div v-else class="recordstage-empty">
@@ -94,6 +95,8 @@ export const AppStage = {
             }
         },
         activateRecord(jmarc) {
+              if (!jmarc) return
+
             if (this.activeRecords.includes(jmarc)) {
                 const index = this.activeRecords.indexOf(jmarc)
                 this.activeRecords.splice(index, 1)
@@ -101,6 +104,13 @@ export const AppStage = {
 
             this.activeRecords.unshift(jmarc)
         },
+          activateClonedRecord(jmarc) {
+              if (!jmarc) return
+
+              // Guard cloned records so they always open at the top with visual draft state.
+              jmarc._isCloneDraft = true
+              this.activateRecord(jmarc)
+          },
         closeRecord(jmarc) {
             if (this.activeRecords.includes(jmarc)) {
                 const index = this.activeRecords.indexOf(jmarc)
