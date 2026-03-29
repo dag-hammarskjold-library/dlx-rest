@@ -1,5 +1,6 @@
 import { RecordField } from "./record-field.mjs"
 import { validationData } from "../../utils/validation.js"
+import { Jmarc } from "../../api/jmarc.mjs"
 
 const SHARED_CLIPBOARD_EVENT = 'recordstage:shared-field-clipboard-changed'
 let sharedCopiedFieldPayloads = []
@@ -51,6 +52,11 @@ export const RecordstageRecord = {
             boundEndFieldSelection: null,
             boundHandleClipboardChange: null,
             sharedClipboardCount: sharedCopiedFieldPayloads.length,
+            showHistoryModal: false,
+            isHistoryLoading: false,
+            historyLoadError: '',
+            historyEntries: [],
+            selectedHistoryIndex: -1,
             controls: [
                 {
                     id: 'undo',
@@ -86,6 +92,13 @@ export const RecordstageRecord = {
                     icon: 'bi-clipboard',
                     permission: 'updateRecord',
                     action: 'pasteFields'
+                },
+                {
+                    id: 'history',
+                    label: 'History',
+                    icon: 'bi-clock-history',
+                    permission: 'updateRecord',
+                    action: 'openHistoryModal'
                 },
                 {
                     id: 'delete',
@@ -277,6 +290,18 @@ export const RecordstageRecord = {
         },
         canUnlockForEditing() {
             return this.isLockedByOther && !!this.recordState.canUnlock
+        },
+        selectedHistoryEntry() {
+            if (this.selectedHistoryIndex < 0) return null
+            return this.historyEntries[this.selectedHistoryIndex] || null
+        },
+        currentRecordRows() {
+            return this.buildComparisonRows(this.record, this.selectedHistoryEntry ? this.selectedHistoryEntry.record : null)
+        },
+        selectedHistoryRows() {
+            const selected = this.selectedHistoryEntry
+            if (!selected) return []
+            return this.buildComparisonRows(selected.record, this.record)
         }
     },
     watch: {
@@ -425,6 +450,125 @@ export const RecordstageRecord = {
         runValidation() {
             this.currentValidationErrors = this.validationErrors
         },
+        fieldToComparableLine(field) {
+            if (!field) return ''
+            const tag = String(field.tag || '').padEnd(3, '_')
+
+            if (!Array.isArray(field.subfields)) {
+                return `${tag} ${field.value ?? ''}`.trim()
+            }
+
+            const indicators = Array.isArray(field.indicators) ? field.indicators.join('') : '__'
+            const subfieldText = field.subfields
+                .map(subfield => `\$${subfield.code} ${subfield.value ?? ''}`.trim())
+                .join(' ')
+
+            return `${tag} ${indicators} ${subfieldText}`.trim()
+        },
+        buildComparisonRows(baseRecord, compareRecord) {
+            if (!baseRecord || !Array.isArray(baseRecord.fields)) return []
+
+            const compareCounts = new Map()
+            if (compareRecord && Array.isArray(compareRecord.fields)) {
+                compareRecord.fields.forEach(field => {
+                    const line = this.fieldToComparableLine(field)
+                    const count = compareCounts.get(line) || 0
+                    compareCounts.set(line, count + 1)
+                })
+            }
+
+            return baseRecord.fields.map(field => {
+                const line = this.fieldToComparableLine(field)
+                const availableCount = compareCounts.get(line) || 0
+                const isDifferent = availableCount <= 0
+                if (availableCount > 0) {
+                    compareCounts.set(line, availableCount - 1)
+                }
+
+                return {
+                    key: `${field.tag}-${line}`,
+                    line,
+                    isDifferent
+                }
+            })
+        },
+        async openHistoryModal() {
+            this.showHistoryModal = true
+            await this.loadHistoryEntries()
+        },
+        closeHistoryModal() {
+            this.showHistoryModal = false
+        },
+        async loadHistoryEntries() {
+            if (!this.record || !this.record.url) {
+                this.historyLoadError = 'Record must be saved before history is available.'
+                this.historyEntries = []
+                this.selectedHistoryIndex = -1
+                return
+            }
+
+            this.isHistoryLoading = true
+            this.historyLoadError = ''
+
+            try {
+                const response = await fetch(this.record.url + '/history')
+                const json = await response.json()
+                if (!response.ok) {
+                    throw new Error(json && json.message ? json.message : 'Failed to load history list')
+                }
+
+                const list = Array.isArray(json && json.data) ? json.data : []
+                const loaded = await Promise.all(list.map(async (entry, index) => {
+                    const eventResponse = await fetch(entry.event)
+                    const eventJson = await eventResponse.json()
+                    if (!eventResponse.ok) {
+                        throw new Error(eventJson && eventJson.message ? eventJson.message : 'Failed to load a history revision')
+                    }
+
+                    const revision = new Jmarc(this.record.collection)
+                    revision.parse(eventJson.data)
+                    revision.recordId = this.record.recordId
+
+                    return {
+                        index,
+                        label: `Revision ${index + 1}`,
+                        time: entry.time || null,
+                        user: entry.user || null,
+                        record: revision
+                    }
+                }))
+
+                // Show most recent first in the list.
+                this.historyEntries = loaded.reverse()
+                this.selectedHistoryIndex = this.historyEntries.length > 0 ? 0 : -1
+            } catch (error) {
+                this.historyLoadError = error && error.message ? error.message : String(error)
+                this.historyEntries = []
+                this.selectedHistoryIndex = -1
+            } finally {
+                this.isHistoryLoading = false
+            }
+        },
+        selectHistoryEntry(index) {
+            this.selectedHistoryIndex = index
+        },
+        revertToSelectedHistory() {
+            const selected = this.selectedHistoryEntry
+            if (!selected || !selected.record) return
+
+            if (!window.confirm('Revert this record to the selected revision?')) {
+                return
+            }
+
+            // Replace in-memory state with the chosen historical snapshot; user can then save normally.
+            this.record.fields = []
+            this.record.parse(selected.record.compile())
+            this.clearFieldSelections()
+            this.captureHistorySnapshot()
+            this.updateChangeTracking()
+            this.runValidation()
+            this.closeHistoryModal()
+        },
         resetHistory() {
             this.historySnapshots = []
             this.historyIndex = -1
@@ -519,6 +663,7 @@ export const RecordstageRecord = {
             if (control.id === 'redo') return !this.canRedo
             if (control.id === 'save') return this.hasBlockingValidationErrors || this.isSaving
             if (control.id === 'paste') return !this.hasPasteFields
+            if (control.id === 'history') return false
             return false
         },
         handleControl(control) {
@@ -537,6 +682,9 @@ export const RecordstageRecord = {
                     break
                 case 'paste':
                     this.pasteFields()
+                    break
+                case 'history':
+                    this.openHistoryModal()
                     break
                 case 'delete':
                     this.deleteRecord()
@@ -1033,6 +1181,72 @@ export const RecordstageRecord = {
                     @auth-lookup="({ subfield }) => handleAuthLookup(field, subfield)"
         />
       </div>
+            <teleport to="body">
+                <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="closeHistoryModal">
+                    <div class="history-modal-dialog" role="dialog" aria-modal="true" aria-label="Record history">
+                        <div class="history-modal-header">
+                            <h3>Record history: {{ record.collection }}/{{ record.recordId }}</h3>
+                            <button class="history-modal-close" type="button" @click="closeHistoryModal" aria-label="Close history">x</button>
+                        </div>
+
+                        <div v-if="isHistoryLoading" class="history-modal-loading">Loading history...</div>
+                        <div v-else-if="historyLoadError" class="history-modal-error">{{ historyLoadError }}</div>
+                        <div v-else-if="historyEntries.length === 0" class="history-modal-empty">No history revisions found.</div>
+                        <div v-else class="history-modal-body">
+                            <aside class="history-list-pane">
+                                <div class="history-list-title">Revisions</div>
+                                <button
+                                    v-for="(entry, index) in historyEntries"
+                                    :key="entry.label + '-' + entry.index"
+                                    class="history-list-item"
+                                    :class="{ 'history-list-item--selected': selectedHistoryIndex === index }"
+                                    type="button"
+                                    @click="selectHistoryEntry(index)"
+                                >
+                                    <div class="history-list-item-label">{{ entry.label }}</div>
+                                    <div v-if="entry.time" class="history-list-item-meta">{{ entry.time }}</div>
+                                    <div v-if="entry.user" class="history-list-item-meta">{{ entry.user }}</div>
+                                </button>
+                            </aside>
+
+                            <section class="history-diff-pane" v-if="selectedHistoryEntry">
+                                <div class="history-diff-columns">
+                                    <div class="history-diff-column">
+                                        <div class="history-diff-title">Current record</div>
+                                        <div class="history-diff-lines">
+                                            <div
+                                                v-for="(row, idx) in currentRecordRows"
+                                                :key="'current-' + idx + '-' + row.key"
+                                                class="history-diff-line"
+                                                :class="{ 'history-diff-line--changed': row.isDifferent }"
+                                            >
+                                                {{ row.line }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="history-diff-column">
+                                        <div class="history-diff-title">Selected revision</div>
+                                        <div class="history-diff-lines">
+                                            <div
+                                                v-for="(row, idx) in selectedHistoryRows"
+                                                :key="'history-' + idx + '-' + row.key"
+                                                class="history-diff-line"
+                                                :class="{ 'history-diff-line--changed': row.isDifferent }"
+                                            >
+                                                {{ row.line }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="history-diff-footer">
+                                    <button type="button" class="history-revert-btn" :disabled="isRecordReadonly" @click="revertToSelectedHistory">Revert to selected revision</button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </teleport>
     </div>
   `
 }
