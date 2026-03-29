@@ -1,5 +1,8 @@
 export const BasketRecord = {
-    props: { jmarc: Object, active: Boolean },
+    props: {
+        item: Object,
+        active: Boolean
+    },
     data() {
         return {
             classes: {
@@ -16,17 +19,30 @@ export const BasketRecord = {
         }
     },
     computed: {
-        symbol() {
-            let field = this.jmarc.getField("191")
-            if (!field) field = this.jmarc.getField("791")
-            return field ? field.getSubfield("a").value : ""
+                displayCollection() {
+                        if (!this.item) return ''
+                        return this.item.virtualCollection || this.item.collection
+                },
+                displayRecordId() {
+                        return this.item ? this.item.recordId : ''
+                },
+                displayTitle() {
+                        return this.item && this.item.title ? this.item.title : '[No title]'
+                },
+                displaySymbol() {
+                        return this.item && this.item.symbol ? this.item.symbol : ''
         }
     },
     template: /* html */ `
     <div :class="classes.basketRecord">
-      {{ jmarc.getVirtualCollection() + "/" + jmarc.recordId }}
-      <br>
-      {{ symbol }}
+            <div class="basket-record-row">
+                <span>{{ displayCollection + "/" + displayRecordId }}</span>
+                <button class="basket-record-remove" type="button" title="Remove from basket" @click.stop="$emit('remove')">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+            <div class="basket-record-title" :title="displayTitle">{{ displayTitle }}</div>
+            <div v-if="displaySymbol" class="basket-record-symbol" :title="displaySymbol">{{ displaySymbol }}</div>
     </div>
   `
 }

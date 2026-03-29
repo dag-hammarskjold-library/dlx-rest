@@ -111,7 +111,39 @@
     /* basket */
     div.app-basket {
         padding: 3px;
-        width: 200px
+        width: 220px
+    }
+
+    .basket-toolbar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+
+    .basket-toolbar button,
+    .basket-filter-collection,
+    .basket-filter-input {
+        border: 1px solid #cfd8e3;
+        border-radius: 4px;
+        background: #fff;
+        height: 30px;
+        padding: 0 6px;
+        font-size: 0.8rem;
+    }
+
+    .basket-filter-collection,
+    .basket-filter-input {
+        grid-column: span 3;
+    }
+
+    .basket-toolbar button {
+        cursor: pointer;
+        color: #334155;
+    }
+
+    .basket-toolbar button:hover {
+        background: #f8fafc;
     }
 
     div.basket__hidden {
@@ -120,7 +152,11 @@
 
     /* basket-record */
     div.basket-record {
-        border: 1px dotted red
+        border: 1px solid #d4dce6;
+        border-radius: 6px;
+        padding: 6px;
+        margin-bottom: 6px;
+        background: #ffffff;
     }
 
     div.basket-record__selected {
@@ -129,7 +165,48 @@
 
     div.basket-record:hover {
         cursor: pointer;
-        background-color: lightgray;
+        background-color: #f8fafc;
+    }
+
+    .basket-record-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .basket-record-remove {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        padding: 0;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .basket-record-remove:hover {
+        color: #b91c1c;
+    }
+
+    .basket-record-title {
+        font-size: 0.78rem;
+        color: #1f2937;
+        margin-top: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .basket-record-symbol {
+        font-size: 0.74rem;
+        color: #475569;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* recordstage */

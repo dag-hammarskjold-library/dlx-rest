@@ -35,6 +35,7 @@ export const AppStage = {
           :api_prefix="api_prefix"
           :activeRecords="activeRecords"
           @activate-record="activateRecord"
+                    @basket-records-removed="handleBasketRecordsRemoved"
         />
       </div>
       <div class="main-stage-container" :class="{ 'full-width': !isAuthenticated }">
@@ -245,6 +246,17 @@ export const AppStage = {
                 const index = this.activeRecords.indexOf(jmarc)
                 this.activeRecords.splice(index, 1)
             }
+            this.updateRecordsUrlParam()
+        },
+        handleBasketRecordsRemoved(removedRecords) {
+            if (!Array.isArray(removedRecords) || removedRecords.length === 0) return
+
+            const removedKeys = new Set(removedRecords.map(record => `${record.collection}/${record.recordId}`))
+            const remaining = this.activeRecords.filter(record => !removedKeys.has(`${record.collection}/${record.recordId}`))
+
+            if (remaining.length === this.activeRecords.length) return
+
+            this.activeRecords = remaining
             this.updateRecordsUrlParam()
         },
         openBatchActions(payload) {

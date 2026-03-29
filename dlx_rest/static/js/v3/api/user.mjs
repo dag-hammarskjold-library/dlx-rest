@@ -66,6 +66,45 @@ export class User {
         return true
     }
 
+    async clearBasket() {
+        const response = await fetch(`${User.apiUrl}/userprofile/my_profile/basket/clear`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getAuthToken()}`
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to clear basket: ${response.status} ${response.statusText}`)
+        }
+
+        return true
+    }
+
+    async removeBasketItemByUrl(itemUrl) {
+        if (!itemUrl) {
+            throw new Error('Basket item URL is required')
+        }
+
+        const absolute = itemUrl.startsWith('http')
+            ? itemUrl
+            : `${window.location.origin}${itemUrl}`
+
+        const response = await fetch(absolute, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${this.getAuthToken()}`
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to remove basket item: ${response.status} ${response.statusText}`)
+        }
+
+        return true
+    }
+
     async getBasketRecords() {
         try {
             const response = await fetch(`${User.apiUrl}/userprofile/my_profile/basket`, {
