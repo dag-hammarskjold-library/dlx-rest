@@ -23,7 +23,20 @@ export const AppStage = {
     },
     computed: {
         isAuthenticated() {
-            return this.user !== null && this.user !== undefined
+            if (!this.user) return false
+
+            // Prefer explicit auth token presence when available.
+            if (typeof this.user.getAuthToken === 'function') {
+                const token = String(this.user.getAuthToken() || '').trim()
+                if (token.length > 0) return true
+            }
+
+            // Fallback: treat users with loaded permissions as authenticated.
+            if (Array.isArray(this.user.permissions) && this.user.permissions.length > 0) {
+                return true
+            }
+
+            return false
         }
     },
     template: /* html */ `
@@ -56,7 +69,9 @@ export const AppStage = {
           :user="user"
                                         @create-record="activateWorkformRecord"
                         @clone-record="activateClonedRecord"
+                                        @open-related-record="activateRecord"
                                         @batch-actions="openBatchActions"
+                    @delete-record="deleteRecord"
           @close-record="closeRecord"
                     @unlock-record="unlockRecordForEditing"
         />
@@ -220,8 +235,12 @@ export const AppStage = {
         activateRecord(jmarc, { updateUrl = true } = {}) {
               if (!jmarc) return
 
-            if (this.activeRecords.includes(jmarc)) {
-                const index = this.activeRecords.indexOf(jmarc)
+            const existingIndex = this.activeRecords.findIndex(record =>
+                String(record.collection) === String(jmarc.collection)
+                && String(record.recordId) === String(jmarc.recordId)
+            )
+            if (existingIndex >= 0) {
+                const index = existingIndex
                 this.activeRecords.splice(index, 1)
             }
 
@@ -248,6 +267,29 @@ export const AppStage = {
                 this.activeRecords.splice(index, 1)
             }
             this.updateRecordsUrlParam()
+        },
+        async deleteRecord(jmarc) {
+            if (!jmarc || !jmarc.recordId || typeof jmarc.delete !== 'function') return
+
+            const recordKey = `${jmarc.collection}/${jmarc.recordId}`
+
+            try {
+                await jmarc.delete()
+                this.closeRecord(jmarc)
+
+                if (this.user && typeof this.user.loadBasket === 'function') {
+                    await this.user.loadBasket()
+                    if (this.$refs.basket && typeof this.$refs.basket.refreshFromUserBasket === 'function') {
+                        await this.$refs.basket.refreshFromUserBasket()
+                    }
+                }
+
+                this.addStageNotice(`Deleted ${recordKey}.`, 'info')
+            } catch (error) {
+                console.error(`Failed to delete ${recordKey}:`, error)
+                const message = error && error.message ? error.message : String(error)
+                this.addStageNotice(`Could not delete ${recordKey}: ${message}`, 'warning')
+            }
         },
         handleBasketRecordsRemoved(removedRecords) {
             if (!Array.isArray(removedRecords) || removedRecords.length === 0) return

@@ -6,6 +6,7 @@ export const RecordFieldSubfield = {
         field: Object,
         collection: { type: String, required: true },
         tag: { type: String, required: true },
+        showValidationState: { type: Boolean, required: false, default: true },
         readonly: { type: Boolean, required: false, default: false }
     },
     data() {
@@ -39,12 +40,14 @@ export const RecordFieldSubfield = {
             return this.getTagValidation()
         },
         isSubfieldCodeInvalid() {
+            if (!this.showValidationState) return false
             if (!this.fieldValidation) return false
 
             const validSubfields = this.fieldValidation.validSubfields || []
             return !validSubfields.includes('*') && !validSubfields.includes(this.subfield.code)
         },
         isSubfieldValueInvalid() {
+            if (!this.showValidationState) return false
             if (!this.fieldValidation) return false
 
             if (!this.subfield.value) return false
@@ -90,6 +93,12 @@ export const RecordFieldSubfield = {
             
             // Check if this subfield is authority-controlled using Jmarc's authMap
             return this.field.parentRecord.isAuthorityControlled(this.tag, this.subfield.code)
+        },
+        canCreateAuthority() {
+            return !this.readonly
+                && this.isAuthorityControlled
+                && this.isAuthUnmatched
+                && String(this.subfield.value || '').trim().length > 0
         }
     },
     mounted() {
@@ -109,9 +118,10 @@ export const RecordFieldSubfield = {
 
         // Initialize authority visual state on first render
         if (this.isAuthorityControlled) {
-            this.isAuthUnmatched = !this.subfield.xref
-            this.classes.subfieldValue['clickable-text'] = !!this.subfield.xref
-            this.classes.subfieldValue['authority-controlled'] = !!this.subfield.xref
+            const hasXref = this.hasUsableXref(this.subfield.xref)
+            this.isAuthUnmatched = !hasXref
+            this.classes.subfieldValue['clickable-text'] = hasXref
+            this.classes.subfieldValue['authority-controlled'] = hasXref
         }
     },
     beforeUnmount() {
@@ -135,15 +145,16 @@ export const RecordFieldSubfield = {
         },
         'subfield.xref'() {
             // Update authority-controlled styling when xref changes
-            this.classes.subfieldValue['clickable-text'] = !!this.subfield.xref
-            this.classes.subfieldValue['authority-controlled'] = !!this.subfield.xref
+            const hasXref = this.hasUsableXref(this.subfield.xref)
+            this.classes.subfieldValue['clickable-text'] = hasXref
+            this.classes.subfieldValue['authority-controlled'] = hasXref
             if (this.isAuthorityControlled) {
-                this.isAuthUnmatched = !this.subfield.xref
+                this.isAuthUnmatched = !hasXref
             }
         },
         isAuthorityControlled(newVal) {
             // Update clickable styling based on authority-controlled status
-            if (!this.subfield.xref) {
+            if (!this.hasUsableXref(this.subfield.xref)) {
                 this.classes.subfieldValue['clickable-text'] = newVal
             }
 
@@ -159,6 +170,9 @@ export const RecordFieldSubfield = {
         }
     },
     methods: {
+        hasUsableXref(xref) {
+            return !!xref && !(xref instanceof Error)
+        },
         isValidDateValue(value) {
             const datePattern = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01]))?$/
             const match = String(value || '').match(datePattern)
@@ -411,6 +425,35 @@ export const RecordFieldSubfield = {
             // Finalize and trim the value
             const value = event.target.innerText
             this.subfield.value = value
+            this.$emit('field-changed')
+        },
+        async finalizeAuthorityValue(event) {
+            if (this.readonly) return
+
+            const value = event.target.innerText
+            this.subfield.value = value
+
+            if (!String(value || '').trim()) {
+                delete this.subfield.xref
+                this.isAuthUnmatched = true
+                this.classes.subfieldValue['authority-controlled'] = false
+                this.classes.subfieldValue['clickable-text'] = false
+                this.$emit('field-changed')
+                return
+            }
+
+            try {
+                if (typeof this.subfield.detectAndSetXref === 'function') {
+                    await this.subfield.detectAndSetXref()
+                }
+            } catch (error) {
+                // Keep unmatched state if xref detection fails.
+            }
+
+            const hasXref = this.hasUsableXref(this.subfield.xref)
+            this.isAuthUnmatched = !hasXref
+            this.classes.subfieldValue['authority-controlled'] = hasXref
+            this.classes.subfieldValue['clickable-text'] = hasXref
             this.$emit('field-changed')
         },
         addSubfield() {
@@ -758,6 +801,17 @@ export const RecordFieldSubfield = {
                             this.field.deleteSubfield(existingSubfield)
                         }
                     }
+
+                    // Keep only one subfield per authority-controlled incoming code.
+                    // This prevents duplicated authority values when prior edits left repeated codes.
+                    for (const code of incomingCodes) {
+                        const sameCode = (this.field.subfields || []).filter(sf => sf && sf.code === code)
+                        if (sameCode.length <= 1) continue
+
+                        for (let i = 1; i < sameCode.length; i++) {
+                            this.field.deleteSubfield(sameCode[i])
+                        }
+                    }
                 }
             } else {
                 // Fallback for response payloads that do not provide parsed subfields.
@@ -890,6 +944,10 @@ export const RecordFieldSubfield = {
                 const delta = event.key === 'ArrowDown' ? 1 : -1
                 this.moveAuthSelection(delta)
             }
+        },
+        requestCreateAuthority() {
+            if (!this.canCreateAuthority) return
+            this.$emit('create-authority', this.subfield)
         }
 
     },
@@ -966,7 +1024,7 @@ export const RecordFieldSubfield = {
                     :tabindex="readonly ? -1 : 0"
                     @keydown="onAuthValueKeyDown"
                     @input="onAuthValueChange"
-                    @blur="finalizeValue"
+                    @blur="finalizeAuthorityValue"
                     title="Authority-controlled field with live search. Type to search and select from results."
                 ></span>
                 <div v-if="showAuthSearch" class="auth-dropdown">
@@ -992,6 +1050,15 @@ export const RecordFieldSubfield = {
                         </span>
                     </button>
                 </div>
+                <button
+                    v-if="canCreateAuthority"
+                    class="create-authority-btn"
+                    type="button"
+                    title="Create authority for this value"
+                    @click.stop="requestCreateAuthority"
+                >
+                    <i class="bi bi-plus-circle"></i>
+                </button>
             </div>
             <span
                 v-else

@@ -57,6 +57,8 @@ export const RecordstageRecord = {
             historyLoadError: '',
             historyEntries: [],
             selectedHistoryIndex: -1,
+            authUseCount: null,
+            authUseCountLoading: false,
             controls: [
                 {
                     id: 'undo',
@@ -138,7 +140,7 @@ export const RecordstageRecord = {
                 if (!this.user || !this.user.hasPermission(control.permission)) return false
                 if (control.id === 'save-workform') return !this.isWorkformEditingRecord
                 if (control.id === 'delete') {
-                    return this.isWorkformEditingRecord ? this.hasWorkformDeletePermission() : !!this.record?.recordId
+                    return this.canDeleteCurrentRecord
                 }
                 return true
             })
@@ -150,12 +152,49 @@ export const RecordstageRecord = {
         isWorkformEditingRecord() {
             return !!(this.record && this.record._isWorkformEdit === true && this.record.workformName)
         },
+        isAuthenticatedUser() {
+            if (!this.user) return false
+
+            if (typeof this.user.getAuthToken === 'function') {
+                const token = String(this.user.getAuthToken() || '').trim()
+                if (token.length > 0) return true
+            }
+
+            if (Array.isArray(this.user.permissions) && this.user.permissions.length > 0) {
+                return true
+            }
+
+            return false
+        },
+        isUnauthenticated() {
+            return !this.isAuthenticatedUser
+        },
+        showRecordControls() {
+            return !this.isUnauthenticated
+        },
+        canSeeValidationState() {
+            return this.hasUpdatePermission()
+        },
         headerRecordLabel() {
             if (this.isWorkformEditingRecord) {
                 return `${this.record.collection}/workforms/${this.record.workformName}`
             }
 
             return `${this.record.getVirtualCollection()}/${this.record.recordId}`
+        },
+        isPersistedAuthRecord() {
+            return !!(this.record && this.record.collection === 'auths' && this.record.recordId)
+        },
+        canDeleteCurrentRecord() {
+            if (this.isWorkformEditingRecord) return this.hasWorkformDeletePermission()
+            if (!this.record || !this.record.recordId) return false
+
+            if (this.isPersistedAuthRecord) {
+                if (this.authUseCountLoading) return false
+                return Number(this.authUseCount || 0) === 0
+            }
+
+            return true
         },
         validationCollection() {
             if (this.record && typeof this.record.getVirtualCollection === 'function') {
@@ -179,6 +218,10 @@ export const RecordstageRecord = {
             return !!(this.record && typeof this.record.getField === 'function' && this.record.getField('998'))
         },
         validationErrors() {
+            if (!this.canSeeValidationState) {
+                return []
+            }
+
             if (!this.record || typeof this.record.getDataFields !== 'function') {
                 return []
             }
@@ -333,6 +376,11 @@ export const RecordstageRecord = {
             const selected = this.selectedHistoryEntry
             if (!selected) return []
             return this.buildComparisonRows(selected.record, this.record)
+        },
+        authUseCountLabel() {
+            if (!this.isPersistedAuthRecord) return ''
+            if (this.authUseCountLoading) return 'Use: ...'
+            return `Use: ${Number(this.authUseCount || 0)}`
         }
     },
     watch: {
@@ -343,6 +391,7 @@ export const RecordstageRecord = {
                     this.resetHistory()
                     this.updateChangeTracking()
                     this.runValidation()
+                    this.refreshAuthUseCount()
                 }
             },
             immediate: true
@@ -436,6 +485,22 @@ export const RecordstageRecord = {
         },
         hasWorkformDeletePermission() {
             return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('deleteWorkform'))
+        },
+        async refreshAuthUseCount() {
+            if (!this.isPersistedAuthRecord || !this.record || typeof this.record.authUseCount !== 'function') {
+                this.authUseCount = null
+                this.authUseCountLoading = false
+                return
+            }
+
+            this.authUseCountLoading = true
+            try {
+                this.authUseCount = await this.record.authUseCount('bibs')
+            } catch (error) {
+                this.authUseCount = null
+            } finally {
+                this.authUseCountLoading = false
+            }
         },
         getSavedFieldSnapshot(field) {
             if (!this.record || !this.record.savedState) return null
@@ -995,7 +1060,7 @@ export const RecordstageRecord = {
         deleteRecord() {
             if (confirm(`Are you sure you want to delete this record?`)) {
                 console.log('Delete record:', this.record)
-                this.$emit('deleteRecord', this.record)
+                this.$emit('delete-record', this.record)
             }
         },
         batchActions() {
@@ -1196,7 +1261,10 @@ export const RecordstageRecord = {
                 const choices = await field.lookup()
                 
                 if (choices.length === 0) {
-                    window.alert(`No authority records found for "${subfield.value}"`)
+                    const created = await this.createAuthorityFromControlledField(field, subfield)
+                    if (created) {
+                        this.$emit('open-related-record', created)
+                    }
                     return
                 }
                 
@@ -1225,6 +1293,68 @@ export const RecordstageRecord = {
                 console.error('Authority lookup error:', error)
                 window.alert(`Authority lookup failed: ${error && error.message ? error.message : String(error)}`)
             }
+        },
+        async handleCreateAuthorityRequest(field, subfield) {
+            const created = await this.createAuthorityFromControlledField(field, subfield)
+            if (created) {
+                this.$emit('open-related-record', created)
+            }
+        },
+        async openLinkedAuthorityRecord(payload) {
+            const xref = payload && payload.xref ? payload.xref : null
+            if (!xref) return
+
+            try {
+                const authorityRecord = await Jmarc.get('auths', xref)
+                this.$emit('open-related-record', authorityRecord)
+            } catch (error) {
+                window.alert(`Could not open linked authority: ${error && error.message ? error.message : String(error)}`)
+            }
+        },
+        async createAuthorityFromControlledField(field, triggeringSubfield) {
+            if (!field || !field.parentRecord || !field.parentRecord.authMap) {
+                window.alert('Authority map not available for creating authority record.')
+                return null
+            }
+
+            const tagMap = field.parentRecord.authMap[field.tag]
+            if (!tagMap || !tagMap[triggeringSubfield.code]) {
+                window.alert(`Cannot determine authority heading mapping for ${field.tag} $${triggeringSubfield.code}.`)
+                return null
+            }
+
+            const headingTag = tagMap[triggeringSubfield.code]
+            const authority = new Jmarc('auths')
+            const headingField = authority.createField(headingTag)
+
+            const includedSubfields = []
+            for (const sf of (field.subfields || [])) {
+                if (!sf || !sf.code || !sf.value) continue
+                if (tagMap[sf.code] !== headingTag) continue
+
+                const newSubfield = headingField.createSubfield(sf.code)
+                newSubfield.value = sf.value
+                includedSubfields.push(sf)
+            }
+
+            if (includedSubfields.length === 0 && triggeringSubfield && triggeringSubfield.value) {
+                const fallback = headingField.createSubfield(triggeringSubfield.code)
+                fallback.value = triggeringSubfield.value
+                includedSubfields.push(triggeringSubfield)
+            }
+
+            try {
+                const created = await authority.post()
+                for (const sf of includedSubfields) {
+                    sf.xref = created.recordId
+                }
+                this.onFieldChanged()
+                window.alert(`Created authority record auths/${created.recordId} for "${triggeringSubfield.value}"`)
+                return created
+            } catch (error) {
+                window.alert(`Could not create authority record: ${error && error.message ? error.message : String(error)}`)
+                return null
+            }
         }
     },
     template: /* html */ `
@@ -1237,16 +1367,18 @@ export const RecordstageRecord = {
       <div class="record-header">
         <div class="record-header-id">
           <i 
+                        v-if="showRecordControls"
             class="bi record-select-all"
             :class="allFieldsSelected ? 'bi-check-square' : 'bi-square'"
             @click="toggleSelectAllFields"
             title="Select/Unselect all fields"
           ></i>
           <span class="ms-2">{{ headerRecordLabel }}</span>
+                                        <span v-if="isPersistedAuthRecord" class="record-use-count-badge">{{ authUseCountLabel }}</span>
                                         <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
                     <span v-if="isFocused" class="record-focus-badge">Active</span>
         </div>
-        <div class="record-controls">
+                <div v-if="showRecordControls || isUnauthenticated" class="record-controls">
           <button
             v-for="control in visibleControls"
             :key="control.id"
@@ -1260,7 +1392,7 @@ export const RecordstageRecord = {
                         <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
           </button>
           <button
-                        v-if="!isRecordReadonly"
+                        v-if="isUnauthenticated || !isRecordReadonly"
             class="record-control-btn record-close-btn"
             title="Close record"
                         @click="requestFocus(); $emit('close-record', record)"
@@ -1269,7 +1401,7 @@ export const RecordstageRecord = {
           </button>
         </div>
       </div>
-            <div v-if="hasValidationErrors" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
+            <div v-if="canSeeValidationState && hasValidationErrors" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
                 <div class="record-validation-summary-title">
                     Validation issues ({{ currentValidationErrors.length }})
                 </div>
@@ -1280,7 +1412,7 @@ export const RecordstageRecord = {
                     <li v-for="(entry, idx) in validationSummaryEntries" :key="'validation-' + idx">{{ entry }}</li>
                 </ul>
             </div>
-            <div v-else-if="validationBypassedFor998" class="record-validation-summary record-validation-summary--disabled">
+            <div v-else-if="canSeeValidationState && validationBypassedFor998" class="record-validation-summary record-validation-summary--disabled">
                 Field 998 is present. Validation issues are shown for review but will not block saving.
             </div>
             <div v-if="isLockedByOther" class="record-lock-summary">
@@ -1312,6 +1444,7 @@ export const RecordstageRecord = {
         <record-field 
           :field="field"
           :collection="record.getVirtualCollection()"
+                    :show-validation-state="canSeeValidationState"
                     :readonly="isRecordReadonly"
           @field-changed="onFieldChanged"
           @field-selected="toggleFieldSelection(field, $event)"
@@ -1319,6 +1452,8 @@ export const RecordstageRecord = {
                     @delete-field="deleteFieldFrom"
                     @delete-selected-fields="deleteSelectedFieldsFrom"
                     @auth-lookup="({ subfield }) => handleAuthLookup(field, subfield)"
+                                        @create-authority="({ subfield }) => handleCreateAuthorityRequest(field, subfield)"
+                                        @open-linked-authority="openLinkedAuthorityRecord"
         />
       </div>
             <teleport to="body">

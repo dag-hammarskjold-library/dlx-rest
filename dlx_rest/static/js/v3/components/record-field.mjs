@@ -1,11 +1,15 @@
 import { RecordFieldSubfield } from "./record-field-subfield.mjs"
 import { validationData } from "../../utils/validation.js"
 
+let nextSubfieldRenderKeyId = 1
+import { Jmarc } from "../../api/jmarc.mjs"
+
 export const RecordField = {
     props: {
         field: Object,
         readonly: { type: Boolean, required: false, default: false },
-        collection: { type: String, required: true }
+      collection: { type: String, required: true },
+      showValidationState: { type: Boolean, required: false, default: true }
     },
     components: { RecordFieldSubfield },
     data() {
@@ -15,6 +19,13 @@ export const RecordField = {
             showIndicator2Menu: false,
         advanceToNewSubfieldOnTagBlur: false,
             hasOpenDropdown: false,
+          showAuthorityTooltip: false,
+          authorityTooltipLoading: false,
+          authorityTooltipError: '',
+          authorityTooltipContent: null,
+          authorityTooltipCache: {},
+            authorityTooltipPosition: { top: 0, left: 0 },
+            authorityTooltipHideTimeout: null,
             classes: {
                 container: {
                     "record-field-container": true,
@@ -35,6 +46,7 @@ export const RecordField = {
             return this.getIndicatorValues(1)
         },
       isFieldTagInvalid() {
+        if (!this.showValidationState) return false
         return !this.getFieldValidation()
       },
         hasEditableIndicator1() {
@@ -42,6 +54,24 @@ export const RecordField = {
         },
         hasEditableIndicator2() {
             return this.indicator2Options.length > 0
+        },
+        linkedAuthorityRecordId() {
+          if (!this.field || !Array.isArray(this.field.subfields)) return null
+
+          for (const subfield of this.field.subfields) {
+            if (!subfield || !subfield.xref) continue
+            if (subfield.xref instanceof Error) continue
+            if (this.field.parentRecord && typeof this.field.parentRecord.isAuthorityControlled === 'function') {
+              if (this.field.parentRecord.isAuthorityControlled(this.field.tag, subfield.code)) {
+                return String(subfield.xref)
+              }
+            }
+          }
+
+          return null
+        },
+        hasLinkedAuthority() {
+          return !!this.linkedAuthorityRecordId
         }
     },
     mounted() {
@@ -53,6 +83,10 @@ export const RecordField = {
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside)
+      if (this.authorityTooltipHideTimeout) {
+        window.clearTimeout(this.authorityTooltipHideTimeout)
+        this.authorityTooltipHideTimeout = null
+      }
     },
     watch: {
         'field.tag'(newTag) {
@@ -271,6 +305,150 @@ export const RecordField = {
         toggleMenu() {
             this.showMenu = !this.showMenu
         },
+        openLinkedAuthority() {
+          if (!this.linkedAuthorityRecordId) return
+          this.$emit('open-linked-authority', {
+            xref: this.linkedAuthorityRecordId,
+            field: this.field
+          })
+        },
+        getAuthorityHeading(record) {
+          if (!record || typeof record.getField !== 'function') return ''
+
+          const headingField = record.getField('100')
+            || record.getField('110')
+            || record.getField('111')
+            || record.getField('130')
+            || record.getField('150')
+            || record.getField('190')
+            || record.getField('191')
+
+          if (!headingField || !Array.isArray(headingField.subfields)) return ''
+
+          return headingField.subfields
+            .map(subfield => String(subfield.value || '').trim())
+            .filter(Boolean)
+            .join(' ')
+        },
+        buildAuthorityMrkPreview(record) {
+          if (!record || !Array.isArray(record.fields)) return ''
+
+          const lines = []
+          for (const field of record.fields) {
+            if (!field || !field.tag) continue
+
+            const tag = String(field.tag).padStart(3, '0')
+
+            if (!Array.isArray(field.subfields)) {
+              lines.push(`=${tag}  ${String(field.value || '')}`)
+              continue
+            }
+
+            const indicators = Array.isArray(field.indicators)
+              ? field.indicators.map(ind => (ind === '_' ? '\\' : ind)).join('')
+              : '\\\\'
+
+            const subfieldText = field.subfields
+              .map(subfield => {
+                if (!subfield || !subfield.code) return ''
+                return ` $${subfield.code}${String(subfield.value || '')}`
+              })
+              .join('')
+
+            lines.push(`=${tag}  ${indicators}${subfieldText}`)
+          }
+
+          return lines.join('\n')
+        },
+        getAuthorityScopeNote(record) {
+          if (!record || typeof record.getField !== 'function') return ''
+
+          const noteField = record.getField('678') || record.getField('680')
+          if (!noteField || typeof noteField.getSubfield !== 'function') return ''
+
+          const a = noteField.getSubfield('a')
+          return a && a.value ? String(a.value) : ''
+        },
+        async loadLinkedAuthorityPreview() {
+          const xref = this.linkedAuthorityRecordId
+          if (!xref) return
+
+          if (this.authorityTooltipCache[xref]) {
+            this.authorityTooltipContent = this.authorityTooltipCache[xref]
+            this.authorityTooltipError = ''
+            this.authorityTooltipLoading = false
+            return
+          }
+
+          this.authorityTooltipLoading = true
+          this.authorityTooltipError = ''
+
+          try {
+            const authRecord = await Jmarc.get('auths', xref)
+            const preview = {
+              id: String(authRecord.recordId || xref),
+              heading: this.getAuthorityHeading(authRecord),
+              note: this.getAuthorityScopeNote(authRecord),
+              mrk: this.buildAuthorityMrkPreview(authRecord)
+            }
+            this.authorityTooltipCache = {
+              ...this.authorityTooltipCache,
+              [xref]: preview
+            }
+            this.authorityTooltipContent = preview
+          } catch (error) {
+            this.authorityTooltipError = error && error.message ? error.message : String(error)
+            this.authorityTooltipContent = null
+          } finally {
+            this.authorityTooltipLoading = false
+          }
+        },
+        setAuthorityTooltipPosition(anchorElement) {
+          if (!anchorElement || typeof anchorElement.getBoundingClientRect !== 'function') return
+
+          const rect = anchorElement.getBoundingClientRect()
+          const tooltipWidth = 320
+          const margin = 8
+          const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0
+
+          let left = rect.right + margin
+          if (left + tooltipWidth > viewportWidth - margin) {
+            left = rect.left - tooltipWidth - margin
+          }
+          if (left < margin) {
+            left = margin
+          }
+
+          const top = Math.max(margin, rect.top - 4)
+          this.authorityTooltipPosition = { top, left }
+        },
+        clearAuthorityTooltipHideTimeout() {
+          if (this.authorityTooltipHideTimeout) {
+            window.clearTimeout(this.authorityTooltipHideTimeout)
+            this.authorityTooltipHideTimeout = null
+          }
+        },
+        scheduleAuthorityTooltipHide() {
+          this.clearAuthorityTooltipHideTimeout()
+          this.authorityTooltipHideTimeout = window.setTimeout(() => {
+            this.showAuthorityTooltip = false
+          }, 120)
+        },
+        async showLinkedAuthorityTooltip(event) {
+          if (!this.hasLinkedAuthority) return
+
+          const anchor = event && event.currentTarget ? event.currentTarget : this.$refs.linkButton
+          this.setAuthorityTooltipPosition(anchor)
+          this.clearAuthorityTooltipHideTimeout()
+          this.showAuthorityTooltip = true
+          await this.loadLinkedAuthorityPreview()
+        },
+        hideLinkedAuthorityTooltip() {
+          this.scheduleAuthorityTooltipHide()
+        },
+        keepLinkedAuthorityTooltipOpen() {
+          this.clearAuthorityTooltipHideTimeout()
+        },
         getDefaultSubfieldCode() {
           const defaultSubfields = this.getDefaultSubfieldsForTag()
 
@@ -300,6 +478,17 @@ export const RecordField = {
 
           this.field.deleteSubfield(targetSubfield)
           this.$emit('field-changed')
+    },
+    getSubfieldRenderKey(subfield, subfieldIdx) {
+      if (!subfield || typeof subfield !== 'object') {
+        return `subfield-${subfieldIdx}`
+      }
+
+      if (!subfield.__renderKey) {
+        subfield.__renderKey = `subfield-${nextSubfieldRenderKeyId++}`
+      }
+
+      return subfield.__renderKey
         }
     },
     template: /* html */ `
@@ -369,20 +558,52 @@ export const RecordField = {
         <div class="subfield-container">
           <record-field-subfield 
             v-for="(subfield, subfieldIdx) in field.subfields" 
-            :key="subfieldIdx" 
+            :key="getSubfieldRenderKey(subfield, subfieldIdx)" 
             :subfield="subfield"
             :field="field"
             :collection="collection"
             :tag="field.tag"
+            :show-validation-state="showValidationState"
             :readonly="fieldReadonly"
             @field-changed="$emit('field-changed')"
             @add-subfield="addSubfield"
             @delete-subfield="deleteSubfield"
             @dropdown-state-changed="onSubfieldDropdownStateChanged"
             @auth-lookup="$emit('auth-lookup', { field, subfield: $event })"
+            @create-authority="$emit('create-authority', { field, subfield: $event })"
           />
         </div>
         <div class="field-menu-container">
+          <button
+            v-if="hasLinkedAuthority"
+            ref="linkButton"
+            class="field-link-btn"
+            type="button"
+            title="Open linked authority record"
+            @mouseenter="showLinkedAuthorityTooltip"
+            @mouseleave="hideLinkedAuthorityTooltip"
+            @focus="showLinkedAuthorityTooltip"
+            @blur="hideLinkedAuthorityTooltip"
+            @click.stop="openLinkedAuthority"
+          >
+            <i class="bi bi-link-45deg"></i>
+          </button>
+          <teleport to="body">
+            <div
+              v-if="showAuthorityTooltip && hasLinkedAuthority"
+              class="field-link-tooltip"
+              :style="{ top: authorityTooltipPosition.top + 'px', left: authorityTooltipPosition.left + 'px' }"
+              @mouseenter="keepLinkedAuthorityTooltipOpen"
+              @mouseleave="hideLinkedAuthorityTooltip"
+            >
+              <div v-if="authorityTooltipLoading" class="field-link-tooltip-loading">Loading authority preview...</div>
+              <div v-else-if="authorityTooltipError" class="field-link-tooltip-error">{{ authorityTooltipError }}</div>
+              <div v-else-if="authorityTooltipContent" class="field-link-tooltip-content">
+                <div class="field-link-tooltip-id">auths/{{ authorityTooltipContent.id }}</div>
+                <pre class="field-link-tooltip-mrk">{{ authorityTooltipContent.mrk || ('=LDR  [No MRK preview]') }}</pre>
+              </div>
+            </div>
+          </teleport>
           <button class="field-menu-btn" @click.stop="toggleMenu" title="Field options">
             <i class="bi bi-three-dots-vertical"></i>
           </button>

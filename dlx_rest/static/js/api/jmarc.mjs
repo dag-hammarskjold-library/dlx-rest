@@ -1264,6 +1264,25 @@ export class Jmarc {
 		}
 	}
 
+	async authUseCount(useType = 'bibs') {
+		if (this.collection !== 'auths') return 0
+		if (!this.recordId) return 0
+
+		if (!['bibs', 'auths'].includes(useType)) {
+			throw new Error('useType must be "bibs" or "auths"')
+		}
+
+		const url = Jmarc.apiUrl + `/marc/auths/records/${this.recordId}/use_count?use_type=${encodeURIComponent(useType)}`
+		const response = await fetch(url).catch(e => { throw e })
+		const json = await response.json()
+
+		if (response.status !== 200) {
+			throw new Error(json['message'])
+		}
+
+		return Number(json['data'] || 0)
+	}
+
 	async authHeadingInUse() {
 		if (this.collection !== "auths") return
 

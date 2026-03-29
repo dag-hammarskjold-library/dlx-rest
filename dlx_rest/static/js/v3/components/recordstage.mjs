@@ -26,6 +26,7 @@ export const AppRecordstage = {
           { keys: 'Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y', description: 'Redo active record change' },
           { keys: 'Shift + Enter', description: 'Add a field after focused field' },
           { keys: 'Shift + Backspace/Delete', description: 'Delete selected fields' },
+          { keys: 'Ctrl/Cmd + Alt + Backspace/Delete', description: 'Delete active record' },
           { keys: 'Esc', description: 'Close keyboard shortcuts help' }
         ],
         showCreateRecordModal: false,
@@ -84,8 +85,10 @@ export const AppRecordstage = {
           :user="user"
           @focus-record="focusRecord"
             @clone-record="cloneRecord"
+          @open-related-record="openRelatedRecord"
           @batch-actions="batchActions"
           @unlock-record="unlockRecord"
+          @delete-record="deleteRecord"
           @close-record="closeRecord"
         />
         <div v-if="records.length === 0" class="recordstage-empty">
@@ -294,6 +297,12 @@ export const AppRecordstage = {
             editor.batchActions()
           }
         },
+        deleteFocusedRecord() {
+            const editor = this.getFocusedRecordEditor()
+            if (editor && typeof editor.deleteRecord === 'function') {
+                editor.deleteRecord()
+            }
+        },
         focusNextRecord() {
             if (!Array.isArray(this.records) || this.records.length < 2) return
 
@@ -315,6 +324,8 @@ export const AppRecordstage = {
             this.showShortcutHelp = false
         },
         handleGlobalKeydown(event) {
+          if (this.readonly) return
+
             const key = String(event.key || '').toLowerCase()
             if (this.showShortcutHelp && key === 'escape') {
                 event.preventDefault()
@@ -323,6 +334,15 @@ export const AppRecordstage = {
             }
 
             const hasModifier = event.metaKey || event.ctrlKey
+            const isDeleteRecordShortcut = hasModifier && event.altKey && (key === 'backspace' || key === 'delete')
+
+            if (isDeleteRecordShortcut) {
+              event.preventDefault()
+              event.stopPropagation()
+              this.deleteFocusedRecord()
+              return
+            }
+
             if (!hasModifier || !event.shiftKey) return
 
             const isSelectAll = key === 'a'
@@ -386,6 +406,12 @@ export const AppRecordstage = {
           },
         unlockRecord(jmarc) {
             this.$emit('unlock-record', jmarc)
+        },
+        deleteRecord(jmarc) {
+          this.$emit('delete-record', jmarc)
+        },
+        openRelatedRecord(jmarc) {
+            this.$emit('open-related-record', jmarc)
         },
         batchActions(payload) {
           this.$emit('batch-actions', payload)
