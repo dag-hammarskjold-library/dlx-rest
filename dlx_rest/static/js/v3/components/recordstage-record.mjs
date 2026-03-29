@@ -1,10 +1,34 @@
 import { RecordField } from "./record-field.mjs"
 import { validationData } from "../../utils/validation.js"
 
+const SHARED_CLIPBOARD_EVENT = 'recordstage:shared-field-clipboard-changed'
+let sharedCopiedFieldPayloads = []
+
+function serializeFieldForClipboard(field) {
+    if (!field || !field.tag) return null
+
+    return {
+        tag: field.tag,
+        indicators: Array.isArray(field.indicators) ? [...field.indicators] : ['_', '_'],
+        subfields: (field.subfields || []).map(subfield => ({
+            code: subfield.code,
+            value: subfield.value,
+            xref: subfield.xref
+        }))
+    }
+}
+
+function publishSharedClipboardChange() {
+    window.dispatchEvent(new CustomEvent(SHARED_CLIPBOARD_EVENT, {
+        detail: { count: sharedCopiedFieldPayloads.length }
+    }))
+}
+
 export const RecordstageRecord = {
     props: {
         record: Object,
         readonly: { type: Boolean, required: false, default: false },
+        recordState: { type: Object, required: false, default: null },
         isFocused: { type: Boolean, required: false, default: false },
         user: Object
     },
@@ -25,6 +49,8 @@ export const RecordstageRecord = {
             isApplyingHistory: false,
             boundHandleKeydown: null,
             boundEndFieldSelection: null,
+            boundHandleClipboardChange: null,
+            sharedClipboardCount: sharedCopiedFieldPayloads.length,
             controls: [
                 {
                     id: 'undo',
@@ -234,6 +260,23 @@ export const RecordstageRecord = {
         allFieldsSelected() {
             const selectableFields = this.getSelectableFields()
             return selectableFields.length > 0 && selectableFields.every(field => field.checked)
+        },
+        hasPasteFields() {
+            return this.pasteFieldCount > 0
+        },
+        pasteFieldCount() {
+            return this.sharedClipboardCount
+        },
+        lockStatus() {
+            return this.recordState && this.recordState.lockStatus
+                ? this.recordState.lockStatus
+                : null
+        },
+        isLockedByOther() {
+            return !!(this.recordState && this.recordState.reason === 'locked' && this.lockStatus && this.lockStatus.locked)
+        },
+        canUnlockForEditing() {
+            return this.isLockedByOther && !!this.recordState.canUnlock
         }
     },
     watch: {
@@ -252,18 +295,38 @@ export const RecordstageRecord = {
     mounted() {
         this.boundHandleKeydown = this.handleKeydown.bind(this)
         this.boundEndFieldSelection = this.endFieldSelection.bind(this)
+        this.boundHandleClipboardChange = this.handleSharedClipboardChange.bind(this)
         window.addEventListener('mouseup', this.boundEndFieldSelection)
         window.addEventListener('keydown', this.boundHandleKeydown)
+        window.addEventListener(SHARED_CLIPBOARD_EVENT, this.boundHandleClipboardChange)
     },
     beforeUnmount() {
         window.removeEventListener('mouseup', this.boundEndFieldSelection)
         window.removeEventListener('keydown', this.boundHandleKeydown)
+        window.removeEventListener(SHARED_CLIPBOARD_EVENT, this.boundHandleClipboardChange)
     },
     methods: {
+        handleSharedClipboardChange(event) {
+            this.sharedClipboardCount = event && event.detail && typeof event.detail.count === 'number'
+                ? event.detail.count
+                : sharedCopiedFieldPayloads.length
+        },
+        syncSharedClipboardFromSelection() {
+            sharedCopiedFieldPayloads = this.copiedFields
+                .map(field => serializeFieldForClipboard(field))
+                .filter(Boolean)
+
+            this.sharedClipboardCount = sharedCopiedFieldPayloads.length
+            publishSharedClipboardChange()
+        },
         requestFocus() {
             if (!this.isFocused) {
                 this.$emit('focus-record', this.record)
             }
+        },
+        requestUnlockForEditing() {
+            if (!this.record) return
+            this.$emit('unlock-record', this.record)
         },
         formatValidationError(error) {
             if (!error || !error.type) return 'Unknown validation error'
@@ -394,6 +457,7 @@ export const RecordstageRecord = {
                 this.record.parse(snapshotData)
                 this.historyIndex = targetIndex
                 this.copiedFields = []
+                this.syncSharedClipboardFromSelection()
                 this.updateChangeTracking()
                 this.runValidation()
             } finally {
@@ -454,6 +518,7 @@ export const RecordstageRecord = {
             if (control.id === 'undo') return !this.canUndo
             if (control.id === 'redo') return !this.canRedo
             if (control.id === 'save') return this.hasBlockingValidationErrors || this.isSaving
+            if (control.id === 'paste') return !this.hasPasteFields
             return false
         },
         handleControl(control) {
@@ -552,12 +617,12 @@ export const RecordstageRecord = {
             this.$emit('clone-record', clonedRecord)
         },
         pasteFields() {
-            if (this.copiedFields.length === 0) {
+            if (sharedCopiedFieldPayloads.length === 0) {
                 console.warn('No fields copied')
                 return
             }
 
-            const fieldsToPaste = [...this.copiedFields]
+            const fieldsToPaste = [...sharedCopiedFieldPayloads]
             const pastedFields = []
 
             fieldsToPaste.forEach(sourceField => {
@@ -590,6 +655,7 @@ export const RecordstageRecord = {
 
             this.captureHistorySnapshot()
             this.updateChangeTracking()
+            this.runValidation()
             this.$emit('pasteFields', { record: this.record, fields: pastedFields })
         },
 
@@ -751,6 +817,16 @@ export const RecordstageRecord = {
                 field.checked = false
             })
             this.copiedFields = []
+            this.syncSharedClipboardFromSelection()
+        },
+        selectAllSelectableFields() {
+            const dataFields = this.getSelectableFields()
+            dataFields.forEach(field => {
+                this.setFieldSelection(field, true)
+            })
+        },
+        clearAllFieldSelections() {
+            this.clearFieldSelections()
         },
         beginFieldSelection(field, event) {
             if (event.button !== 0) return // left click only
@@ -793,12 +869,14 @@ export const RecordstageRecord = {
         addFieldToCopyStack(field) {
             if (!this.copiedFields.includes(field)) {
                 this.copiedFields.push(field)
+                this.syncSharedClipboardFromSelection()
             }
         },
         removeFieldFromCopyStack(field) {
             const index = this.copiedFields.indexOf(field)
             if (index > -1) {
                 this.copiedFields.splice(index, 1)
+                this.syncSharedClipboardFromSelection()
             }
         },
         toggleFieldSelection(field, event) {
@@ -877,13 +955,14 @@ export const RecordstageRecord = {
           <button
             v-for="control in visibleControls"
             :key="control.id"
-            :title="control.label"
+                        :title="control.id === 'paste' && hasPasteFields ? control.label + ' (' + pasteFieldCount + ' ready)' : control.label"
             :data-action="control.id"
-            :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges }]"
+                        :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges, 'record-control-btn--paste-ready': control.id === 'paste' && hasPasteFields }]"
                         :disabled="isControlDisabled(control)"
             @click="handleControl(control)"
           >
             <i :class="['bi', control.icon]"></i>
+                        <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
           </button>
           <button
                         v-if="!isRecordReadonly"
@@ -909,6 +988,22 @@ export const RecordstageRecord = {
             </div>
             <div v-else-if="validationBypassedFor998" class="record-validation-summary record-validation-summary--disabled">
                 Field 998 is present. Validation issues are shown for review but will not block saving.
+            </div>
+            <div v-if="isLockedByOther" class="record-lock-summary">
+                <div class="record-lock-summary-title">
+                    Locked for editing
+                </div>
+                <div class="record-lock-summary-text">
+                    This record is in basket "{{ lockStatus.in }}" and locked by {{ lockStatus.by }}.
+                </div>
+                <button
+                    v-if="canUnlockForEditing"
+                    class="record-lock-unlock-btn"
+                    type="button"
+                    @click="requestUnlockForEditing"
+                >
+                    Unlock for editing
+                </button>
             </div>
       <div
         v-for="(field, idx) in record.getDataFields()"

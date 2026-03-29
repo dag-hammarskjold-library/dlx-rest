@@ -10,6 +10,62 @@ export class User {
         await this.getBasketRecords()
     }
 
+    normalizeCollection(collection) {
+        const mapped = {
+            speeches: 'bibs',
+            votes: 'bibs'
+        }
+        return mapped[String(collection || '').toLowerCase()] || collection
+    }
+
+    isInBasket(collection, recordId) {
+        const normalizedCollection = this.normalizeCollection(collection)
+        return this.basket.some(item =>
+            String(item.collection) === String(normalizedCollection)
+            && String(item.record_id) === String(recordId)
+        )
+    }
+
+    async getRecordLockStatus(collection, recordId) {
+        const normalizedCollection = this.normalizeCollection(collection)
+        const response = await fetch(`${User.apiUrl}/marc/${normalizedCollection}/records/${recordId}/locked`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getAuthToken()}`
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch lock status: ${response.status} ${response.statusText}`)
+        }
+
+        return response.json()
+    }
+
+    async addBasketItem(collection, recordId, { override = false } = {}) {
+        const normalizedCollection = this.normalizeCollection(collection)
+        const response = await fetch(`${User.apiUrl}/userprofile/my_profile/basket`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getAuthToken()}`
+            },
+            body: JSON.stringify({
+                collection: normalizedCollection,
+                record_id: String(recordId),
+                title: '[No Title]',
+                override
+            })
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to add record to basket: ${response.status} ${response.statusText}`)
+        }
+
+        return true
+    }
+
     async getBasketRecords() {
         try {
             const response = await fetch(`${User.apiUrl}/userprofile/my_profile/basket`, {
