@@ -233,8 +233,6 @@ export const AppStage = {
         },
         activateWorkformRecord(jmarc) {
             if (!jmarc) return
-
-            jmarc._isCloneDraft = true
             this.activateRecord(jmarc)
         },
           activateClonedRecord(jmarc) {

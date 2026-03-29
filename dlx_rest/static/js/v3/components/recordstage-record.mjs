@@ -108,20 +108,6 @@ export const RecordstageRecord = {
                     action: 'saveAsWorkform'
                 },
                 {
-                    id: 'update-workform',
-                    label: 'Update Workform',
-                    icon: 'bi-save2',
-                    permission: 'updateWorkform',
-                    action: 'updateWorkform'
-                },
-                {
-                    id: 'delete-workform',
-                    label: 'Delete Workform',
-                    icon: 'bi-trash3',
-                    permission: 'deleteWorkform',
-                    action: 'deleteWorkform'
-                },
-                {
                     id: 'delete',
                     label: 'Delete Record',
                     icon: 'bi-trash',
@@ -141,18 +127,35 @@ export const RecordstageRecord = {
     computed: {
         visibleControls() {
             return this.controls.filter(control => {
+                if (control.id === 'save') {
+                    return this.isWorkformEditingRecord ? this.hasWorkformUpdatePermission() : this.hasUpdatePermission()
+                }
+
+                if (control.id === 'delete' && this.isWorkformEditingRecord) {
+                    return this.hasWorkformDeletePermission()
+                }
+
                 if (!this.user || !this.user.hasPermission(control.permission)) return false
-                if (control.id === 'save-workform') return !this.isWorkformRecord
-                if (control.id === 'update-workform' || control.id === 'delete-workform') return this.isWorkformRecord
-                if (control.id === 'delete') return !this.isWorkformRecord
+                if (control.id === 'save-workform') return !this.isWorkformEditingRecord
+                if (control.id === 'delete') {
+                    return this.isWorkformEditingRecord ? this.hasWorkformDeletePermission() : !!this.record?.recordId
+                }
                 return true
             })
         },
         isRecordReadonly() {
-            return this.readonly || !this.hasUpdatePermission()
+            if (this.readonly) return true
+            return this.isWorkformEditingRecord ? !this.hasWorkformUpdatePermission() : !this.hasUpdatePermission()
         },
-        isWorkformRecord() {
-            return !!(this.record && this.record.workformName)
+        isWorkformEditingRecord() {
+            return !!(this.record && this.record._isWorkformEdit === true && this.record.workformName)
+        },
+        headerRecordLabel() {
+            if (this.isWorkformEditingRecord) {
+                return `${this.record.collection}/workforms/${this.record.workformName}`
+            }
+
+            return `${this.record.getVirtualCollection()}/${this.record.recordId}`
         },
         validationCollection() {
             if (this.record && typeof this.record.getVirtualCollection === 'function') {
@@ -428,6 +431,12 @@ export const RecordstageRecord = {
         hasUpdatePermission() {
             return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('updateRecord'))
         },
+        hasWorkformUpdatePermission() {
+            return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('updateWorkform'))
+        },
+        hasWorkformDeletePermission() {
+            return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('deleteWorkform'))
+        },
         getSavedFieldSnapshot(field) {
             if (!this.record || !this.record.savedState) return null
 
@@ -578,7 +587,19 @@ export const RecordstageRecord = {
                     fields998.forEach(field => candidate.deleteField(field))
                 }
                 await candidate.saveWorkform(name, description)
-                this.record.workformDescription = description
+
+                // Reload the saved workform from API so editor reflects canonical saved data.
+                const refreshed = await Jmarc.fromWorkform(this.record.collection, name)
+                this.record.fields = []
+                this.record.parse(refreshed.compile())
+                this.record.workformName = name
+                this.record.workformDescription = refreshed.workformDescription || description
+                this.record._isWorkformEdit = true
+                this.record._isCloneDraft = false
+                this.resetHistory()
+                this.updateChangeTracking()
+                this.runValidation()
+
                 window.alert(`Workform updated: ${this.record.collection}/workforms/${name}`)
             } catch (error) {
                 window.alert(`Could not update workform: ${error && error.message ? error.message : String(error)}`)
@@ -763,7 +784,8 @@ export const RecordstageRecord = {
             this.redoChange()
         },
         isControlDisabled(control) {
-            if (!this.isFocused) return true
+            if (control.id === 'save' && this.isWorkformEditingRecord) return !this.hasWorkformUpdatePermission() || this.isSaving
+            if (control.id === 'delete' && this.isWorkformEditingRecord) return !this.hasWorkformDeletePermission()
             if (this.isRecordReadonly) return true
             if (control.id === 'undo') return !this.canUndo
             if (control.id === 'redo') return !this.canRedo
@@ -773,6 +795,8 @@ export const RecordstageRecord = {
             return false
         },
         handleControl(control) {
+            this.requestFocus()
+
             switch (control.id) {
                 case 'undo':
                     this.undoChange()
@@ -781,7 +805,11 @@ export const RecordstageRecord = {
                     this.redoChange()
                     break
                 case 'save':
-                    this.saveRecord()
+                    if (this.isWorkformEditingRecord) {
+                        this.updateWorkform()
+                    } else {
+                        this.saveRecord()
+                    }
                     break
                 case 'clone':
                     this.cloneRecord()
@@ -795,14 +823,12 @@ export const RecordstageRecord = {
                 case 'save-workform':
                     this.saveAsWorkform()
                     break
-                case 'update-workform':
-                    this.updateWorkform()
-                    break
-                case 'delete-workform':
-                    this.deleteWorkform()
-                    break
                 case 'delete':
-                    this.deleteRecord()
+                    if (this.isWorkformEditingRecord) {
+                        this.deleteWorkform()
+                    } else {
+                        this.deleteRecord()
+                    }
                     break
                 case 'batch':
                     this.batchActions()
@@ -1216,7 +1242,7 @@ export const RecordstageRecord = {
             @click="toggleSelectAllFields"
             title="Select/Unselect all fields"
           ></i>
-          <span class="ms-2">{{ record.getVirtualCollection() }}/{{ record.recordId }}</span>
+          <span class="ms-2">{{ headerRecordLabel }}</span>
                                         <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
                     <span v-if="isFocused" class="record-focus-badge">Active</span>
         </div>
@@ -1237,8 +1263,7 @@ export const RecordstageRecord = {
                         v-if="!isRecordReadonly"
             class="record-control-btn record-close-btn"
             title="Close record"
-                        :disabled="!isFocused"
-            @click="$emit('close-record', record)"
+                        @click="requestFocus(); $emit('close-record', record)"
           >
             <i class="bi bi-x"></i>
           </button>

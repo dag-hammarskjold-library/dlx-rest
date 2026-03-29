@@ -221,6 +221,7 @@ export const AppRecordstage = {
             nextRecord.workformName = entry.name
             nextRecord.workformDescription = entry.description || ''
             nextRecord._isCloneDraft = true
+            nextRecord._isWorkformEdit = false
 
             this.$emit('create-record', nextRecord)
             this.closeCreateRecordModal()
@@ -232,6 +233,8 @@ export const AppRecordstage = {
             const editableWorkform = entry.workform.clone()
             editableWorkform.workformName = entry.name
             editableWorkform.workformDescription = entry.description || ''
+            editableWorkform._isWorkformEdit = true
+              editableWorkform._isCloneDraft = false
 
             this.$emit('create-record', editableWorkform)
             this.closeCreateRecordModal()
