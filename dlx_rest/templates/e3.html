@@ -548,6 +548,7 @@
         align-items: center;
         justify-content: center;
         height: 100%;
+        width: 100%;
         color: #999;
         font-size: 1.2rem;
     }
@@ -968,6 +969,133 @@
 
     .history-revert-btn:hover {
         background: #ecfeff;
+    }
+
+    .create-record-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2140;
+        padding: 16px;
+    }
+
+    .create-record-modal-dialog {
+        width: min(760px, 100%);
+        max-height: 84vh;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid #dbe4f0;
+        border-radius: 10px;
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+        padding: 12px;
+    }
+
+    .create-record-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .create-record-modal-header h3 {
+        margin: 0;
+        font-size: 1.02rem;
+    }
+
+    .create-record-modal-close {
+        border: none;
+        background: transparent;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: #475569;
+    }
+
+    .create-record-modal-loading,
+    .create-record-modal-error,
+    .create-record-modal-empty {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    .create-record-modal-error {
+        border-color: #fecaca;
+        background: #fef2f2;
+        color: #991b1b;
+    }
+
+    .create-record-modal-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .create-record-modal-item {
+        text-align: left;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        padding: 8px 10px;
+        cursor: pointer;
+    }
+
+    .create-record-modal-item:hover {
+        background: #f8fafc;
+    }
+
+    .create-record-modal-item-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .create-record-modal-item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .create-record-modal-item-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .create-record-modal-action {
+        border: 1px solid #cfd8e3;
+        background: #fff;
+        color: #334155;
+        border-radius: 4px;
+        width: 28px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .create-record-modal-action:hover {
+        background: #f8fafc;
+    }
+
+    .create-record-modal-action--danger {
+        color: #b91c1c;
+        border-color: #fecaca;
+    }
+
+    .create-record-modal-item-meta {
+        font-size: 0.78rem;
+        color: #475569;
+    }
+
+    .create-record-modal-item-desc {
+        font-size: 0.8rem;
+        color: #1f2937;
+        margin-top: 4px;
     }
 
     @media (max-width: 980px) {

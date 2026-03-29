@@ -50,17 +50,17 @@ export const AppStage = {
                     </div>
                 </div>
         <app-recordstage 
-          v-if="activeRecords.length > 0"
           :records="activeRecords"
                     :record-states="recordStates"
           :readonly="!isAuthenticated"
           :user="user"
+                                        @create-record="activateWorkformRecord"
                         @clone-record="activateClonedRecord"
                                         @batch-actions="openBatchActions"
           @close-record="closeRecord"
                     @unlock-record="unlockRecordForEditing"
         />
-                                <batch-basket-modal
+                <batch-basket-modal
                                         :visible="showBatchModal"
                                         :source-record="batchSourceRecord"
                                         :selected-fields="batchSelectedFields"
@@ -68,9 +68,6 @@ export const AppStage = {
                                         @close="closeBatchActions"
                                         @applied="handleBatchActionsApplied"
                                 />
-        <div v-else class="recordstage-empty">
-          <p>No records selected</p>
-        </div>
       </div>
     </div>
   `,
@@ -233,6 +230,12 @@ export const AppStage = {
             if (updateUrl) {
                 this.updateRecordsUrlParam()
             }
+        },
+        activateWorkformRecord(jmarc) {
+            if (!jmarc) return
+
+            jmarc._isCloneDraft = true
+            this.activateRecord(jmarc)
         },
           activateClonedRecord(jmarc) {
               if (!jmarc) return

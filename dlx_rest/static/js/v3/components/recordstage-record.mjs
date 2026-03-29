@@ -101,6 +101,27 @@ export const RecordstageRecord = {
                     action: 'openHistoryModal'
                 },
                 {
+                    id: 'save-workform',
+                    label: 'Save as Workform',
+                    icon: 'bi-file-earmark-plus',
+                    permission: 'createWorkform',
+                    action: 'saveAsWorkform'
+                },
+                {
+                    id: 'update-workform',
+                    label: 'Update Workform',
+                    icon: 'bi-save2',
+                    permission: 'updateWorkform',
+                    action: 'updateWorkform'
+                },
+                {
+                    id: 'delete-workform',
+                    label: 'Delete Workform',
+                    icon: 'bi-trash3',
+                    permission: 'deleteWorkform',
+                    action: 'deleteWorkform'
+                },
+                {
                     id: 'delete',
                     label: 'Delete Record',
                     icon: 'bi-trash',
@@ -119,12 +140,19 @@ export const RecordstageRecord = {
     },
     computed: {
         visibleControls() {
-            return this.controls.filter(control =>
-                this.user && this.user.hasPermission(control.permission)
-            )
+            return this.controls.filter(control => {
+                if (!this.user || !this.user.hasPermission(control.permission)) return false
+                if (control.id === 'save-workform') return !this.isWorkformRecord
+                if (control.id === 'update-workform' || control.id === 'delete-workform') return this.isWorkformRecord
+                if (control.id === 'delete') return !this.isWorkformRecord
+                return true
+            })
         },
         isRecordReadonly() {
             return this.readonly || !this.hasUpdatePermission()
+        },
+        isWorkformRecord() {
+            return !!(this.record && this.record.workformName)
         },
         validationCollection() {
             if (this.record && typeof this.record.getVirtualCollection === 'function') {
@@ -496,6 +524,84 @@ export const RecordstageRecord = {
             this.showHistoryModal = true
             await this.loadHistoryEntries()
         },
+        async saveAsWorkform() {
+            if (!this.record || !this.record.collection) return
+
+            const defaultName = this.record.workformName || ''
+            const workformNameInput = window.prompt('Workform name', defaultName)
+            if (workformNameInput === null) return
+
+            const workformName = String(workformNameInput || '').trim()
+            if (!workformName) {
+                window.alert('Workform name is required.')
+                return
+            }
+
+            const descriptionInput = window.prompt('Workform description', this.record.workformDescription || '')
+            if (descriptionInput === null) return
+
+            const description = String(descriptionInput || '')
+
+            try {
+                const candidate = this.record.clone()
+                if (typeof candidate.getFields === 'function' && typeof candidate.deleteField === 'function') {
+                    const fields998 = candidate.getFields('998') || []
+                    fields998.forEach(field => candidate.deleteField(field))
+                }
+                await candidate.saveAsWorkform(workformName, description)
+
+                this.record.workformName = workformName
+                this.record.workformDescription = description
+                window.alert(`Workform saved: ${this.record.collection}/workforms/${workformName}`)
+            } catch (error) {
+                window.alert(`Could not save workform: ${error && error.message ? error.message : String(error)}`)
+            }
+        },
+        async updateWorkform() {
+            if (!this.record || !this.record.workformName) return
+
+            const name = String(this.record.workformName || '').trim()
+            if (!name) {
+                window.alert('Workform name is missing.')
+                return
+            }
+
+            const descriptionInput = window.prompt('Workform description', this.record.workformDescription || '')
+            if (descriptionInput === null) return
+
+            const description = String(descriptionInput || '')
+
+            try {
+                const candidate = this.record.clone()
+                if (typeof candidate.getFields === 'function' && typeof candidate.deleteField === 'function') {
+                    const fields998 = candidate.getFields('998') || []
+                    fields998.forEach(field => candidate.deleteField(field))
+                }
+                await candidate.saveWorkform(name, description)
+                this.record.workformDescription = description
+                window.alert(`Workform updated: ${this.record.collection}/workforms/${name}`)
+            } catch (error) {
+                window.alert(`Could not update workform: ${error && error.message ? error.message : String(error)}`)
+            }
+        },
+        async deleteWorkform() {
+            if (!this.record || !this.record.workformName) return
+
+            const name = String(this.record.workformName || '').trim()
+            if (!name) return
+
+            if (!window.confirm(`Delete workform ${this.record.collection}/workforms/${name}?`)) {
+                return
+            }
+
+            try {
+                await Jmarc.deleteWorkform(this.record.collection, name)
+                this.$emit('close-record', this.record)
+                window.alert(`Workform deleted: ${this.record.collection}/workforms/${name}`)
+            } catch (error) {
+                window.alert(`Could not delete workform: ${error && error.message ? error.message : String(error)}`)
+            }
+        },
         closeHistoryModal() {
             this.showHistoryModal = false
         },
@@ -685,6 +791,15 @@ export const RecordstageRecord = {
                     break
                 case 'history':
                     this.openHistoryModal()
+                    break
+                case 'save-workform':
+                    this.saveAsWorkform()
+                    break
+                case 'update-workform':
+                    this.updateWorkform()
+                    break
+                case 'delete-workform':
+                    this.deleteWorkform()
                     break
                 case 'delete':
                     this.deleteRecord()
