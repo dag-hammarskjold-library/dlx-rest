@@ -42,6 +42,7 @@ export const AppRecordstage = {
           :is-focused="focusedRecord === jmarc"
           :user="user"
           @focus-record="focusRecord"
+            @clone-record="cloneRecord"
           @close-record="closeRecord"
         />
       </div>
@@ -55,6 +56,9 @@ export const AppRecordstage = {
         },
         closeRecord(jmarc) {
             this.$emit('close-record', jmarc)
+          },
+          cloneRecord(jmarc) {
+            this.$emit('clone-record', jmarc)
         }
     }
 }

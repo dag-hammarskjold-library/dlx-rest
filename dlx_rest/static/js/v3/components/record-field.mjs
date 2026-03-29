@@ -34,16 +34,8 @@ export const RecordField = {
         indicator2Options() {
             return this.getIndicatorValues(1)
         },
-      validationEnabled() {
-        return !(this.field && this.field.parentRecord && typeof this.field.parentRecord.getField === 'function' && this.field.parentRecord.getField('998'))
-      },
       isFieldTagInvalid() {
-        if (!this.validationEnabled) return false
-
-        const collectionData = this.getValidationDocument()
-        if (!collectionData) return false
-
-        return !collectionData[this.field.tag]
+        return !this.getFieldValidation()
       },
         hasEditableIndicator1() {
             return this.indicator1Options.length > 0
@@ -97,6 +89,20 @@ export const RecordField = {
             const validationCollection = this.getValidationCollection()
             return validationData[collectionMap[validationCollection] || 'bibs']
         },
+        getFieldValidation(tag = this.field.tag) {
+          const collectionData = this.getValidationDocument()
+          if (!collectionData) return null
+          return collectionData[tag] || null
+        },
+        // Default subfields are reused by both tag-finalization and manual subfield insertion.
+        getDefaultSubfieldsForTag(tag = this.field.tag) {
+          const fieldValidation = this.getFieldValidation(tag)
+          const defaultSubfields = fieldValidation && Array.isArray(fieldValidation.defaultSubfields)
+            ? fieldValidation.defaultSubfields
+            : []
+
+          return defaultSubfields
+        },
         handleClickOutside(event) {
             if (!this.$el || !this.$el.querySelector) return
 
@@ -115,10 +121,8 @@ export const RecordField = {
             }
         },
         getIndicatorValues(indicatorIndex) {
-            const collectionData = this.getValidationDocument()
-            if (!collectionData || !collectionData[this.field.tag]) return []
-
-            const fieldValidation = collectionData[this.field.tag]
+          const fieldValidation = this.getFieldValidation()
+          if (!fieldValidation) return []
             const indicatorKey = indicatorIndex === 0 ? 'validIndicators1' : 'validIndicators2'
             const options = fieldValidation[indicatorKey] || []
 
@@ -179,8 +183,7 @@ export const RecordField = {
             this.$emit('field-changed')
         },
         applyDefaultIndicatorsForTag() {
-          const collectionData = this.getValidationDocument()
-          const fieldValidation = collectionData && collectionData[this.field.tag]
+          const fieldValidation = this.getFieldValidation()
 
           if (!fieldValidation) {
             this.field.indicators = ['_', '_']
@@ -199,13 +202,7 @@ export const RecordField = {
         ensureDefaultSubfieldsForTag() {
           if (!this.field || typeof this.field.createSubfield !== 'function') return null
 
-          const collectionData = this.getValidationDocument()
-          const fieldValidation = collectionData && collectionData[this.field.tag]
-          if (!fieldValidation) return null
-
-          const defaultSubfields = Array.isArray(fieldValidation.defaultSubfields)
-            ? fieldValidation.defaultSubfields
-            : []
+          const defaultSubfields = this.getDefaultSubfieldsForTag()
           if (defaultSubfields.length === 0) return null
 
           const existingCodes = new Set((this.field.subfields || []).map(subfield => subfield.code))
@@ -275,11 +272,7 @@ export const RecordField = {
             this.showMenu = !this.showMenu
         },
         getDefaultSubfieldCode() {
-          const collectionData = this.getValidationDocument()
-          const fieldValidation = collectionData && collectionData[this.field.tag]
-          const defaultSubfields = fieldValidation && Array.isArray(fieldValidation.defaultSubfields)
-            ? fieldValidation.defaultSubfields
-            : []
+          const defaultSubfields = this.getDefaultSubfieldsForTag()
 
           return defaultSubfields.length > 0 ? defaultSubfields[0] : 'a'
         },
