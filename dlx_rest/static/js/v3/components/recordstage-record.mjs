@@ -710,8 +710,14 @@ export const RecordstageRecord = {
             }
         },
         batchActions() {
-            console.log('Batch actions for:', this.record)
-            this.$emit('batchActions', this.record)
+            const selectedFields = this.copiedFields
+                .map(field => serializeFieldForClipboard(field))
+                .filter(Boolean)
+
+            this.$emit('batch-actions', {
+                sourceRecord: this.record,
+                selectedFields
+            })
         },
         getFocusedFieldFromDom() {
             const activeElement = document.activeElement

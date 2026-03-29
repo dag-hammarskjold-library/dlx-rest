@@ -16,6 +16,7 @@ export const AppRecordstage = {
         shortcutDefinitions: [
           { keys: 'Ctrl/Cmd + Shift + A', description: 'Select all fields in active record' },
           { keys: 'Ctrl/Cmd + Shift + D', description: 'Deselect all fields in active record' },
+          { keys: 'Ctrl/Cmd + Shift + B', description: 'Open batch actions for active record' },
           { keys: 'Ctrl/Cmd + Shift + .', description: 'Focus next displayed record' },
           { keys: 'Ctrl/Cmd + Shift + X', description: 'Close active record' },
           { keys: 'Ctrl/Cmd + Shift + /', description: 'Show keyboard shortcuts help' },
@@ -69,6 +70,7 @@ export const AppRecordstage = {
           :user="user"
           @focus-record="focusRecord"
             @clone-record="cloneRecord"
+          @batch-actions="batchActions"
           @unlock-record="unlockRecord"
           @close-record="closeRecord"
         />
@@ -126,6 +128,12 @@ export const AppRecordstage = {
                 editor.clearAllFieldSelections()
             }
         },
+        openBatchActionsForFocusedRecord() {
+          const editor = this.getFocusedRecordEditor()
+          if (editor && typeof editor.batchActions === 'function') {
+            editor.batchActions()
+          }
+        },
         focusNextRecord() {
             if (!Array.isArray(this.records) || this.records.length < 2) return
 
@@ -159,11 +167,12 @@ export const AppRecordstage = {
 
             const isSelectAll = key === 'a'
             const isDeselectAll = key === 'd'
+            const isOpenBatchActions = key === 'b'
             const isFocusNextRecord = key === '.'
             const isCloseActiveRecord = key === 'x'
             const isShowHelp = key === '/' || key === '?'
 
-            if (!isSelectAll && !isDeselectAll && !isFocusNextRecord && !isCloseActiveRecord && !isShowHelp) return
+            if (!isSelectAll && !isDeselectAll && !isOpenBatchActions && !isFocusNextRecord && !isCloseActiveRecord && !isShowHelp) return
 
             event.preventDefault()
             event.stopPropagation()
@@ -176,6 +185,11 @@ export const AppRecordstage = {
             if (isFocusNextRecord) {
                 this.focusNextRecord()
                 return
+            }
+
+            if (isOpenBatchActions) {
+              this.openBatchActionsForFocusedRecord()
+              return
             }
 
             if (isCloseActiveRecord) {
@@ -212,6 +226,9 @@ export const AppRecordstage = {
           },
         unlockRecord(jmarc) {
             this.$emit('unlock-record', jmarc)
+        },
+        batchActions(payload) {
+          this.$emit('batch-actions', payload)
         },
           cloneRecord(jmarc) {
             this.$emit('clone-record', jmarc)

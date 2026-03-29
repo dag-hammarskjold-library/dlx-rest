@@ -1,5 +1,6 @@
 import { AppBasket } from "./basket.mjs"
 import { AppRecordstage } from "./recordstage.mjs"
+import { BatchBasketModal } from "./batch-basket-modal.mjs"
 import { User } from "../api/user.mjs"
 import { Jmarc } from "../../api/jmarc.mjs"
 
@@ -9,12 +10,15 @@ export const AppStage = {
         user: { type: Object, required: false, default: null },
         records: { type: String, required: false, default: "" }
     },
-    components: { AppBasket, AppRecordstage },
+    components: { AppBasket, AppRecordstage, BatchBasketModal },
     data() {
         return {
             activeRecords: [],
             recordStates: {},
-            stageNotices: []
+            stageNotices: [],
+            showBatchModal: false,
+            batchSourceRecord: null,
+            batchSelectedFields: []
         }
     },
     computed: {
@@ -51,9 +55,18 @@ export const AppStage = {
           :readonly="!isAuthenticated"
           :user="user"
                         @clone-record="activateClonedRecord"
+                                        @batch-actions="openBatchActions"
           @close-record="closeRecord"
                     @unlock-record="unlockRecordForEditing"
         />
+                                <batch-basket-modal
+                                        :visible="showBatchModal"
+                                        :source-record="batchSourceRecord"
+                                        :selected-fields="batchSelectedFields"
+                                        :basket-records="$refs.basket ? $refs.basket.records : []"
+                                        @close="closeBatchActions"
+                                        @applied="handleBatchActionsApplied"
+                                />
         <div v-else class="recordstage-empty">
           <p>No records selected</p>
         </div>
@@ -233,6 +246,54 @@ export const AppStage = {
                 this.activeRecords.splice(index, 1)
             }
             this.updateRecordsUrlParam()
+        },
+        openBatchActions(payload) {
+            this.batchSourceRecord = payload && payload.sourceRecord ? payload.sourceRecord : null
+            this.batchSelectedFields = payload && Array.isArray(payload.selectedFields)
+                ? payload.selectedFields
+                : []
+            this.showBatchModal = true
+        },
+        closeBatchActions() {
+            this.showBatchModal = false
+            this.batchSourceRecord = null
+            this.batchSelectedFields = []
+        },
+        async refreshActiveRecordFromServer(collection, recordId) {
+            const index = this.activeRecords.findIndex(record =>
+                String(record.collection) === String(collection)
+                && String(record.recordId) === String(recordId)
+            )
+
+            if (index < 0) return
+
+            const updated = await Jmarc.get(collection, recordId)
+            const next = [...this.activeRecords]
+            next.splice(index, 1, updated)
+            this.activeRecords = next
+        },
+        async handleBatchActionsApplied(result) {
+            const action = result && result.action ? result.action : 'update'
+            const updatedRecords = result && Array.isArray(result.updatedRecords) ? result.updatedRecords : []
+            const skipped = result && Number.isFinite(result.skipped) ? result.skipped : 0
+
+            const refreshed = []
+            for (const target of updatedRecords) {
+                const key = `${target.collection}/${target.recordId}`
+                if (refreshed.includes(key)) continue
+                refreshed.push(key)
+                try {
+                    await this.refreshActiveRecordFromServer(target.collection, target.recordId)
+                } catch (error) {
+                    console.warn(`Could not refresh active record ${key} after batch ${action}`, error)
+                }
+            }
+
+            const appliedCount = updatedRecords.length
+            this.addStageNotice(
+                `Batch ${action} applied to ${appliedCount} record(s)` + (skipped > 0 ? `; ${skipped} skipped due to validation.` : '.'),
+                skipped > 0 ? 'warning' : 'info'
+            )
         },
         async unlockRecordForEditing(jmarc) {
             if (!jmarc || !this.user) return
