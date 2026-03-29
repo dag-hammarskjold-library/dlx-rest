@@ -6,7 +6,34 @@ export class User {
         this.permissions = []
     }
 
+    isAuthenticated() {
+        const username = String(this.username || '').trim().toLowerCase()
+        const invalidUsernames = new Set([
+            '',
+            'none',
+            'null',
+            'anonymous',
+            'anonymoususer',
+            'anonymoususermixin'
+        ])
+
+        if (!invalidUsernames.has(username)) {
+            return true
+        }
+
+        const token = String(this.getAuthToken() || '').trim()
+        if (token.length > 0) {
+            return true
+        }
+
+        return Array.isArray(this.permissions) && this.permissions.length > 0
+    }
+
     async loadBasket() {
+        if (!this.isAuthenticated()) {
+            this.basket = []
+            return
+        }
         await this.getBasketRecords()
     }
 
@@ -106,6 +133,11 @@ export class User {
     }
 
     async getBasketRecords() {
+        if (!this.isAuthenticated()) {
+            this.basket = []
+            return
+        }
+
         try {
             const response = await fetch(`${User.apiUrl}/userprofile/my_profile/basket`, {
                 method: 'GET',
@@ -132,6 +164,11 @@ export class User {
     }
 
     async loadUserProfile() {
+        if (!this.isAuthenticated()) {
+            this.permissions = []
+            return
+        }
+
         try {
             const response = await fetch(`${User.apiUrl}/userprofile/my_profile`, {
                 method: 'GET',

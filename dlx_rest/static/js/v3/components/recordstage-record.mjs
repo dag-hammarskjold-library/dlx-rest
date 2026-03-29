@@ -155,6 +155,10 @@ export const RecordstageRecord = {
         isAuthenticatedUser() {
             if (!this.user) return false
 
+            if (typeof this.user.isAuthenticated === 'function') {
+                return !!this.user.isAuthenticated()
+            }
+
             if (typeof this.user.getAuthToken === 'function') {
                 const token = String(this.user.getAuthToken() || '').trim()
                 if (token.length > 0) return true

@@ -25,6 +25,10 @@ export const AppStage = {
         isAuthenticated() {
             if (!this.user) return false
 
+            if (typeof this.user.isAuthenticated === 'function') {
+                return !!this.user.isAuthenticated()
+            }
+
             // Prefer explicit auth token presence when available.
             if (typeof this.user.getAuthToken === 'function') {
                 const token = String(this.user.getAuthToken() || '').trim()
