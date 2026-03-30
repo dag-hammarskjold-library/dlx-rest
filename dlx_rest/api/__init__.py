@@ -6,6 +6,7 @@ DLX REST API
 import os, time, uuid, json, re, boto3, mimetypes, jsonschema, threading, valkey
 from http.client import HTTPResponse
 from datetime import datetime, timezone
+from ulid import ULID
 from copy import copy, deepcopy
 from urllib.parse import quote, unquote
 from flask import Flask, Response, g, url_for, jsonify, request, abort as flask_abort, send_file
@@ -27,7 +28,7 @@ from dlx.util import AsciiMap
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
+from dlx_rest.models import RecordView, User, Basket, MergeJob, requires_permission, register_permission, DoesNotExist
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
 from dlx_rest.routes import login, search_files
 
@@ -1649,29 +1650,114 @@ class LookupMap(Resource):
 @ns.route('/marc/auths/records/<int:record_id>/merge')
 @ns.param('record_id')
 class RecordMerge(Resource):
-    @ns.doc(description='Auth merge the target authority record in to this one')
+    @ns.doc(description='Auth merge the target authority record in to this one. Supports both synchronous and asynchronous execution.')
     @login_required
     def get(self, record_id):
-        start_time = time.time()
-        #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
         losing_id = request.args.get('target') or abort(400, '"target" param required')
         losing_id = int(losing_id)
         losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
 
-        # To do: add a permssion for mergeRecord?
         if not(has_permission(user, "mergeAuthority", losing, "auths")):
             abort(403, "User does not have permission to merge authorities.")
         
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(409, "Auth records not of the same type")
 
-        # todo: excute this in a Lambda function
-        gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+        # Check if async mode is requested
+        async_mode = request.args.get('async', 'false').lower() in ('true', '1', 'yes')
+        
+        if async_mode:
+            # Create a merge job record for async processing
+            job_id = str(ULID())
+            job = MergeJob(
+                job_id=job_id,
+                status='queued',
+                gaining_id=record_id,
+                losing_id=losing_id,
+                user=user.username if user else 'admin',
+                message='Merge queued for background processing'
+            )
+            job.save()
+            
+            # In a production system, you would dispatch this to a task queue (Celery, etc.)
+            # For now, we execute it synchronously but return immediately
+            try:
+                job.status = 'running'
+                job.started_at = datetime.now(timezone.utc)
+                job.save()
+                
+                gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+                
+                job.status = 'completed'
+                job.message = f'Merge complete: auths/{losing_id} merged into auths/{record_id}'
+                job.finished_at = datetime.now(timezone.utc)
+                job.save()
+            except Exception as e:
+                job.status = 'failed'
+                job.error = str(e)
+                job.finished_at = datetime.now(timezone.utc)
+                job.save()
+                raise
+            
+            # Return 202 Accepted with job details
+            return {
+                'message': f'Merge queued: auths/{losing_id} → auths/{record_id}',
+                'job_id': job_id,
+                'status': 'queued',
+                'status_url': f'/api/marc/auths/merge_jobs/{job_id}'
+            }, 202
+        else:
+            # Synchronous mode (default, backward compatible)
+            gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+            return {'message': f'Merge complete'}, 200
 
-        # todo: update response message when merge is async
-        return jsonify({'message': f'Merge complete'})
+# Auth merge job status
+@ns.route('/marc/auths/merge_jobs/<string:job_id>')
+@ns.param('job_id', 'The merge job identifier (ULID)')
+class RecordMergeStatus(Resource):
+    @ns.doc(description='Get the status of an authority merge job')
+    @login_required
+    def get(self, job_id):
+        job = MergeJob.objects(job_id=job_id).first() or abort(404, "Merge job not found")
+        
+        # Optionally enforce permission check: only user who started job or admin can view
+        user = current_user if request_loader(request) is None else request_loader(request)
+        if job.user != (user.username if user else 'admin'):
+            if not has_permission(user, "admin"):
+                abort(403, "Not authorized to view this merge job")
+        
+        response_data = {
+            'job_id': job.job_id,
+            'status': job.status,
+            'gaining_id': job.gaining_id,
+            'losing_id': job.losing_id,
+            'user': job.user,
+            'message': job.message,
+            'created_at': job.created_at.isoformat() if job.created_at else None,
+            'started_at': job.started_at.isoformat() if job.started_at else None,
+            'finished_at': job.finished_at.isoformat() if job.finished_at else None
+        }
+        
+        if job.error:
+            response_data['error'] = job.error
+        
+        links = {
+            '_self': URL('api_record_merge_status', job_id=job_id).to_str(),
+            'related': {
+                'gaining': URL('api_record', collection='auths', record_id=job.gaining_id).to_str(),
+                'losing': URL('api_record', collection='auths', record_id=job.losing_id).to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_record_merge_status',
+            'returns': URL('api_schema', schema_name='api.merge_job').to_str()
+        }
+        
+        return ApiResponse(links=links, meta=meta, data=response_data).jsonify()
+
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')

@@ -739,6 +739,95 @@ export class Jmarc {
 		).catch(error => { throw error })
 	}
 
+	static async mergeAuthorities(gainingRecordId, losingRecordId, options = {}) {
+		if (!Jmarc.apiUrl) { throw new Error("Jmarc.apiUrl must be set") };
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
+
+		const gainingId = Number.parseInt(gainingRecordId, 10)
+		const losingId = Number.parseInt(losingRecordId, 10)
+
+		if (!Number.isFinite(gainingId) || !Number.isFinite(losingId)) {
+			throw new Error('Both gainingRecordId and losingRecordId must be numeric')
+		}
+
+		if (gainingId === losingId) {
+			throw new Error('Gaining and losing authority records must be different')
+		}
+
+		const params = new URLSearchParams({ target: String(losingId) })
+		if (options && options.async === true) {
+			params.set('async', 'true')
+		}
+
+		const url = Jmarc.apiUrl + `marc/auths/records/${gainingId}/merge?${params.toString()}`
+		const response = await fetch(url, { method: 'GET' })
+		const json = await response.json().catch(() => ({}))
+
+		if (!response.ok) {
+			throw new Error(json && json.message ? json.message : `Merge request failed (${response.status})`)
+		}
+
+		return {
+			status: response.status,
+			message: json && json.message ? json.message : 'Merge request accepted',
+			data: json && json.data ? json.data : null,
+			jobId: json && json.job_id ? json.job_id : null,
+			statusUrl: json && json.status_url ? json.status_url : null,
+			raw: json
+		}
+	}
+
+	static async getMergeJobStatus(jobId) {
+		if (!Jmarc.apiUrl) { throw new Error("Jmarc.apiUrl must be set") };
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
+
+		if (!jobId || String(jobId).trim().length === 0) {
+			throw new Error('jobId is required')
+		}
+
+		const url = Jmarc.apiUrl + `marc/auths/merge_jobs/${encodeURIComponent(jobId)}`
+		const response = await fetch(url, { method: 'GET' })
+		const json = await response.json().catch(() => ({}))
+
+		if (!response.ok) {
+			throw new Error(json && json.message ? json.message : `Failed to fetch merge job status (${response.status})`)
+		}
+
+		// Extract merge job data from API response wrapper
+		const jobData = json && json.data ? json.data : json
+		return {
+			jobId: jobData.job_id || jobId,
+			status: jobData.status,
+			gainingId: jobData.gaining_id,
+			losingId: jobData.losing_id,
+			user: jobData.user,
+			message: jobData.message,
+			error: jobData.error || null,
+			createdAt: jobData.created_at,
+			startedAt: jobData.started_at,
+			finishedAt: jobData.finished_at,
+			raw: json
+		}
+	}
+
+	static async pollMergeJobStatus(jobId, maxAttempts = 60, delayMs = 1000) {
+		if (!jobId) throw new Error('jobId is required')
+
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const job = await Jmarc.getMergeJobStatus(jobId)
+			
+			if (job.status === 'completed' || job.status === 'failed') {
+				return job
+			}
+
+			if (attempt < maxAttempts - 1) {
+				await new Promise(resolve => setTimeout(resolve, delayMs))
+			}
+		}
+
+		throw new Error(`Merge job ${jobId} did not complete within ${maxAttempts * delayMs}ms`)
+	}
+
 	async saveWorkform(workformName, description) {
 		let data = this.compile();
 		data.name = workformName;

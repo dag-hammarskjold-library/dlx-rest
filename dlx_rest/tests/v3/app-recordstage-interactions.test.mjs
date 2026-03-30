@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { AppRecordstage } from '../../static/js/v3/components/recordstage.mjs'
+import { Jmarc } from '../../static/js/api/jmarc.mjs'
 
 function createMockEvent(key, options = {}) {
   return {
@@ -153,4 +154,88 @@ test('AppRecordstage focusRecord changes from undefined to new record', () => {
   AppRecordstage.methods.focusRecord.call(ctx, r2)
 
   assert.equal(ctx.focusedRecord, r2)
+})
+
+test('AppRecordstage canMergeAuthorities requires permission and exactly two persisted auths', () => {
+  const ctx = {
+    readonly: false,
+    canMergeAuthority: true,
+    mergeAuthCandidates: [
+      { collection: 'auths', recordId: 1 },
+      { collection: 'auths', recordId: 2 }
+    ]
+  }
+
+  assert.equal(AppRecordstage.computed.canMergeAuthorities.call(ctx), true)
+
+  ctx.mergeAuthCandidates = [{ collection: 'auths', recordId: 1 }]
+  assert.equal(AppRecordstage.computed.canMergeAuthorities.call(ctx), false)
+})
+
+test('AppRecordstage toggleMergeRecordsDropdown opens modal when eligible', () => {
+  const ctx = {
+    canMergeAuthorities: true,
+    mergeAuthCandidates: [
+      { collection: 'auths', recordId: 100 },
+      { collection: 'auths', recordId: 200 }
+    ],
+    mergeGainingRecordId: '',
+    showMergeModal: false,
+    $emit: () => {}
+  }
+
+  AppRecordstage.methods.toggleMergeRecordsDropdown.call(ctx)
+
+  assert.equal(ctx.showMergeModal, true)
+  assert.equal(ctx.mergeGainingRecordId, '100')
+})
+
+test('AppRecordstage submitMergeAuthorities merges, closes losing record, and reopens gaining', async () => {
+  const previousWindow = globalThis.window
+  const originalMerge = Jmarc.mergeAuthorities
+  const originalGet = Jmarc.get
+  const calls = []
+
+  try {
+    globalThis.window = {
+      ...(previousWindow || {}),
+      confirm: () => true
+    }
+
+    Jmarc.mergeAuthorities = async (gaining, losing) => {
+      calls.push(['merge', gaining, losing])
+      return { message: 'Merge complete' }
+    }
+    Jmarc.get = async (collection, recordId) => {
+      calls.push(['get', collection, recordId])
+      return { collection, recordId }
+    }
+
+    const losingRecord = { collection: 'auths', recordId: 200 }
+    const ctx = {
+      mergeSubmitting: false,
+      closeMergeModal() {
+        this.closed = true
+      },
+      currentMergeSelection: {
+        gainingRecordId: 100,
+        losingRecordId: 200,
+        losingRecord
+      },
+      $emit(event, payload) {
+        calls.push(['emit', event, payload])
+      }
+    }
+
+    await AppRecordstage.methods.submitMergeAuthorities.call(ctx)
+
+    assert(calls.some(entry => entry[0] === 'merge' && entry[1] === 100 && entry[2] === 200))
+    assert(calls.some(entry => entry[0] === 'emit' && entry[1] === 'close-record'))
+    assert(calls.some(entry => entry[0] === 'emit' && entry[1] === 'open-related-record'))
+    assert.equal(ctx.closed, true)
+  } finally {
+    Jmarc.mergeAuthorities = originalMerge
+    Jmarc.get = originalGet
+    globalThis.window = previousWindow
+  }
 })

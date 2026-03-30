@@ -32,7 +32,10 @@ export const AppRecordstage = {
         showCreateRecordModal: false,
         isLoadingWorkforms: false,
         workformLoadError: '',
-        availableWorkforms: []
+        availableWorkforms: [],
+        showMergeModal: false,
+        mergeGainingRecordId: '',
+        mergeSubmitting: false
       }
     },
     watch: {
@@ -64,7 +67,7 @@ export const AppRecordstage = {
           <i class="bi bi-plus-square me-1"></i>
           <span>Create record</span>
         </button>
-        <button class="merge-record" @click="toggleMergeRecordsDropdown" title="Merge auths">
+        <button class="merge-record" :disabled="!canMergeAuthorities" @click="toggleMergeRecordsDropdown" title="Merge auths">
           <i class="bi bi-intersect me-1"></i>
           <span>Merge auths</span>
         </button>
@@ -148,6 +151,41 @@ export const AppRecordstage = {
           </div>
         </div>
       </teleport>
+      <teleport to="body">
+        <div v-if="showMergeModal" class="create-record-modal-overlay" @click.self="closeMergeModal">
+          <div class="create-record-modal-dialog" role="dialog" aria-modal="true" aria-label="Merge authority records">
+            <div class="create-record-modal-header">
+              <h3>Merge authority records</h3>
+              <button type="button" class="create-record-modal-close" @click="closeMergeModal" aria-label="Close merge modal">x</button>
+            </div>
+
+            <div class="create-record-modal-item-meta mb-2">Select the gaining authority record. The other selected authority becomes the losing record.</div>
+
+            <div class="mb-2">
+              <select class="form-select" v-model="mergeGainingRecordId" :disabled="mergeSubmitting">
+                <option v-for="record in mergeAuthCandidates" :key="record.recordId" :value="String(record.recordId)">
+                  auths/{{ record.recordId }}
+                </option>
+              </select>
+            </div>
+
+            <div class="create-record-modal-item-meta" v-if="currentMergeSelection">
+              Gaining: auths/{{ currentMergeSelection.gainingRecordId }}
+            </div>
+            <div class="create-record-modal-item-meta" v-if="currentMergeSelection">
+              Losing: auths/{{ currentMergeSelection.losingRecordId }}
+            </div>
+
+            <div class="batch-modal-footer mt-3">
+              <button type="button" class="btn btn-secondary" @click="closeMergeModal" :disabled="mergeSubmitting">Close</button>
+              <button type="button" class="btn btn-success" @click="submitMergeAuthorities" :disabled="!currentMergeSelection || mergeSubmitting">
+                <span v-if="mergeSubmitting">Merging...</span>
+                <span v-else>Merge</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </teleport>
     </div>
   `,
     computed: {
@@ -162,6 +200,32 @@ export const AppRecordstage = {
       },
       canOpenWorkformModal() {
         return this.canCreateRecord || this.canUpdateWorkform || this.canDeleteWorkform
+        },
+      canMergeAuthority() {
+        return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('mergeAuthority'))
+      },
+      mergeAuthCandidates() {
+        const records = Array.isArray(this.records) ? this.records : []
+        return records.filter(record => record && record.collection === 'auths' && record.recordId)
+      },
+      canMergeAuthorities() {
+        return !this.readonly && this.canMergeAuthority && this.mergeAuthCandidates.length === 2
+      },
+      currentMergeSelection() {
+        if (!this.mergeGainingRecordId) return null
+        const gainingRecordId = Number.parseInt(this.mergeGainingRecordId, 10)
+        if (!Number.isFinite(gainingRecordId)) return null
+
+        const gainingRecord = this.mergeAuthCandidates.find(record => Number(record.recordId) === gainingRecordId)
+        const losingRecord = this.mergeAuthCandidates.find(record => Number(record.recordId) !== gainingRecordId)
+        if (!gainingRecord || !losingRecord) return null
+
+        return {
+          gainingRecord,
+          losingRecord,
+          gainingRecordId: Number(gainingRecord.recordId),
+          losingRecordId: Number(losingRecord.recordId)
+        }
         }
     },
     methods: {
@@ -170,7 +234,54 @@ export const AppRecordstage = {
             this.showCreateRecordModal = true
             await this.loadWorkforms()
         },
-        toggleMergeRecordsDropdown() { window.alert("merge chooser") },
+        toggleMergeRecordsDropdown() {
+          if (!this.canMergeAuthorities) {
+            this.$emit('stage-notice', {
+              type: 'warning',
+              message: 'Select exactly two persisted authority records and ensure you have merge permission.'
+            })
+            return
+          }
+
+          this.mergeGainingRecordId = String(this.mergeAuthCandidates[0].recordId)
+          this.showMergeModal = true
+        },
+        closeMergeModal() {
+          this.showMergeModal = false
+          this.mergeSubmitting = false
+        },
+        async submitMergeAuthorities() {
+          if (!this.currentMergeSelection || this.mergeSubmitting) return
+
+          const { gainingRecordId, losingRecordId, losingRecord } = this.currentMergeSelection
+
+          if (!window.confirm(`Merge auths/${losingRecordId} into auths/${gainingRecordId}?`)) {
+            return
+          }
+
+          this.mergeSubmitting = true
+          try {
+            const result = await Jmarc.mergeAuthorities(gainingRecordId, losingRecordId)
+            this.$emit('stage-notice', {
+              type: 'info',
+              message: result && result.message ? result.message : `Merged auths/${losingRecordId} into auths/${gainingRecordId}.`
+            })
+
+            // Close the losing record and reload the gaining authority.
+            this.$emit('close-record', losingRecord)
+            const refreshedGaining = await Jmarc.get('auths', gainingRecordId)
+            this.$emit('open-related-record', refreshedGaining)
+            this.closeMergeModal()
+          } catch (error) {
+            const message = error && error.message ? error.message : String(error)
+            this.$emit('stage-notice', {
+              type: 'warning',
+              message: `Authority merge failed: ${message}`
+            })
+          } finally {
+            this.mergeSubmitting = false
+          }
+        },
         closeCreateRecordModal() {
             this.showCreateRecordModal = false
         },
