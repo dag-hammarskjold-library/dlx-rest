@@ -1068,7 +1068,19 @@ export const RecordFieldSubfield = {
                             {{ authority.value }}
                         </span>
                         <span v-else class="auth-heading">
-                            {{ authority.heading || authority.value }}
+                            <template v-if="Array.isArray(authority.subfields) && authority.subfields.length > 0">
+                                <span
+                                    v-for="(sf, sfIdx) in authority.subfields"
+                                    :key="(authority._id || authority.id || 'auth') + '-sf-' + sfIdx"
+                                    class="auth-heading-subfield"
+                                >
+                                    <span class="auth-heading-subfield-code">\${{ sf.code }}</span>
+                                    <span class="auth-heading-subfield-value">{{ sf.value }}</span>
+                                </span>
+                            </template>
+                            <template v-else>
+                                {{ authority.heading || authority.value }}
+                            </template>
                         </span>
                     </button>
                 </div>
