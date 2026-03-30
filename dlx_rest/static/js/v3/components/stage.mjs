@@ -76,6 +76,8 @@ export const AppStage = {
                                         @open-related-record="activateRecord"
                                         @batch-actions="openBatchActions"
                                         @stage-notice="handleStageNotice"
+                    @record-saved="handleRecordSaved"
+                    @refresh-basket="refreshBasketView"
                     @delete-record="deleteRecord"
           @close-record="closeRecord"
                     @unlock-record="unlockRecordForEditing"
@@ -294,6 +296,32 @@ export const AppStage = {
                 console.error(`Failed to delete ${recordKey}:`, error)
                 const message = error && error.message ? error.message : String(error)
                 this.addStageNotice(`Could not delete ${recordKey}: ${message}`, 'warning')
+            }
+        },
+        async refreshBasketView() {
+            if (!this.user || typeof this.user.loadBasket !== 'function') return
+
+            await this.user.loadBasket()
+            if (this.$refs.basket && typeof this.$refs.basket.refreshFromUserBasket === 'function') {
+                await this.$refs.basket.refreshFromUserBasket()
+            }
+        },
+        async handleRecordSaved(payload) {
+            const record = payload && payload.record ? payload.record : payload
+            const wasCloneDraft = !!(payload && payload.wasCloneDraft)
+
+            if (!record || !record.recordId || !wasCloneDraft || !this.user) return
+
+            const normalizedCollection = this.normalizeCollection(record.collection)
+
+            try {
+                if (!this.user.isInBasket(normalizedCollection, record.recordId)) {
+                    await this.user.addBasketItem(normalizedCollection, record.recordId, { override: false })
+                }
+
+                await this.refreshBasketView()
+            } catch (error) {
+                console.warn(`Failed to auto-add cloned record ${normalizedCollection}/${record.recordId} to basket:`, error)
             }
         },
         handleBasketRecordsRemoved(removedRecords) {

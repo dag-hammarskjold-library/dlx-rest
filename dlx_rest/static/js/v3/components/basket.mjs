@@ -194,9 +194,9 @@ export const AppBasket = {
 
             try {
                 await this.user.loadBasket()
-                const signature = this.buildBasketSignature(this.user.basket)
-                if (signature === this.lastBasketSignature) return
-                await this.syncRecordsWithBasket()
+                // Always force refresh during polling so changed record titles/symbols
+                // are reflected in the basket even when membership is unchanged.
+                await this.syncRecordsWithBasket(true)
             } catch (error) {
                 console.warn('Basket polling failed:', error)
             }

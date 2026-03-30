@@ -1646,6 +1646,34 @@ class LookupMap(Resource):
         
         return ApiResponse(links=links, meta=meta, data=amap).jsonify()
 
+def _remove_record_from_all_baskets(collection, record_id):
+    """Remove a record reference from all baskets."""
+    removed_count = 0
+    target_collection = str(collection)
+    target_record_id = str(record_id)
+
+    baskets = Basket.objects(items__match={
+        'collection': target_collection,
+        'record_id': target_record_id
+    })
+
+    for basket in baskets:
+        before = len(basket.items or [])
+        basket.items = [
+            item for item in (basket.items or [])
+            if not (
+                str(item.get('collection')) == target_collection
+                and str(item.get('record_id')) == target_record_id
+            )
+        ]
+
+        if len(basket.items) != before:
+            basket.save()
+            removed_count += 1
+
+    return removed_count
+
+
 # Auth merge
 @ns.route('/marc/auths/records/<int:record_id>/merge')
 @ns.param('record_id')
@@ -1689,6 +1717,7 @@ class RecordMerge(Resource):
                 job.save()
                 
                 gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+                _remove_record_from_all_baskets('auths', losing_id)
                 
                 job.status = 'completed'
                 job.message = f'Merge complete: auths/{losing_id} merged into auths/{record_id}'
@@ -1711,6 +1740,7 @@ class RecordMerge(Resource):
         else:
             # Synchronous mode (default, backward compatible)
             gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+            _remove_record_from_all_baskets('auths', losing_id)
             return {'message': f'Merge complete'}, 200
 
 # Auth merge job status

@@ -1177,6 +1177,75 @@ def test_api_record_merge_permission_denied(client, marc, default_users):
     assert res.status_code == 403
 
 
+def test_api_record_merge_removes_losing_from_all_baskets(client, users, roles, permissions, default_users):
+    """Focused regression test: merging auths removes losing record from all baskets."""
+    from dlx_rest.models import User, Basket
+
+    # Global administrator credentials
+    username = default_users['admin']['email']
+    password = default_users['admin']['password']
+    admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
+
+    # Create two merge-compatible auths
+    gaining = Auth()
+    gaining.set('100', 'a', 'Merge Basket Gaining')
+    gaining.set('040', 'a', 'NNUN')
+    gaining.commit()
+
+    losing = Auth()
+    losing.set('100', 'a', 'Merge Basket Losing')
+    losing.set('040', 'a', 'NNUN')
+    losing.commit()
+
+    # Put the losing record into multiple users' baskets.
+    admin_user = User.objects.get(email=default_users['admin']['email'])
+    auth_admin_user = User.objects.get(email=default_users['auth-admin']['email'])
+
+    basket_a = admin_user.my_basket()
+    basket_b = auth_admin_user.my_basket()
+
+    losing_item_a = {
+        'id': 'merge-test-losing-a',
+        'collection': 'auths',
+        'record_id': str(losing.id),
+        'title': '[No Title]',
+        'override': False
+    }
+    losing_item_b = {
+        'id': 'merge-test-losing-b',
+        'collection': 'auths',
+        'record_id': str(losing.id),
+        'title': '[No Title]',
+        'override': False
+    }
+
+    basket_a.items.append(losing_item_a)
+    basket_a.save()
+
+    basket_b.items.append(losing_item_b)
+    basket_b.save()
+
+    # Run the merge API (sync mode)
+    res = client.get(
+        f'{API}/marc/auths/records/{gaining.id}/merge?target={losing.id}',
+        headers={"Authorization": f"Basic {admin_credentials}"}
+    )
+    assert res.status_code == 200
+
+    # Losing record should be removed from all baskets
+    basket_a = Basket.objects.get(id=basket_a.id)
+    basket_b = Basket.objects.get(id=basket_b.id)
+
+    assert not any(
+        str(item.get('collection')) == 'auths' and str(item.get('record_id')) == str(losing.id)
+        for item in basket_a.items
+    )
+    assert not any(
+        str(item.get('collection')) == 'auths' and str(item.get('record_id')) == str(losing.id)
+        for item in basket_b.items
+    )
+
+
     
 ### util
 

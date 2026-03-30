@@ -184,3 +184,23 @@ test('AppBasket activeRecordKeys creates set of keys from active records', () =>
   assert(keys.has('bibs/1'))
   assert(keys.has('auths/9'))
 })
+
+test('AppBasket pollBasketForUpdates forces summary refresh even when basket membership is unchanged', async () => {
+  const calls = []
+  const ctx = {
+    user: {
+      basket: [{ collection: 'bibs', record_id: '1', url: '/x' }],
+      loadBasket: async () => {
+        calls.push('loadBasket')
+      }
+    },
+    syncRecordsWithBasket: async forceReload => {
+      calls.push(['syncRecordsWithBasket', forceReload])
+    }
+  }
+
+  await AppBasket.methods.pollBasketForUpdates.call(ctx)
+
+  assert.equal(calls[0], 'loadBasket')
+  assert.deepEqual(calls[1], ['syncRecordsWithBasket', true])
+})

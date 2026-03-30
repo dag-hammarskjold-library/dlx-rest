@@ -97,3 +97,36 @@ test('AppStage updateRecordsUrlParam syncs records query parameter', () => {
 
   globalThis.window = originalWindow
 })
+
+test('AppStage handleRecordSaved auto-adds saved clone to basket', async () => {
+  const calls = []
+  const ctx = {
+    user: {
+      isInBasket: () => false,
+      addBasketItem: async (collection, recordId) => {
+        calls.push(['addBasketItem', collection, recordId])
+      },
+      loadBasket: async () => {
+        calls.push(['loadBasket'])
+      }
+    },
+    normalizeCollection: AppStage.methods.normalizeCollection,
+    $refs: {
+      basket: {
+        refreshFromUserBasket: async () => {
+          calls.push(['refreshFromUserBasket'])
+        }
+      }
+    },
+    refreshBasketView: AppStage.methods.refreshBasketView
+  }
+
+  await AppStage.methods.handleRecordSaved.call(ctx, {
+    record: { collection: 'auths', recordId: 55 },
+    wasCloneDraft: true
+  })
+
+  assert.deepEqual(calls[0], ['addBasketItem', 'auths', 55])
+  assert(calls.some(entry => entry[0] === 'loadBasket'))
+  assert(calls.some(entry => entry[0] === 'refreshFromUserBasket'))
+})

@@ -949,6 +949,8 @@ export const RecordstageRecord = {
                     this.record.recordId = savedRecord.recordId
                 }
 
+                const wasCloneDraft = !!this.record._isCloneDraft
+
                 if (this.record._isCloneDraft && this.record.recordId) {
                     delete this.record._isCloneDraft
                 }
@@ -956,6 +958,7 @@ export const RecordstageRecord = {
                 // Keep undo/redo snapshots intact; only reset saved baseline.
                 this.record.updateSavedState()
                 this.updateChangeTracking()
+                this.$emit('save-record', { record: this.record, wasCloneDraft })
                 this.$emit('saveRecord', this.record)
             } catch (error) {
                 const message = error && error.message ? error.message : String(error)

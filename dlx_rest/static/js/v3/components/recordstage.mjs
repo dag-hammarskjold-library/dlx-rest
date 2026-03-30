@@ -90,6 +90,7 @@ export const AppRecordstage = {
             @clone-record="cloneRecord"
           @open-related-record="openRelatedRecord"
           @batch-actions="batchActions"
+          @save-record="onRecordSaved"
           @unlock-record="unlockRecord"
           @delete-record="deleteRecord"
           @close-record="closeRecord"
@@ -271,6 +272,7 @@ export const AppRecordstage = {
             this.$emit('close-record', losingRecord)
             const refreshedGaining = await Jmarc.get('auths', gainingRecordId)
             this.$emit('open-related-record', refreshedGaining)
+            this.$emit('refresh-basket')
             this.closeMergeModal()
           } catch (error) {
             const message = error && error.message ? error.message : String(error)
@@ -527,7 +529,10 @@ export const AppRecordstage = {
         batchActions(payload) {
           this.$emit('batch-actions', payload)
         },
-          cloneRecord(jmarc) {
+        onRecordSaved(payload) {
+            this.$emit('record-saved', payload)
+        },
+        cloneRecord(jmarc) {
             this.$emit('clone-record', jmarc)
         }
     }
