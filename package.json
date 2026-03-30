@@ -1,0 +1,10 @@
+{
+  "name": "dlx-rest-js-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test dlx_rest/tests/v3/*.test.mjs",
+    "test:js": "node --test dlx_rest/tests/v3/*.test.mjs",
+    "test:js:v3": "node --test dlx_rest/tests/v3/*.test.mjs"
+  }
+}
