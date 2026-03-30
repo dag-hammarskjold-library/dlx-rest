@@ -75,6 +75,7 @@ export const AppStage = {
                         @clone-record="activateClonedRecord"
                                         @open-related-record="activateRecord"
                                         @batch-actions="openBatchActions"
+                                        @stage-notice="handleStageNotice"
                     @delete-record="deleteRecord"
           @close-record="closeRecord"
                     @unlock-record="unlockRecordForEditing"
@@ -312,6 +313,10 @@ export const AppStage = {
                 ? payload.selectedFields
                 : []
             this.showBatchModal = true
+        },
+        handleStageNotice(payload) {
+            if (!payload || !payload.message) return
+            this.addStageNotice(payload.message, payload.type || 'info')
         },
         closeBatchActions() {
             this.showBatchModal = false
