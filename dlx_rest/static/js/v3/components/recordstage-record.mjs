@@ -57,6 +57,7 @@ export const RecordstageRecord = {
             historyLoadError: '',
             historyEntries: [],
             selectedHistoryIndex: -1,
+            validationExpanded: true,
             authUseCount: null,
             authUseCountLoading: false,
             controls: [
@@ -436,6 +437,19 @@ export const RecordstageRecord = {
         requestUnlockForEditing() {
             if (!this.record) return
             this.$emit('unlock-record', this.record)
+        },
+        requestCloseRecord() {
+            this.requestFocus()
+
+            if (this.hasChanges) {
+                const shouldClose = window.confirm('You have unsaved changes. Close this record anyway?')
+                if (!shouldClose) return
+            }
+
+            this.$emit('close-record', this.record)
+        },
+        toggleValidationSummary() {
+            this.validationExpanded = !this.validationExpanded
         },
         formatValidationError(error) {
             if (!error || !error.type) return 'Unknown validation error'
@@ -1380,59 +1394,66 @@ export const RecordstageRecord = {
             @mousedown="requestFocus"
             @focusin="requestFocus"
         >
-      <div class="record-header">
-        <div class="record-header-id">
-          <i 
-                        v-if="showRecordControls"
-            class="bi record-select-all"
-            :class="allFieldsSelected ? 'bi-check-square' : 'bi-square'"
-            @click="toggleSelectAllFields"
-            title="Select/Unselect all fields"
-          ></i>
-          <span class="ms-2">{{ headerRecordLabel }}</span>
-                                        <span v-if="isPersistedAuthRecord" class="record-use-count-badge">{{ authUseCountLabel }}</span>
-                                        <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
-                    <span v-if="isFocused" class="record-focus-badge">Active</span>
+            <div class="record-topbar">
+                <div class="record-header">
+                    <div class="record-header-id">
+                        <i 
+                                                    v-if="showRecordControls"
+                            class="bi record-select-all"
+                            :class="allFieldsSelected ? 'bi-check-square' : 'bi-square'"
+                            @click="toggleSelectAllFields"
+                            title="Select/Unselect all fields"
+                        ></i>
+                        <span class="ms-2">{{ headerRecordLabel }}</span>
+                                                                                    <span v-if="isPersistedAuthRecord" class="record-use-count-badge">{{ authUseCountLabel }}</span>
+                                                                                    <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
+                                            <span v-if="isFocused" class="record-focus-badge">Active</span>
+                    </div>
+                    <button
+                                                    v-if="isUnauthenticated || !isRecordReadonly"
+                            class="record-control-btn record-close-btn"
+                            title="Close record"
+                                                    @click="requestCloseRecord"
+                    >
+                            <i class="bi bi-x"></i>
+                    </button>
         </div>
-      </div>
 
-            <div v-if="showRecordControls || isUnauthenticated" class="record-controls-row">
-                <div class="record-controls">
-                    <button
-                        v-for="control in visibleControls"
-                        :key="control.id"
-                                                :title="control.id === 'paste' && hasPasteFields ? control.label + ' (' + pasteFieldCount + ' ready)' : control.label"
-                        :data-action="control.id"
-                                                :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges, 'record-control-btn--paste-ready': control.id === 'paste' && hasPasteFields }]"
-                                                :disabled="isControlDisabled(control)"
-                        @click="handleControl(control)"
-                    >
-                        <i :class="['bi', control.icon]"></i>
-                                                <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
-                    </button>
-                    <button
-                                                v-if="isUnauthenticated || !isRecordReadonly"
-                        class="record-control-btn record-close-btn"
-                        title="Close record"
-                                                @click="requestFocus(); $emit('close-record', record)"
-                    >
-                        <i class="bi bi-x"></i>
-                    </button>
+                <div v-if="showRecordControls || isUnauthenticated" class="record-controls-row">
+                    <div class="record-controls">
+                        <button
+                            v-for="control in visibleControls"
+                            :key="control.id"
+                                                        :title="control.id === 'paste' && hasPasteFields ? control.label + ' (' + pasteFieldCount + ' ready)' : control.label"
+                            :data-action="control.id"
+                                                        :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges, 'record-control-btn--paste-ready': control.id === 'paste' && hasPasteFields, 'record-control-btn--inactive': control.id === 'save' && !hasChanges }]"
+                                                        :disabled="isControlDisabled(control)"
+                            @click="handleControl(control)"
+                        >
+                            <i :class="['bi', control.icon]"></i>
+                                                        <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div v-if="canSeeValidationState && hasValidationErrors" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
-                <div class="record-validation-summary-title">
-                    Validation issues ({{ currentValidationErrors.length }})
+
+                        <div v-if="canSeeValidationState && (hasValidationErrors || validationBypassedFor998)" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
+                                <div class="record-validation-summary-title-row">
+                                        <div class="record-validation-summary-title">
+                                                Validation issues ({{ currentValidationErrors.length }})
+                                        </div>
+                                        <button type="button" class="record-validation-toggle" @click="toggleValidationSummary" :title="validationExpanded ? 'Collapse validation' : 'Expand validation'">
+                                                <i :class="['bi', validationExpanded ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
+                                        </button>
                 </div>
-                <div v-if="validationBypassedFor998" class="record-validation-summary-note">
-                    Field 998 is present. Validation issues are shown for review but will not block saving.
+                                <div v-if="validationExpanded">
+                                        <div v-if="validationBypassedFor998" class="record-validation-summary-note">
+                                                Field 998 is present. Validation issues are shown for review but will not block saving.
+                                        </div>
+                                        <ul v-if="hasValidationErrors" class="record-validation-summary-list">
+                                                <li v-for="(entry, idx) in validationSummaryEntries" :key="'validation-' + idx">{{ entry }}</li>
+                                        </ul>
                 </div>
-                <ul class="record-validation-summary-list">
-                    <li v-for="(entry, idx) in validationSummaryEntries" :key="'validation-' + idx">{{ entry }}</li>
-                </ul>
-            </div>
-            <div v-else-if="canSeeValidationState && validationBypassedFor998" class="record-validation-summary record-validation-summary--disabled">
-                Field 998 is present. Validation issues are shown for review but will not block saving.
             </div>
             <div v-if="isLockedByOther" class="record-lock-summary">
                 <div class="record-lock-summary-title">

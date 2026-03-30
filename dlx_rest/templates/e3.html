@@ -339,25 +339,31 @@
         flex: 1 1 100%;
     }
 
-    div.record-header {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        margin-bottom: 6px;
-        border-bottom: 1px solid #e2e8f0;
-        padding-bottom: 4px;
-        flex-shrink: 0;
+    div.record-topbar {
         position: sticky;
         top: 0;
-        background: white;
+        background: #ffffff;
         z-index: 500;
+        padding-bottom: 2px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    div.record-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        padding-bottom: 0;
+        flex-shrink: 0;
+        border-bottom: none;
     }
 
     div.record-controls-row {
         display: flex;
         align-items: center;
-        margin-bottom: 6px;
-        padding-bottom: 4px;
+        margin-bottom: 0;
+        padding-bottom: 0;
         flex-shrink: 0;
         gap: 4px;
     }
@@ -433,6 +439,18 @@
         color: #ff6b6b;
         font-weight: bold;
         animation: pulse 1s infinite;
+    }
+
+    .record-control-btn.record-control-btn--inactive {
+        color: #94a3b8;
+        border-color: #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .record-control-btn.record-control-btn--inactive:hover {
+        color: #94a3b8;
+        border-color: #e2e8f0;
+        background: #f8fafc;
     }
 
     .record-control-btn.record-control-btn--paste-ready {
@@ -983,7 +1001,30 @@
 
     .record-validation-summary-title {
         font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .record-validation-summary-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         margin-bottom: 6px;
+    }
+
+    .record-validation-toggle {
+        border: 1px solid #f1aeb5;
+        background: #fff;
+        color: #842029;
+        border-radius: 4px;
+        padding: 1px 6px;
+        line-height: 1;
+        cursor: pointer;
+        font-size: 0.78rem;
+    }
+
+    .record-validation-toggle:hover {
+        background: #fff1f3;
     }
 
     .record-validation-summary-list {
