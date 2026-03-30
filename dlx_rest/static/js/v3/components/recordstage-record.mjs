@@ -1205,7 +1205,13 @@ export const RecordstageRecord = {
 
             this.isDragSelecting = true
             this.dragAdditive = event.ctrlKey || event.metaKey // Ctrl on Win/Linux, Cmd on macOS
-            this.dragSelectValue = this.dragAdditive ? !field.checked : true
+            
+            // Deselect if clicking an already-selected field (without modifier key)
+            if (!this.dragAdditive && field.checked) {
+                this.dragSelectValue = false
+            } else {
+                this.dragSelectValue = this.dragAdditive ? !field.checked : true
+            }
 
             if (!this.dragAdditive) {
                 this.clearFieldSelections()
@@ -1249,6 +1255,12 @@ export const RecordstageRecord = {
             const additive = event && (event.ctrlKey || event.metaKey)
             if (additive) {
                 this.setFieldSelection(field, !field.checked)
+                return
+            }
+
+            // If clicking an already-selected field, deselect it instead
+            if (field.checked) {
+                this.setFieldSelection(field, false)
                 return
             }
 
@@ -1382,29 +1394,32 @@ export const RecordstageRecord = {
                                         <span v-if="record._isCloneDraft && !record.recordId" class="record-focus-badge ms-2">Cloned</span>
                     <span v-if="isFocused" class="record-focus-badge">Active</span>
         </div>
-                <div v-if="showRecordControls || isUnauthenticated" class="record-controls">
-          <button
-            v-for="control in visibleControls"
-            :key="control.id"
-                        :title="control.id === 'paste' && hasPasteFields ? control.label + ' (' + pasteFieldCount + ' ready)' : control.label"
-            :data-action="control.id"
-                        :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges, 'record-control-btn--paste-ready': control.id === 'paste' && hasPasteFields }]"
-                        :disabled="isControlDisabled(control)"
-            @click="handleControl(control)"
-          >
-            <i :class="['bi', control.icon]"></i>
-                        <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
-          </button>
-          <button
-                        v-if="isUnauthenticated || !isRecordReadonly"
-            class="record-control-btn record-close-btn"
-            title="Close record"
-                        @click="requestFocus(); $emit('close-record', record)"
-          >
-            <i class="bi bi-x"></i>
-          </button>
-        </div>
       </div>
+
+            <div v-if="showRecordControls || isUnauthenticated" class="record-controls-row">
+                <div class="record-controls">
+                    <button
+                        v-for="control in visibleControls"
+                        :key="control.id"
+                                                :title="control.id === 'paste' && hasPasteFields ? control.label + ' (' + pasteFieldCount + ' ready)' : control.label"
+                        :data-action="control.id"
+                                                :class="['record-control-btn', { 'has-changes': control.id === 'save' && hasChanges, 'record-control-btn--paste-ready': control.id === 'paste' && hasPasteFields }]"
+                                                :disabled="isControlDisabled(control)"
+                        @click="handleControl(control)"
+                    >
+                        <i :class="['bi', control.icon]"></i>
+                                                <span v-if="control.id === 'paste' && hasPasteFields" class="record-paste-badge badge badge-info badge-pill ml-1">{{ pasteFieldCount }}</span>
+                    </button>
+                    <button
+                                                v-if="isUnauthenticated || !isRecordReadonly"
+                        class="record-control-btn record-close-btn"
+                        title="Close record"
+                                                @click="requestFocus(); $emit('close-record', record)"
+                    >
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
             <div v-if="canSeeValidationState && hasValidationErrors" class="record-validation-summary" :class="{ 'record-validation-summary--disabled': validationBypassedFor998 }">
                 <div class="record-validation-summary-title">
                     Validation issues ({{ currentValidationErrors.length }})

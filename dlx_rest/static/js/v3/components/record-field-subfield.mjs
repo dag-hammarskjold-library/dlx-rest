@@ -15,6 +15,7 @@ export const RecordFieldSubfield = {
             showCodeMenu: false,
             showValueMenu: false,
             showAuthSearch: false,
+            authDropdownUp: false,
             activeCodeOptionIndex: -1,
             activeValueOptionIndex: -1,
             activeAuthOptionIndex: -1,
@@ -705,6 +706,7 @@ export const RecordFieldSubfield = {
                             notFound: true
                         })
                         this.showAuthSearch = true
+                        this.computeAuthDropdownDirection()
                         // Auto-hide after 1 second
                         setTimeout(() => {
                             this.authSearchResults = this.authSearchResults.filter(r => !r.notFound)
@@ -712,6 +714,7 @@ export const RecordFieldSubfield = {
                         }, 1000)
                     } else {
                         this.showAuthSearch = true
+                        this.computeAuthDropdownDirection()
                         this.activeAuthOptionIndex = 0
                     }
                 } else {
@@ -747,6 +750,7 @@ export const RecordFieldSubfield = {
                 // Show searching indicator
                 this.authSearching = true
                 this.showAuthSearch = true
+                this.computeAuthDropdownDirection()
                 this.authSearchTimeout = setTimeout(() => {
                     this.searchAuthorities(value)
                 }, 750)
@@ -754,6 +758,23 @@ export const RecordFieldSubfield = {
                 this.showAuthSearch = false
                 this.authSearchResults = []
             }
+        },
+        computeAuthDropdownDirection() {
+            this.$nextTick(() => {
+                const el = this.$el?.querySelector('.authority-value-menu-container')
+                if (!el) return
+
+                const rect = el.getBoundingClientRect()
+                const recordContainer = el.closest('.record-container')
+                const recordRect = recordContainer ? recordContainer.getBoundingClientRect() : null
+
+                // Available space below the element relative to record container bottom
+                const spaceBelow = recordRect ? (recordRect.bottom - rect.bottom) : (window.innerHeight - rect.bottom)
+                // Need ~300px for dropdown + some buffer
+                const needsUpward = spaceBelow < 320
+
+                this.authDropdownUp = needsUpward
+            })
         },
         selectAuthority(authority) {
             if (this.readonly || authority.notFound) return
@@ -886,6 +907,7 @@ export const RecordFieldSubfield = {
                 event.preventDefault()
                 if (!this.showAuthSearch) {
                     this.showAuthSearch = true
+                    this.computeAuthDropdownDirection()
                 }
 
                 const delta = event.key === 'ArrowDown' ? 1 : -1
@@ -1027,7 +1049,7 @@ export const RecordFieldSubfield = {
                     @blur="finalizeAuthorityValue"
                     title="Authority-controlled field with live search. Type to search and select from results."
                 ></span>
-                <div v-if="showAuthSearch" class="auth-dropdown">
+                <div v-if="showAuthSearch" class="auth-dropdown" :class="{ 'auth-dropdown--up': authDropdownUp }">
                     <div v-if="authSearching" class="auth-searching">
                         <i class="fa fa-spinner fa-spin"></i> Searching...
                     </div>
