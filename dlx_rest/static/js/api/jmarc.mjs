@@ -933,11 +933,8 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-						Jmarc.init().then(() => {
-							if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
-								newSub.xref = subfield.xref
-							}
-						})
+						// Keep parsed data stable: avoid async field mutation after savedState snapshot.
+						newSub.xref = subfield.xref;
 						if (!seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}
@@ -984,7 +981,7 @@ export class Jmarc {
 		};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
-		for (let tag of tags.sort(x => parseInt(x))) {
+		for (let tag of tags.sort((a, b) => parseInt(a) - parseInt(b))) {
 			recordData[tag] = recordData[tag] || [];
 
 			for (let field of this.getFields(tag)) {
