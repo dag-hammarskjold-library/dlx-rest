@@ -291,7 +291,7 @@ class RecordsList(Resource):
         type=str,
         choices=['community','atlas'],
         help='Toggle the search type between Atas and Community',
-        default='community'
+        default='atlas'
     )
     args.add_argument(
         'search_id',
@@ -304,6 +304,11 @@ class RecordsList(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+        engine = args.engine or 'atlas'
+
+        # mongomock (used in tests) does not support Atlas $search pipelines
+        if engine == 'atlas' and Config.TESTING:
+            engine = 'community'
 
         # We can also note some things about the requesting user's basket here, since this route, and all others, require login
         if not current_user.is_anonymous:
@@ -326,14 +331,14 @@ class RecordsList(Resource):
             {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
         )
             
-        if args.engine in (None, "community"):
+        if engine == "community":
             try:
                 query = Query.from_string(search_string, record_type=collection[:-1]) if search_string else Query()
             except InvalidQueryString as e:
                 abort(422, str(e))
 
             query.conditions.append(type_condition)
-        elif args.engine == "atlas":
+        elif engine == "atlas":
             try:
                 query = AtlasQuery.from_string(search_string, record_type=collection[:-1]) if search_string else AtlasQuery()
                 
@@ -402,31 +407,31 @@ class RecordsList(Resource):
           
         # sort
         sort_by = args.get('sort') or 'updated'
-        sort_by = 'main_title' if sort_by == 'title' else sort_by
-        sort_by = 'symbol' if sort_by == 'meeting record' else sort_by
-        sort_by = 'date' if sort_by == 'meeting date' else sort_by
-        sort_by = '_id' if sort_by == 'created' else sort_by # all ids have been created sequentially
-        sort_object = [(sort_by, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_by, 1)]
+        sort_key = 'main_title' if sort_by == 'title' else sort_by
+        sort_key = 'symbol' if sort_key == 'meeting record' else sort_key
+        sort_key = 'date' if sort_key == 'meeting date' else sort_key
+        sort_key = '_id' if sort_key == 'created' else sort_key # all ids have been created sequentially
+        sort_object = [(sort_key, -1)] if (args['direction'] or '').lower() == 'desc' else [(sort_key, 1)]
 
         # collation is not implemented in mongomock
         collation = DlxConfig.marc_index_default_collation if Config.TESTING == False else None
 
-        pipeline = [
-            {'$match': query.match.compile()} if isinstance(query, AtlasQuery) else {'$match': query.compile()},
-            {'$sort': {sort_by: -1 if args.get('direction').lower() == 'desc' else 1}},
+        pipeline = query.compile() if isinstance(query, AtlasQuery) else [{'$match': query.compile()}]
+        pipeline.extend([
+            {'$sort': {sort_key: -1 if args.get('direction').lower() == 'desc' else 1}},
             {'$project': {'_id': 1}}
-        ]
+        ])
 
-        if sort_by != '_id':
+        if sort_key != '_id':
             # Add _id to sort fields to ensure no duplicates between pages
             next(filter(lambda x: x.get('$sort'), pipeline)).get('$sort').update({'_id': 1})
 
         # revert the param names back to created for use in the returned links
-        sort_by = 'title' if sort_by == 'main_title' else sort_by
-        sort_by = 'created' if sort_by == '_id' else sort_by
+        sort_label = 'title' if sort_key == 'main_title' else sort_key
+        sort_label = 'created' if sort_label == '_id' else sort_label
 
         # $facet does not perform well when there is no query or the only field is _record_type?
-        if not query.conditions or (len(query.conditions) == 1 and query.compile().get('_record_type')):
+        if not search_string:
             pipeline += [{'$skip': start - 1}, {'$limit': limit}] #, {'$replaceWith': {'data': ['$$ROOT']}}]
         else:
             # https://codebeyondlimits.com/articles/pagination-in-mongodb-the-only-right-way-to-implement-it-and-avoid-common-mistakes
@@ -446,7 +451,7 @@ class RecordsList(Resource):
         try:
             # Create the data structure that is basically a list of records with only the _id field.
             # Todo: this should be handled by dlx since it manipulates the database.
-            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_id, 'ready': {'$gte': start + limit}}): 
+            if doc := DB.handle.get_collection('_search_cache').find_one({'_id': search_id, 'engine': engine, 'ready': {'$gte': start + limit}}): 
                 ids = doc.get('ids')[start-1:start+limit-1]
                 data['data'] = [{'_id': x} for x in ids]
             elif next(filter(lambda x: x.get('$facet'), pipeline), None):
@@ -459,13 +464,13 @@ class RecordsList(Resource):
         except Exception as e:
             raise e
 
-        if args.search_id is None and args.search:
+        if args.search_id is None and args.search and not Config.TESTING:
             # In a separate thread, populate a cache of all the result IDs. This will be used the next time 
             # a request is made to this route with the the serach_id as a param. 
             # Note: It's possible this should be handled in dlx since it is interacting directly with the DB.
 
             # As above, need to add unique field to sort by for order consistency
-            if sort_by != '_id':
+            if sort_key != '_id':
                 sort_object.append(('_id', 1))
 
             def savecache():
@@ -476,6 +481,7 @@ class RecordsList(Resource):
                     {
                         'collection': collection,
                         'search': search_string,
+                        'engine': engine,
                         'sort': sort_by,
                         'direction': args.direction,
                         'ready': 0
@@ -485,17 +491,37 @@ class RecordsList(Resource):
                 
                 updates = []
 
-                for record in cls.from_query(query, sort=sort_object, projection={'_id': 1}):
-                    updates.append(
-                        UpdateOne(
-                            {'_id': search_id},
-                            {'$push': {'ids': record.id}, '$inc': {'ready': 1}},
-                        )
-                    )
+                if engine == 'atlas':
+                    cache_pipeline = []
+                    cache_pipeline.extend(query.compile())
+                    cache_pipeline.append({'$sort': dict(sort_object)})
+                    cache_pipeline.append({'$project': {'_id': 1}})
 
-                    if len(updates) == 1000:
-                        DB.handle.get_collection('_search_cache').bulk_write(updates)
-                        updates = []
+                    ids = [x['_id'] for x in DB.handle[collection].aggregate(cache_pipeline, collation=collation, maxTimeMS=Config.MAX_QUERY_TIME)]
+
+                    for record_id in ids:
+                        updates.append(
+                            UpdateOne(
+                                {'_id': search_id},
+                                {'$push': {'ids': record_id}, '$inc': {'ready': 1}},
+                            )
+                        )
+
+                        if len(updates) == 1000:
+                            DB.handle.get_collection('_search_cache').bulk_write(updates)
+                            updates = []
+                else:
+                    for record in cls.from_query(query, sort=sort_object, projection={'_id': 1}):
+                        updates.append(
+                            UpdateOne(
+                                {'_id': search_id},
+                                {'$push': {'ids': record.id}, '$inc': {'ready': 1}},
+                            )
+                        )
+
+                        if len(updates) == 1000:
+                            DB.handle.get_collection('_search_cache').bulk_write(updates)
+                            updates = []
 
                 if updates:
                     # catch the rest
@@ -514,7 +540,7 @@ class RecordsList(Resource):
 
         recordset =  cls.from_query(
             {'_id': {'$in': [x['_id'] for x in ([] if total == 0 else data.get('data'))]}},
-            sort=[(sort_by, 1 if args.direction == 'asc' else (-1 if args.direction else 1))],
+            sort=[(sort_key, 1 if args.direction == 'asc' else (-1 if args.direction else 1))],
             projection=project
         )
         
@@ -570,24 +596,24 @@ class RecordsList(Resource):
         }
         
         links = {
-            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype).to_str(),
-            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search_string, format=fmt, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str() if start - limit > 0 else None,
+            '_self': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort=sort_label, direction=args.direction, subtype=args.subtype, engine=engine).to_str(),
+            '_next': URL('api_records_list', collection=collection, start=start+limit, limit=limit, search=search_string, format=fmt, sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+            '_prev': URL('api_records_list', collection=collection, start=start-limit, limit=limit, search=search_string, format=fmt, sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str() if start - limit > 0 else None,
             'format': {
-                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='brief', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='xml', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='mrk', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='csv', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
-                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='tsv', sort=sort_by, direction=args.direction, subtype=args.subtype, search_id=search_id).to_str(),
+                'brief': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='brief', sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+                'list': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+                'XML': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='xml', sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+                'MRK': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='mrk', sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+                'CSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='csv', sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
+                'TSV': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format='tsv', sort=sort_label, direction=args.direction, subtype=args.subtype, search_id=search_id, engine=engine).to_str(),
             },
             'sort': {
-                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype, search_id=None).to_str()
+                'updated': URL('api_records_list', collection=collection, start=start, limit=limit, search=search_string, format=fmt, sort='updated', direction=new_direction, subtype=args.subtype, search_id=None, engine=engine).to_str()
             },
             'related': {
                 #'browse': URL('api_records_list_browse', collection=collection).to_str(),
                 'collection': URL('api_collection', collection=collection).to_str(),
-                'count': URL('api_records_list_count', collection=collection, search=search_string).to_str()
+                'count': URL('api_records_list_count', collection=collection, search=search_string, subtype=args.subtype, engine=engine).to_str()
             }
         }
         
@@ -654,6 +680,11 @@ class RecordsListCount(Resource):
     def get(self, collection):
         cls = ClassDispatch.batch_by_collection(collection) or abort(404)
         args = RecordsList.args.parse_args()
+        engine = args.engine or 'atlas'
+
+        # mongomock (used in tests) does not support Atlas $search pipelines
+        if engine == 'atlas' and Config.TESTING:
+            engine = 'community'
         type_condition = Raw(
             {'_record_type': {'$in': ['default', 'speech', 'vote']} if args.subtype == 'all' else args.subtype if args.subtype else 'default'}
         )
@@ -661,13 +692,13 @@ class RecordsListCount(Resource):
         if args.search:
             search = unquote(args.search)
 
-            if args.engine == "community":
+            if engine == "community":
                 try:
                     query = Query.from_string(search, record_type=collection[:-1]) if search else Query()
                     query.conditions.append(type_condition)
                 except InvalidQueryString as e:
                     abort(422, str(e))
-            elif args.engine == "atlas":
+            elif engine == "atlas":
                 try:
                     query = AtlasQuery.from_string(search, record_type=collection[:-1]) if search else AtlasQuery()
 
@@ -684,7 +715,9 @@ class RecordsListCount(Resource):
                 except InvalidQueryString as e:
                     abort(422, str(e))
         else: 
-            query = Query(type_condition)
+            query = AtlasQuery() if engine == 'atlas' else Query(type_condition)
+            if isinstance(query, AtlasQuery):
+                query.match = Query(type_condition)
         
         if query:
             if isinstance(query, AtlasQuery):
@@ -706,9 +739,9 @@ class RecordsListCount(Resource):
             data = cls().handle.estimated_document_count()
         
         links = {
-            '_self': URL('api_records_list_count', collection=collection, search=args.search).to_str(),
+            '_self': URL('api_records_list_count', collection=collection, search=args.search, subtype=args.subtype, engine=engine).to_str(),
             'related': {
-                'records': URL('api_records_list', collection=collection, search=args.search).to_str()
+                'records': URL('api_records_list', collection=collection, search=args.search, subtype=args.subtype, engine=engine).to_str()
             }
         }
         

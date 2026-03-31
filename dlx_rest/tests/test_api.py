@@ -299,6 +299,27 @@ def test_api_records_list_count(client, marc):
         data = json.loads(res.data)
         assert data['data'] == 4
 
+def test_api_records_list_uses_dlx_atlas_compile(client, marc, monkeypatch):
+    from dlx.marc.query import AtlasQuery
+
+    # Force atlas branch in tests and ensure we call the dlx Atlas compiler path.
+    monkeypatch.setattr(Config, 'TESTING', False)
+
+    called = {'count': 0}
+
+    def wrapped_compile(self):
+        called['count'] += 1
+        # Keep pipeline mongomock-compatible while still exercising compile wiring.
+        return [{'$match': {'_id': {'$gte': 1}}}]
+
+    monkeypatch.setattr(AtlasQuery, 'compile', wrapped_compile)
+
+    res = client.get(f"{API}/marc/bibs/records?engine=atlas&search=title:'Title'&search_id=atlas-test-id")
+    data = check_response(res)
+
+    assert called['count'] > 0
+    assert data['_links']['_self'].endswith('engine=atlas')
+
 def test_api_record_files_list(client, marc, files):
     from dlx_rest.api.utils import ClassDispatch
     
