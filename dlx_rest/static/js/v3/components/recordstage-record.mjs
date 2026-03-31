@@ -1,9 +1,9 @@
 import { RecordField } from "./record-field.mjs"
 import { validationData } from "../../utils/validation.js"
 import { Jmarc } from "../../api/jmarc.mjs"
-
-const SHARED_CLIPBOARD_EVENT = 'recordstage:shared-field-clipboard-changed'
-let sharedCopiedFieldPayloads = []
+import { HistoryManager } from "../services/HistoryManager.mjs"
+import { FieldClipboardService } from "../services/FieldClipboardService.mjs"
+import { WorkformService } from "../services/WorkformService.mjs"
 
 function serializeFieldForClipboard(field) {
     if (!field || !field.tag) return null
@@ -17,12 +17,6 @@ function serializeFieldForClipboard(field) {
             xref: subfield.xref
         }))
     }
-}
-
-function publishSharedClipboardChange() {
-    window.dispatchEvent(new CustomEvent(SHARED_CLIPBOARD_EVENT, {
-        detail: { count: sharedCopiedFieldPayloads.length }
-    }))
 }
 
 export const RecordstageRecord = {
@@ -45,13 +39,12 @@ export const RecordstageRecord = {
             dragSelectValue: true,
             dragAdditive: false,
             changedFields: new Set(),
-            historySnapshots: [],
-            historyIndex: -1,
-            isApplyingHistory: false,
+            historyManager: null,
             boundHandleKeydown: null,
             boundEndFieldSelection: null,
-            boundHandleClipboardChange: null,
-            sharedClipboardCount: sharedCopiedFieldPayloads.length,
+            unsubscribeClipboardChange: null,
+            sharedClipboardCount: 0,
+            workformService: null,
             showHistoryModal: false,
             isHistoryLoading: false,
             historyLoadError: '',
@@ -344,10 +337,10 @@ export const RecordstageRecord = {
             return this.currentValidationErrors.map(error => this.formatValidationError(error))
         },
         canUndo() {
-            return this.historyIndex > 0
+            return !!(this.historyManager && this.historyManager.canUndo)
         },
         canRedo() {
-            return this.historyIndex >= 0 && this.historyIndex < this.historySnapshots.length - 1
+            return !!(this.historyManager && this.historyManager.canRedo)
         },
         allFieldsSelected() {
             const selectableFields = this.getSelectableFields()
@@ -392,6 +385,7 @@ export const RecordstageRecord = {
         record: {
             handler(newRecord) {
                 if (newRecord && newRecord.updateSavedState) {
+                    this.ensureRecordServices()
                     newRecord.updateSavedState()
                     this.resetHistory()
                     this.updateChangeTracking()
@@ -405,17 +399,37 @@ export const RecordstageRecord = {
     mounted() {
         this.boundHandleKeydown = this.handleKeydown.bind(this)
         this.boundEndFieldSelection = this.endFieldSelection.bind(this)
-        this.boundHandleClipboardChange = this.handleSharedClipboardChange.bind(this)
         window.addEventListener('mouseup', this.boundEndFieldSelection)
         window.addEventListener('keydown', this.boundHandleKeydown)
-        window.addEventListener(SHARED_CLIPBOARD_EVENT, this.boundHandleClipboardChange)
+        this.sharedClipboardCount = FieldClipboardService.getCount()
+        this.unsubscribeClipboardChange = FieldClipboardService.onClipboardChange(this.handleSharedClipboardChange)
     },
     beforeUnmount() {
         window.removeEventListener('mouseup', this.boundEndFieldSelection)
         window.removeEventListener('keydown', this.boundHandleKeydown)
-        window.removeEventListener(SHARED_CLIPBOARD_EVENT, this.boundHandleClipboardChange)
+        if (typeof this.unsubscribeClipboardChange === 'function') {
+            this.unsubscribeClipboardChange()
+            this.unsubscribeClipboardChange = null
+        }
     },
     methods: {
+        /**
+         * Lazily initialize record-bound services and rebind when the active record changes.
+         */
+        ensureRecordServices() {
+            if (!this.record) return
+
+            if (!this.historyManager || this.historyManager.record !== this.record) {
+                this.historyManager = new HistoryManager(this.record)
+            }
+
+            if (!this.workformService || this.workformService.record !== this.record) {
+                this.workformService = new WorkformService(this.record)
+            }
+        },
+        /**
+         * Focus the record container without stealing focus from active in-record editors.
+         */
         focusRecordContainer() {
             const container = this.$refs.recordContainer
             if (!container || typeof container.focus !== 'function') return
@@ -426,19 +440,26 @@ export const RecordstageRecord = {
 
             container.focus()
         },
+        /**
+         * Synchronize the local paste badge count from the shared clipboard event payload.
+         * @param {{ count?: number }} event
+         */
         handleSharedClipboardChange(event) {
-            this.sharedClipboardCount = event && event.detail && typeof event.detail.count === 'number'
-                ? event.detail.count
-                : sharedCopiedFieldPayloads.length
+            this.sharedClipboardCount = event && typeof event.count === 'number'
+                ? event.count
+                : FieldClipboardService.getCount()
         },
+        /**
+         * Publish current selected fields to the shared clipboard service.
+         */
         syncSharedClipboardFromSelection() {
-            sharedCopiedFieldPayloads = this.copiedFields
-                .map(field => serializeFieldForClipboard(field))
-                .filter(Boolean)
-
-            this.sharedClipboardCount = sharedCopiedFieldPayloads.length
-            publishSharedClipboardChange()
+            FieldClipboardService.copyFields(this.copiedFields)
+            this.sharedClipboardCount = FieldClipboardService.getCount()
         },
+        /**
+         * Request record focus while preserving native interaction for editable controls.
+         * @param {MouseEvent|Event} event
+         */
         requestFocus(event) {
             const target = event && event.target
             const interactiveSelector = 'button, a, input, textarea, select, [contenteditable="true"]'
@@ -447,7 +468,6 @@ export const RecordstageRecord = {
                 target &&
                 (target.isContentEditable || (typeof target.closest === 'function' && target.closest(interactiveSelector)))
             )
-
             if (!this.isFocused) {
                 this.$emit('focus-record', this.record)
             }
@@ -458,10 +478,16 @@ export const RecordstageRecord = {
                 })
             }
         },
+        /**
+         * Request unlock action for a record currently locked by another user.
+         */
         requestUnlockForEditing() {
             if (!this.record) return
             this.$emit('unlock-record', this.record)
         },
+        /**
+         * Request record close and confirm when unsaved changes are present.
+         */
         requestCloseRecord() {
             this.requestFocus()
 
@@ -472,9 +498,17 @@ export const RecordstageRecord = {
 
             this.$emit('close-record', this.record)
         },
+        /**
+         * Toggle validation summary visibility in the record footer.
+         */
         toggleValidationSummary() {
             this.validationExpanded = !this.validationExpanded
         },
+        /**
+         * Render a human-readable validation message from an error payload.
+         * @param {Object} error
+         * @returns {string}
+         */
         formatValidationError(error) {
             if (!error || !error.type) return 'Unknown validation error'
 
@@ -504,6 +538,11 @@ export const RecordstageRecord = {
                     return `${error.tag || 'Record'}: validation error (${error.type})`
             }
         },
+        /**
+         * Validate date strings in YYYY-MM or YYYY-MM-DD formats.
+         * @param {string} value
+         * @returns {boolean}
+         */
         isValidDateValue(value) {
             const datePattern = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01]))?$/
             const match = String(value || '').match(datePattern)
@@ -519,15 +558,30 @@ export const RecordstageRecord = {
             const dt = new Date(Date.UTC(year, month - 1, day))
             return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day
         },
+        /**
+         * Check if the user can update standard records.
+         * @returns {boolean}
+         */
         hasUpdatePermission() {
             return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('updateRecord'))
         },
+        /**
+         * Check if the user can update persisted workforms.
+         * @returns {boolean}
+         */
         hasWorkformUpdatePermission() {
             return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('updateWorkform'))
         },
+        /**
+         * Check if the user can delete persisted workforms.
+         * @returns {boolean}
+         */
         hasWorkformDeletePermission() {
             return !!(this.user && typeof this.user.hasPermission === 'function' && this.user.hasPermission('deleteWorkform'))
         },
+        /**
+         * Load authority use count badge data for persisted authority records.
+         */
         async refreshAuthUseCount() {
             if (!this.isPersistedAuthRecord || !this.record || typeof this.record.authUseCount !== 'function') {
                 this.authUseCount = null
@@ -544,6 +598,11 @@ export const RecordstageRecord = {
                 this.authUseCountLoading = false
             }
         },
+        /**
+         * Resolve saved-state snapshot for a field by tag and positional occurrence.
+         * @param {Object} field
+         * @returns {Object|null}
+         */
         getSavedFieldSnapshot(field) {
             if (!this.record || !this.record.savedState) return null
 
@@ -555,6 +614,11 @@ export const RecordstageRecord = {
 
             return savedFieldsForTag[currentPlace] ?? null
         },
+        /**
+         * Determine whether a field differs from the saved baseline.
+         * @param {Object} field
+         * @returns {boolean}
+         */
         fieldHasChanged(field) {
             if (field.savedState) {
                 return JSON.stringify(field.savedState) !== JSON.stringify(field.compile())
@@ -565,6 +629,9 @@ export const RecordstageRecord = {
 
             return JSON.stringify(savedFieldSnapshot) !== JSON.stringify(field.compile())
         },
+        /**
+         * Recompute changed field set and record-level dirty state.
+         */
         updateChangeTracking() {
             const dataFields = this.record.getDataFields()
             this.changedFields.clear()
@@ -576,7 +643,12 @@ export const RecordstageRecord = {
             })
 
             // If we're at the first history snapshot, treat the record as unchanged.
-            if (this.historySnapshots.length > 0 && this.historyIndex === 0) {
+            const isAtInitialSnapshot = !!(
+                this.historyManager
+                && this.historyManager.getSnapshotCount() > 0
+                && this.historyManager.getCurrentIndex() === 0
+            )
+            if (isAtInitialSnapshot) {
                 this.hasChanges = false
                 return
             }
@@ -584,16 +656,28 @@ export const RecordstageRecord = {
             // Use Jmarc's built-in saved getter
             this.hasChanges = !this.record.saved
         },
+        /**
+         * Apply post-edit updates: history capture, dirty-state tracking, and validation.
+         */
         onFieldChanged() {
-            if (!this.isApplyingHistory) {
+            const applyingHistory = !!(this.historyManager && this.historyManager.isApplyingSnapshot())
+            if (!applyingHistory) {
                 this.captureHistorySnapshot()
             }
             this.updateChangeTracking()
             this.runValidation()
         },
+        /**
+         * Refresh current validation errors from computed validation state.
+         */
         runValidation() {
             this.currentValidationErrors = this.validationErrors
         },
+        /**
+         * Convert a field to normalized, comparable text for history diff display.
+         * @param {Object} field
+         * @returns {string}
+         */
         fieldToComparableLine(field) {
             if (!field) return ''
             const tag = String(field.tag || '').padEnd(3, '_')
@@ -609,6 +693,12 @@ export const RecordstageRecord = {
 
             return `${tag} ${indicators} ${subfieldText}`.trim()
         },
+        /**
+         * Build row-level comparison metadata between two records for history UI.
+         * @param {Object} baseRecord
+         * @param {Object|null} compareRecord
+         * @returns {Array<Object>}
+         */
         buildComparisonRows(baseRecord, compareRecord) {
             if (!baseRecord || !Array.isArray(baseRecord.fields)) return []
 
@@ -636,12 +726,19 @@ export const RecordstageRecord = {
                 }
             })
         },
+        /**
+         * Open the history modal and load revision entries.
+         */
         async openHistoryModal() {
             this.showHistoryModal = true
             await this.loadHistoryEntries()
         },
+        /**
+         * Prompt for name/description and save current record as a workform.
+         */
         async saveAsWorkform() {
-            if (!this.record || !this.record.collection) return
+            this.ensureRecordServices()
+            if (!this.workformService || !this.record || !this.record.collection) return
 
             const defaultName = this.record.workformName || ''
             const workformNameInput = window.prompt('Workform name', defaultName)
@@ -659,22 +756,19 @@ export const RecordstageRecord = {
             const description = String(descriptionInput || '')
 
             try {
-                const candidate = this.record.clone()
-                if (typeof candidate.getFields === 'function' && typeof candidate.deleteField === 'function') {
-                    const fields998 = candidate.getFields('998') || []
-                    fields998.forEach(field => candidate.deleteField(field))
-                }
-                await candidate.saveAsWorkform(workformName, description)
-
-                this.record.workformName = workformName
-                this.record.workformDescription = description
+                const result = await this.workformService.saveAsWorkform({ workformName, description })
+                if (result && result.cancelled) return
                 window.alert(`Workform saved: ${this.record.collection}/workforms/${workformName}`)
             } catch (error) {
                 window.alert(`Could not save workform: ${error && error.message ? error.message : String(error)}`)
             }
         },
+        /**
+         * Persist updates to the currently edited workform.
+         */
         async updateWorkform() {
-            if (!this.record || !this.record.workformName) return
+            this.ensureRecordServices()
+            if (!this.workformService || !this.record || !this.record.workformName) return
 
             const name = String(this.record.workformName || '').trim()
             if (!name) {
@@ -688,19 +782,10 @@ export const RecordstageRecord = {
             const description = String(descriptionInput || '')
 
             try {
-                const candidate = this.record.clone()
-                if (typeof candidate.getFields === 'function' && typeof candidate.deleteField === 'function') {
-                    const fields998 = candidate.getFields('998') || []
-                    fields998.forEach(field => candidate.deleteField(field))
-                }
-                await candidate.saveWorkform(name, description)
-
-                // Reload the saved workform from API so editor reflects canonical saved data.
-                const refreshed = await Jmarc.fromWorkform(this.record.collection, name)
-                this.record.fields = []
-                this.record.parse(refreshed.compile())
+                const result = await this.workformService.updateWorkform({ description })
+                if (result && result.cancelled) return
                 this.record.workformName = name
-                this.record.workformDescription = refreshed.workformDescription || description
+                this.record.workformDescription = description
                 this.record._isWorkformEdit = true
                 this.record._isCloneDraft = false
                 this.resetHistory()
@@ -712,6 +797,9 @@ export const RecordstageRecord = {
                 window.alert(`Could not update workform: ${error && error.message ? error.message : String(error)}`)
             }
         },
+        /**
+         * Delete the currently edited workform after confirmation.
+         */
         async deleteWorkform() {
             if (!this.record || !this.record.workformName) return
 
@@ -730,9 +818,15 @@ export const RecordstageRecord = {
                 window.alert(`Could not delete workform: ${error && error.message ? error.message : String(error)}`)
             }
         },
+        /**
+         * Close the history modal.
+         */
         closeHistoryModal() {
             this.showHistoryModal = false
         },
+        /**
+         * Fetch history revisions from the API and materialize them as Jmarc snapshots.
+         */
         async loadHistoryEntries() {
             if (!this.record || !this.record.url) {
                 this.historyLoadError = 'Record must be saved before history is available.'
@@ -783,9 +877,16 @@ export const RecordstageRecord = {
                 this.isHistoryLoading = false
             }
         },
+        /**
+         * Select an entry in the history list.
+         * @param {number} index
+         */
         selectHistoryEntry(index) {
             this.selectedHistoryIndex = index
         },
+        /**
+         * Revert editor state to the selected history entry snapshot.
+         */
         revertToSelectedHistory() {
             const selected = this.selectedHistoryEntry
             if (!selected || !selected.record) return
@@ -803,53 +904,61 @@ export const RecordstageRecord = {
             this.runValidation()
             this.closeHistoryModal()
         },
+        /**
+         * Reset undo/redo history and capture the current record as the new baseline snapshot.
+         */
         resetHistory() {
-            this.historySnapshots = []
-            this.historyIndex = -1
+            this.ensureRecordServices()
+            if (!this.historyManager) return
+            this.historyManager.reset()
             this.captureHistorySnapshot()
         },
+        /**
+         * Capture the current record state into undo/redo history.
+         */
         captureHistorySnapshot() {
-            if (!this.record || typeof this.record.compile !== 'function') return
-
-            const snapshot = JSON.stringify(this.record.compile())
-            if (this.historyIndex >= 0 && this.historySnapshots[this.historyIndex] === snapshot) {
-                return
-            }
-
-            if (this.historyIndex < this.historySnapshots.length - 1) {
-                this.historySnapshots = this.historySnapshots.slice(0, this.historyIndex + 1)
-            }
-
-            this.historySnapshots.push(snapshot)
-            this.historyIndex = this.historySnapshots.length - 1
+            this.ensureRecordServices()
+            if (!this.historyManager) return
+            this.historyManager.captureSnapshot()
         },
+        /**
+         * Restore a prior history snapshot and refresh dependent editor state.
+         * @param {number} targetIndex
+         */
         applyHistorySnapshot(targetIndex) {
-            if (!this.record || typeof this.record.parse !== 'function') return
-            if (targetIndex < 0 || targetIndex >= this.historySnapshots.length) return
+            this.ensureRecordServices()
+            if (!this.historyManager) return
 
-            try {
-                this.isApplyingHistory = true
-                const snapshotData = JSON.parse(this.historySnapshots[targetIndex])
-                // Rebuild from snapshot to preserve exact field/subfield order.
-                this.record.fields = []
-                this.record.parse(snapshotData)
-                this.historyIndex = targetIndex
-                this.copiedFields = []
-                this.syncSharedClipboardFromSelection()
-                this.updateChangeTracking()
-                this.runValidation()
-            } finally {
-                this.isApplyingHistory = false
-            }
+            const applied = this.historyManager.applySnapshot(targetIndex)
+            if (!applied) return
+
+            this.copiedFields = []
+            this.syncSharedClipboardFromSelection()
+            this.updateChangeTracking()
+            this.runValidation()
         },
+        /**
+         * Move one step backward in undo history.
+         */
         undoChange() {
             if (!this.canUndo) return
-            this.applyHistorySnapshot(this.historyIndex - 1)
+            this.ensureRecordServices()
+            if (!this.historyManager) return
+            this.applyHistorySnapshot(this.historyManager.getCurrentIndex() - 1)
         },
+        /**
+         * Move one step forward in redo history.
+         */
         redoChange() {
             if (!this.canRedo) return
-            this.applyHistorySnapshot(this.historyIndex + 1)
+            this.ensureRecordServices()
+            if (!this.historyManager) return
+            this.applyHistorySnapshot(this.historyManager.getCurrentIndex() + 1)
         },
+        /**
+         * Handle record-scoped keyboard shortcuts for save, undo/redo, and field edits.
+         * @param {KeyboardEvent} event
+         */
         handleKeydown(event) {
             if (!this.isFocused || this.isRecordReadonly) return
 
@@ -890,6 +999,11 @@ export const RecordstageRecord = {
 
             this.redoChange()
         },
+        /**
+         * Resolve disabled state for toolbar controls.
+         * @param {{ id: string }} control
+         * @returns {boolean}
+         */
         isControlDisabled(control) {
             if (control.id === 'save' && this.isWorkformEditingRecord) return !this.hasWorkformUpdatePermission() || this.isSaving
             if (control.id === 'delete' && this.isWorkformEditingRecord) return !this.hasWorkformDeletePermission()
@@ -901,6 +1015,10 @@ export const RecordstageRecord = {
             if (control.id === 'history') return false
             return false
         },
+        /**
+         * Route toolbar control actions to their corresponding handlers.
+         * @param {{ id: string }} control
+         */
         handleControl(control) {
             this.requestFocus()
 
@@ -942,6 +1060,9 @@ export const RecordstageRecord = {
                     break
             }
         },
+        /**
+         * Persist the active record while preserving editor state and change history semantics.
+         */
         async saveRecord() {
             this.runValidation()
 
@@ -992,6 +1113,9 @@ export const RecordstageRecord = {
                 this.isSaving = false
             }
         },
+        /**
+         * Clone the active record into a new unsaved draft and strip protected control fields.
+         */
         cloneRecord() {
             if (!this.record || typeof this.record.clone !== 'function') return
 
@@ -1015,13 +1139,15 @@ export const RecordstageRecord = {
             console.log('Clone record (without 998):', clonedRecord)
             this.$emit('clone-record', clonedRecord)
         },
+        /**
+         * Paste serialized fields from the shared clipboard into the active record.
+         */
         pasteFields() {
-            if (sharedCopiedFieldPayloads.length === 0) {
+            const fieldsToPaste = FieldClipboardService.getFields()
+            if (fieldsToPaste.length === 0) {
                 console.warn('No fields copied')
                 return
             }
-
-            const fieldsToPaste = [...sharedCopiedFieldPayloads]
             const pastedFields = []
 
             fieldsToPaste.forEach(sourceField => {
@@ -1058,6 +1184,9 @@ export const RecordstageRecord = {
             this.$emit('pasteFields', { record: this.record, fields: pastedFields })
         },
 
+        /**
+         * Sort data fields by tag using native Jmarc sorting when available.
+         */
         sortRecordFieldsByTag() {
             const byTag = (a, b) => {
                 const ta = String(a?.tag ?? '')
@@ -1102,12 +1231,18 @@ export const RecordstageRecord = {
                 dataFields.sort(byTag)
             }
         },
+        /**
+         * Request deletion of the current record after confirmation.
+         */
         deleteRecord() {
             if (confirm(`Are you sure you want to delete this record?`)) {
                 console.log('Delete record:', this.record)
                 this.$emit('delete-record', this.record)
             }
         },
+        /**
+         * Open batch actions using the currently selected/copyable fields.
+         */
         batchActions() {
             const selectedFields = this.copiedFields
                 .map(field => serializeFieldForClipboard(field))
@@ -1118,6 +1253,10 @@ export const RecordstageRecord = {
                 selectedFields
             })
         },
+        /**
+         * Resolve currently focused field from DOM position.
+         * @returns {Object|null}
+         */
         getFocusedFieldFromDom() {
             const activeElement = document.activeElement
             if (!activeElement || !this.$el || !this.$el.contains(activeElement)) return null
@@ -1131,18 +1270,38 @@ export const RecordstageRecord = {
             const dataFields = this.record.getDataFields()
             return dataFields[index] || null
         },
+        /**
+         * Check whether a field is protected from bulk selection and deletion.
+         * @param {Object} field
+         * @returns {boolean}
+         */
         isProtectedField(field) {
             return !!(field && field.tag === '998')
         },
+        /**
+         * Get fields eligible for user selection.
+         * @returns {Array<Object>}
+         */
         getSelectableFields() {
             if (!this.record || typeof this.record.getDataFields !== 'function') return []
             return this.record.getDataFields().filter(field => !this.isProtectedField(field))
         },
+        /**
+         * Get fields eligible for deletion from selected/fallback candidates.
+         * @param {Array<Object>} selectedFields
+         * @param {Object|null} fallbackField
+         * @returns {Array<Object>}
+         */
         getDeletableFields(selectedFields, fallbackField) {
             const fallbackCandidates = fallbackField ? [fallbackField] : []
             return (selectedFields.length > 0 ? selectedFields : fallbackCandidates)
                 .filter(field => !this.isProtectedField(field))
         },
+        /**
+         * Resolve default subfield code for a tag from validation metadata.
+         * @param {string} tag
+         * @returns {string}
+         */
         getDefaultSubfieldCodeForTag(tag) {
             const fieldValidation = this.validationDocument[tag]
             const defaultSubfields = fieldValidation && Array.isArray(fieldValidation.defaultSubfields)
@@ -1151,6 +1310,10 @@ export const RecordstageRecord = {
 
             return defaultSubfields.length > 0 ? defaultSubfields[0] : 'a'
         },
+        /**
+         * Insert a new field after the given source field and focus its tag editor.
+         * @param {Object|null} sourceField
+         */
         addFieldFrom(sourceField) {
             if (this.isRecordReadonly) return
             if (!this.record || typeof this.record.createField !== 'function') return
@@ -1175,6 +1338,10 @@ export const RecordstageRecord = {
                 }
             })
         },
+        /**
+         * Delete a single field and refresh selection/copy state.
+         * @param {Object} targetField
+         */
         deleteFieldFrom(targetField) {
             if (this.isRecordReadonly) return
             if (!targetField || !this.record || typeof this.record.deleteField !== 'function') return
@@ -1184,6 +1351,10 @@ export const RecordstageRecord = {
             this.removeFieldFromCopyStack(targetField)
             this.onFieldChanged()
         },
+        /**
+         * Delete selected fields or a fallback field if no explicit selection exists.
+         * @param {Object|null} fallbackField
+         */
         deleteSelectedFieldsFrom(fallbackField) {
             if (this.isRecordReadonly) return
             if (!this.record || typeof this.record.deleteField !== 'function') return
@@ -1201,6 +1372,11 @@ export const RecordstageRecord = {
             this.clearFieldSelections()
             this.onFieldChanged()
         },
+        /**
+         * Apply selection state to a field and keep copy stack in sync.
+         * @param {Object} field
+         * @param {boolean} shouldSelect
+         */
         setFieldSelection(field, shouldSelect) {
             if (!field) return
             if (shouldSelect && this.isProtectedField(field)) {
@@ -1216,6 +1392,9 @@ export const RecordstageRecord = {
                 this.removeFieldFromCopyStack(field)
             }
         },
+        /**
+         * Clear all field selections and shared clipboard selection payload.
+         */
         clearFieldSelections() {
             const dataFields = this.record.getDataFields()
             dataFields.forEach(field => {
@@ -1224,15 +1403,26 @@ export const RecordstageRecord = {
             this.copiedFields = []
             this.syncSharedClipboardFromSelection()
         },
+        /**
+         * Select every selectable field in the record.
+         */
         selectAllSelectableFields() {
             const dataFields = this.getSelectableFields()
             dataFields.forEach(field => {
                 this.setFieldSelection(field, true)
             })
         },
+        /**
+         * Convenience wrapper to clear all selected fields.
+         */
         clearAllFieldSelections() {
             this.clearFieldSelections()
         },
+        /**
+         * Start drag selection for fields, supporting additive selection with modifier keys.
+         * @param {Object} field
+         * @param {MouseEvent} event
+         */
         beginFieldSelection(field, event) {
             if (event.button !== 0) return // left click only
             if (this.isProtectedField(field)) return
@@ -1261,14 +1451,24 @@ export const RecordstageRecord = {
             this.setFieldSelection(field, this.dragSelectValue)
             event.preventDefault()
         },
+        /**
+         * Continue drag selection as the cursor moves across fields.
+         * @param {Object} field
+         */
         onFieldHoverSelection(field) {
             if (!this.isDragSelecting) return
             this.setFieldSelection(field, this.dragSelectValue)
         },
+        /**
+         * End current drag-selection interaction.
+         */
         endFieldSelection() {
             this.isDragSelecting = false
             this.dragAdditive = false
         },
+        /**
+         * Toggle between select-all and clear-all for selectable fields.
+         */
         toggleSelectAllFields() {
             const dataFields = this.getSelectableFields()
             const shouldCheck = !this.allFieldsSelected
@@ -1277,12 +1477,20 @@ export const RecordstageRecord = {
                 this.setFieldSelection(field, shouldCheck)
             })
         },
+        /**
+         * Add field to copy stack if not present and refresh shared clipboard payload.
+         * @param {Object} field
+         */
         addFieldToCopyStack(field) {
             if (!this.copiedFields.includes(field)) {
                 this.copiedFields.push(field)
                 this.syncSharedClipboardFromSelection()
             }
         },
+        /**
+         * Remove field from copy stack and refresh shared clipboard payload.
+         * @param {Object} field
+         */
         removeFieldFromCopyStack(field) {
             const index = this.copiedFields.indexOf(field)
             if (index > -1) {
@@ -1290,6 +1498,11 @@ export const RecordstageRecord = {
                 this.syncSharedClipboardFromSelection()
             }
         },
+        /**
+         * Toggle field selection with support for additive modifier-key behavior.
+         * @param {Object} field
+         * @param {MouseEvent|Event} event
+         */
         toggleFieldSelection(field, event) {
             if (this.isProtectedField(field)) return
 
@@ -1308,6 +1521,11 @@ export const RecordstageRecord = {
             this.clearFieldSelections()
             this.setFieldSelection(field, true)
         },
+        /**
+         * Resolve authority matches for a controlled subfield and route the result to UI actions.
+         * @param {Object} field
+         * @param {Object} subfield
+         */
         async handleAuthLookup(field, subfield) {
             if (!this.record || typeof this.record.lookup !== 'function') return
 
@@ -1351,12 +1569,21 @@ export const RecordstageRecord = {
                 window.alert(`Authority lookup failed: ${error && error.message ? error.message : String(error)}`)
             }
         },
+        /**
+         * Handle explicit create-authority request from a controlled field action.
+         * @param {Object} field
+         * @param {Object} subfield
+         */
         async handleCreateAuthorityRequest(field, subfield) {
             const created = await this.createAuthorityFromControlledField(field, subfield)
             if (created) {
                 this.$emit('open-related-record', created)
             }
         },
+        /**
+         * Open a linked authority record by xref from a subfield payload.
+         * @param {{ xref?: string|number }} payload
+         */
         async openLinkedAuthorityRecord(payload) {
             const xref = payload && payload.xref ? payload.xref : null
             if (!xref) return
@@ -1368,6 +1595,12 @@ export const RecordstageRecord = {
                 window.alert(`Could not open linked authority: ${error && error.message ? error.message : String(error)}`)
             }
         },
+        /**
+         * Create a new authority record based on the controlled subfields in the current field.
+         * @param {Object} field
+         * @param {Object} triggeringSubfield
+         * @returns {Promise<Object|null>}
+         */
         async createAuthorityFromControlledField(field, triggeringSubfield) {
             if (!field || !field.parentRecord || !field.parentRecord.authMap) {
                 window.alert('Authority map not available for creating authority record.')
