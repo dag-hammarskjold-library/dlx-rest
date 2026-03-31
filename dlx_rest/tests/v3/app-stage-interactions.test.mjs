@@ -124,3 +124,55 @@ test('AppStage setRecordState creates new object to ensure reactivity', () => {
   assert.notEqual(ctx.recordStates, originalState)
   assert.equal(ctx.recordStates['bibs/1'].readonly, true)
 })
+
+test('AppStage refreshBasketView no-ops without user loader', async () => {
+  const ctx = {
+    user: null,
+    $refs: {}
+  }
+
+  await AppStage.methods.refreshBasketView.call(ctx)
+  assert.equal(true, true)
+})
+
+test('AppStage refreshBasketView loads user basket and refreshes basket ref', async () => {
+  const calls = []
+  const ctx = {
+    user: {
+      async loadBasket() {
+        calls.push('loadBasket')
+      }
+    },
+    $refs: {
+      basket: {
+        async refreshFromUserBasket() {
+          calls.push('refreshFromUserBasket')
+        }
+      }
+    }
+  }
+
+  await AppStage.methods.refreshBasketView.call(ctx)
+  assert.deepEqual(calls, ['loadBasket', 'refreshFromUserBasket'])
+})
+
+test('AppStage handleRecordSaved ignores non-clone payloads', async () => {
+  const ctx = {
+    user: {
+      isInBasket() {
+        throw new Error('should not be called')
+      }
+    },
+    normalizeCollection: AppStage.methods.normalizeCollection,
+    refreshBasketView: async () => {
+      throw new Error('should not be called')
+    }
+  }
+
+  await AppStage.methods.handleRecordSaved.call(ctx, {
+    record: { collection: 'bibs', recordId: 1 },
+    wasCloneDraft: false
+  })
+
+  assert.equal(true, true)
+})
