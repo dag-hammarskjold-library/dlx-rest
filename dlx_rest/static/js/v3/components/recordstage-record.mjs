@@ -416,6 +416,16 @@ export const RecordstageRecord = {
         window.removeEventListener(SHARED_CLIPBOARD_EVENT, this.boundHandleClipboardChange)
     },
     methods: {
+        focusRecordContainer() {
+            const container = this.$refs.recordContainer
+            if (!container || typeof container.focus !== 'function') return
+
+            if (this.$el && document.activeElement && this.$el.contains(document.activeElement)) {
+                return
+            }
+
+            container.focus()
+        },
         handleSharedClipboardChange(event) {
             this.sharedClipboardCount = event && event.detail && typeof event.detail.count === 'number'
                 ? event.detail.count
@@ -429,9 +439,23 @@ export const RecordstageRecord = {
             this.sharedClipboardCount = sharedCopiedFieldPayloads.length
             publishSharedClipboardChange()
         },
-        requestFocus() {
+        requestFocus(event) {
+            const target = event && event.target
+            const interactiveSelector = 'button, a, input, textarea, select, [contenteditable="true"]'
+            const isPointerEvent = !!(event && event.type === 'mousedown')
+            const isInteractiveTarget = !!(
+                target &&
+                (target.isContentEditable || (typeof target.closest === 'function' && target.closest(interactiveSelector)))
+            )
+
             if (!this.isFocused) {
                 this.$emit('focus-record', this.record)
+            }
+
+            if (isPointerEvent && !isInteractiveTarget) {
+                this.$nextTick(() => {
+                    this.focusRecordContainer()
+                })
             }
         },
         requestUnlockForEditing() {
@@ -1392,7 +1416,9 @@ export const RecordstageRecord = {
     },
     template: /* html */ `
         <div
+            ref="recordContainer"
             class="record-container"
+            tabindex="-1"
             :class="{ 'record-container--focused': isFocused }"
             @mousedown="requestFocus"
             @focusin="requestFocus"

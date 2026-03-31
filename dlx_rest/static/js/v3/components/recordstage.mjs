@@ -392,6 +392,21 @@ export const AppRecordstage = {
             const focusedEditor = editors.find(editor => editor.record === this.focusedRecord)
             return focusedEditor || editors[0]
         },
+        focusFocusedRecordEditorContainer() {
+          const applyFocus = () => {
+            const editor = this.getFocusedRecordEditor()
+            if (editor && typeof editor.focusRecordContainer === 'function') {
+              editor.focusRecordContainer()
+            }
+          }
+
+          if (typeof this.$nextTick === 'function') {
+            this.$nextTick(applyFocus)
+            return
+          }
+
+          applyFocus()
+        },
         selectAllFieldsInFocusedRecord() {
             const editor = this.getFocusedRecordEditor()
             if (editor && typeof editor.selectAllSelectableFields === 'function') {
@@ -425,6 +440,7 @@ export const AppRecordstage = {
                 : 0
 
             this.focusedRecord = this.records[nextIndex]
+            this.focusFocusedRecordEditorContainer()
         },
           closeFocusedRecord() {
             if (!this.focusedRecord) return

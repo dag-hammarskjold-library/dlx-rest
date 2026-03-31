@@ -32,7 +32,8 @@ test('AppRecordstage focusNextRecord advances and wraps', () => {
 
   const ctx = {
     records: [r1, r2, r3],
-    focusedRecord: r2
+    focusedRecord: r2,
+    focusFocusedRecordEditorContainer() {}
   }
 
   AppRecordstage.methods.focusNextRecord.call(ctx)
@@ -40,6 +41,40 @@ test('AppRecordstage focusNextRecord advances and wraps', () => {
 
   AppRecordstage.methods.focusNextRecord.call(ctx)
   assert.equal(ctx.focusedRecord, r1)
+})
+
+test('AppRecordstage focusNextRecord focuses new record container', () => {
+  const r1 = { id: 1 }
+  const r2 = { id: 2 }
+  const editor = {
+    record: r2,
+    focused: false,
+    focusRecordContainer() {
+      this.focused = true
+    }
+  }
+
+  const ctx = {
+    records: [r1, r2],
+    focusedRecord: r1,
+    $nextTick(fn) {
+      fn()
+    },
+    getRecordEditors() {
+      return [editor]
+    },
+    getFocusedRecordEditor() {
+      return AppRecordstage.methods.getFocusedRecordEditor.call(this)
+    },
+    focusFocusedRecordEditorContainer() {
+      return AppRecordstage.methods.focusFocusedRecordEditorContainer.call(this)
+    }
+  }
+
+  AppRecordstage.methods.focusNextRecord.call(ctx)
+
+  assert.equal(ctx.focusedRecord, r2)
+  assert.equal(editor.focused, true)
 })
 
 test('AppRecordstage getFocusedRecordEditor prefers editor for focused record', () => {

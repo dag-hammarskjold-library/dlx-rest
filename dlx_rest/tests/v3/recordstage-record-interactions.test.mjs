@@ -142,3 +142,67 @@ test('RecordstageRecord cannot begin selection on protected 998 field', () => {
 
   assert.equal(ctx.isDragSelecting, false)
 })
+
+test('RecordstageRecord requestFocus emits focus-record and focuses container for non-interactive pointer event', () => {
+  const calls = []
+  const ctx = {
+    isFocused: false,
+    record: { recordId: 1 },
+    $emit(event, payload) {
+      calls.push([event, payload])
+    },
+    $nextTick(fn) {
+      fn()
+    },
+    focusRecordContainer() {
+      calls.push(['focusRecordContainer'])
+    }
+  }
+
+  const event = {
+    type: 'mousedown',
+    target: {
+      isContentEditable: false,
+      closest: () => null
+    }
+  }
+
+  RecordstageRecord.methods.requestFocus.call(ctx, event)
+
+  assert.equal(calls[0][0], 'focus-record')
+  assert.equal(calls.some(entry => entry[0] === 'focusRecordContainer'), true)
+})
+
+test('RecordstageRecord focusRecordContainer does not steal focus when already inside record', () => {
+  const focusedEl = {}
+  let focusCalled = false
+  const previousDocument = globalThis.document
+
+  try {
+    globalThis.document = {
+      ...(previousDocument || {}),
+      activeElement: focusedEl
+    }
+
+    const ctx = {
+      $refs: {
+        recordContainer: {
+          focus() {
+            focusCalled = true
+          }
+        }
+      },
+      $el: {
+        contains(node) {
+          return node === focusedEl
+        }
+      }
+    }
+
+    RecordstageRecord.methods.focusRecordContainer.call(ctx)
+
+    assert.equal(focusCalled, false)
+  } finally {
+    globalThis.document = previousDocument
+  }
+})
