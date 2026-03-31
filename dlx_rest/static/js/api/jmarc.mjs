@@ -18,6 +18,10 @@ class AuthMap {
 
 let authMap = null;
 
+function escapeQueryRegex(value) {
+	return String(value ?? "").replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
+
 export async function getAuthMaps(apiUrl) {
 	const bibs = new AuthMap('bibs');
 	const auths = new AuthMap('auths');
@@ -175,7 +179,7 @@ export class Subfield {
 			const searchStr =
 			field.subfields
 				.filter(x => Object.keys(Jmarc.authMap[jmarc.collection][field.tag]).includes(x.code))
-				.map(x => `${Jmarc.authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
+				.map(x => `${Jmarc.authMap[jmarc.collection][field.tag][x.code]}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
 				.join(" AND ");
 			
 
@@ -1080,7 +1084,7 @@ export class Jmarc {
 		};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
-		for (let tag of tags.sort(x => parseInt(x))) {
+		for (let tag of tags.sort((a, b) => parseInt(a) - parseInt(b))) {
 			recordData[tag] = recordData[tag] || [];
 
 			for (let field of this.getFields(tag)) {
@@ -1305,7 +1309,7 @@ export class Jmarc {
 			// only look in same symbol fields in other records
 			for (const field of this.getFields(tag)) {
 				if (!field.getSubfield("a")) continue // field may not have subfield $a
-				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
+				const searchStr = `${tag}__a:/^${escapeQueryRegex(field.getSubfield("a").value)}$/`;
 				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
 				const res = await fetch(url);
 				const json = await res.json();
@@ -1333,7 +1337,7 @@ export class Jmarc {
 
 		let searchStr =
 			headingField.subfields
-				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+				.map(x => `${headingField.tag}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
 				.join(" AND ")
 
 		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
@@ -1382,7 +1386,7 @@ export class Jmarc {
 		let searchStr =
 			headingField.subfields
 				.filter(x => x.value)
-				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+				.map(x => `${headingField.tag}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
 				.join(" AND ");
 
 		const url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);
