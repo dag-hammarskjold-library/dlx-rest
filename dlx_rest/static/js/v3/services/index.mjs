@@ -8,3 +8,8 @@
 export { HistoryManager } from './HistoryManager.mjs'
 export { FieldClipboardService } from './FieldClipboardService.mjs'
 export { WorkformService } from './WorkformService.mjs'
+export { ValidationRulesService } from './ValidationRulesService.mjs'
+export { SubfieldDateValidator } from './SubfieldDateValidator.mjs'
+export { AuthorityControlService } from './AuthorityControlService.mjs'
+export { DropdownInteractionService } from './DropdownInteractionService.mjs'
+export { AuthorityUiOrchestrationService } from './AuthorityUiOrchestrationService.mjs'

@@ -3,7 +3,7 @@
 ## Overview
 This document tracks the ongoing refactoring of the v3 component suite to improve readability, maintainability, and testability through component decomposition and service extraction.
 
-## Current State (Phase 1: MOSTLY COMPLETE)
+## Current State (Phase 1 Complete, Phase 2 Started)
 
 ### Completed ✅ 
 
@@ -41,9 +41,35 @@ This document tracks the ongoing refactoring of the v3 component suite to improv
 
 ### In Progress 🚧
 
-**Documentation hardening**
-- [x] Add comprehensive JSDoc coverage to remaining lower-risk utility methods
-- [~] Continue reducing `recordstage-record.mjs` method density via follow-on extractions
+**Phase 2 kickoff: record-field-subfield decomposition**
+- [x] Added `ValidationRulesService.mjs` for validation rule lookups and value checks
+- [x] Added `SubfieldDateValidator.mjs` for reusable date validation
+- [x] Delegated `record-field-subfield.mjs` validation/date helper logic to new services
+- [x] Added `AuthorityControlService.mjs` for authority payload normalization and lookup operations
+- [x] Delegated authority display/subfield parsing/controlled-code resolution/search to service methods
+- [x] Extracted authority-selection mutation flow (`selectAuthority`) into service helper
+- [x] Extracted authority dropdown direction + navigation helpers into service utilities
+- [x] Added `DropdownInteractionService.mjs` for dropdown keyboard/focus interaction primitives
+- [x] Delegated code/value dropdown key/focus handlers to shared dropdown service utilities
+- [x] Delegated auth dropdown key/focus intent handling to shared dropdown service utilities
+- [x] Delegated authority input-edit state and search display-state helpers to `AuthorityControlService`
+- [x] Added focused service tests for extracted authority/dropdown helpers
+- [x] Reduced `record-field-subfield.mjs` method count by removing redundant service pass-through wrappers
+- [x] Expanded auth dropdown interaction tests for key/focus flows in component tests
+- [x] Added `AuthorityUiOrchestrationService.mjs` for authority selection UI-state/focus synchronization
+- [x] Delegated `selectAuthority` post-selection UI orchestration to shared service helpers
+- [x] Delegated auth handler decisions (close-state patching, option focus target resolution, selectability gating) to orchestration service helpers
+- [x] Expanded `AuthorityUiOrchestrationService` helper tests for handler-decision utilities
+- [x] Added service-backed auth action maps (intent -> action -> state patch) and delegated key handlers to action dispatch flow
+- [x] Added service-backed code/value dropdown intent-action mapping and delegated key handlers to dispatch flow
+- [x] Exported new services via `v3/services/index.mjs`
+- [x] Verified full v3 test suite remains green (`npm run test:js:v3`)
+
+**Phase 2 next actions**
+- [ ] Evaluate extraction of authority-specific UI handlers into dedicated component or helper module
+- [ ] Continue reducing `record-field-subfield.mjs` file size by extracting remaining authority UI handlers beyond selection flow
+- [ ] Consolidate remaining authority handler orchestration into service-backed action maps where practical
+- [ ] Evaluate extraction of non-authority menu orchestration into dedicated helper boundary
 
 ## Refactoring Roadmap
 
@@ -67,6 +93,8 @@ Services to integrate:
 
 ### Phase 2: Simplify record-field-subfield (HIGH Priority)
 **Goal**: Reduce from 1,120 → ~500 lines by extracting concerns
+
+**Current Status**: In progress (validation/date + authority services extracted and wired, with dropdown keyboard/focus, authority input/search state, and authority selection/handler UI orchestration delegated to services, including service-backed auth and code/value action maps with expanded interaction coverage)
 
 **Services to Create**:
 1. **ValidationRulesService** - Consolidates field/subfield validation rules

@@ -169,3 +169,118 @@ test('RecordFieldSubfield watch isAuthorityControlled sets clickable when xref e
 
   assert.equal(ctx.classes.subfieldValue['clickable-text'], true)
 })
+
+test('RecordFieldSubfield onAuthValueKeyDown Tab closes search and resets active option', () => {
+  const ctx = {
+    isAuthorityControlled: true,
+    showAuthSearch: true,
+    activeAuthOptionIndex: 2,
+    authSearchResults: []
+  }
+
+  RecordFieldSubfield.methods.onAuthValueKeyDown.call(ctx, { key: 'Tab' })
+
+  assert.equal(ctx.showAuthSearch, false)
+  assert.equal(ctx.activeAuthOptionIndex, -1)
+})
+
+test('RecordFieldSubfield onAuthValueKeyDown ArrowDown opens search and moves selection', () => {
+  const calls = { compute: 0, move: 0 }
+  const event = {
+    key: 'ArrowDown',
+    preventDefault() { calls.prevented = true }
+  }
+
+  const ctx = {
+    isAuthorityControlled: true,
+    showAuthSearch: false,
+    activeAuthOptionIndex: -1,
+    authSearchResults: [{ id: '1' }],
+    computeAuthDropdownDirection() { calls.compute++ },
+    moveAuthSelection(delta) {
+      calls.move += delta
+    }
+  }
+
+  RecordFieldSubfield.methods.onAuthValueKeyDown.call(ctx, event)
+
+  assert.equal(calls.prevented, true)
+  assert.equal(ctx.showAuthSearch, true)
+  assert.equal(calls.compute, 1)
+  assert.equal(calls.move, 1)
+})
+
+test('RecordFieldSubfield onAuthValueKeyDown Enter selects active authority', () => {
+  const calls = { selected: 0 }
+  const event = {
+    key: 'Enter',
+    preventDefault() { calls.prevented = true },
+    target: { blur() { calls.blurred = true } }
+  }
+
+  const ctx = {
+    isAuthorityControlled: true,
+    showAuthSearch: true,
+    activeAuthOptionIndex: 0,
+    authSearchResults: [{ id: '1', notFound: false }],
+    selectAuthority(authority) {
+      calls.selected++
+      calls.selectedId = authority.id
+    }
+  }
+
+  RecordFieldSubfield.methods.onAuthValueKeyDown.call(ctx, event)
+
+  assert.equal(calls.prevented, true)
+  assert.equal(calls.selected, 1)
+  assert.equal(calls.selectedId, '1')
+  assert.equal(calls.blurred, undefined)
+})
+
+test('RecordFieldSubfield onAuthOptionKeyDown Escape closes and focuses auth input', () => {
+  const calls = { focused: 0 }
+  const ctx = {
+    showAuthSearch: true,
+    $refs: {
+      authValueEl: {
+        focus() { calls.focused++ }
+      }
+    },
+    $nextTick(fn) { fn() }
+  }
+
+  const event = {
+    key: 'Escape',
+    preventDefault() { calls.prevented = true }
+  }
+
+  RecordFieldSubfield.methods.onAuthOptionKeyDown.call(ctx, event, 0)
+
+  assert.equal(calls.prevented, true)
+  assert.equal(ctx.showAuthSearch, false)
+  assert.equal(calls.focused, 1)
+})
+
+test('RecordFieldSubfield handleAuthValueFocusOut keeps open for dropdown target and closes otherwise', () => {
+  const dropdownEl = { contains: (target) => !!target && target.id === 'inside' }
+  const currentTarget = { contains: (target) => !!target && target.id === 'inside-current' }
+
+  const ctx = {
+    showAuthSearch: true,
+    $el: {
+      querySelector: () => dropdownEl
+    }
+  }
+
+  RecordFieldSubfield.methods.handleAuthValueFocusOut.call(ctx, {
+    currentTarget,
+    relatedTarget: { id: 'inside' }
+  })
+  assert.equal(ctx.showAuthSearch, true)
+
+  RecordFieldSubfield.methods.handleAuthValueFocusOut.call(ctx, {
+    currentTarget,
+    relatedTarget: { id: 'outside' }
+  })
+  assert.equal(ctx.showAuthSearch, false)
+})
