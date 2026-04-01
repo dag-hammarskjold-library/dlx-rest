@@ -8,3 +8,5 @@ _build/
 /docs/_build/
 .DS_Store
 .vs
+frontend-v3/node_modules/
+frontend-v3/.vite/
