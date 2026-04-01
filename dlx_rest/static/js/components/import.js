@@ -183,6 +183,38 @@ export let importcomponent = {
         }
     },
     methods: {
+        async normalizeMultiFieldXrefs(jmarc) {
+            await Jmarc.init()
+
+            for (const field of jmarc.getDataFields()) {
+                const authMap = (Jmarc.authMap?.[jmarc.collection] || {})[field.tag]
+
+                if (!authMap) {
+                    continue
+                }
+
+                const controlled = field.subfields.filter(sf => authMap[sf.code] && sf.value)
+
+                if (controlled.length < 2) {
+                    continue
+                }
+
+                // Only normalize when all controlled subfields in the field point to the same source tag.
+                const sourceTags = new Set(controlled.map(sf => authMap[sf.code]).filter(Boolean))
+
+                if (sourceTags.size !== 1) {
+                    continue
+                }
+
+                const resolved = await controlled[0].detectAndSetXref().catch(() => null)
+
+                if (resolved && !(resolved instanceof Error)) {
+                    controlled.forEach(sf => {
+                        sf.xref = resolved
+                    })
+                }
+            }
+        },
         reinitApp: function () {
             this.records = []
             this.selectedRecords = false
@@ -357,6 +389,11 @@ export let importcomponent = {
         async submit(record) {
             let binary = new Blob([record['mrk']])
             let jmarc = record['jmarc']
+
+            // CSV parsing can assign inconsistent xrefs in multi-subfield authority lookups.
+            // Normalize xrefs in-memory before commit.
+            await this.normalizeMultiFieldXrefs(jmarc)
+
             // Only allow one click, so we don't accidentally post multiple records
             //e.target.classList.add("disabled")
             let existingId = jmarc.getField("001")
