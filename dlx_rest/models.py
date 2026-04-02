@@ -261,6 +261,31 @@ class SyncLog(Document):
     }
 
 
+class MergeJob(Document):
+    """Records authority merge operations for status tracking and history."""
+    job_id = StringField(primary_key=True)
+    status = StringField(choices=['queued', 'running', 'completed', 'failed'], default='queued', required=True)
+    gaining_id = IntField(required=True)
+    losing_id = IntField(required=True)
+    user = StringField(max_length=200, required=True)
+    message = StringField(max_length=500)
+    error = StringField(max_length=500)
+    started_at = DateTimeField()
+    finished_at = DateTimeField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    
+    meta = {
+        'collection': 'merge_jobs',
+        'strict': False,
+        'indexes': [
+            'gaining_id',
+            'losing_id',
+            'user',
+            'created_at'
+        ]
+    }
+
+
 # This still should work for unconstrained permissions, but if we need additional
 # constraints, this will have to change
 def requires_permission(action):

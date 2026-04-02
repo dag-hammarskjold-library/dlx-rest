@@ -233,6 +233,12 @@ span.authority-controlled {
 
 span.authority-controlled-unmatched {
     background-color: LightCoral;
+    color: #0000EE;
+    text-decoration: underline;
+}
+
+span.authority-controlled-unmatched:hover {
+    background-color: #F08080;
 }
 
 span.invalid {
@@ -273,4 +279,195 @@ td.validation-flag {
 
 span.validation-flag {
     background-color: #f8d7da;
+}
+
+/* Authority Search Dropdown Styles */
+.authority-value-menu-container {
+    position: relative;
+    display: inline-block;
+}
+
+.authority-value-menu-container .value-editable {
+    cursor: text;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    transition: border-color 0.2s, background-color 0.2s;
+    min-width: 150px;
+    display: inline-block;
+}
+
+.authority-value-menu-container .value-editable:focus {
+    outline: none;
+    border-color: #0066cc;
+    background-color: #f0f7ff;
+}
+
+.auth-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    min-width: 300px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.auth-searching {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    color: #666;
+    font-style: italic;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.auth-searching i {
+    margin-right: 8px;
+    color: #0066cc;
+}
+
+.auth-option {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background-color: white;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.1s;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.auth-option:last-child {
+    border-bottom: none;
+}
+
+.auth-option:not(:disabled):hover,
+.auth-option.active:not(:disabled) {
+    background-color: #e3f2fd;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.auth-option:not(:disabled):focus {
+    outline: 1px solid #0066cc;
+    background-color: #e3f2fd;
+}
+
+.auth-option:disabled {
+    cursor: not-allowed;
+    color: #999;
+}
+
+.auth-option.not-found {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.auth-heading {
+    display: block;
+    font-weight: 500;
+}
+
+.auth-not-found {
+    display: block;
+    color: inherit;
+}
+
+/* Value dropdown styles for consistency */
+.value-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    min-width: 200px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.value-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background-color: white;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.1s;
+}
+
+.value-option:last-child {
+    border-bottom: none;
+}
+
+.value-option:hover,
+.value-option.active {
+    background-color: #e3f2fd;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.value-option:focus {
+    outline: 1px solid #0066cc;
+    background-color: #e3f2fd;
+}
+
+/* Code dropdown styles for consistency */
+.code-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    min-width: 100px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.code-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background-color: white;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.1s;
+    font-family: monospace;
+}
+
+.code-option:last-child {
+    border-bottom: none;
+}
+
+.code-option:hover,
+.code-option.active {
+    background-color: #e3f2fd;
+    color: #0066cc;
+    font-weight: 500;
+}
+
+.code-option:focus {
+    outline: 1px solid #0066cc;
+    background-color: #e3f2fd;
 }
