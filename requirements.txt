@@ -22,4 +22,4 @@ troposphere==4.10.1
 typing-extensions==4.15.0
 valkey==6.1.1
 WTForms==3.2.1
-zipp==3.23.0
+zipp==3.23.1
