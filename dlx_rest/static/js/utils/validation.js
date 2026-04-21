@@ -43,7 +43,7 @@ export const validationData = {
             "validSubfields": ["2","a"],
             "defaultSubfields": ["2","a"],
             "validStrings": {
-                "a": ["doi","uri"]
+                "2": ["doi","uri"]
             }
         },
         "029": {
