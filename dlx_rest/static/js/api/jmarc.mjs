@@ -114,16 +114,25 @@ export class Subfield {
 
 		// date match
 		if (this.value && "isDate" in data && this.code in data.isDate) {
-			let dateStr = this.value
-				// add dashes for valdation using JS Date object, but don't update the value.
-				// dashes are added to dates in the runSaveActions method
-				.replace(" ", "-")
-				.replace(/^(\d{4})(\d{2})/, "$1-$2")
-				.replace(/^(\d{4})-(\d{2})(\d{2})$/, "$1-$2-$3");
+			const datePattern = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01]))?$/;
+			const match = String(this.value).match(datePattern);
+			let isValidDate = false;
 
-			let date = new Date(dateStr);
+			if (match) {
+				if (typeof match[3] === 'undefined') {
+					// YYYY-MM
+					isValidDate = true;
+				} else {
+					// YYYY-MM-DD with calendar validation
+					const year = Number(match[1]);
+					const month = Number(match[2]);
+					const day = Number(match[3]);
+					const dt = new Date(Date.UTC(year, month - 1, day));
+					isValidDate = dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
+				}
+			}
 
-			if (date.toString() === "Invalid Date" || ![4, 7, 10].includes(dateStr.length)) {
+			if (!isValidDate) {
 				flags.push(
 					new SubfieldValueValidationFlag(`${this.tag} \$${this.code}: Invalid date "${this.value}"`)
 				)
@@ -734,6 +743,95 @@ export class Jmarc {
 		).catch(error => { throw error })
 	}
 
+	static async mergeAuthorities(gainingRecordId, losingRecordId, options = {}) {
+		if (!Jmarc.apiUrl) { throw new Error("Jmarc.apiUrl must be set") };
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
+
+		const gainingId = Number.parseInt(gainingRecordId, 10)
+		const losingId = Number.parseInt(losingRecordId, 10)
+
+		if (!Number.isFinite(gainingId) || !Number.isFinite(losingId)) {
+			throw new Error('Both gainingRecordId and losingRecordId must be numeric')
+		}
+
+		if (gainingId === losingId) {
+			throw new Error('Gaining and losing authority records must be different')
+		}
+
+		const params = new URLSearchParams({ target: String(losingId) })
+		if (options && options.async === true) {
+			params.set('async', 'true')
+		}
+
+		const url = Jmarc.apiUrl + `marc/auths/records/${gainingId}/merge?${params.toString()}`
+		const response = await fetch(url, { method: 'GET' })
+		const json = await response.json().catch(() => ({}))
+
+		if (!response.ok) {
+			throw new Error(json && json.message ? json.message : `Merge request failed (${response.status})`)
+		}
+
+		return {
+			status: response.status,
+			message: json && json.message ? json.message : 'Merge request accepted',
+			data: json && json.data ? json.data : null,
+			jobId: json && json.job_id ? json.job_id : null,
+			statusUrl: json && json.status_url ? json.status_url : null,
+			raw: json
+		}
+	}
+
+	static async getMergeJobStatus(jobId) {
+		if (!Jmarc.apiUrl) { throw new Error("Jmarc.apiUrl must be set") };
+		Jmarc.apiUrl = Jmarc.apiUrl.slice(-1) == '/' ? Jmarc.apiUrl : Jmarc.apiUrl + '/';
+
+		if (!jobId || String(jobId).trim().length === 0) {
+			throw new Error('jobId is required')
+		}
+
+		const url = Jmarc.apiUrl + `marc/auths/merge_jobs/${encodeURIComponent(jobId)}`
+		const response = await fetch(url, { method: 'GET' })
+		const json = await response.json().catch(() => ({}))
+
+		if (!response.ok) {
+			throw new Error(json && json.message ? json.message : `Failed to fetch merge job status (${response.status})`)
+		}
+
+		// Extract merge job data from API response wrapper
+		const jobData = json && json.data ? json.data : json
+		return {
+			jobId: jobData.job_id || jobId,
+			status: jobData.status,
+			gainingId: jobData.gaining_id,
+			losingId: jobData.losing_id,
+			user: jobData.user,
+			message: jobData.message,
+			error: jobData.error || null,
+			createdAt: jobData.created_at,
+			startedAt: jobData.started_at,
+			finishedAt: jobData.finished_at,
+			raw: json
+		}
+	}
+
+	static async pollMergeJobStatus(jobId, maxAttempts = 60, delayMs = 1000) {
+		if (!jobId) throw new Error('jobId is required')
+
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const job = await Jmarc.getMergeJobStatus(jobId)
+			
+			if (job.status === 'completed' || job.status === 'failed') {
+				return job
+			}
+
+			if (attempt < maxAttempts - 1) {
+				await new Promise(resolve => setTimeout(resolve, delayMs))
+			}
+		}
+
+		throw new Error(`Merge job ${jobId} did not complete within ${maxAttempts * delayMs}ms`)
+	}
+
 	async saveWorkform(workformName, description) {
 		let data = this.compile();
 		data.name = workformName;
@@ -937,8 +1035,9 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-						// Keep parsed data stable: avoid async field mutation after savedState snapshot.
-						newSub.xref = subfield.xref;
+						// Preserve xref directly from parsed snapshot/data so undo/redo doesn't
+						// transiently mark authority-controlled fields as changed.
+						newSub.xref = subfield.xref
 						if (!seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}
@@ -1256,6 +1355,25 @@ export class Jmarc {
 		} else {
 			return false
 		}
+	}
+
+	async authUseCount(useType = 'bibs') {
+		if (this.collection !== 'auths') return 0
+		if (!this.recordId) return 0
+
+		if (!['bibs', 'auths'].includes(useType)) {
+			throw new Error('useType must be "bibs" or "auths"')
+		}
+
+		const url = Jmarc.apiUrl + `/marc/auths/records/${this.recordId}/use_count?use_type=${encodeURIComponent(useType)}`
+		const response = await fetch(url).catch(e => { throw e })
+		const json = await response.json()
+
+		if (response.status !== 200) {
+			throw new Error(json['message'])
+		}
+
+		return Number(json['data'] || 0)
 	}
 
 	async authHeadingInUse() {
