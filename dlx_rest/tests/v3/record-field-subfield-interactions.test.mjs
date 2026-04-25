@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { RecordFieldSubfield } from '../../static/js/v3/components/record-field-subfield.mjs'
+import RecordFieldSubfield from '../../../frontend/src/components/RecordFieldSubfield.vue'
 
 function createMockElement() {
   return {
@@ -168,4 +168,53 @@ test('RecordFieldSubfield watch isAuthorityControlled sets clickable when xref e
   xrefWatcher.call(ctx)
 
   assert.equal(ctx.classes.subfieldValue['clickable-text'], true)
+})
+
+test('RecordFieldSubfield finalizeValue trims leading and trailing whitespace', () => {
+  const subfield = { value: '' }
+  const emitted = []
+  const domEl = { textContent: '' }
+
+  const ctx = {
+    readonly: false,
+    subfield,
+    $emit: (event) => emitted.push(event)
+  }
+
+  RecordFieldSubfield.methods.finalizeValue.call(ctx, { target: { innerText: '  hello world  ', textContent: '' } })
+
+  assert.equal(ctx.subfield.value, 'hello world')
+  assert.equal(domEl.textContent, '')
+})
+
+test('RecordFieldSubfield finalizeValue does not modify already-trimmed values', () => {
+  const subfield = { value: '' }
+  const emitted = []
+
+  const ctx = {
+    readonly: false,
+    subfield,
+    $emit: (event) => emitted.push(event)
+  }
+
+  RecordFieldSubfield.methods.finalizeValue.call(ctx, { target: { innerText: 'hello world', textContent: '' } })
+
+  assert.equal(ctx.subfield.value, 'hello world')
+  assert(emitted.includes('field-changed'))
+})
+
+test('RecordFieldSubfield finalizeValue updates DOM element to trimmed value', () => {
+  const subfield = { value: '' }
+  const domEl = { innerText: '  test  ', textContent: '  test  ' }
+
+  const ctx = {
+    readonly: false,
+    subfield,
+    $emit: () => {}
+  }
+
+  RecordFieldSubfield.methods.finalizeValue.call(ctx, { target: domEl })
+
+  assert.equal(domEl.textContent, 'test')
+  assert.equal(ctx.subfield.value, 'test')
 })

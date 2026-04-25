@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { AppBasket } from '../../static/js/v3/components/basket.mjs'
+import AppBasket from '../../../frontend/src/components/AppBasket.vue'
 
 function makeSubfield(value) {
   return { value }

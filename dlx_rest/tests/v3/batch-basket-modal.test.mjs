@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { BatchBasketModal } from '../../static/js/v3/components/batch-basket-modal.mjs'
+import BatchBasketModal from '../../../frontend/src/components/BatchBasketModal.vue'
 
 test('BatchBasketModal canPreview and saveable counters reflect current state', () => {
   const ctx = {

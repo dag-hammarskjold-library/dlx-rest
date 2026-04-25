@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { BasketRecord } from '../../static/js/v3/components/basket-record.mjs'
+import BasketRecord from '../../../frontend/src/components/BasketRecord.vue'
 
 test('BasketRecord computed display helpers provide fallbacks', () => {
   const ctx = {

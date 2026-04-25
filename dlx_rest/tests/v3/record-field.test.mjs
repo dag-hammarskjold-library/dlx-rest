@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { RecordField } from '../../static/js/v3/components/record-field.mjs'
+import RecordField from '../../../frontend/src/components/RecordField.vue'
 
 test('RecordField getIndicatorValues removes wildcard option', () => {
   const ctx = {

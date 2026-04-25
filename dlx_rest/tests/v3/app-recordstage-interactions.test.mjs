@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { AppRecordstage } from '../../static/js/v3/components/recordstage.mjs'
-import { Jmarc } from '../../static/js/api/jmarc.mjs'
+import AppRecordstage from '../../../frontend/src/components/AppRecordstage.vue'
+import { Jmarc } from '../../../frontend/src/api/jmarc.js'
 
 function createMockEvent(key, options = {}) {
   return {

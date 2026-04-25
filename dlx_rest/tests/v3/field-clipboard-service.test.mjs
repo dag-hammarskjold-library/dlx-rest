@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { FieldClipboardService } from '../../static/js/v3/services/FieldClipboardService.mjs'
+import { FieldClipboardService } from '../../../frontend/src/services/FieldClipboardService.js'
 
 function createWindowMock() {
   const listeners = new Map()
@@ -40,7 +40,7 @@ test('FieldClipboardService copies and serializes fields', (t) => {
   globalThis.window = createWindowMock()
   globalThis.CustomEvent = CustomEventMock
 
-  t.after(() => {
+  t.onTestFinished(() => {
     globalThis.window = originalWindow
     globalThis.CustomEvent = originalCustomEvent
   })
@@ -69,7 +69,7 @@ test('FieldClipboardService notifies listeners and supports unsubscribe', (t) =>
   globalThis.window = createWindowMock()
   globalThis.CustomEvent = CustomEventMock
 
-  t.after(() => {
+  t.onTestFinished(() => {
     globalThis.window = originalWindow
     globalThis.CustomEvent = originalCustomEvent
   })

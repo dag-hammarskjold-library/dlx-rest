@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { HistoryManager } from '../../static/js/v3/services/HistoryManager.mjs'
+import { HistoryManager } from '../../../frontend/src/services/HistoryManager.js'
 
 function createRecord(initialFields = []) {
   return {

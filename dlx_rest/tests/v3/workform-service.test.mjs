@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { WorkformService } from '../../static/js/v3/services/WorkformService.mjs'
-import { Jmarc } from '../../static/js/api/jmarc.mjs'
+import { WorkformService } from '../../../frontend/src/services/WorkformService.js'
+import { Jmarc } from '../../../frontend/src/api/jmarc.js'
 
 function createMockRecord() {
   const record = {
@@ -52,7 +52,7 @@ test('WorkformService saveAsWorkform updates metadata and strips 998', async () 
 
 test('WorkformService updateWorkform reloads canonical data', async (t) => {
   const originalFromWorkform = Jmarc.fromWorkform
-  t.after(() => {
+  t.onTestFinished(() => {
     Jmarc.fromWorkform = originalFromWorkform
   })
 

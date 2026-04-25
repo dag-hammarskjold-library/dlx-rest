@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { AppRecordstage } from '../../static/js/v3/components/recordstage.mjs'
+import AppRecordstage from '../../../frontend/src/components/AppRecordstage.vue'
 
 test('AppRecordstage isRecordReadonly uses global readonly and record state', () => {
   const record = { collection: 'bibs', recordId: '1' }

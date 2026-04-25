@@ -3,8 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test dlx_rest/tests/v3/*.test.mjs",
-    "test:js": "node --test dlx_rest/tests/v3/*.test.mjs",
-    "test:js:v3": "node --test dlx_rest/tests/v3/*.test.mjs"
+    "test": "cd frontend && npm test",
+    "test:js": "cd frontend && npm test",
+    "test:js:v3": "cd frontend && npm test",
+    "build:js": "cd frontend && npm run build",
+    "dev:js": "cd frontend && npm run dev"
   }
 }

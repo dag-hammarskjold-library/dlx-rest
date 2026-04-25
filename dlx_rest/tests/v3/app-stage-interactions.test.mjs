@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test } from 'vitest'
 
-import { AppStage } from '../../static/js/v3/components/stage.mjs'
+import AppStage from '../../../frontend/src/components/AppStage.vue'
 
 test('AppStage activateRecord reorders activeRecords with new record on top', () => {
   const r1 = { collection: 'bibs', recordId: '1' }
