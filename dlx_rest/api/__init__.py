@@ -3,7 +3,7 @@ DLX REST API
 '''
 
 # external
-import os, time, uuid, json, re, boto3, mimetypes, jsonschema, threading, valkey
+import os, sys, time, uuid, json, re, boto3, mimetypes, jsonschema, threading, valkey
 from http.client import HTTPResponse
 from datetime import datetime, timezone
 from copy import copy, deepcopy
@@ -42,19 +42,26 @@ except valkey.exceptions.ConnectionError:
 except Exception as e:
     raise e
 
-# build the auth cache in a non blocking thread if the cache is smaller thanthe number of auths in the DB
-if DB.cache:
-    count = 0
-    cursor = '0'
+# Skip cache warmup during Flask CLI command execution.
+is_flask_cli_command = (
+    os.environ.get('FLASK_RUN_FROM_CLI') == 'true'
+    or os.path.basename(sys.argv[0] or '') == 'flask'
+)
 
-    while cursor != 0:
-        cursor, keys = DB.cache.scan(cursor=cursor, match='authcache*', count=1000)
-        count += len(keys)
-    
-    if count < DB.auths.count_documents({}):
+# build the auth cache in a non blocking thread if the cache is smaller than the number of auths in the DB
+if not is_flask_cli_command:
+    if DB.cache:
+        count = 0
+        cursor = '0'
+
+        while cursor != 0:
+            cursor, keys = DB.cache.scan(cursor=cursor, match='authcache*', count=1000)
+            count += len(keys)
+        
+        if count < DB.auths.count_documents({}):
+            threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
+    else:
         threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
-else:
-    threading.Thread(target=lambda: Auth.build_cache(), args=[]).start()
 
 # constants
 api = Api(app, doc='/api/', authorizations={'basic': {'type': 'basic'}})
