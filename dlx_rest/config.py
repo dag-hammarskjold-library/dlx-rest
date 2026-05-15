@@ -31,6 +31,7 @@ class Config(object):
         PREFERRED_URL_SCHEME = 'https'
         environment = 'dev'
         client = boto3.client('ssm')
+        UNDL_API_KEY=client.get_parameter(Name="ah-undl-search-api-key")['Parameter']['Value']
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         connect_string = client.get_parameter(Name='devISSU-admin-connect-string')['Parameter']['Value']
         sentry_dsn = client.get_parameter(Name='sentry_dsn_dev')['Parameter']['Value']
@@ -42,6 +43,7 @@ class Config(object):
     elif 'DLX_REST_QAT' in os.environ:
         environment = 'qat'
         client = boto3.client('ssm')
+        UNDL_API_KEY=client.get_parameter(Name="ah-undl-search-api-key")['Parameter']['Value']
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         # Use these value when we're ready to migrate QAT to Atlas.
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
@@ -57,6 +59,7 @@ class Config(object):
         PREFERRED_URL_SCHEME = 'https'
         environment = 'uat'
         client = boto3.client('ssm')
+        UNDL_API_KEY=client.get_parameter(Name="ah-undl-search-api-key")['Parameter']['Value']
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         # Use these value when we're ready to migrate UAT to Atlas.
         connect_string = client.get_parameter(Name='uatISSU-admin-connect-string')['Parameter']['Value']
@@ -72,6 +75,7 @@ class Config(object):
         PREFERRED_URL_SCHEME = 'https'
         environment = 'prod'
         client = boto3.client('ssm')
+        UNDL_API_KEY=client.get_parameter(Name="ah-undl-search-api-key")['Parameter']['Value']
         secret_key = client.get_parameter(Name='metadata_cache_key')['Parameter']['Value']
         #connect_string = client.get_parameter(Name='dlx-prod-connect-string')['Parameter']['Value']
         # Use the following value when we're ready to migrate production to Atlas.

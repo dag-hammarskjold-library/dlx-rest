@@ -319,3 +319,93 @@ button:focus {
 .selected {
   background-color: #70a9e1 !important;
 }
+
+
+/* Diff styling */
+.diff-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    margin-top: 1rem;
+}
+
+.diff-view {
+    margin-top: 1rem;
+}
+
+.diff-column {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background: white;
+    overflow: hidden;
+}
+
+.diff-header {
+    padding: 0.75rem 1rem;
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.diff-header-central {
+    background-color: #f0f8ff;
+    border-bottom-color: #4a90e2;
+    color: #2c3e50;
+}
+
+.diff-header-undl {
+    background-color: #f0fff4;
+    border-bottom-color: #27ae60;
+    color: #2c3e50;
+}
+
+.diff-pre {
+    margin: 0;
+    padding: 1rem;
+    background: white;
+    border: none;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    max-height: 400px;
+    overflow-y: auto;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.diff-pre-central {
+    border-left: 4px solid #4a90e2;
+}
+
+.diff-pre-undl {
+    border-left: 4px solid #27ae60;
+}
+
+.diff-pre code {
+    color: #2c3e50;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.diff-line {
+    display: block;
+    padding: 0.25rem 0;
+}
+
+.diff-line.diff-removed {
+    background-color: #ffe6e6;
+    color: #c92a2a;
+}
+
+.diff-line.diff-added {
+    background-color: #e6f7ed;
+    color: #2d5016;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .diff-pre {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+        max-height: 300px;
+    }
+}

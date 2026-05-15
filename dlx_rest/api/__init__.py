@@ -2449,3 +2449,238 @@ class SearchHistoryItem(Resource):
             return {'error': 'Search history not found'}, 404
         except:
             return {'error': 'Search history not found'}, 404
+
+# Callback Search
+@ns.route('/reports/callback-search')
+class CallbackSearch(Resource):
+    args = reqparse.RequestParser()
+    args.add_argument(
+        'central_db_id',
+        type=int,
+        help='Central Database ID (record_id)'
+    )
+    args.add_argument(
+        'undl_id',
+        type=int,
+        help='UNDL ID (results.recid)'
+    )
+    args.add_argument(
+        'date',
+        type=str,
+        help='Date of callback (ISO format)'
+    )
+    args.add_argument(
+        'start',
+        type=int,
+        help='Result to start list at',
+        default=1
+    )
+    args.add_argument(
+        'limit',
+        type=int,
+        help='Number of results to return. Max is 100',
+        default=10
+    )
+
+    @ns.doc(description='Search the UNDL callback collection by Central Database ID, UNDL ID, or date')
+    @ns.expect(args)
+    def get(self):
+        from datetime import timedelta
+        
+        args = CallbackSearch.args.parse_args()
+        
+        # At least one search parameter is required
+        if not any([args.central_db_id, args.undl_id, args.date]):
+            abort(400, 'At least one of the following parameters is required: central_db_id, undl_id, or date')
+        
+        # Build the query
+        query = {}
+        
+        if args.central_db_id:
+            query['record_id'] = args.central_db_id
+        
+        if args.undl_id:
+            query['results.recid'] = args.undl_id
+        
+        if args.date:
+            try:
+                # Parse ISO format date
+                search_date = datetime.fromisoformat(args.date.replace('Z', '+00:00'))
+                # Query for records on that day
+                next_day = search_date + timedelta(days=1)
+                query['time'] = {'$gte': search_date, '$lt': next_day}
+            except ValueError:
+                abort(400, 'Invalid date format. Use ISO format (YYYY-MM-DD or ISO 8601)')
+        
+        # Pagination
+        start = int(args.start or 1)
+        limit = int(args.limit or 10)
+        
+        if limit > 100:
+            abort(400, 'Maximum limit is 100')
+        
+        # Execute query
+        try:
+            callback_collection = DB.handle['undl_callback_log']
+            total = callback_collection.count_documents(query)
+            documents = list(callback_collection.find(query).skip(start - 1).limit(limit))
+            
+            # Format results
+            data = []
+            for doc in documents:
+                # Each document may have multiple results
+                for result in doc.get('results', []):
+                    result_item = {
+                        'id': str(doc['_id']),
+                        'central_db_id': doc.get('record_id'),
+                        'undl_id': result.get('recid'),
+                        'record_type': doc.get('record_type'),
+                        'url': result.get('url'),
+                        'success': result.get('success'),
+                        'marcxml': result.get('marcxml'),
+                        'time': doc.get('time').isoformat() if doc.get('time') else None
+                    }
+                    data.append(result_item)
+        except Exception as e:
+            abort(500, f'Database query failed: {str(e)}')
+        
+        # Build response
+        links = {
+            '_self': URL('api_callback_search', start=start, limit=limit, 
+                        central_db_id=args.central_db_id, undl_id=args.undl_id, 
+                        date=args.date).to_str(),
+            '_next': URL('api_callback_search', start=start+limit, limit=limit,
+                        central_db_id=args.central_db_id, undl_id=args.undl_id,
+                        date=args.date).to_str() if start + limit <= total else None,
+            '_prev': URL('api_callback_search', start=start-limit, limit=limit,
+                        central_db_id=args.central_db_id, undl_id=args.undl_id,
+                        date=args.date).to_str() if start - limit > 0 else None,
+            'related': {
+                'records': URL('api_records_list', collection='auths').to_str()
+            }
+        }
+        
+        meta = {
+            'name': 'api_callback_search',
+            'returns': URL('api_schema', schema_name='api.callbacklist').to_str(),
+            'count': total,
+            'timestamp': datetime.now(timezone.utc)
+        }
+        
+        response = ApiResponse(links=links, meta=meta, data=data)
+        
+        return response.jsonify()
+
+# UN Digital Library Search
+@ns.route('/reports/undl-search/<int:undl_id>')
+class UndlSearch(Resource):
+    @ns.doc(description='Search UN Digital Library for a record ID')
+    def get(self, undl_id):
+        import requests
+        from time import sleep
+        
+        try:
+            # Use the UN Digital Library search API
+            # The API key should be in the environment or config
+            api_key = Config.UNDL_API_KEY or os.environ.get('UNDL_API_KEY')
+            
+            headers = {}
+            if api_key:
+                headers['Authorization'] = f'Token {api_key}'
+            
+            # Initial search request
+            search_url = f'https://digitallibrary.un.org/api/v1/search'
+            params = {'p': f'001:{str(undl_id)}'}
+            
+            response = requests.get(
+                search_url,
+                params=params,
+                headers=headers,
+                timeout=10
+            )
+            
+            # Handle 202 Accepted - async processing
+            if response.status_code == 202:
+                location = response.headers.get('Location')
+                if not location:
+                    return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200
+                
+                # Poll the result endpoint
+                for attempt in range(30):  # Poll for up to 30 seconds
+                    sleep(1)
+                    
+                    poll_response = requests.get(
+                        location,
+                        headers=headers,
+                        timeout=10
+                    )
+                    
+                    if poll_response.status_code == 200:
+                        try:
+                            data = poll_response.json()
+                            total = data.get('total', 0)
+                            hits = data.get('hits', [])
+                            
+                            if total == 1:
+                                match_type = 'match'
+                            elif total > 1:
+                                match_type = 'multiple'
+                            else:
+                                match_type = 'none'
+                            
+                            return {
+                                'data': {
+                                    'undl_id': undl_id,
+                                    'match': match_type,
+                                    'count': total
+                                }
+                            }, 200
+                        except ValueError:
+                            # JSON parsing error
+                            return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200
+                    
+                    elif poll_response.status_code == 202:
+                        # Still processing, continue polling
+                        continue
+                    else:
+                        # Unexpected status code
+                        break
+                
+                # Polling timed out
+                return {'data': {'undl_id': undl_id, 'match': 'timeout'}}, 200
+            
+            elif response.status_code == 200:
+                try:
+                    data = response.json()
+                    total = data.get('total', 0)
+                    hits = data.get('hits', [])
+                    
+                    if total == 1:
+                        match_type = 'match'
+                    elif total > 1:
+                        match_type = 'multiple'
+                    else:
+                        match_type = 'none'
+                    
+                    return {
+                        'data': {
+                            'undl_id': undl_id,
+                            'match': match_type,
+                            'count': total
+                        }
+                    }, 200
+                except ValueError:
+                    return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200
+            
+            else:
+                # Unexpected status code on initial request
+                return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200
+                
+        except requests.exceptions.Timeout:
+            return {'data': {'undl_id': undl_id, 'match': 'timeout'}}, 200
+        except requests.exceptions.RequestException as e:
+            print(f'UN Digital Library API request failed: {str(e)}')
+            return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200
+        except Exception as e:
+            print(f'UN Digital Library search error: {str(e)}')
+            return {'data': {'undl_id': undl_id, 'match': 'error'}}, 200

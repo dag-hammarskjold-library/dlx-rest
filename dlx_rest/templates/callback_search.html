@@ -1,0 +1,16 @@
+{% extends 'base.html' %} {% block content %}
+<div style="background-color:white;">
+    <div id="callback_search" v-show="true">
+        <div class="container">
+            <div class="row">
+                <div class="col pt-2 m-auto" style="background-color:white;">
+                    <callbacksearchcomponent api_prefix="{{api_prefix}}"></callbacksearchcomponent>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="{{url_for('static', filename='js/vm_callback_search.js')}}"></script>
+
+{% endblock %}

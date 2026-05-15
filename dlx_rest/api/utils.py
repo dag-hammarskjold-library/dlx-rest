@@ -196,6 +196,23 @@ class Schemas():
             data = {'type': 'object'}
         elif schema_name == 'api.collection.fields':
             data = { 'type': 'object', 'properties': {'fields': {'type': 'array'}}}
+        elif schema_name == 'api.callbacklist':
+            data = {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'string'},
+                        'central_db_id': {'type': 'integer'},
+                        'undl_id': {'type': 'integer'},
+                        'record_type': {'type': 'string'},
+                        'url': {'type': 'string', 'format': 'uri'},
+                        'success': {'type': 'boolean'},
+                        'marcxml': {'type': 'string'},
+                        'time': {'type': 'string', 'format': 'date-time'}
+                    }
+                }
+            }
         else:
             abort(404)
         
