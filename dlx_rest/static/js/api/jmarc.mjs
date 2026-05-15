@@ -2,42 +2,46 @@
 
 import { validationData } from "../utils/validation.js";
 
-// todo: fetch this data from the API to avoid redundancy
-const authMap = {
-	// this should be coming form the API @ /marc/<bibs|auths>/lookup/map
-	"bibs": {
-		'100': { 'a': '100' },
-		'110': { 'a': '110' },
-		'111': { 'a': '111' },
-		'130': { 'a': '130' },
-		'191': { 'b': '190', 'c': '190' },
-		'440': { 'a': '140' },
-		'600': { 'a': '100', 'g': '100' },
-		'610': { 'a': '110', 'g': '110' },
-		'611': { 'a': '111', 'g': '111' },
-		'630': { 'a': '130', 'g': '130' },
-		'650': { 'a': '150' },
-		'651': { 'a': '151' },
-		'700': { 'a': '100', 'g': '100' },
-		'710': { 'a': '110' },
-		'711': { 'a': '111' },
-		'730': { 'a': '130' },
-		'791': { 'b': '190', 'c': '190' },
-		'830': { 'a': '130' },
-		'991': { 'a': '191', 'b': '191', 'c': '191', 'd': '191', '9': '191' }
-	},
-	"auths": {
-		//'491': {'a': '191', 'b': '191', 'c': '191', 'd': '191'},
-		'370': { 'a': '110' },
-		'500': { 'a': '100' },
-		'510': { 'a': '110' },
-		'511': { 'a': '111' },
-		'530': { 'a': '130' },
-		'550': { 'a': '150' },
-		'551': { 'a': '151' },
-		'591': { 'a': '191', 'b': '191', 'c': '191', 'd': '191' }
+class AuthMap {
+	constructor(collection) {
+		this.collection = collection;
+		this.authMap = {};
 	}
-};
+
+	async load(apiUrl) {
+		const response = await fetch(`${apiUrl}marc/${this.collection}/lookup/map`);
+		const json = await response.json();
+		this.authMap = json.data;
+		return this;
+	}
+}
+
+let authMap = null;
+
+function escapeQueryRegex(value) {
+	return String(value ?? "").replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
+
+export async function getAuthMaps(apiUrl) {
+	const bibs = new AuthMap('bibs');
+	const auths = new AuthMap('auths');
+	const speeches = new AuthMap('speeches');
+	const votes = new AuthMap('votes');
+
+	await Promise.all([
+		bibs.load(apiUrl),
+		auths.load(apiUrl),
+		speeches.load(apiUrl),
+		votes.load(apiUrl)
+	])
+
+	return {
+		bibs: bibs.authMap,
+		auths: auths.authMap,
+		speeches: speeches.authMap,
+		votes: votes.authMap
+	};
+}
 
 class ValidationFlag {
 	constructor(message) {
@@ -158,11 +162,17 @@ export class Subfield {
 		const isAuthorityControlled = jmarc.isAuthorityControlled(field.tag, this.code);
 
 		if (isAuthorityControlled) {
+			if (!authMap) {
+				await Jmarc.init();
+			}
+			console.log(authMap);
+			
 			const searchStr =
-				field.subfields
-					.filter(x => Object.keys(authMap[jmarc.collection][field.tag]).includes(x.code))
-					.map(x => `${authMap[jmarc.collection][field.tag][x.code]}__${x.code}:'${x.value}'`)
-					.join(" AND ");
+			field.subfields
+				.filter(x => Object.keys(Jmarc.authMap[jmarc.collection][field.tag]).includes(x.code))
+				.map(x => `${Jmarc.authMap[jmarc.collection][field.tag][x.code]}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
+				.join(" AND ");
+			
 
 			return fetch(Jmarc.apiUrl + "marc/auths/records?search=" + encodeURIComponent(searchStr))
 				.then(response => response.json())
@@ -224,6 +234,12 @@ export class DataField {
 		// these throw errors
 		if (!this.subfields) {
 			throw new Error("Subfield required")
+		}
+
+		if (!authMap) {
+			Jmarc.init().then(() => {
+				//
+			})
 		}
 
 		let amap = this instanceof BibDataField ? authMap['bibs'] : authMap['auths'];
@@ -441,13 +457,21 @@ export class Jmarc {
 		this.recordClass = collection === "bibs" ? Bib : Auth;
 		this.collectionUrl = Jmarc.apiUrl + `marc/${collection}`;
 		this.recordId = null;
-		this.authMap = this.collection === 'bibs' ? authMap['bibs'] : authMap['auths'];
 		this.handleSetInterval = 0
 		this.checkUndoRedoEntry = false
 		this.fields = [];
 		this._history = [];
 		this.undoredoIndex = 0;
 		this.undoredoVector = [];
+		this.authMap = null;
+	}
+
+	static async init() {
+		if (!authMap) {
+			authMap = await getAuthMaps(Jmarc.apiUrl);
+			this.authMap = authMap;
+		}
+		return authMap;
 	}
 
 	getVirtualCollection() {
@@ -593,6 +617,11 @@ export class Jmarc {
 
 
 	isAuthorityControlled(tag, code) {
+		if (!authMap) {
+			Jmarc.init().then( () => {
+				//
+			})
+		}
 		let map = authMap;
 
 		if (map[this.collection][tag] && map[this.collection][tag][code]) {
@@ -908,9 +937,8 @@ export class Jmarc {
 						let newSub = newField.getSubfield(subfield.code, seen[subfield.code]) || newField.createSubfield(subfield.code);
 						newSub._seen = true; // temp flag used for differentiating previous state
 						newSub.value = subfield.value;
-						if (tag in authMap[this.collection] && subfield.code in authMap[this.collection][tag]) {
-							newSub.xref = subfield.xref
-						}
+						// Keep parsed data stable: avoid async field mutation after savedState snapshot.
+						newSub.xref = subfield.xref;
 						if (!seen[subfield.code]) seen[subfield.code] = 0;
 						seen[subfield.code]++;
 					}
@@ -936,6 +964,14 @@ export class Jmarc {
 			}
 		}
 
+		// Update authMap
+		if(!this.authMap) {
+			Jmarc.init().then(() => {
+				this.authMap = authMap[this.getVirtualCollection()];
+			})
+		}
+		
+
 		return this
 	}
 
@@ -949,7 +985,7 @@ export class Jmarc {
 		};
 		let tags = Array.from(new Set(this.fields.map(x => x.tag)));
 
-		for (let tag of tags.sort(x => parseInt(x))) {
+		for (let tag of tags.sort((a, b) => parseInt(a) - parseInt(b))) {
 			recordData[tag] = recordData[tag] || [];
 
 			for (let field of this.getFields(tag)) {
@@ -1174,7 +1210,7 @@ export class Jmarc {
 			// only look in same symbol fields in other records
 			for (const field of this.getFields(tag)) {
 				if (!field.getSubfield("a")) continue // field may not have subfield $a
-				const searchStr = `${tag}__a:'${field.getSubfield("a").value}'`;
+				const searchStr = `${tag}__a:/^${escapeQueryRegex(field.getSubfield("a").value)}$/`;
 				const url = Jmarc.apiUrl + "/marc/bibs/records?search=" + encodeURIComponent(searchStr) + '&limit=1';
 				const res = await fetch(url);
 				const json = await res.json();
@@ -1202,7 +1238,7 @@ export class Jmarc {
 
 		let searchStr =
 			headingField.subfields
-				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+				.map(x => `${headingField.tag}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
 				.join(" AND ")
 
 		let url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr)
@@ -1232,7 +1268,7 @@ export class Jmarc {
 		let searchStr =
 			headingField.subfields
 				.filter(x => x.value)
-				.map(x => `${headingField.tag}__${x.code}:'${x.value}'`)
+				.map(x => `${headingField.tag}__${x.code}:/^${escapeQueryRegex(x.value)}$/`)
 				.join(" AND ");
 
 		const url = Jmarc.apiUrl + "/marc/auths/records/count?search=" + encodeURIComponent(searchStr);

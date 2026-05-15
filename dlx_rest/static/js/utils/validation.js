@@ -33,6 +33,19 @@ export const validationData = {
             "validSubfields": ["a","q"],
             "defaultSubfields": ["a"] 
         },
+        "024": {
+            "name": "",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["2","a"],
+            "defaultSubfields": ["2","a"],
+            "validStrings": {
+                "2": ["doi","uri"]
+            }
+        },
         "029": {
             "name": "Document number",
             "required": false,
@@ -43,17 +56,7 @@ export const validationData = {
             "validSubfields": ["a", "b"],
             "defaultSubfields": ["a", "b"],
             "validStrings": {
-                // To do: dropdown or other select using these controlled values
-                "a": ["JN","GN","IN","SN","UN"]
-                /* 
-                [
-                    {"code":"JN", "description":"ODS job number"},
-                    {"code":"GN", "description":"Government Number"},
-                    {"code":"IN", "description":"International Number"},
-                    {"code":"SN", "description":"Specialized Agency doc. Number"},
-                    {"code":"UN", "description":"UN Map sheets"}
-                ]
-                */
+                "a": ["JN","UN"]
             }
         },
         "039": {
@@ -464,7 +467,7 @@ export const validationData = {
             "defaultSubfields": ["a"],
             "validStrings": {
                 // To do: dropdown or other select using these controlled values
-                "a": ["DER","GEN","GER","LTD","PAR","PRO","RES"]
+                "a": ["DER","GEN","LTD","PAR","PRO","RES"]
                 /*
                 [
                     {"code":"DER" ,"description":"Derestricted"},
@@ -622,8 +625,8 @@ export const validationData = {
             "validIndicators1": [],
             "validIndicators2": [],
             "requiredSubfields": [],
-            "validSubfields": ["a","b","c","e"],
-            "defaultSubfields": ["a","b"] 
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
         },
         "310": {
             // Not defined in bibs validation document
@@ -1248,7 +1251,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": ["a"],
             "validSubfields": ["a","b","c"],
-            "defaultSubfields": ["a","b","c"],
+            "defaultSubfields": ["a"],
             "validStrings": {
                 "c": ["b","c","d","i","m","o","p","q","r","s","t","u","v","w"]
             }
@@ -2371,6 +2374,16 @@ export const validationData = {
                 "b": ["B22"]
             }
         },
+        "596": {
+            "name": "Local UNBIS note",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["a"],
+            "defaultSubfields": ["a"] 
+        },
         "700": {
             "name": "Added entry - personal name",
             "required": true,
@@ -2490,7 +2503,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","b","c"],
-            "defaultSubfields": ["a","b","c"] 
+            "defaultSubfields": ["a"] 
         },
     },
     "votes": {
@@ -2579,6 +2592,16 @@ export const validationData = {
                     "VOTING BY MAIL"
                 ]
             }
+        },
+        "767": {
+            "name": "Translation entry",
+            "required": false,
+            "repeatable": true,
+            "validIndicators1": [],
+            "validIndicators2": [],
+            "requiredSubfields": [],
+            "validSubfields": ["9","o","t","z","x"],
+            "defaultSubfields": ["9","t"] 
         },
         "791": {
             "name": "UN resolution/meeting record symbol",
@@ -2722,7 +2745,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","b","c"],
-            "defaultSubfields": ["a","b","c"],
+            "defaultSubfields": ["a"],
             "validStrings": {
                 "c": ["b","v","u","t"]
             }

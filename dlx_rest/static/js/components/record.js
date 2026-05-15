@@ -227,6 +227,7 @@ export let multiplemarcrecordcomponent = {
 
         let component = this;
         Jmarc.apiUrl = this.prefix;
+        //await Jmarc.init();
         this.baseUrl = this.prefix.replace("/api", "");
        
         this.copiedFields = [];
@@ -3374,87 +3375,91 @@ function selectAuthority(component, subfield, choice) {
     // let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
-
-    if (field.tag === "991") {
-        // only carry over indicators for 991
-        field.ind1Span.innerText = choice.indicators[0];
-        field.ind2Span.innerText = choice.indicators[1];
-        field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
-    }
-
-    for (let s of field.subfields) {
-        s.valueSpan.classList.remove("authority-controlled-unmatched");
-    }
-
-    for (let choiceSubfield of choice.subfields) {
-        // skip this subfield if it is not configured to be auth controlled
-        const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
-
-        if (! authControlledCodes.includes(choiceSubfield.code)) {
-            continue
+    Jmarc.init().then(() => {
+        if (field.tag === "991") {
+            // only carry over indicators for 991
+            field.ind1Span.innerText = choice.indicators[0];
+            field.ind2Span.innerText = choice.indicators[1];
+            field.indicators = choice.indicators.map(x => x === " " ? "_" : x);
         }
 
-        let currentSubfield = field.getSubfield(choiceSubfield.code);
-        
-        if (typeof currentSubfield === "undefined") {
-            let place = choice.subfields.indexOf(choiceSubfield);
-            let newSubfield = field.createSubfield(choiceSubfield.code, place);
-            newSubfield.value = choiceSubfield.value;
-            currentSubfield = newSubfield;
-            component.buildSubfieldRow(newSubfield, place);
+        for (let s of field.subfields) {
+            s.valueSpan.classList.remove("authority-controlled-unmatched");
         }
 
-        currentSubfield.value = choiceSubfield.value;
-        currentSubfield.xref = choiceSubfield.xref;
-        currentSubfield.valueSpan.innerText = currentSubfield.value;
-        currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+        for (let choiceSubfield of choice.subfields) {
+            // skip this subfield if it is not configured to be auth controlled
+            const authControlledCodes = Object.keys(Jmarc.authMap[jmarc.collection][field.tag]);
+
+            if (! authControlledCodes.includes(choiceSubfield.code)) {
+                continue
+            }
+
+            let currentSubfield = field.getSubfield(choiceSubfield.code);
             
-        let xrefLink = document.createElement("a");
-        xrefLink.href = component.baseUrl + `editor?records=auths/${choiceSubfield.xref}`;
-        xrefLink.target="_blank";
-            
-        let xrefIcon = document.createElement("i");
-        xrefIcon.className = "fas fa-link float-left mr-2";
-        xrefLink.appendChild(xrefIcon);
-            
-        while (currentSubfield.xrefCell.firstChild) {
-            currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+            if (typeof currentSubfield === "undefined") {
+                let place = choice.subfields.indexOf(choiceSubfield);
+                let newSubfield = field.createSubfield(choiceSubfield.code, place);
+                newSubfield.value = choiceSubfield.value;
+                currentSubfield = newSubfield;
+                component.buildSubfieldRow(newSubfield, place);
+            }
+
+            currentSubfield.value = choiceSubfield.value;
+            currentSubfield.xref = choiceSubfield.xref;
+            currentSubfield.valueSpan.innerText = currentSubfield.value;
+            currentSubfield.valueSpan.classList.remove("authority-controlled-unmatched");
+                
+            let xrefLink = document.createElement("a");
+            xrefLink.href = component.baseUrl + `editor?records=auths/${choiceSubfield.xref}`;
+            xrefLink.target="_blank";
+                
+            let xrefIcon = document.createElement("i");
+            xrefIcon.className = "fas fa-link float-left mr-2";
+            xrefLink.appendChild(xrefIcon);
+                
+            while (currentSubfield.xrefCell.firstChild) {
+                currentSubfield.xrefCell.removeChild(currentSubfield.xrefCell.firstChild)
+            }
+                
+            currentSubfield.xrefCell.append(xrefLink); 
+
         }
-            
-        currentSubfield.xrefCell.append(xrefLink); 
-    }
 
-    // remove any existing auth controlled subfields that aren't in the new selection
-    const inChoiceCodes = choice.subfields.map(x => x.code);
-    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+        // remove any existing auth controlled subfields that aren't in the new selection
+        const inChoiceCodes = choice.subfields.map(x => x.code);
+        const authControlledCodes = Object.keys(Jmarc.authMap[jmarc.collection][field.tag]);
 
-    for (const subfield of field.subfields) {
-        if (authControlledCodes.includes(subfield.code) && ! inChoiceCodes.includes(subfield.code)) {
-            // Remove the subfield from the field
-            field.deleteSubfield(subfield);
-            // Remove the subfield row from the table
-            field.subfieldTable.deleteRow(subfield.row.rowIndex);
+        for (const subfield of field.subfields) {
+            if (authControlledCodes.includes(subfield.code) && ! inChoiceCodes.includes(subfield.code)) {
+                // Remove the subfield from the field
+                field.deleteSubfield(subfield);
+                // Remove the subfield row from the table
+                field.subfieldTable.deleteRow(subfield.row.rowIndex);
+            }
         }
-    }
 
-    // trigger unsaved changes detection and update events
-    field.ind1Span.focus();
-    field.ind2Span.focus();
-    field.subfields.forEach(x => {x.codeSpan.focus(); x.valueSpan.focus()});
-    subfield.valueSpan.focus();
-    subfield.valueSpan.blur();
+        // trigger unsaved changes detection and update events
+        field.ind1Span.focus();
+        field.ind2Span.focus();
+        field.subfields.forEach(x => {x.codeSpan.focus(); x.valueSpan.focus()});
+        subfield.valueSpan.focus();
+        subfield.valueSpan.blur();
 
-    return
+        return
+    });
 }
 
 // auth-controlled field keyup event function
-function keyupAuthLookup(event) {
+async function keyupAuthLookup(event) {
     //target: subfield value cell
     let component = event.currentTarget.eventParams[0];
     let subfield = event.currentTarget.eventParams[1];
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
     let dropdown = document.getElementById("typeahead-dropdown");
+
+    await Jmarc.init();
 
     if (event.type === "input") {
         if (dropdown && dropdown.list) {
@@ -3491,7 +3496,7 @@ function keyupAuthLookup(event) {
         subfield.xrefCell.append(spinner);
 
         // create and save the new authority record
-        let tag = jmarc.authMap[field.tag][subfield.code];
+        let tag = Jmarc.authMap[jmarc.collection][field.tag][subfield.code];
         let auth = new Jmarc("auths");
         
         // add all auth-controlled subfields from the field
@@ -3552,7 +3557,7 @@ function keyupAuthLookup(event) {
                     s.xrefCell.appendChild(xrefLink);
                     xrefLink.href = component.baseUrl + `editor?records=auths/${auth.recordId}`;
                     xrefLink.target="_blank";
-     
+    
                     let xrefIcon = document.createElement("i");
                     xrefIcon.className = "fas fa-link float-left mr-2";
                     xrefLink.appendChild(xrefIcon);
@@ -3564,7 +3569,8 @@ function keyupAuthLookup(event) {
     });
     
     const inFieldCodes = field.subfields.map(x => x.code);
-    const authControlledCodes = Object.keys(jmarc.authMap[field.tag]);
+    console.log(field.tag)
+    const authControlledCodes = Object.keys(Jmarc.authMap[jmarc.collection][field.tag]);
 
     if (subfield.value || (authControlledCodes.length > 1 && inFieldCodes.every(x => authControlledCodes.includes(x)))) {
         subfield.timer = setTimeout(
@@ -3574,14 +3580,14 @@ function keyupAuthLookup(event) {
                 dropdown.className = "typeahead-dropdown";
                 dropdown.id = "typeahead-dropdown";
                 dropdown.innerHTML = "searching...";
-               
+            
                 field.lookup().then(choices => {
                     if (choices.length == 0) {
                         dropdown.innerHTML = "not found";
                         setTimeout(function () { dropdown.remove() }, 1000)
                         return
                     }
-                   
+                
                     dropdown.innerHTML = null;
                     subfield.valueCell.blur()
                     
@@ -3596,7 +3602,7 @@ function keyupAuthLookup(event) {
                     } else {
                         list.size = choices.length;
                     }
-                     // doesn't build correctly when there is only one choice
+                    // doesn't build correctly when there is only one choice
                     list.className = "list-group";
                     // list.focus() // disabled because we still want the field to be typeable when the dropdown appears
 
@@ -3623,9 +3629,9 @@ function keyupAuthLookup(event) {
                         list.appendChild(item);
                         item.className = "list-group-item";
                         item.value = JSON.stringify(choice.compile()); // option value has to be a string?
-                       
+                    
                         item.innerHTML = choice.subfields.map(x => `<span class="lookup-choice-code">$${x.code}</span>&nbsp;<span class="lookup-choice-value">${x.value}</span>`).join("<br>&nbsp;");
-                       
+                    
                         item.addEventListener("mouseover", function () {
                             if (dropdown.list) {
                                 dropdown.list.childNodes.forEach(x => {x.selected = false})
@@ -3633,12 +3639,12 @@ function keyupAuthLookup(event) {
 
                             item.classList.add("lookup-choice-hover");
                         });
-                       
+                    
                         item.addEventListener("mouseout", function () {
                             item.classList.remove("lookup-choice-hover");
                             subfield.value = subfield.valueSpan.innerText;
                         });
-                       
+                    
                         item.addEventListener("mousedown", function () {
                             selectAuthority(component, subfield, choice);
                             dropdown.remove();
@@ -3664,4 +3670,5 @@ function keyupAuthLookup(event) {
             750
         );
     }
+
 }
