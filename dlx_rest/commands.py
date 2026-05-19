@@ -534,10 +534,12 @@ def upsert_marc(uri, record_id, create, auth_control, diff_preview):
 
     skos_marc.commit()
 
-    created_auth = Auth.from_query(Query(Condition("035", {"a": tcode})))
+    if not skos_marc.id:
+        raise RuntimeError(f"Created auth record for {uri} but no auth ID was available after commit")
+
     save_tcode(
         tcode=tcode,
-        auth_id=created_auth.id if created_auth else "",
+        auth_id=skos_marc.id,
         label=skos_marc.get_value("150", "a"),
         uri=uri,
     )
