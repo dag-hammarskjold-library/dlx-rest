@@ -465,7 +465,7 @@ def align_baskets():
             )
 
 
-@app.cli.command("upsert-marc")
+@app.cli.command("import-thesaurus")
 @click.argument("uri")
 @click.option(
     "--id",
@@ -477,7 +477,7 @@ def align_baskets():
 @click.option("--create", is_flag=True, default=False)
 @click.option("--auth-control/--no-auth-control", default=True)
 @click.option("--diff-preview", is_flag=True, default=False, help="Print MARC diff preview before commit.")
-def upsert_marc(uri, record_id, create, auth_control, diff_preview):
+def import_thesaurus(uri, record_id, create, auth_control, diff_preview):
     if record_id is not None:
         marc_auth = Auth.from_id(record_id)
     else:
