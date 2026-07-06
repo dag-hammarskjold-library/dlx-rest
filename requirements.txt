@@ -20,7 +20,7 @@ pyparsing==3.3.2
 python-ulid==3.1.0
 sentry-sdk==2.62.0
 troposphere==4.10.2
-typing-extensions==4.15.0
+typing-extensions==4.16.0
 valkey==6.1.1
 WTForms==3.2.2
 zipp==4.1.0
