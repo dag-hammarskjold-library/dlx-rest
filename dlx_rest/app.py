@@ -72,7 +72,10 @@ try:
 except AttributeError:
     app.secret_key='top secret!'
 
-# Dummy root routes for dev and uat environments
+# Dummy root routes for deployment environments
+prod_app = DispatcherMiddleware(Flask('dummy_root'), {
+    '/editor': app,
+})
 dev_app = DispatcherMiddleware(Flask('dummy_root'), {
     '/dev-editor': app,
 })
