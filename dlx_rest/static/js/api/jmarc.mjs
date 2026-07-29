@@ -22,6 +22,19 @@ function escapeQueryRegex(value) {
 	return String(value ?? "").replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
 }
 
+function formatLookupDisambiguator(record) {
+	const field370 = record.getField("370");
+
+	if (!field370) {
+		return "";
+	}
+
+	return field370.subfields
+		.filter(subfield => subfield.value)
+		.map(subfield => `$${subfield.code} ${subfield.value}`)
+		.join("; ");
+}
+
 export async function getAuthMaps(apiUrl) {
 	const bibs = new AuthMap('bibs');
 	const auths = new AuthMap('auths');
@@ -403,6 +416,7 @@ export class DataField {
 					// the wanted auth field is the only 1XX field
 					// Issue #190: Exclude deprecated authority terms from the lookup
 					let newJmarc = new Jmarc("auths").parse(auth)
+						let disambiguator = formatLookupDisambiguator(newJmarc);
 					//console.log(newJmarc)
 					let this682 = newJmarc.getField('682')
 					if (this682) {
@@ -424,6 +438,8 @@ export class DataField {
 						for (let sf of auth[tag][0]['subfields']) { //.filter(x => wantedSubfields.includes(x.code))) {
 							field.subfields.push(new Subfield(sf['code'], sf['value'], auth['_id']));
 						}
+
+						field.lookupDisambiguator = disambiguator;
 
 						choices.push(field)
 					}
