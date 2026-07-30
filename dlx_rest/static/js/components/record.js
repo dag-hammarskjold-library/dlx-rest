@@ -3376,6 +3376,8 @@ function selectAuthority(component, subfield, choice) {
     let field = subfield.parentField;
     let jmarc = field.parentRecord;
     Jmarc.init().then(() => {
+        const seenSubfieldsByCode = {};
+
         if (field.tag === "991") {
             // only carry over indicators for 991
             field.ind1Span.innerText = choice.indicators[0];
@@ -3395,7 +3397,8 @@ function selectAuthority(component, subfield, choice) {
                 continue
             }
 
-            let currentSubfield = field.getSubfield(choiceSubfield.code);
+            const subfieldPlace = seenSubfieldsByCode[choiceSubfield.code] || 0;
+            let currentSubfield = field.getSubfield(choiceSubfield.code, subfieldPlace);
             
             if (typeof currentSubfield === "undefined") {
                 let place = choice.subfields.indexOf(choiceSubfield);
@@ -3404,6 +3407,8 @@ function selectAuthority(component, subfield, choice) {
                 currentSubfield = newSubfield;
                 component.buildSubfieldRow(newSubfield, place);
             }
+
+            seenSubfieldsByCode[choiceSubfield.code] = subfieldPlace + 1;
 
             currentSubfield.value = choiceSubfield.value;
             currentSubfield.xref = choiceSubfield.xref;
