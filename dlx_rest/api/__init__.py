@@ -1538,10 +1538,11 @@ class LookupField(Resource):
             if not auth_tag:
                 continue
 
-            # Return the 682 field so we can check if the record is deprecated
+            # Return the 682 field so we can check if the record is deprecated,
+            # plus 370 so the client can disambiguate matching authorities.
             # see issues #190 and #1628
             # to do: Add this to the dlx configuration
-            tags = [auth_tag, '682']
+            tags = [auth_tag, '682', '370']
 
             # exact match
             conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
