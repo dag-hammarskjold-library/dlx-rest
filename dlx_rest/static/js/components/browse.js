@@ -3,6 +3,7 @@ import user from "../api/user.js";
 import basket from "../api/basket.js";
 import { readonlyrecord } from "./readonly_record.js";
 import { itemaddcomponent } from "./itemadd.js";
+import { recordfilecomponent } from "./recordfiles.js";
 
 export let browsecomponent = {
     props: {
@@ -64,6 +65,7 @@ export let browsecomponent = {
                             <th style="width: 30px"></th>
                             <th style="width: 30px"></th>
                             <th style="width: 50px">#</th>
+                            <th style="width: 60px">Files</th>
                             <th>Value</th>
                             <th>Count</th>
                         </tr>
@@ -106,6 +108,16 @@ export let browsecomponent = {
                             </td>
                             <td>{{idx + 1}}</td>
                             <td>
+                                <recordfilecomponent v-if="result.count === 1 && result.recordId && collection === 'bibs' && subtype !== 'speech'" 
+                                                :api_prefix="api_prefix" 
+                                                :record_id="Number(result._id)" 
+                                                :desired_languages="['ar','zh','en','fr','ru','es']" />
+                                <recordfilecomponent v-if="result.count === 1 && result.recordId && subtype === 'speech'"
+                                                :api_prefix="api_prefix"
+                                                :record_id="Number(result._id)"
+                                                :desired_languages="['en','fr','es']" />
+                            </td>
+                            <td>
                                 <a
                                     target="_blank"
                                     v-if="!result.locked && result.recordId && result.count === 1"
@@ -145,6 +157,7 @@ export let browsecomponent = {
                             <td style="width: 30px"></td>
                             <td style="width: 30px"></td>
                             <td style="width: 50px"></td>
+                            <td style="width: 60px"></td>
                             <td>{{q}}</td>
                             <td></td>
                         </tr>
@@ -184,6 +197,16 @@ export let browsecomponent = {
                                 </div>
                             </td>
                             <td>{{idx + 4}}</td>
+                            <td>
+                                <recordfilecomponent v-if="result.count === 1 && result.recordId && collection === 'bibs' && subtype !== 'speech'" 
+                                                :api_prefix="api_prefix" 
+                                                :record_id="Number(result._id)" 
+                                                :desired_languages="['ar','zh','en','fr','ru','es']" />
+                                <recordfilecomponent v-if="result.count === 1 && result.recordId && subtype === 'speech'"
+                                                :api_prefix="api_prefix"
+                                                :record_id="Number(result._id)"
+                                                :desired_languages="['en','fr','es']" />
+                            </td>
                             <td>
                                 <a
                                     target="_blank"
@@ -594,6 +617,7 @@ export let browsecomponent = {
     },
     components: {
         'readonlyrecord': readonlyrecord,
-        'itemadd': itemaddcomponent
+        'itemadd': itemaddcomponent,
+        'recordfilecomponent': recordfilecomponent
     }
 }
