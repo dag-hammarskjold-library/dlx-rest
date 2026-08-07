@@ -8,7 +8,7 @@ from mongomock import MongoClient as MockClient
 from flask_cors import CORS
 from dlx import DB
 from dlx_rest.config import Config
-import certifi, sentry_sdk
+import certifi
 import mimetypes
 import os
 
@@ -32,26 +32,6 @@ def serve_mjs(filename):
                                  filename,
                                  mimetype='application/javascript')
     return send_from_directory(os.path.join(app.root_path, 'static', 'js'), filename)
-
-try: 
-    sentry_dsn = Config.sentry_dsn
-    # Sentry setup
-    sentry_sdk.init(
-        dsn=sentry_dsn,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100%
-        # of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=1.0,
-    )
-
-    @app.context_processor
-    def inject_sentry_url():
-        return dict(sentry_js_url = Config.sentry_js_url)
-except AttributeError:
-    pass
 
 
 # dlx connect
