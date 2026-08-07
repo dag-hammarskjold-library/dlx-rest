@@ -8,7 +8,7 @@ from mongomock import MongoClient as MockClient
 from flask_cors import CORS
 from dlx import DB
 from dlx_rest.config import Config
-import certifi, sentry_sdk
+import certifi
 import mimetypes
 import os
 
