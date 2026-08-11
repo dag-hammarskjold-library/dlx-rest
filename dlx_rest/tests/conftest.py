@@ -3,6 +3,9 @@ import os
 os.environ['DLX_REST_TESTING'] = 'True'
 import pytest 
 import io, json, re
+import logging
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 from moto import mock_aws
 from dlx import DB
@@ -12,7 +15,7 @@ from dlx_rest.config import Config
 
 # Move fixtures here so they can be reused in all tests.
 
-print(Config.connect_string)
+logger.debug('Mongo connect string: %s', Config.connect_string)
 
 assert Config.TESTING == True
 assert Config.connect_string == 'mongomock://localhost'
@@ -229,13 +232,28 @@ def users(roles, default_users):
     for utype in default_users:
         if utype not in ["invalid","new"]:
             u = default_users[utype]
-            user = User(email = u['email'], username=u['username'], shortname=u["shortname"], created=datetime.now())
-            user.set_password(u['password'])
-            try:
-                user.add_role_by_name(u['role'])
-            except KeyError:
-                pass
-            user.save()
+            # Create or update existing user to avoid DuplicateKey errors when
+            # tests run across modules without resetting the mongomock DB.
+            existing = User.objects(email=u['email']).first()
+            if existing:
+                existing.username = u['username']
+                existing.shortname = u['shortname']
+                existing.set_password(u['password'])
+                try:
+                    if 'role' in u:
+                        existing.add_role_by_name(u['role'])
+                except KeyError:
+                    pass
+                existing.save()
+            else:
+                user = User(email = u['email'], username=u['username'], shortname=u["shortname"], created=datetime.now())
+                user.set_password(u['password'])
+                try:
+                    if 'role' in u:
+                        user.add_role_by_name(u['role'])
+                except KeyError:
+                    pass
+                user.save()
 
     return User
 

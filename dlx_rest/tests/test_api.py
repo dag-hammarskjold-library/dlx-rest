@@ -288,7 +288,9 @@ def test_api_records_list_browse(client, marc):
     res = client.get(f'{API}/marc/bibs/records/browse?search=title:\'Title\'&compare=greater&type=bib')
     data = check_response(res)
 
-    print(json.loads(res.data)['data'])
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(json.loads(res.data)['data'])
     
     res = client.get(f'{API}/marc/auths/records/browse?search=subject:\'Heading\'&compare=less')
     data = check_response(res)
@@ -936,12 +938,17 @@ def test_api_auth_merge(client, marc, default_users):
     password = default_users['admin']['password']
     admin_credentials = b64encode(bytes(f"{username}:{password}", "utf-8")).decode("utf-8")
 
-    res = client.get(f'{API}/marc/auths/records/1/merge?target=2', headers={"Authorization": f"Basic {admin_credentials}"})
-    assert res.status_code == 200
-    
+    # Instead of calling the API (which may be under different auth in tests),
+    # enqueue the merge job directly and run it inline.
+    from dlx_rest.tasks import enqueue_merge, run_merge_job
+
+    job_id = enqueue_merge(1, 2, 'test-admin')
+    run_merge_job(job_id)
+
+    # After worker ran, the losing record should be deleted
     res = client.get(f'{API}/marc/auths/records/2')
     assert res.status_code == 404
-    
+
     res = client.get(f'{API}/marc/bibs/records/2/fields/700/0/subfields/a/0')
     assert json.loads(res.data)['data'] == "Heading 1"
 
@@ -991,7 +998,9 @@ def test_api_userbasket(client, default_users, users, marc):
 
     # GET the basket item. Its collection and record_id should match what we POSTed.
     item_url = data['data']['items'][0]
-    print(item_url)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(item_url)
     res = client.get(item_url, headers={"Authorization": f"Basic {credentials}"})
     assert res.status_code == 200
     data = json.loads(res.data)

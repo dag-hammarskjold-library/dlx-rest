@@ -27,18 +27,21 @@ from dlx.util import AsciiMap
 # internal
 from dlx_rest.config import Config
 from dlx_rest.app import app, login_manager
-from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist
+from dlx_rest.models import RecordView, User, Basket, requires_permission, register_permission, DoesNotExist, WorkerSupervisor
 from dlx_rest.api.utils import ClassDispatch, URL, ApiResponse, Schemas, abort, brief_bib, brief_auth, brief_speech, item_locked, has_permission, get_record_files
 from dlx_rest.routes import login, search_files
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Init
 try:
     # Todo: update the connection if/when there is a server with other than default configs
     valkey.Valkey().ping()
     DB.cache = valkey.Valkey()
-    print('Connected to local Valkey server')
+    logger.info('Connected to local Valkey server')
 except valkey.exceptions.ConnectionError:
-    print('Warning: unable to connect to a Valkey server. Using private cache.')
+    logger.warning('Warning: unable to connect to a Valkey server. Using private cache.')
 except Exception as e:
     raise e
 
@@ -1660,7 +1663,7 @@ class RecordMerge(Resource):
     @ns.doc(description='Auth merge the target authority record in to this one')
     @login_required
     def get(self, record_id):
-        start_time = time.time()
+        # Enqueue an async merge job and return the job id for status polling
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
         gaining = Auth.from_id(record_id) or abort(404)
@@ -1668,18 +1671,32 @@ class RecordMerge(Resource):
         losing_id = int(losing_id)
         losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
 
-        # To do: add a permssion for mergeRecord?
+        # Permission check
         if not(has_permission(user, "mergeAuthority", losing, "auths")):
             abort(403, "User does not have permission to merge authorities.")
-        
+
         if losing.heading_field.tag != gaining.heading_field.tag:
             abort(409, "Auth records not of the same type")
 
-        # todo: excute this in a Lambda function
-        gaining.merge(user=user.username if user else 'admin', losing_record=losing)
+        # Enqueue the merge job using RQ
+        try:
+            from dlx_rest.tasks import enqueue_merge
+            job_id = enqueue_merge(gaining.id, losing.id, user.username if user else 'admin')
+        except Exception as err:
+            abort(500, f"Failed to enqueue merge job: {err}")
 
-        # todo: update response message when merge is async
-        return jsonify({'message': f'Merge complete'})
+        status_url = URL('api_merge_job_status', job_id=job_id).to_str()
+
+        links = {
+            '_self': URL('api_record', collection='auths', record_id=record_id).to_str(),
+            'status': status_url
+        }
+
+        meta = {'name': 'api_merge_enqueue', 'returns': URL('api_schema', schema_name='api.merge_job').to_str()}
+
+        data = {'message': 'Merge queued', 'job_id': job_id, 'status_url': status_url}
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify(), 202
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
@@ -1710,6 +1727,117 @@ class AuthUseCount(Resource):
         meta = {'name': 'api_auth_use_count', 'returns': URL('api_schema', schema_name='api.count').to_str()}
         
         return ApiResponse(links=links, meta=meta, data=count).jsonify()
+
+# Merge job status endpoint
+@ns.route('/merge_jobs/<string:job_id>')
+@ns.param('job_id', 'The merge job identifier')
+class MergeJobStatus(Resource):
+    def get(self, job_id):
+        from dlx_rest.models import MergeJob
+
+        job = MergeJob.objects(job_id=job_id).first() or abort(404)
+
+        links = {
+            '_self': URL('api_merge_job_status', job_id=job_id).to_str()
+        }
+
+        meta = {'name': 'api_merge_job_status', 'returns': URL('api_schema', schema_name='api.merge_job').to_str()}
+
+        data = {
+            'job_id': job.job_id,
+            'gaining': job.gaining,
+            'losing': job.losing,
+            'user': job.user,
+            'status': job.status,
+            'progress': job.progress,
+            'message': job.message,
+            'error': job.error,
+            'created': job.created,
+            'started': job.started,
+            'finished': job.finished
+        }
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
+
+
+@ns.route('/admin/merge_jobs')
+@ns.doc(security='apikey')
+class AdminMergeJobs(Resource):
+    @ns.doc(description='List merge jobs (admin only)')
+    @requires_permission('mergeAuthority')
+    def get(self):
+        from dlx_rest.models import MergeJob
+
+        limit = int(request.args.get('limit', 50))
+        jobs = MergeJob.objects.order_by('-created')[:limit]
+
+        processed = []
+        for j in jobs:
+            processed.append({
+                'job_id': j.job_id,
+                'gaining': j.gaining,
+                'losing': j.losing,
+                'user': j.user,
+                'status': j.status,
+                'progress': j.progress,
+                'message': j.message,
+                'error': j.error,
+                'created': j.created,
+                'started': j.started,
+                'finished': j.finished
+            })
+
+        links = {'_self': URL('api_admin_merge_jobs').to_str()}
+        meta = {'name': 'api_admin_merge_jobs', 'returns': URL('api_schema', schema_name='api.merge_jobs').to_str()}
+
+        return ApiResponse(links=links, meta=meta, data=processed).jsonify()
+
+
+@ns.route('/admin/merge_logs')
+@ns.doc(security='apikey')
+class AdminMergeLogs(Resource):
+    @ns.doc(description='Return recent merge_log entries (admin only)')
+    @requires_permission('mergeAuthority')
+    def get(self):
+        limit = int(request.args.get('limit', 200))
+        # Access the raw merge_log collection written by dlx library
+        logs = list(DB.handle['merge_log'].find().sort('time', -1).limit(limit))
+
+        # Convert ObjectId/time to serializable
+        processed = []
+        for l in logs:
+            l['_id'] = str(l.get('_id'))
+            # time should already be serializable as datetime
+            processed.append(l)
+
+        links = {'_self': URL('api_admin_merge_logs').to_str()}
+        meta = {'name': 'api_admin_merge_logs', 'returns': URL('api_schema', schema_name='api.merge_log').to_str()}
+
+        return ApiResponse(links=links, meta=meta, data=processed).jsonify()
+
+
+@ns.route('/admin/worker_status')
+@ns.doc(security='apikey')
+class AdminWorkerStatus(Resource):
+    @ns.doc(description='Return worker supervisor status (admin only)')
+    @requires_permission('mergeAuthority')
+    def get(self):
+        sup = WorkerSupervisor.objects(name='merge_worker_supervisor').first()
+        if not sup:
+            abort(404, 'Supervisor not found')
+
+        data = {
+            'name': sup.name,
+            'pid': sup.pid,
+            'status': sup.status,
+            'started': sup.started,
+            'last_heartbeat': sup.last_heartbeat
+        }
+
+        links = {'_self': URL('api_admin_worker_status').to_str()}
+        meta = {'name': 'api_admin_worker_status', 'returns': URL('api_schema', schema_name='api.worker_status').to_str()}
+
+        return ApiResponse(links=links, meta=meta, data=data).jsonify()
     
 # History
 @ns.route('/marc/<string:collection>/records/<int:record_id>/history')

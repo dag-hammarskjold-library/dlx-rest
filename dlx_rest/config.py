@@ -1,7 +1,10 @@
 import os
+import logging
 #from dlx import DB
 from dlx.marc import Bib, Auth
 import boto3
+
+logger = logging.getLogger(__name__)
 
 class Config(object):
     DEBUG = False
@@ -91,6 +94,6 @@ class Config(object):
     MAX_QUERY_TIME = 20000
     
     if "@" in connect_string:
-        print(f'Loading {environment}: {connect_string.split("@")[-1].split("/")[0]}')
+        logger.info('Loading %s: %s', environment, connect_string.split("@")[-1].split("/")[0])
     else:
-        print(f'Loading {environment}')
+        logger.info('Loading %s', environment)

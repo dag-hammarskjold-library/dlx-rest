@@ -261,6 +261,40 @@ class SyncLog(Document):
     }
 
 
+class MergeJob(Document):
+    """Tracks background merge jobs for authorities."""
+    job_id = StringField(required=True, primary_key=True)
+    gaining = IntField(required=True)
+    losing = IntField(required=True)
+    user = StringField()
+    status = StringField(choices=['queued', 'running', 'completed', 'failed'], default='queued')
+    progress = IntField(default=0)
+    message = StringField()
+    error = StringField()
+    created = DateTimeField(default=datetime.datetime.utcnow)
+    started = DateTimeField()
+    finished = DateTimeField()
+
+    meta = {
+        'collection': 'merge_jobs',
+        'strict': False
+    }
+
+
+class WorkerSupervisor(Document):
+    """Tracks the supervisor process for the background worker."""
+    name = StringField(primary_key=True, default='merge_worker_supervisor')
+    pid = IntField()
+    status = StringField(choices=['running', 'stopped', 'restarting'], default='stopped')
+    started = DateTimeField()
+    last_heartbeat = DateTimeField()
+
+    meta = {
+        'collection': 'worker_supervisor',
+        'strict': False
+    }
+
+
 # This still should work for unconstrained permissions, but if we need additional
 # constraints, this will have to change
 def requires_permission(action):

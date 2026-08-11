@@ -9,6 +9,9 @@ import re
 
 from dlx import DB
 from dlx.marc import Auth, Query, Condition, Datafield
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import requests
@@ -283,8 +286,8 @@ def create_user(email, username):
         user = User(email=email, username=username)
         user.set_password(my_password)
         user.save()
-        print(f"User {email} has been created. Password: {my_password}")
-        print("Copy the password from here, because this is the only time it will be displayed.")
+        logger.info("User %s has been created. Password: %s", email, my_password)
+        logger.info("Copy the password from here, because this is the only time it will be displayed.")
     except:
         raise
 
@@ -299,7 +302,7 @@ def make_admin(email):
         user.add_role_by_name('admin')
         user.save()
     except:
-        print("The user doesn't exist or couldn't be saved. You should use the create-user command first.")
+        logger.exception("The user doesn't exist or couldn't be saved. You should use the create-user command first.")
 
 @app.cli.command('init-usernames')
 def init_usernames():
@@ -312,10 +315,10 @@ def init_usernames():
 @app.cli.command('init-roles')
 def init_roles():
     pass
-    print("Collecting existing user roles.")
+    logger.info("Collecting existing user roles.")
     user_roles = []
     for user in User.objects():
-        print(user.email)
+        logger.info(user.email)
         user_role = {'email': user.email, 'roles': []}
         if len(user.roles) > 0:
             for role in user.roles:
@@ -323,7 +326,7 @@ def init_roles():
         user_roles.append(user_role)
 
 
-    print("Dropping Role and Permission collections.")
+    logger.info("Dropping Role and Permission collections.")
     Permission.drop_collection()
     Role.drop_collection()
 
@@ -432,9 +435,9 @@ def create_permission(action, constraint_must=None, constraint_must_not=None):
         if constraint_must_not:
             permission.constraint_must_not = constraint_must_not.split(',')
         permission.save()
-        print(f"Permission {action} has been created.")
+        logger.info("Permission %s has been created.", action)
     except Exception as e:
-        print(f"Error creating permission: {e}")
+        logger.exception("Error creating permission: %s", e)
 
 '''
 This command ensures that all basket items are reflected in the record data.
@@ -456,9 +459,9 @@ def align_baskets():
         except error as e:
             raise e
 
-        print("Aligning basket for", owner)
+        logger.info("Aligning basket for %s", owner)
         for i in b.items:
-            print("\tSetting", i['collection'], i['record_id'])
+            logger.info("\tSetting %s %s", i['collection'], i['record_id'])
             getattr(DB, i['collection']).update_one(
                 {'_id': int(i['record_id'])},
                 {'$set': {'basket': owner}}

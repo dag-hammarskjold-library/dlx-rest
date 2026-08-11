@@ -74,20 +74,24 @@ export let modalmergecomponent = {
      // fetch the data from the api
      let url = this.prefix + "marc/auths/records/" + gaining +"/merge?target=" + losing
 
-     fetch(url, {
-       method: 'GET'
-     })
-       .then(response => {
-          if (!response.ok) {
-          response.json()
-              .then(json => {
-                vm.callChangeStyling(json.message,"d-flex w-100 alert-danger")
-              });
+     fetch(url, { method: 'GET' })
+       .then(response => response.json().then(json => ({ ok: response.ok, json })))
+       .then(({ ok, json }) => {
+          if (!ok) {
+            vm.callChangeStyling(json.message || json.error || 'Merge failed to start', "d-flex w-100 alert-danger")
+            return
           }
-           }
-       )
+
+          // If job was queued, start polling status
+          if (json.job_id && json.status_url) {
+            vm.callChangeStyling(`Merge queued (job ${json.job_id})`, "d-flex w-100 alert-info")
+            pollMergeStatus(json.status_url, vm, gaining, losing)
+          } else {
+            vm.callChangeStyling(json.message || 'Merge started', "d-flex w-100 alert-success")
+          }
+       })
        .catch(error => {
-          vm.callChangeStyling(error.message,"d-flex w-100 alert-danger")
+          vm.callChangeStyling(error.message, "d-flex w-100 alert-danger")
           throw error
        })
 
@@ -103,6 +107,34 @@ export let modalmergecomponent = {
      }, 1000);
    }
    ,
+   
+   pollMergeStatus(statusUrl, vm, gaining, losing) {
+     const check = () => {
+       fetch(statusUrl)
+         .then(res => res.json())
+         .then(resp => {
+           const data = resp.data || resp
+           if (data.status === 'running') {
+             vm.callChangeStyling(`Merge ${losing} -> ${gaining}: ${data.progress || 0}%`, "d-flex w-100 alert-info")
+             setTimeout(check, 2000)
+           } else if (data.status === 'completed') {
+             vm.callChangeStyling(`Merge complete: ${losing} -> ${gaining}`, "d-flex w-100 alert-success")
+           } else if (data.status === 'failed') {
+             vm.callChangeStyling(`Merge failed: ${data.message || data.error}`, "d-flex w-100 alert-danger")
+           } else {
+             // queued or unknown
+             vm.callChangeStyling(`Merge job status: ${data.status}`, "d-flex w-100 alert-secondary")
+             setTimeout(check, 2000)
+           }
+         })
+         .catch(err => {
+           vm.callChangeStyling(`Status check error: ${err.message}`, "d-flex w-100 alert-danger")
+         })
+     }
+
+     check()
+   },
+
    toggleModal(){
      if (multiplemarcrecordcomponent.methods.canDisplay()) {
       if (!this.vm) this.loadRecordId() 

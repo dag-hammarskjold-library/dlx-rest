@@ -11,6 +11,18 @@ from dlx_rest.config import Config
 import certifi, sentry_sdk
 import mimetypes
 import os
+import logging
+import sys
+
+# Configure logging to write to stdout
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+# Avoid adding multiple handlers in case of reloading
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 # Add .mjs MIME type
 mimetypes.add_type('application/javascript', '.mjs')

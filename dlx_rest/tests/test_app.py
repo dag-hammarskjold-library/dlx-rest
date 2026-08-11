@@ -43,7 +43,9 @@ def test_login(client, default_users):
     user = default_users['invalid']
     rv = login(client, user['email'], user['password'])
     assert rv.status_code == 200
-    print(rv.data)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(rv.data)
     #assert b'Invalid username or password' in rv.data
 
 def test_logout(client):
