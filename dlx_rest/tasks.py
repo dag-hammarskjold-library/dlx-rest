@@ -11,9 +11,20 @@ from dlx import DB
 
 logger = logging.getLogger(__name__)
 
+DB.connect(Config.connect_string, database=Config.dbname)
+
 
 def enqueue_merge(gaining_id: int, losing_id: int, user: str):
     """Create a MergeJob document and return the job_id. A separate worker polls the DB."""
+    # The basis of expected moves should be the total use count of the losing authority
+    # This is calculated by summing usage in both bibs and auths collections
+    expected_moves_count = 0
+    try:
+        for coll in ['bibs', 'auths']:
+            expected_moves_count += DB.handle[coll].count_documents({'xref': losing_id})
+    except Exception as e:
+        logger.error(f"Error calculating expected moves count for merge {losing_id} -> {gaining_id}: {e}")
+
     job_doc = MergeJob(
         job_id=str(datetime.datetime.utcnow().timestamp()).replace('.', ''),
         gaining=gaining_id,
@@ -21,6 +32,10 @@ def enqueue_merge(gaining_id: int, losing_id: int, user: str):
         user=user,
         status='queued',
         progress=0,
+        # We store the count as a list of dummy values or just maintain the count
+        # but MergeJob model expects a list for expected_moves based on previous edits.
+        # Let's use a list of range(expected_moves_count) to represent the count.
+        expected_moves=list(range(expected_moves_count)),
     )
     job_doc.save()
 

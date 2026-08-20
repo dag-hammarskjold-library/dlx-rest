@@ -2,13 +2,18 @@
 
 Run this in a separate process: `python -m dlx_rest.worker` or `python dlx_rest/worker.py`
 """
+import certifi
 import time
 import logging
+from mongoengine import connect, disconnect
+from mongomock import MongoClient as MockClient
 from pymongo import ReturnDocument
 from dlx_rest.models import MergeJob
 from dlx_rest.tasks import run_merge_job
+from dlx_rest.config import Config
 
 logger = logging.getLogger(__name__)
+
 
 
 def claim_and_run_one():
@@ -52,5 +57,14 @@ def run_loop(sleep_seconds=2):
 
 
 if __name__ == '__main__':
+    if Config.ssl:
+        connect(host=Config.connect_string, db=Config.dbname, tlsCAFile=certifi.where())
+    else:
+        if 'mongomock://' in Config.connect_string:
+            # mongoengine noew requires connect to mock db using `mongo_client_class`
+            connect('testing', host='mongodb://localhost', mongo_client_class=MockClient)
+        else:
+            connect(host=Config.connect_string, db=Config.dbname)
+            
     logging.basicConfig(level=logging.INFO)
     run_loop()

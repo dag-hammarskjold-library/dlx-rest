@@ -1,0 +1,17 @@
+{% extends 'admin/base.html' %} 
+{% block admin %}
+    <div id="app">
+        <merge-admin prefix="{{ api_prefix }}"></merge-admin>
+    </div>
+
+    <script type="module">
+        import { mergeadmincomponent } from '/static/js/components/merge_admin.js';
+        
+        new Vue({
+            el: '#app',
+            components: {
+                'merge-admin': mergeadmincomponent
+            }
+        });
+    </script>
+{% endblock %}

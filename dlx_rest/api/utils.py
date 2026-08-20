@@ -71,7 +71,7 @@ class ApiResponse():
 
     def jsonify(self):
         return jsonify(
-            {
+        {
                 '_links': self.links,
                 '_meta': self.meta,
                 'data': self.data

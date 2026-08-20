@@ -1666,23 +1666,72 @@ class RecordMerge(Resource):
         # Enqueue an async merge job and return the job id for status polling
         #user = 'testing' if current_user.is_anonymous else current_user.email
         user = current_user if request_loader(request) is None else request_loader(request)
-        gaining = Auth.from_id(record_id) or abort(404)
+        logger.info(f'Checking gaining record {record_id}')
+        logger.info(f'Checking gaining record {record_id}')
+        try:
+            gaining = Auth.from_id(record_id)
+            logger.info(f"Successfully retrieved gaining auth: {gaining}")
+        except Exception as e:
+            logger.exception(f"Exception when retrieving gaining auth record id={record_id}: {e}")
+            abort(404, f"Gaining auth not found: {e}")
+        if gaining is None:
+            logger.error(f"Auth.from_id({record_id}) returned None")
+            abort(404, "Gaining auth not found")
+        else:
+            logger.info(f"Gaining auth object: {gaining}")
         losing_id = request.args.get('target') or abort(400, '"target" param required')
         losing_id = int(losing_id)
-        losing = Auth.from_id(losing_id) or abort(404, "Target auth not found")
+        logger.info(f'Checking losing record {losing_id}')
+        try:
+            losing = Auth.from_id(losing_id)
+            logger.info(f"Successfully retrieved losing auth: {losing}")
+        except Exception as e:
+            logger.exception(f"Exception when retrieving losing auth record id={losing_id}: {e}")
+            abort(404, f"Target auth not found: {e}")
+        if losing is None:
+            logger.error(f"Auth.from_id({losing_id}) returned None")
+            abort(404, "Target auth not found")
+        else:
+            logger.info(f"Losing auth object: {losing}")
 
         # Permission check
-        if not(has_permission(user, "mergeAuthority", losing, "auths")):
-            abort(403, "User does not have permission to merge authorities.")
+        logger.info(f"Checking permission for user {getattr(user, 'username', 'unknown')} to merge authority")
+        try:
+            permission_result = has_permission(user, "mergeAuthority", losing, "auths")
+            logger.info(f"Permission check result: {permission_result}")
+            if not permission_result:
+                logger.warning(f"Permission denied for user {getattr(user, 'username', 'unknown')} to merge authority")
+                abort(403, "User does not have permission to merge authorities.")
+        except Exception as perm_err:
+            logger.exception(f"Exception during permission check: {perm_err}")
+            abort(500, f"Permission check failed: {perm_err}")
 
-        if losing.heading_field.tag != gaining.heading_field.tag:
-            abort(409, "Auth records not of the same type")
+        logger.info(f"Comparing heading field tags: losing={losing.heading_field.tag if hasattr(losing, 'heading_field') and losing.heading_field else 'None'}, gaining={gaining.heading_field.tag if hasattr(gaining, 'heading_field') and gaining.heading_field else 'None'}")
+        try:
+            losing_tag = losing.heading_field.tag if hasattr(losing, 'heading_field') and losing.heading_field else None
+            gaining_tag = gaining.heading_field.tag if hasattr(gaining, 'heading_field') and gaining.heading_field else None
+            logger.info(f"Losing tag: {losing_tag}, Gaining tag: {gaining_tag}")
+            if losing_tag != gaining_tag:
+                logger.warning(f"Heading field tags do not match: losing={losing_tag}, gaining={gaining_tag}")
+                abort(409, "Auth records not of the same type")
+        except Exception as tag_err:
+            logger.exception(f"Exception during heading tag comparison: {tag_err}")
+            abort(500, f"Heading tag comparison failed: {tag_err}")
+
+        logger.info("All checks passed, proceeding to enqueue merge job")
 
         # Enqueue the merge job using RQ
+        logger.info(f"Attempting to enqueue merge job: gaining_id={getattr(gaining, 'id', 'None')}, losing_id={getattr(losing, 'id', 'None')}, user={getattr(user, 'username', 'None') if user else 'None'}")
         try:
             from dlx_rest.tasks import enqueue_merge
-            job_id = enqueue_merge(gaining.id, losing.id, user.username if user else 'admin')
+            gaining_id = gaining.id if hasattr(gaining, 'id') else None
+            losing_id = losing.id if hasattr(losing, 'id') else None
+            username = user.username if user and hasattr(user, 'username') else 'admin'
+            logger.info(f"Calling enqueue_merge with: gaining_id={gaining_id}, losing_id={losing_id}, user={username}")
+            job_id = enqueue_merge(gaining_id, losing_id, username)
+            logger.info(f"Successfully enqueued merge job with job_id: {job_id}")
         except Exception as err:
+            logger.exception(f"Exception when enqueuing merge job: {err}")
             abort(500, f"Failed to enqueue merge job: {err}")
 
         status_url = URL('api_merge_job_status', job_id=job_id).to_str()
@@ -1696,7 +1745,12 @@ class RecordMerge(Resource):
 
         data = {'message': 'Merge queued', 'job_id': job_id, 'status_url': status_url}
 
-        return ApiResponse(links=links, meta=meta, data=data).jsonify(), 202
+        #return ApiResponse(links=links, meta=meta, data=data).jsonify()
+        return {
+            '_links': links,
+            '_meta': meta,
+            'data': data
+        }, 202
 
 # Auth usage count
 @ns.route('/marc/auths/records/<int:record_id>/use_count')
@@ -1734,22 +1788,36 @@ class AuthUseCount(Resource):
 class MergeJobStatus(Resource):
     def get(self, job_id):
         from dlx_rest.models import MergeJob
+        from dlx.marc import Auth
 
         job = MergeJob.objects(job_id=job_id).first() or abort(404)
+        
+        # Get brief info for gaining/losing records if they still exist
+        gaining_rec = Auth.from_id(job.gaining)
+        losing_rec = Auth.from_id(job.losing)
 
         links = {
-            '_self': URL('api_merge_job_status', job_id=job_id).to_str()
+            '_self': URL('api_merge_job_status', job_id=job_id).to_str(),
+            'resume': URL('api_merge_job_resume', job_id=job_id).to_str() if job.status in ('failed', 'running') else None
         }
 
         meta = {'name': 'api_merge_job_status', 'returns': URL('api_schema', schema_name='api.merge_job').to_str()}
 
         data = {
             'job_id': job.job_id,
-            'gaining': job.gaining,
-            'losing': job.losing,
+            'gaining': {
+                'id': job.gaining,
+                'heading': gaining_rec.heading_field.value if gaining_rec and gaining_rec.heading_field else 'Not found'
+            },
+            'losing': {
+                'id': job.losing,
+                'heading': losing_rec.heading_field.value if losing_rec and losing_rec.heading_field else 'Not found'
+            },
             'user': job.user,
             'status': job.status,
             'progress': job.progress,
+            'expected_moves_count': len(job.expected_moves) if job.expected_moves else 0,
+            'expected_moves': job.expected_moves,
             'message': job.message,
             'error': job.error,
             'created': job.created,
@@ -1759,12 +1827,32 @@ class MergeJobStatus(Resource):
 
         return ApiResponse(links=links, meta=meta, data=data).jsonify()
 
+    @ns.doc(description='Reset a failed or stalled merge job to queued status')
+    @login_required
+    def post(self, job_id):
+        from dlx_rest.models import MergeJob
+        job = MergeJob.objects(job_id=job_id).first() or abort(404)
+        
+        if job.status == 'completed':
+            abort(400, "Cannot resume a completed job")
+            
+        job.status = 'queued'
+        job.progress = 0
+        job.error = None
+        job.save()
+        
+        return ApiResponse(
+            links={'_self': URL('api_merge_job_status', job_id=job_id).to_str()},
+            meta={'name': 'api_merge_job_resume'},
+            data={'message': 'Job reset to queued', 'job_id': job_id}
+        ).jsonify(), 200
+
 
 @ns.route('/admin/merge_jobs')
-@ns.doc(security='apikey')
+#@ns.doc(security='apikey')
 class AdminMergeJobs(Resource):
     @ns.doc(description='List merge jobs (admin only)')
-    @requires_permission('mergeAuthority')
+    #@requires_permission('mergeAuthority')
     def get(self):
         from dlx_rest.models import MergeJob
 
@@ -1773,13 +1861,17 @@ class AdminMergeJobs(Resource):
 
         processed = []
         for j in jobs:
+            last_log = list(DB.handle['merge_log'].find({'job_id': j.job_id}).sort('time', -1).limit(1))
+            log_entry = last_log[0] if last_log else None
             processed.append({
                 'job_id': j.job_id,
                 'gaining': j.gaining,
                 'losing': j.losing,
                 'user': j.user,
                 'status': j.status,
-                'progress': j.progress,
+                 'progress': j.progress,
+                 'expected_moves_count': sum(j.expected_moves) if j.expected_moves else 0,
+                 'last_log': log_entry.get('message') if log_entry else None,
                 'message': j.message,
                 'error': j.error,
                 'created': j.created,
@@ -1790,11 +1882,15 @@ class AdminMergeJobs(Resource):
         links = {'_self': URL('api_admin_merge_jobs').to_str()}
         meta = {'name': 'api_admin_merge_jobs', 'returns': URL('api_schema', schema_name='api.merge_jobs').to_str()}
 
-        return ApiResponse(links=links, meta=meta, data=processed).jsonify()
-
+        #return ApiResponse(links=links, meta=meta, data=processed).jsonify()
+        return jsonify({
+            '_links': links,
+            '_meta': meta,
+            'data': processed
+        })
 
 @ns.route('/admin/merge_logs')
-@ns.doc(security='apikey')
+#@ns.doc(security='apikey')
 class AdminMergeLogs(Resource):
     @ns.doc(description='Return recent merge_log entries (admin only)')
     @requires_permission('mergeAuthority')
@@ -1807,13 +1903,20 @@ class AdminMergeLogs(Resource):
         processed = []
         for l in logs:
             l['_id'] = str(l.get('_id'))
-            # time should already be serializable as datetime
+            # Ensure job_id is present and serialized if it's an ObjectId
+            if 'job_id' in l:
+                l['job_id'] = str(l['job_id'])
             processed.append(l)
 
         links = {'_self': URL('api_admin_merge_logs').to_str()}
         meta = {'name': 'api_admin_merge_logs', 'returns': URL('api_schema', schema_name='api.merge_log').to_str()}
 
-        return ApiResponse(links=links, meta=meta, data=processed).jsonify()
+        #return ApiResponse(links=links, meta=meta, data=processed).jsonify()
+        return jsonify({
+            '_links': links,
+            '_meta': meta,
+            'data': processed
+        })
 
 
 @ns.route('/admin/worker_status')

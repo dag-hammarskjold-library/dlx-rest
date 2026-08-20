@@ -134,8 +134,14 @@ def logout():
     return redirect(url_for('login'))
 
 
-# Admin section
-@app.route('/admin')
+@app.route('/admin/merge_mgmt')
+@login_required
+@requires_permission('readAdmin')
+def admin_merge_mgmt():
+    api_prefix = url_for('doc', _external=True)
+    return render_template('admin/merge_mgmt.html', title="Merge Management", api_prefix=api_prefix)
+
+@app.route('/admin/sync_log')
 @login_required
 @requires_permission('readAdmin')
 def admin_index():

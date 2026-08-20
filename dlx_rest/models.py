@@ -271,6 +271,7 @@ class MergeJob(Document):
     progress = IntField(default=0)
     message = StringField()
     error = StringField()
+    expected_moves = ListField(IntField())
     created = DateTimeField(default=datetime.datetime.utcnow)
     started = DateTimeField()
     finished = DateTimeField()
