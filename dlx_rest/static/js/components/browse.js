@@ -474,7 +474,7 @@ export let browsecomponent = {
                 // For auths, fetch see/seeAlso
                 if (this.collection === "auths" && recordId) {
                     const jmarc = await Jmarc.get(this.collection, recordId);
-                    let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0]?.subfields.map(x => x.value).join(" ") || "";
+                    let heading = jmarc.fields.filter(x => x.tag.match(/^1/))[0]?.subfields.filter(sf => sf.code !== '9').map(x => x.value).join(" ") || "";
                     resultObj.see = heading === resultObj.value ? "" : heading;
                     resultObj.seeAlso = jmarc.fields.filter(x => x.tag.match(/^5/))
                         .map(x => x.subfields.filter(sf => sf.code === "a").map(sf => sf.value))
