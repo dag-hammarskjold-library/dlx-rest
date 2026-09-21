@@ -3455,6 +3455,90 @@ function selectAuthority(component, subfield, choice) {
     });
 }
 
+const agendaLookupCachePrefix = "dlx-rest:agenda-lookup:";
+
+function agendaLookupCacheKey(field, value) {
+    const sourceTag = Jmarc.authMap[field.parentRecord.getVirtualCollection()][field.tag].a;
+    return `${agendaLookupCachePrefix}${Jmarc.apiUrl}${sourceTag}:${value}`;
+}
+
+function agendaLookupField(field, value) {
+    const sourceMap = Jmarc.authMap[field.parentRecord.getVirtualCollection()][field.tag];
+    const sourceTag = sourceMap.a;
+    const record = new Jmarc("auths");
+    const lookupField = record.createField(sourceTag);
+    lookupField.createSubfield("a").value = value;
+    return lookupField;
+}
+
+function deserializeAgendaChoices(field, choices) {
+    return choices.map(choiceData => {
+        const record = new Jmarc(field.parentRecord.collection);
+        const choice = record.createField(field.tag);
+        choice.indicators = choiceData.indicators;
+        choiceData.subfields.forEach(subfieldData => {
+            const subfield = choice.createSubfield(subfieldData.code);
+            subfield.value = subfieldData.value;
+            subfield.xref = subfieldData.xref;
+        });
+        choice.lookupDisambiguator = choiceData.lookupDisambiguator;
+        return choice;
+    });
+}
+
+async function agendaLookupChoices(field) {
+    const agendaSubfield = field.getSubfield("a");
+    const agendaValue = agendaSubfield && agendaSubfield.value.trim();
+
+    if (!agendaValue) {
+        return field.lookup();
+    }
+
+    const cacheKey = agendaLookupCacheKey(field, agendaValue);
+    try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            return deserializeAgendaChoices(field, JSON.parse(cached));
+        }
+    } catch (error) {
+    }
+
+    const lookupField = agendaLookupField(field, agendaValue);
+    const choices = [];
+    const pageSize = 1000;
+    let start = 1;
+
+    while (true) {
+        const page = await lookupField.lookup(start, pageSize, true);
+        choices.push(...page);
+        if (page.length < pageSize) {
+            break;
+        }
+        start += pageSize;
+    }
+
+    try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(choices.map(choice => ({
+            indicators: choice.indicators,
+            subfields: choice.subfields.map(subfield => subfield.compile()),
+            lookupDisambiguator: choice.lookupDisambiguator
+        }))));
+    } catch (error) {
+    }
+
+    return choices;
+}
+
+function filterAgendaChoices(field, choices) {
+    return choices.filter(choice => field.subfields
+        .filter(subfield => subfield.value && subfield.code !== "a")
+        .every(subfield => choice.subfields.some(choiceSubfield =>
+            choiceSubfield.code === subfield.code &&
+            choiceSubfield.value.toLocaleLowerCase().includes(subfield.value.toLocaleLowerCase())
+        ))
+    );
+}
+
 // auth-controlled field keyup event function
 async function keyupAuthLookup(event) {
     //target: subfield value cell
@@ -3586,7 +3670,11 @@ async function keyupAuthLookup(event) {
                 dropdown.id = "typeahead-dropdown";
                 dropdown.innerHTML = "searching...";
             
-                field.lookup().then(choices => {
+                const choicesPromise = field.tag === "991"
+                    ? agendaLookupChoices(field).then(choices => filterAgendaChoices(field, choices))
+                    : field.lookup();
+
+                choicesPromise.then(choices => {
                     if (choices.length == 0) {
                         dropdown.innerHTML = "not found";
                         setTimeout(function () { dropdown.remove() }, 1000)
