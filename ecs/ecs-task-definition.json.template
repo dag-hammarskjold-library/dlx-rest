@@ -2,7 +2,7 @@
   "family": "dlx-rest-nightly-task",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "1024",
+  "cpu": "2048",
   "memory": "4096",
   "executionRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
   "taskRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
@@ -10,33 +10,45 @@
     {
       "name": "dlx-rest-nightly-cache",
       "image": "docker.io/valkey/valkey:latest",
+      "cpu": 512,
+      "portMappings": [],
       "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 6379,
-          "protocol": "tcp"
-        }
+      "command": [
+        "valkey-server",
+        "--replicaof",
+        "no",
+        "one",
+        "--bind",
+        "127.0.0.1",
+        "--protected-mode",
+        "no"
       ],
+      "environment": [],
+      "mountPoints": [],
+      "volumesFrom": [],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/dlx-rest-nightly",
+          "awslogs-create-group": "true",
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
+          "awslogs-stream-prefix": "ecs"
         }
-      }
+      },
+      "systemControls": []
     },
     {
       "name": "dlx-rest-nightly",
       "image": "public.ecr.aws/placeholder/placeholder:latest",
-      "essential": true,
+      "cpu": 1536,
       "portMappings": [
         {
           "containerPort": 5000,
+          "hostPort": 5000,
           "protocol": "tcp"
         }
       ],
+      "essential": true,
       "environment": [
         {
           "name": "FLASK_APP",
@@ -47,21 +59,24 @@
           "value": "True"
         }
       ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/dlx-rest-nightly",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
-        }
-      },
+      "mountPoints": [],
+      "volumesFrom": [],
       "dependsOn": [
         {
           "containerName": "dlx-rest-nightly-cache",
           "condition": "START"
         }
-      ]
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/dlx-rest-nightly",
+          "awslogs-create-group": "true",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "systemControls": []
     }
   ]
 }
