@@ -2688,7 +2688,7 @@ export const validationData = {
             "validIndicators2": [],
             "requiredSubfields": [],
             "validSubfields": ["a","b","c","d"], 
-            "defaultSubfields": ["a","b","c","d"]   // Values carried over from authority...
+            "defaultSubfields": ["a","b","c","d","9"]   // Values carried over from authority...
         },
         "992": {
             "name": "Action date",
