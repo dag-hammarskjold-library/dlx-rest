@@ -3496,37 +3496,49 @@ async function agendaLookupChoices(field) {
 
     const cacheKey = agendaLookupCacheKey(field, agendaValue);
     try {
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-            return deserializeAgendaChoices(field, JSON.parse(cached));
-        }
-    } catch (error) {
+            const cacheTimeout = 3600000; // 1 hour in ms
+            try {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    const now = new Date();
+                    if (now.getTime() - data.timestamp < cacheTimeout) {
+                        return deserializeAgendaChoices(field, data.choices);
+                    }
+                }
+            } catch (error) {
+            }
+            
+            const lookupField = agendaLookupField(field, agendaValue);
+            const choices = [];
+            const pageSize = 1000;
+            let start = 1;
+            
+            while (true) {
+                const page = await lookupField.lookup(start, pageSize, true);
+                choices.push(...page);
+                if (page.length < pageSize) {
+                    break;
+                }
+                start += pageSize;
+            }
+            
+            try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    choices: choices.map(choice => ({
+                        indicators: choice.indicators,
+                        subfields: choice.subfields.map(subfield => subfield.compile()),
+                        lookupDisambiguator: choice.lookupDisambiguator
+                    })),
+                    timestamp: Date.now()
+                }));
+            } catch (error) {
+            }
+            
+            return choices;
+    } catch(error) {
+        
     }
-
-    const lookupField = agendaLookupField(field, agendaValue);
-    const choices = [];
-    const pageSize = 1000;
-    let start = 1;
-
-    while (true) {
-        const page = await lookupField.lookup(start, pageSize, true);
-        choices.push(...page);
-        if (page.length < pageSize) {
-            break;
-        }
-        start += pageSize;
-    }
-
-    try {
-        sessionStorage.setItem(cacheKey, JSON.stringify(choices.map(choice => ({
-            indicators: choice.indicators,
-            subfields: choice.subfields.map(subfield => subfield.compile()),
-            lookupDisambiguator: choice.lookupDisambiguator
-        }))));
-    } catch (error) {
-    }
-
-    return choices;
 }
 
 function filterAgendaChoices(field, choices) {
