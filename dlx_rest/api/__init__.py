@@ -1529,11 +1529,15 @@ class LookupField(Resource):
         codes or abort(400, 'Subfield codes required as the URL query parameters')
         sparams = {}
         conditions_1, conditions_2, conditions_3 = [], [], []
+        tags = [field_tag, '682', '370']
 
         for code in codes:
             val = request.args[code]
             sparams[code] = val
             auth_tag = DlxConfig.authority_source_tag(collection[:-1], field_tag, code)
+
+            if not auth_tag and collection == 'auths' and field_tag.startswith('1'):
+                auth_tag = field_tag
 
             if not auth_tag:
                 continue
@@ -1542,7 +1546,7 @@ class LookupField(Resource):
             # plus 370 so the client can disambiguate matching authorities.
             # see issues #190 and #1628
             # to do: Add this to the dlx configuration
-            tags = [auth_tag, '682', '370']
+            tags = list(dict.fromkeys([auth_tag, '682', '370']))
 
             # exact match
             conditions_1.append(f'{auth_tag}__{code}:\'{val}\'')
@@ -1576,22 +1580,26 @@ class LookupField(Resource):
             conditions_3.append(f'{auth_tag}__{code}:{val}')
 
         querystring = " AND ".join(conditions_1)
+        if not querystring:
+            abort(400, f'No authority source configured for {collection}/{field_tag}')
         query = Query.from_string(querystring)
         proj = dict.fromkeys(tags, 1)
         start = int(request.args.get('start', 1))
+        limit = min(int(request.args.get('limit', 25)), 1000)
+        exact_only = request.args.get('exact') == 'true'
         cln = {'locale': 'en', 'strength': 1, 'numericOrdering': True}
-        auths = list(AuthSet.from_query(query, projection=proj, limit=25, skip=start - 1, sort=([('heading', 1)]), collation=cln))
+        auths = list(AuthSet.from_query(query, projection=proj, limit=limit, skip=start - 1, sort=([('heading', 1)]), collation=cln))
 
-        if len(auths) < 25:
+        if not exact_only and len(auths) < limit:
             querystring = " AND ".join(conditions_2)
             query = Query.from_string(querystring)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
+            more = AuthSet.from_query(query, projection=proj, limit=limit - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
             auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
 
-        if len(auths) < 25:
+        if not exact_only and len(auths) < limit:
             querystring = " AND ".join(conditions_3)
             query = Query.from_string(querystring)
-            more = AuthSet.from_query(query, projection=proj, limit=25 - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
+            more = AuthSet.from_query(query, projection=proj, limit=limit - len(auths), skip=start - 1, sort=([('heading', 1)]), collation=cln)
             auths += list(filter(lambda x: x.id not in map(lambda z: z.id, auths), more))
         
         processed = []
@@ -1606,9 +1614,9 @@ class LookupField(Resource):
             processed.append(new.to_dict())
             
         links = {
-            '_self': URL('api_lookup_field', collection=collection, field_tag=field_tag, start=start, **sparams).to_str(),
-            '_next': URL('api_lookup_field', collection=collection, start=start+25, field_tag=field_tag, **sparams).to_str(),
-            '_prev': URL('api_lookup_field', collection=collection, start=start-25 if (start - 25) > 1 else 1, field_tag=field_tag, **sparams).to_str(),
+            '_self': URL('api_lookup_field', collection=collection, field_tag=field_tag, start=start, limit=limit, **sparams).to_str(),
+            '_next': URL('api_lookup_field', collection=collection, start=start+limit, limit=limit, field_tag=field_tag, **sparams).to_str(),
+            '_prev': URL('api_lookup_field', collection=collection, start=start-limit if (start - limit) > 1 else 1, limit=limit, field_tag=field_tag, **sparams).to_str(),
             'related': {
                 'fields': URL('api_lookup_fields_list', collection=collection).to_str()
             }

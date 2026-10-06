@@ -390,10 +390,11 @@ export class DataField {
 		return str
 	}
 
-	async lookup() {
+	async lookup(start = 1, limit = 25, exact = false) {
 		let collection = this instanceof BibDataField ? "bibs" : "auths";
 		let lookupString = this.subfields.filter(x => x.value).map(x => { return `${encodeURIComponent(x.code)}=${encodeURIComponent(x.value)}` }).join("&");
-		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}`;
+		let exactParameter = exact ? "&exact=true" : "";
+		let url = Jmarc.apiUrl + `marc/${collection}/lookup/${this.tag}?${lookupString}&start=${start}&limit=${limit}${exactParameter}`;
 
 		// determine the lookup type
 		if (["191", "791", "991"].includes(this.tag)) {
