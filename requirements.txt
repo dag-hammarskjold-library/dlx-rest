@@ -18,7 +18,7 @@ rdflib==7.6.0
 py==1.11.0
 pyparsing==3.3.3
 python-ulid==4.0.1
-troposphere==4.10.2
+troposphere==4.11.0
 typing-extensions==4.16.0
 valkey==6.1.1
 WTForms==3.2.2
