@@ -63,6 +63,13 @@ uat_app = DispatcherMiddleware(Flask('dummy_root'), {
     '/uat-editor': app,
 })
 
+# Health Route
+@app.route('/health')
+def app_health():
+    if not DB.connected:
+        return 'Database connection failed', 500
+    return 'OK', 200
+
 # Main app routes
 from dlx_rest.routes import *
 
