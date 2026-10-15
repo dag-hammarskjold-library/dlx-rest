@@ -18,6 +18,18 @@ def test_index(client):
     response = client.get('/')
     assert response.status_code == 302
 
+# Health check
+def test_health(client):
+    response = client.get('/health')
+    assert response.status_code == 200
+    assert b'OK' in response.data
+
+    # Test health check with a failed database connection
+    from dlx_rest.app import DB
+    DB.connected = False
+    response = client.get('/health')
+    assert response.status_code == 500
+
 # User session management
 def login(client, username, password):
     response = client.post('/login', data = {'email': username, 'password': password}, follow_redirects=True)
