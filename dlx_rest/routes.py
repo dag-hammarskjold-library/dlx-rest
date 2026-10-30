@@ -803,7 +803,7 @@ def update_file():
             'languages': langs
         })
     except Exception as e:
-        return jsonify({'updated': False, 'message': f'Error updating file: {str(e)}'}), 400
+        return jsonify({'updated': False, 'message': f'Error updating file'}), 400
 
 @app.route('/import')
 @login_required
