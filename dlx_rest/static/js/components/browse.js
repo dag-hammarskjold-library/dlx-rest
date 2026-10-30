@@ -61,11 +61,11 @@ export let browsecomponent = {
                 <table class="table table-sm table-striped table-hover w-100 prevent-select" v-if="results_after.length > 0 || results_before.length > 0">
                     <thead>
                         <tr>
-                            <th style="width: 30px"></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 30px"></th>
-                            <th style="width: 50px">#</th>
-                            <th style="width: 60px">Files</th>
+                            <th style="width: 1%"></th>
+                            <th style="width: 1%"></th>
+                            <th style="width: 1%"></th>
+                            <th style="width: 1%">#</th>
+                            <th style="width: 5%; min-width: 100px;">Files</th>
                             <th>Value</th>
                             <th>Count</th>
                         </tr>
