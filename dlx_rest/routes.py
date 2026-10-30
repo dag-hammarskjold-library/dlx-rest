@@ -449,6 +449,11 @@ def search_records(coll):
     start = request.args.get('start', 1)
     q = request.args.get('q', '')
 
+    # Limit length to prevent memory exhaustion
+    # What's a reasonable length? Let's try this.
+    if len(q) > 500:
+        return "Query too long", 400
+
     # Compare the old query with the new query; if the new query is different, reset pagination
     # if old_q contains anything at all, it returns a list, so let's make sure we're checking
     # for the first string in the list entry instead of assuming we got a string.
@@ -494,13 +499,27 @@ def search_records(coll):
             direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
-    terms = re.split(' *(AND|OR|NOT) +', q)
+
+    # The regex split is vulnerable to ReDOS attacks, so use Python's string split instead.
+    # We need to test all of our various searches to make sure they still return what we expect
+    terms = q.split()
+
+    # Use a defined list of allowed characters
+    ALLOWED_CHARS_RE = re.compile(r'^[A-Za-z0-9\s]+$')
         
     for term in (filter(None, terms)):
-        if re.search('[:<>]', term) is None and term not in ('AND', 'OR', 'NOT'):
-            if re.match('[A-z]+/', term) and len(terms) == 1:
-                # TODO "looks like symbol" util function
-                q = f'symbol:"{term.upper()}"'
+        # Normalize the term
+        clean_term = term.strip().upper()
+
+        # Skip booleans
+        if clean_term in ('AND', 'OR', 'NOT'):
+            continue
+
+        # Is it a symbol?
+        if ALLOWED_CHARS_RE.match(clean_term) and clean_term.endswith('/'):
+            if len(terms) == 1:
+                # Looks like a symbol, and we've already checked against the allow list
+                q = f'symbol:"{clean_term}"'
 
     search_url = url_for('api_records_list', collection=coll, start=start, limit=limit, sort=sort, direction=direction, search=q, engine=engine, _external=True, format='brief', subtype=subtype)
 
