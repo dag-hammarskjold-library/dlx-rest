@@ -499,12 +499,10 @@ def search_records(coll):
             direction = "desc"
     
     # TODO dlx "query analyzer" to characterize the search string and sort accordingly
-    #terms = re.split(' *(AND|OR|NOT) +', q)
-    # Use a non-ambiguous regex to prevent ReDOS attacks
-    terms = re.split(r'\s+\b(AND|OR|NOT)\b\s+', q)
 
-    # And clean up empty strings from the list
-    terms = [t.strip() for t in terms if t]
+    # The regex split is vulnerable to ReDOS attacks, so use Python's string split instead.
+    # We need to test all of our various searches to make sure they still return what we expect
+    terms = q.split()
 
     # Use a defined list of allowed characters
     ALLOWED_CHARS_RE = re.compile(r'^[A-Za-z0-9\s]+$')
