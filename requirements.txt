@@ -17,7 +17,7 @@ mongoengine==0.29.3
 rdflib==7.6.0
 py==1.11.0
 pyparsing==3.3.3
-python-ulid==4.0.1
+python-ulid==4.1.0
 troposphere==4.11.1
 typing-extensions==4.16.0
 WTForms==3.3.1
