@@ -267,45 +267,63 @@ function createFileObjects() {
     }
 
     fileObjectArray.forEach((file) => {
-    // const fileList = fileOjectArray.map((file) => {
       let fileEntry = document.createElement("tr");
       fileEntry.setAttribute("id", file.id);
-    
-      fileEntry.innerHTML = `
-        <td class="file__filename disabled-text">${file.filename}</td>
-        <td class="file__identifier" contenteditable="true">${file.docSymbol}</td>
-        <td class="align-center">
-           <div>
-              <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
-              <span class="badge rounded-pill ${file.fr.className} file__FR">FR</span>
-              <span class="badge rounded-pill ${file.es.className} file__ES">ES</span>
-              <span class="badge rounded-pill ${file.ar.className} file__AR">AR</span>
-              <span class="badge rounded-pill ${file.zh.className} file__ZH">ZH</span>
-              <span class="badge rounded-pill ${file.ru.className} file__RU">RU</span>
-              <span class="badge rounded-pill ${file.de.className} file__DE">DE</span>
-         </div>
-        </td>
-        <td class="align-center">
-            <div class="row">
-              <div class="col">
-                <div class="col form-check col-form-label-sm">
-                  <input class="form-check-input file__action keep-class" type="radio" name="status${file.id}" 
-                        value="keep" ${file.overwrite ? "" : "checked"}>
-                  <label class="form-check-label" for="keep">Keep</label>
-                  </div>
+
+      // Create the columns
+      const tdFilename = document.createElement("td");
+      tdFilename.className = "file__filename disabled-text";
+      tdFilename.textContent = file.filename; // SAFE: textContent does not parse HTML; see https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent#differences_from_innerhtml
+
+      const tdIdentifier = document.createElement("td");
+      tdIdentifier.className = "file__identifier";
+      tdIdentifier.contentEditable = "true";
+      tdIdentifier.textContent = file.docSymbol; // SAFE: textContent does not parse HTML; see https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent#differences_from_innerhtml
+
+      const tdLanguage = document.createElement("td");
+      tdLanguage.className = "align-center";
+
+      // Language Badges
+      tdLanguage.innerHTML = `
+        <div>
+          <span class="badge rounded-pill ${file.en.className} file__EN">EN</span>
+          <span class="badge rounded-pill ${file.fr.className} file__FR">FR</span>
+          <span class="badge rounded-pill ${file.es.className} file__ES">ES</span>
+          <span class="badge rounded-pill ${file.ar.className} file__AR">AR</span>
+          <span class="badge rounded-pill ${file.zh.className} file__ZH">ZH</span>
+          <span class="badge rounded-pill ${file.ru.className} file__RU">RU</span>
+          <span class="badge rounded-pill ${file.de.className} file__DE">DE</span>
+        </div>
+      `;
+
+      const tdAction = document.createElement("td");
+      tdAction.className = "align-center";
+      // Use innerHTML here because the inner content is hardcoded, not from a file
+      tdAction.innerHTML = `
+          <div class="row">
+            <div class="col">
+              <div class="col form-check col-form-label-sm">
+                <input class="form-check-input file__action keep-class" type="radio" name="status${file.id}" 
+                      value="keep" ${file.overwrite ? "" : "checked"}>
+                <label class="form-check-label" for="keep">Keep</label>
                 </div>
-             
-               <div class="col">
-                  <div class="form-check col-form-label-sm">
-                  <input class="form-check-input file__action overwrite-class" type="radio" name="status${file.id}" 
-                     value="overwrite" ${file.overwrite ? "checked" : ""}>
-                  <label class="form-check-label" for="overwrite">Overwrite</label>
-               </div>
+              </div>
+          
+            <div class="col">
+                <div class="form-check col-form-label-sm">
+                <input class="form-check-input file__action overwrite-class" type="radio" name="status${file.id}" 
+                  value="overwrite" ${file.overwrite ? "checked" : ""}>
+                <label class="form-check-label" for="overwrite">Overwrite</label>
             </div>
           </div>
-        </td>
-       <!-- <td id="${file.filename}" title="remove this file"><i class="fa fa-trash mt-2" aria-hidden="true" style="color: #11a745;" onclick="deleteRow()"></i></td> -->
+        </div>
       `;
+
+      // Assemble the row
+      fileEntry.appendChild(tdFilename);
+      fileEntry.appendChild(tdIdentifier);
+      fileEntry.appendChild(tdLanguage);
+      fileEntry.appendChild(tdAction);
 
 
       
