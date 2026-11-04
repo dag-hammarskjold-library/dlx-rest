@@ -21,10 +21,16 @@ from itsdangerous.signer import NoneAlgorithm
 from urllib.parse import urlparse, urljoin
 
 def is_safe_url(request, target):
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and \
-           ref_url.netloc == test_url.netloc
+    if not target:
+        return True
+
+    # Ensure target is a relative path and not a protocol-relative URL
+    if not target.startswith("/") or target.startswith("//"):
+        return False
+
+    # Parse the URL to ensure no netloc or scheme exist
+    parsed = urlparse(target)
+    return parsed.netloc == "" and parsed.scheme == ""
 
 # This is a temporary fix while we evaluate our use/need of auth tokens
 
